@@ -90,8 +90,7 @@ class HttpClient {
     if (options.requiresAuth !== false) {
       const token = tokenStorage.get();
       if (token) {
-        headers[API_CONFIG.authentication.headerName] =
-          `${API_CONFIG.authentication.headerFormat} ${token}`;
+        headers['Authorization'] = `Bearer ${token}`;
       }
     }
 
@@ -142,9 +141,13 @@ class HttpClient {
       return (apiResponse as ApiSuccessResponse<T>).data;
     } else {
       const errorResponse = apiResponse as ApiErrorResponse;
+      // Manejar casos donde error.code o error.message no existen
+      const errorCode = errorResponse?.error?.code || 'API_ERROR';
+      const errorMessage = errorResponse?.error?.message || `Request failed with status ${response.status}`;
+      
       throw new HttpClientError(
-        errorResponse.error.code,
-        errorResponse.error.message,
+        errorCode,
+        errorMessage,
         response.status
       );
     }

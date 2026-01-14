@@ -100,6 +100,31 @@ export interface HealthStatusResponse extends HealthCheckResponse {
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// AI - Gemini Types
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+export interface GeminiRequest {
+  prompt: string;
+  options?: {
+    temperature?: number;
+    maxTokens?: number;
+    topP?: number;
+    topK?: number;
+  };
+}
+
+export interface GeminiResponse {
+  text: string;
+  prompt: string;
+  model: string;
+  usage: {
+    promptTokens: number;
+    completionTokens: number;
+    totalTokens: number;
+  };
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // Error Codes
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -155,5 +180,8 @@ export const API_ENDPOINTS = {
     login: '/auth/login',
     logout: '/auth/logout',
     me: '/auth/me',
+  },
+  ai: {
+    generate: '/gemini/generate',
   },
 } as const;

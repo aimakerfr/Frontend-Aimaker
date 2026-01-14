@@ -13,7 +13,7 @@ import { useAuth } from '../auth/useAuth';
 
 import AuthApp from '@apps/auth/AuthApp';
 import HomeApp from '@apps/home/HomeApp';
-import DashboardApp from '@apps/dashboard/DashboardApp';
+import FabLabApp from '@apps/fablab/FabLabApp';
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // Protected Route Component
@@ -28,11 +28,11 @@ function ProtectedRoute({ children }: ProtectedRouteProps) {
 
   if (isLoading) {
     return (
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'center', 
-        alignItems: 'center', 
-        height: '100vh' 
+      <div style={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        height: '100vh'
       }}>
         <div>Cargando...</div>
       </div>
@@ -59,11 +59,11 @@ function PublicRoute({ children }: PublicRouteProps) {
 
   if (isLoading) {
     return (
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'center', 
-        alignItems: 'center', 
-        height: '100vh' 
+      <div style={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        height: '100vh'
       }}>
         <div>Cargando...</div>
       </div>
@@ -101,7 +101,7 @@ export function AppRouter() {
           path="/dashboard/*"
           element={
             <ProtectedRoute>
-              <DashboardApp />
+              <FabLabApp />
             </ProtectedRoute>
           }
         />
