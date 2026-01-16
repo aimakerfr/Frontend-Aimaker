@@ -1,16 +1,5 @@
 #!/bin/bash
 
-# Build & Deploy wrapper script
-# - Optionally cleans project (when --clean-then-simple or -c is passed)
-# - Runs scripts/vite_build.sh to install deps and build (Vite)
-# - Runs scripts/deploy.sh to deploy ./dist to /data/sites/doitandshare.com/www
-
-# Resolve project root (one level up from this script)
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")"/.. && pwd)"
-cd "$ROOT_DIR" || exit
-
-echo "[build_and_deploy] Starting in: $ROOT_DIR"
-
 # Usage: build_and_deploy.sh [--clean-then-simple|-c]
 #   --clean-then-simple / -c  -> runs 'sudo sh ./scripts/clean.sh' first, then build, then deploy
 

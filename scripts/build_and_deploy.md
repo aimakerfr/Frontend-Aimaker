@@ -12,13 +12,13 @@ Two options, both starting from the repo path on the server:
 ```bash
 # Clean + build + deploy
 cd /data/sites/doitandshare.com/Frontend-Aimaker; \
-sudo ./scripts/build_and_deploy.sh -c
+sudo sh ./scripts/build_and_deploy.sh -c
 ```
 
 ```bash
 # Build + deploy (no clean)
 cd /data/sites/doitandshare.com/Frontend-Aimaker; \
-sudo ./scripts/build_and_deploy.sh
+sudo sh ./scripts/build_and_deploy.sh
 ```
 
 The wrapper will optionally clean (`scripts/clean.sh`), build (`scripts/vite_build_simple.sh`), then deploy (`scripts/deploy.sh`).
