@@ -7,17 +7,21 @@ This is a short guide to build the frontend with Vite and deploy the output to t
 
 ## Quick (recommended)
 
-Two options, both starting from the repo path on the server:
+Run these on the server, from the repo path.
+
+### Option 1: Clean + build + deploy
 
 ```bash
-# Clean + build + deploy
 cd /data/sites/doitandshare.com/Frontend-Aimaker; \
+sudo git pull; \
 sudo sh ./scripts/build_and_deploy.sh -c
 ```
 
+### Option 2: Build + deploy (no clean)
+
 ```bash
-# Build + deploy (no clean)
 cd /data/sites/doitandshare.com/Frontend-Aimaker; \
+sudo git pull; \
 sudo sh ./scripts/build_and_deploy.sh
 ```
 
