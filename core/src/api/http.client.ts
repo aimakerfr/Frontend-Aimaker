@@ -5,7 +5,6 @@
  */
 
 import {
-  API_CONFIG,
   type ApiResponse,
   type ApiSuccessResponse,
   type ApiErrorResponse,

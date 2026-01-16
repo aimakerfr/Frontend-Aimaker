@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Routes, Route, useNavigate } from 'react-router-dom';
 import { useAuth } from '@core/auth/useAuth';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
@@ -10,19 +10,20 @@ import AIContext from './components/AIContext';
 import Library from './views/library/Library';
 import Tools from './components/Tools';
 import AIChat from './components/AIChat';
+import Notebook from '@apps/notebook/Notebook';
 import { View, UserProfile } from './types';
 
 const App: React.FC = () => {
   const navigate = useNavigate();
   const { user: authUser, logout } = useAuth();
-  
+
   // Inicializar tema desde localStorage - por defecto en modo claro
   const [isDark, setIsDark] = useState(() => {
     const saved = localStorage.getItem('aimaker_theme');
     // Solo será dark si explícitamente está guardado como 'dark'
     return saved === 'dark';
   });
-  
+
   const [currentView, setCurrentView] = useState<View>('dashboard');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
@@ -101,8 +102,8 @@ const App: React.FC = () => {
 
       {/* Sidebar - Responsive */}
       <div className={`fixed inset-y-0 left-0 z-10 transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:relative md:translate-x-0 transition-transform duration-200 ease-in-out`}>
-        <Sidebar 
-          currentView={currentView} 
+        <Sidebar
+          currentView={currentView}
           onChangeView={(view) => { setCurrentView(view); setIsSidebarOpen(false); }}
           onLogout={handleLogout}
         />
