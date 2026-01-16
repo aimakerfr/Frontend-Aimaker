@@ -7,7 +7,7 @@ import DashboardHome from './components/DashboardHome';
 import ProfileSection from './components/ProfileSection';
 import Projects from './components/Projects';
 import AIContext from './components/AIContext';
-import Library from './components/Library';
+import Library from './views/library/Library';
 import Tools from './components/Tools';
 import AIChat from './components/AIChat';
 import { View, UserProfile } from './types';

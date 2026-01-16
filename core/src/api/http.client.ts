@@ -79,9 +79,10 @@ class HttpClient {
   /**
    * Build headers for the request
    */
-  private buildHeaders(options: RequestOptions): HeadersInit {
+  private buildHeaders(options: RequestOptions, method: string = 'GET'): HeadersInit {
     const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
+      // Symfony requires application/merge-patch+json for PATCH requests
+      'Content-Type': method === 'PATCH' ? 'application/merge-patch+json' : 'application/json',
       Accept: 'application/json',
       ...options.headers,
     };
@@ -110,10 +111,10 @@ class HttpClient {
   /**
    * Parse API response
    */
-  private async parseResponse<T>(response: Response): Promise<ApiResponse<T>> {
+  private async parseResponse<T>(response: Response): Promise<ApiResponse<T> | T> {
     try {
       const data = await response.json();
-      return data as ApiResponse<T>;
+      return data;
     } catch (error) {
       // If JSON parsing fails, create a generic error response
       return {
@@ -132,25 +133,46 @@ class HttpClient {
   }
 
   /**
+   * Check if response is in ApiResponse format
+   */
+  private isApiResponse(data: any): data is ApiResponse<any> {
+    return data && typeof data === 'object' && 'success' in data && 'data' in data;
+  }
+
+  /**
    * Handle API response and throw on error
    */
   private async handleResponse<T>(response: Response): Promise<T> {
-    const apiResponse = await this.parseResponse<T>(response);
+    const parsedData = await this.parseResponse<T>(response);
 
-    if (apiResponse.success) {
-      return (apiResponse as ApiSuccessResponse<T>).data;
-    } else {
-      const errorResponse = apiResponse as ApiErrorResponse;
-      // Manejar casos donde error.code o error.message no existen
-      const errorCode = errorResponse?.error?.code || 'API_ERROR';
-      const errorMessage = errorResponse?.error?.message || `Request failed with status ${response.status}`;
-      
+    // Check if response is in ApiResponse format
+    if (this.isApiResponse(parsedData)) {
+      if (parsedData.success) {
+        return (parsedData as ApiSuccessResponse<T>).data;
+      } else {
+        const errorResponse = parsedData as ApiErrorResponse;
+        const errorCode = errorResponse?.error?.code || 'API_ERROR';
+        const errorMessage = errorResponse?.error?.message || `Request failed with status ${response.status}`;
+        
+        throw new HttpClientError(
+          errorCode,
+          errorMessage,
+          response.status
+        );
+      }
+    }
+
+    // If not ApiResponse format, return data directly (for endpoints that return raw data)
+    // This handles cases where backend returns arrays or objects directly
+    if (!response.ok) {
       throw new HttpClientError(
-        errorCode,
-        errorMessage,
+        'HTTP_ERROR',
+        `Request failed with status ${response.status}`,
         response.status
       );
     }
+
+    return parsedData as T;
   }
 
   /**
@@ -162,16 +184,24 @@ class HttpClient {
 
     const fetchOptions: RequestInit = {
       method,
-      headers: this.buildHeaders(options),
+      headers: this.buildHeaders(options, method),
     };
 
     // Add body for non-GET requests
     if (options.body && method !== 'GET') {
       fetchOptions.body = JSON.stringify(options.body);
+      console.log('HTTP Client - Request Details:', {
+        method,
+        url,
+        headers: fetchOptions.headers,
+        bodyString: fetchOptions.body,
+        bodyObject: options.body
+      });
     }
 
     try {
       const response = await fetch(url, fetchOptions);
+      console.log(`HTTP Client - Response: ${method} ${url} ${response.status}`);
       return await this.handleResponse<T>(response);
     } catch (error) {
       // If it's already an HttpClientError, rethrow it
