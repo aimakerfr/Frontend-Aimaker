@@ -1,5 +1,4 @@
-#!/usr/bin/env bash
-set -euo pipefail
+#!/bin/bash
 
 # Project cleanup script
 # - Removes node_modules, package-lock.json, and dist (if present)

@@ -1,5 +1,4 @@
-#!/usr/bin/env bash
-set -euo pipefail
+#!/bin/bash
 
 # Deployment script for Vite build output
 # - Copies ./dist to /data/sites/doitandshare.com/www
