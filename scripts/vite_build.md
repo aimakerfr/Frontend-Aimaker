@@ -17,17 +17,32 @@ This document explains how to use `scripts/vite_build.sh` to build the frontend 
 
 ## How to run
 
-From the server/project path (example):
+Use this first snippet from the server/project path (example):
 
 ```bash
-cd /data/sites/doitandshare.com/frontend_project/Frontend-Aimaker;
-sudo bash scripts/vite_build.sh --clean-then-simple
+cd /data/sites/doitandshare.com/frontend_project/Frontend-Aimaker
+sudo git pull
+chmod +x scripts/vite_build.sh
+./scripts/vite_build.sh --clean-then-simple
 ```
 
 From the project root (when you are already inside the repo directory):
 
 ```bash
 bash scripts/vite_build.sh
+```
+
+This script builds with Vite mode `doitandshare`, which makes Vite load the env file `.env.doitandshare`.
+That file sets:
+
+```bash
+VITE_API_URL=https://back.doitandshare.com/
+```
+
+If you run Vite manually, use:
+
+```bash
+npm run build -- --mode doitandshare
 ```
 
 ### Run clean first, then a simple build
@@ -77,9 +92,23 @@ sudo ./scripts/vite_build.sh --clean-then-simple
 
 ## Notes
 - The output directory is configured in `vite.config.ts` (`build.outDir: 'dist'`). If you change it, update the script accordingly.
-- Ensure environment variables for your build (e.g., `VITE_API_URL`) are set before running the script if your project relies on them.
+- The build script now uses `.env.doitandshare` automatically via `--mode doitandshare`, ensuring `VITE_API_URL` is set to `https://back.doitandshare.com/` during the build.
 - The script is idempotent for deployment when `rsync` is available; it will delete files in the target that no longer exist in `dist`.
 
-### What does the simple build do?
-- `scripts/vite_build_simple.sh` assumes dependencies are already installed.
-- It runs `npm run build` and then deploys `./dist` to `/data/sites/doitandshare.com/www` using the same `rsync`/`cp` logic.
+### What does the simple build do now?
+- `scripts/vite_build_simple.sh` installs dependencies and builds only:
+  - Installs dependencies with `npm install`.
+  - Runs `npm run build -- --mode doitandshare` (loading `.env.doitandshare`).
+
+### How is deployment done now?
+- Deployment is handled by a separate script: `scripts/deploy_vite_build.sh`.
+- The wrapper `scripts/vite_build.sh` will:
+  1. Optionally run cleanup when `--clean-then-simple` (or `-c`) is passed.
+  2. Run `scripts/vite_build_simple.sh` to produce `./dist`.
+  3. Run `scripts/deploy_vite_build.sh` to sync `./dist` to `/data/sites/doitandshare.com/www`.
+
+You can also run deployment manually if you have already built:
+
+```bash
+bash scripts/deploy_vite_build.sh
+```
