@@ -1,5 +1,4 @@
-#!/usr/bin/env bash
-set -euo pipefail
+#!/bin/bash
 
 # Vite clean build script
 # - Removes node_modules and package-lock.json
@@ -8,7 +7,7 @@ set -euo pipefail
 
 # Resolve project root (one level up from this script)
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")"/.. && pwd)"
-cd "$ROOT_DIR"
+cd "$ROOT_DIR" || exit
 
 echo "[vite_build] Starting clean build in: $ROOT_DIR"
 
@@ -51,7 +50,7 @@ if command -v rsync >/dev/null 2>&1; then
   rsync -a --delete ./dist/ "$TARGET_DIR"/
 else
   # Fallback to cp; manually remove old contents first to avoid stale files
-  rm -rf "$TARGET_DIR"/*
+  rm -rf "$TARGET_DIR":?/*
   cp -a ./dist/. "$TARGET_DIR"/
 fi
 

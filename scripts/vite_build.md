@@ -20,8 +20,8 @@ This document explains how to use `scripts/vite_build.sh` to build the frontend 
 From the server/project path (example):
 
 ```bash
-cd /data/sites/doitandshare.com/frontend_project
-bash scripts/vite_build.sh
+cd /data/sites/doitandshare.com/frontend_project/Frontend-Aimaker;
+sudo bash scripts/vite_build.sh --clean-then-simple
 ```
 
 From the project root (when you are already inside the repo directory):
