@@ -2,7 +2,7 @@
 
 # Build & Deploy wrapper script
 # - Optionally cleans project (when --clean-then-simple or -c is passed)
-# - Runs scripts/vite_build_simple.sh to install deps and build (Vite)
+# - Runs scripts/vite_build.sh to install deps and build (Vite)
 # - Runs scripts/deploy.sh to deploy ./dist to /data/sites/doitandshare.com/www
 
 # Resolve project root (one level up from this script)
@@ -21,7 +21,7 @@ if [[ "${1:-}" == "--clean-then-simple" || "${1:-}" == "-c" ]]; then
 fi
 
 echo "[build_and_deploy] Running scripts/vite_build_simple.sh (build only)"
-sudo sh ./scripts/vite_build_simple.sh || exit 1
+sudo sh ./scripts/vite_build.sh || exit 1
 
 echo "[build_and_deploy] Running scripts/deploy.sh (deploy)"
 sudo sh ./scripts/deploy.sh || exit 1
