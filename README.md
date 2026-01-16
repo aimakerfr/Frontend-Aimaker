@@ -344,4 +344,4 @@ Cómo usar (VS Code):
 Notas:
 - Vite usa el puerto definido en .env (VITE_PORT) con fallback a 3001 (ver vite.config.ts).
 - Los puertos 3001 y 3300 se reenvían automáticamente desde el contenedor.
-- Para compilar producción: sh scripts/vite_build.sh (salida en ./dist).
+- Para compilar producción: sudo sh scripts/build_and_deploy.sh (salida en ./dist).

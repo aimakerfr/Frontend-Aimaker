@@ -3,7 +3,7 @@
 # Vite simple build script
 # - Assumes deps are already installed
 # - Runs npm run build (Vite build)
-# - Note: Deployment is now handled by scripts/deploy_vite_build.sh
+# - Note: Deployment is now handled by scripts/deploy.sh
 
 # Resolve project root (one level up from this script)
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")"/.. && pwd)"
