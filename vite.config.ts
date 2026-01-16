@@ -8,25 +8,23 @@ export default defineConfig(({ mode }) => {
   const port = Number.isFinite(portFromEnv) && portFromEnv > 0 ? portFromEnv : 3001;
 
   return {
-  plugins: [react()],
-  resolve: {
-    alias: {
-      '@core': path.resolve(__dirname, './core/src'),
-      '@apps': path.resolve(__dirname, './apps'),
+    plugins: [react()],
+    resolve: {
+      alias: {
+        '@core': path.resolve(__dirname, './core/src'),
+        '@apps': path.resolve(__dirname, './apps'),
+      },
     },
-  },
-  build: {
-    outDir: 'dist',
-    emptyOutDir: true,
-  },
-  server: {
-    port,
-    proxy: {
+    build: {
+      outDir: 'dist',
+      emptyOutDir: true,
+    },
+    server: {
+      port,
       '/api': {
         target: process.env.VITE_API_URL || 'http://localhost:8000',
         changeOrigin: true,
       },
     },
-  },
   };
 });
