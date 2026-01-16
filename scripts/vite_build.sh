@@ -15,7 +15,7 @@ fi
 echo "[vite_build_simple] Installing dependencies (npm install) ..."
 npm install
 
-echo "[vite_build_simple] Building with mode 'doitandshare' (npm run build -- --mode doitandshare) ..."
-npm run build -- --mode doitandshare
+echo "[vite_build_simple] Building with mode 'doitandshare' (npm run build:doitandshare) ..."
+npm run build:doitandshare
 
 echo "[vite_build_simple] Build complete. Output available in ./dist"

@@ -171,16 +171,16 @@ export const API_CONFIG = {
 
 export const API_ENDPOINTS = {
   health: {
-    check: '/health/check',
-    status: '/health/status',
+    check: '/api/v1/health/check',
+    status: '/api/v1/health/status',
   },
   auth: {
-    register: '/auth/register',
-    login: '/auth/login',
-    logout: '/auth/logout',
-    me: '/auth/me',
+    register: '/api/v1/auth/register',
+    login: '/api/v1/auth/login',
+    logout: '/api/v1/auth/logout',
+    me: '/api/v1/auth/me',
   },
   ai: {
-    generate: '/gemini/generate',
+    generate: '/api/v1/gemini/generate',
   },
 } as const;

@@ -21,10 +21,6 @@ export default defineConfig(({ mode }) => {
     },
     server: {
       port,
-      '/api': {
-        target: process.env.VITE_API_URL || 'http://localhost:8000',
-        changeOrigin: true,
-      },
     },
   };
 });

@@ -11,7 +11,7 @@ import type {
   UpdateCreationToolRequest 
 } from './creation-tools.types';
 
-const ENDPOINT = '/creation_tools';
+const ENDPOINT = '/api/v1/creation_tools';
 
 /**
  * GET /api/creation_tools

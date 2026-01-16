@@ -78,9 +78,7 @@ class HttpClient {
       throw new Error('VITE_API_URL is not defined');
     }
 
-    this.baseUrl = apiUrl.endsWith('/')
-      ? apiUrl + 'api/v1'
-      : apiUrl + '/api/v1';
+    this.baseUrl = apiUrl;
   }
 
   /**
