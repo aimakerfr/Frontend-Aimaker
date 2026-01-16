@@ -12,13 +12,24 @@ cd "$ROOT_DIR"
 
 echo "[vite_build] Starting clean build in: $ROOT_DIR"
 
+# Usage: vite_build.sh [--clean-then-simple]
+#   --clean-then-simple  -> runs 'sudo sh ./scripts/clean.sh' first, then delegates to vite_build_simple.sh
+
+# If requested, run clean then delegate to simple build script
+if [[ "${1:-}" == "--clean-then-simple" || "${1:-}" == "-c" ]]; then
+  echo "[vite_build] --clean-then-simple flag detected: running cleanup, then simple build..."
+  sudo sh ./scripts/clean.sh
+  echo "[vite_build] Delegating to scripts/vite_build_simple.sh"
+  exec bash ./scripts/vite_build_simple.sh
+fi
+
 if ! command -v npm >/dev/null 2>&1; then
   echo "ERROR: npm is not installed or not in PATH" >&2
   exit 1
 fi
 
 echo "[vite_build] Running cleanup ..."
-sh ./scripts/clean.sh
+sudo sh ./scripts/clean.sh
 
 echo "[vite_build] Installing dependencies (npm install) ..."
 npm install
