@@ -73,7 +73,15 @@ class HttpClient {
   private baseUrl: string;
 
   constructor() {
-    this.baseUrl = API_CONFIG.baseUrl;
+    const apiUrl = import.meta.env.VITE_API_URL;
+
+    if (!apiUrl) {
+      throw new Error('VITE_API_URL is not defined');
+    }
+
+    this.baseUrl = apiUrl.endsWith('/')
+      ? apiUrl + 'api/v1'
+      : apiUrl + '/api/v1';
   }
 
   /**
@@ -153,7 +161,7 @@ class HttpClient {
         const errorResponse = parsedData as ApiErrorResponse;
         const errorCode = errorResponse?.error?.code || 'API_ERROR';
         const errorMessage = errorResponse?.error?.message || `Request failed with status ${response.status}`;
-        
+
         throw new HttpClientError(
           errorCode,
           errorMessage,

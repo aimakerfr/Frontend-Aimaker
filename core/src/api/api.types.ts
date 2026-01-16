@@ -155,7 +155,6 @@ export type ErrorCode =
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 export const API_CONFIG = {
-  baseUrl: '/api/v1',
   version: '1.0.0',
   apiName: 'AI Maker FabLab API',
   authentication: {
