@@ -7,7 +7,7 @@
 
 # Resolve project root (one level up from this script)
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")"/.. && pwd)"
-cd "$ROOT_DIR"
+cd "$ROOT_DIR" || exit
 
 echo "[vite_build_simple] Starting simple build in: $ROOT_DIR"
 

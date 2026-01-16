@@ -1,6 +1,6 @@
-# Vite build & deploy script
+# Build & deploy script (build_and_deploy)
 
-This document explains how to use `scripts/vite_build.sh` to build the frontend with Vite and deploy the output to the web root on the server.
+This document explains how to use `scripts/build_and_deploy.sh` to build the frontend with Vite and deploy the output to the web root on the server.
 
 ## What the script does
 - Cleans the project using `scripts/clean.sh`.
@@ -22,14 +22,14 @@ Use this first snippet from the server/project path (example):
 ```bash
 cd /data/sites/doitandshare.com/frontend_project/Frontend-Aimaker
 sudo git pull
-chmod +x scripts/vite_build.sh
-./scripts/vite_build.sh --clean-then-simple
+chmod +x scripts/build_and_deploy.sh
+./scripts/build_and_deploy.sh --clean-then-simple
 ```
 
 From the project root (when you are already inside the repo directory):
 
 ```bash
-bash scripts/vite_build.sh
+bash scripts/build_and_deploy.sh
 ```
 
 This script builds with Vite mode `doitandshare`, which makes Vite load the env file `.env.doitandshare`.
@@ -47,47 +47,47 @@ npm run build -- --mode doitandshare
 
 ### Run clean first, then a simple build
 
-You can ask `vite_build.sh` to run the cleanup first and then delegate to a simpler build script that does just `npm run build` and deploy:
+You can ask `build_and_deploy.sh` to run the cleanup first and then delegate to a simpler build script that does just `npm run build` and then deploy:
 
 ```bash
-bash scripts/vite_build.sh --clean-then-simple
+bash scripts/build_and_deploy.sh --clean-then-simple
 ```
 
 Shorthand:
 
 ```bash
-bash scripts/vite_build.sh -c
+bash scripts/build_and_deploy.sh -c
 ```
 
 Because the cleanup uses `sudo`, you might need to run the whole command with elevated privileges depending on your environment:
 
 ```bash
-sudo bash scripts/vite_build.sh --clean-then-simple
+sudo bash scripts/build_and_deploy.sh --clean-then-simple
 ```
 
 If you need elevated permissions for the deployment step (writing to `/data/sites/doitandshare.com/www`), run with `sudo`:
 
 ```bash
-sudo bash scripts/vite_build.sh
+sudo bash scripts/build_and_deploy.sh
 ```
 
 Or, make the script executable and run it directly:
 
 ```bash
-chmod +x scripts/vite_build.sh
-./scripts/vite_build.sh
+chmod +x scripts/build_and_deploy.sh
+./scripts/build_and_deploy.sh
 ```
 
 With `sudo`:
 
 ```bash
-sudo ./scripts/vite_build.sh
+sudo ./scripts/build_and_deploy.sh
 ```
 
 Or with the clean-then-simple flag:
 
 ```bash
-sudo ./scripts/vite_build.sh --clean-then-simple
+sudo ./scripts/build_and_deploy.sh --clean-then-simple
 ```
 
 ## Notes
@@ -102,7 +102,7 @@ sudo ./scripts/vite_build.sh --clean-then-simple
 
 ### How is deployment done now?
 - Deployment is handled by a separate script: `scripts/deploy_vite_build.sh`.
-- The wrapper `scripts/vite_build.sh` will:
+- The wrapper `scripts/build_and_deploy.sh` will:
   1. Optionally run cleanup when `--clean-then-simple` (or `-c`) is passed.
   2. Run `scripts/vite_build_simple.sh` to produce `./dist`.
   3. Run `scripts/deploy_vite_build.sh` to sync `./dist` to `/data/sites/doitandshare.com/www`.
