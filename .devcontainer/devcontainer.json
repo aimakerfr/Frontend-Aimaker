@@ -1,0 +1,23 @@
+{
+  "name": "Frontend-Aimaker Dev",
+  "image": "mcr.microsoft.com/devcontainers/javascript-node:20-bookworm",
+  "remoteUser": "node",
+  "updateRemoteUserUID": true,
+  "containerEnv": {
+    "VITE_PORT": "3001"
+  },
+  "forwardPorts": [3001],
+  "portsAttributes": {
+    "3001": { "label": "Vite dev (container)" }
+  },
+  "postCreateCommand": "npm install; npm start",
+  "postStartCommand": "echo 'Dev Container ready. Run: npm start (Vite uses VITE_PORT from .env, default 3001).'",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode"
+      ]
+    }
+  }
+}

@@ -100,25 +100,53 @@ La aplicación estará disponible en `http://localhost:3000`
 
 ### 3. Endpoints de Autenticación
 
-```typescript
-// Registro
+```http
+# Registro
 POST /api/v1/auth/register
-Body: { email, password, name }
-Response: { user, token }
+Content-Type: application/json
 
-// Login
+{
+  "email": "user@example.com",
+  "password": "********",
+  "name": "User Name"
+}
+
+# Respuesta
+{
+  "user": { /* ... */ },
+  "token": "<jwt>"
+}
+
+# Login
 POST /api/v1/auth/login
-Body: { email, password }
-Response: { user, token }
+Content-Type: application/json
 
-// Obtener usuario actual
+{
+  "email": "user@example.com",
+  "password": "********"
+}
+
+# Respuesta
+{
+  "user": { /* ... */ },
+  "token": "<jwt>"
+}
+
+# Obtener usuario actual
 GET /api/v1/auth/me
-Headers: { Authorization: "Bearer {token}" }
-Response: { id, email, name, roles, ... }
+Authorization: Bearer <token>
 
-// Logout
+# Respuesta
+{
+  "id": 1,
+  "email": "user@example.com",
+  "name": "User Name",
+  "roles": ["user"]
+}
+
+# Logout
 POST /api/v1/auth/logout
-Headers: { Authorization: "Bearer {token}" }
+Authorization: Bearer <token>
 ```
 
 ## 🧩 Apps Modulares
@@ -199,7 +227,7 @@ import AuthApp from '@apps/auth/AuthApp';
 ## 🔒 Rutas Protegidas
 
 ### Protected Route
-```typescript
+```tsx
 <ProtectedRoute>
   <DashboardApp />
 </ProtectedRoute>
@@ -209,7 +237,7 @@ import AuthApp from '@apps/auth/AuthApp';
 - Si autenticado → Renderiza la app
 
 ### Public Route
-```typescript
+```tsx
 <PublicRoute>
   <AuthApp />
 </PublicRoute>
@@ -221,7 +249,7 @@ import AuthApp from '@apps/auth/AuthApp';
 ## 📦 Añadir una Nueva App
 
 ### Paso 1: Crear la App
-```typescript
+```tsx
 // apps/nueva-app/NuevaApp.tsx
 export default function NuevaApp() {
   return <div>Nueva App</div>;
@@ -229,7 +257,7 @@ export default function NuevaApp() {
 ```
 
 ### Paso 2: Registrarla en el Router
-```typescript
+```tsx
 // core/src/router/router.tsx
 import NuevaApp from '@apps/nueva-app/NuevaApp';
 
@@ -247,7 +275,7 @@ import NuevaApp from '@apps/nueva-app/NuevaApp';
 
 ```typescript
 export const API_ENDPOINTS = {
-  ...
+  // otros endpoints existentes
   projects: {
     list: '/projects',
     create: '/projects',
@@ -295,3 +323,25 @@ const projects = await httpClient.get(API_ENDPOINTS.projects.list);
 ## 📄 Licencia
 
 Proyecto interno - AI Maker FabLab
+
+
+## 🧰 Dev Containers (VS Code/JetBrains)
+
+Este proyecto incluye una definición de Dev Container para un entorno de desarrollo reproducible.
+
+- Carpeta: .devcontainer/
+- Imagen base: mcr.microsoft.com/devcontainers/javascript-node:20-bookworm (Node 20)
+- Puertos reenviados: 3001 (Vite dentro del contenedor) y 3300
+- Variables: VITE_PORT=3001 por defecto (también se puede definir en .env)
+- Post-create: npm install automático
+
+Cómo usar (VS Code):
+1. Instala la extensión “Dev Containers”.
+2. Abre la carpeta del proyecto.
+3. Pulsa “Reopen in Container”.
+4. Una vez creado el contenedor, ejecuta: npm start (o sh scripts/vite_dev.sh).
+
+Notas:
+- Vite usa el puerto definido en .env (VITE_PORT) con fallback a 3001 (ver vite.config.ts).
+- Los puertos 3001 y 3300 se reenvían automáticamente desde el contenedor.
+- Para compilar producción: sudo sh scripts/build_and_deploy.sh (salida en ./dist).
