@@ -27,3 +27,21 @@ echo "[vite_build] Building (npm run build) ..."
 npm run build
 
 echo "[vite_build] Build complete. Output available in ./dist"
+
+# Deploy build output to target directory
+TARGET_DIR="/data/sites/doitandshare.com/www"
+echo "[vite_build] Deploying ./dist to $TARGET_DIR ..."
+
+# Ensure target directory exists
+mkdir -p "$TARGET_DIR"
+
+if command -v rsync >/dev/null 2>&1; then
+  # Use rsync for efficient sync and to remove stale files
+  rsync -a --delete ./dist/ "$TARGET_DIR"/
+else
+  # Fallback to cp; manually remove old contents first to avoid stale files
+  rm -rf "$TARGET_DIR"/*
+  cp -a ./dist/. "$TARGET_DIR"/
+fi
+
+echo "[vite_build] Deployment finished: $TARGET_DIR"

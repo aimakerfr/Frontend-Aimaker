@@ -6,7 +6,7 @@
   "containerEnv": {
     "VITE_PORT": "3001"
   },
-  "forwardPorts": [3001, 3001],
+  "forwardPorts": [3001],
   "portsAttributes": {
     "3001": { "label": "Vite dev (container)" }
   },
