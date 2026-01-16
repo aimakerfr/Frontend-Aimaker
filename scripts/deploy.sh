@@ -1,15 +1,8 @@
 #!/bin/bash
 
-# Deployment script for Vite build output
-# - Copies ./dist to /data/sites/doitandshare.com/www
-
-# Resolve project root (one level up from this script)
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")"/.. && pwd)"
-cd "$ROOT_DIR" || exit
-
 TARGET_DIR="/data/sites/doitandshare.com/www"
 
-echo "[deploy] Starting deployment from $ROOT_DIR/dist to $TARGET_DIR"
+echo "[deploy] Starting deployment from /dist to $TARGET_DIR"
 
 if [[ ! -d "./dist" ]]; then
   echo "ERROR: dist directory not found. Run the build first (scripts/vite_build_simple.sh)." >&2
