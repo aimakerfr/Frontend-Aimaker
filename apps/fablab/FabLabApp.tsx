@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Routes, Route, useNavigate } from 'react-router-dom';
+import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@core/auth/useAuth';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
@@ -15,6 +15,7 @@ import { View, UserProfile } from './types';
 
 const App: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user: authUser, logout } = useAuth();
 
   // Inicializar tema desde localStorage - por defecto en modo claro
@@ -26,6 +27,16 @@ const App: React.FC = () => {
 
   const [currentView, setCurrentView] = useState<View>('dashboard');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  // Detectar si se debe navegar a una vista específica desde el state
+  useEffect(() => {
+    const state = location.state as { view?: View };
+    if (state?.view) {
+      setCurrentView(state.view);
+      // Limpiar el state para evitar que se reaplique
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location.state, location.pathname, navigate]);
 
   // Convertir usuario de backend a formato UserProfile
   const user: UserProfile = authUser ? {
@@ -92,39 +103,49 @@ const App: React.FC = () => {
 
   return (
     <div className="flex h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 overflow-hidden">
-      {/* Mobile Sidebar Overlay */}
-      {isSidebarOpen && (
-        <div
-          className="fixed inset-0 bg-black/50 z-0 md:hidden"
-          onClick={() => setIsSidebarOpen(false)}
-        />
-      )}
+      <Routes>
+        {/* Ruta del Notebook sin Sidebar (vista completa) */}
+        <Route path="/notebook" element={<Notebook />} />
+        
+        {/* Rutas con Sidebar y Header */}
+        <Route path="/*" element={
+          <>
+            {/* Mobile Sidebar Overlay */}
+            {isSidebarOpen && (
+              <div
+                className="fixed inset-0 bg-black/50 z-0 md:hidden"
+                onClick={() => setIsSidebarOpen(false)}
+              />
+            )}
 
-      {/* Sidebar - Responsive */}
-      <div className={`fixed inset-y-0 left-0 z-10 transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:relative md:translate-x-0 transition-transform duration-200 ease-in-out`}>
-        <Sidebar
-          currentView={currentView}
-          onChangeView={(view) => { setCurrentView(view); setIsSidebarOpen(false); }}
-          onLogout={handleLogout}
-        />
-      </div>
+            {/* Sidebar - Responsive */}
+            <div className={`fixed inset-y-0 left-0 z-10 transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:relative md:translate-x-0 transition-transform duration-200 ease-in-out`}>
+              <Sidebar
+                currentView={currentView}
+                onChangeView={(view) => { setCurrentView(view); setIsSidebarOpen(false); }}
+                onLogout={handleLogout}
+              />
+            </div>
 
-      <div className="flex-1 flex flex-col h-screen overflow-hidden">
-        <Header
-          toggleTheme={toggleTheme}
-          isDark={isDark}
-          toggleSidebar={toggleSidebar}
-          title={currentView}
-        />
+            <div className="flex-1 flex flex-col h-screen overflow-hidden">
+              <Header
+                toggleTheme={toggleTheme}
+                isDark={isDark}
+                toggleSidebar={toggleSidebar}
+                title={currentView}
+              />
 
-        <main className="flex-1 overflow-y-auto p-6 md:p-8">
-          <div className="max-w-7xl mx-auto">
-            {renderView()}
-          </div>
-        </main>
-      </div>
+              <main className="flex-1 overflow-y-auto p-6 md:p-8">
+                <div className="max-w-7xl mx-auto">
+                  {renderView()}
+                </div>
+              </main>
+            </div>
 
-      <AIChat />
+            <AIChat />
+          </>
+        } />
+      </Routes>
     </div>
   );
 };

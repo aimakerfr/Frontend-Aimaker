@@ -1,13 +1,17 @@
 
 import React, { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import SourcePanel from './components/SourcePanel';
 import ChatInterface from './components/ChatInterface';
 import { Source, ChatMessage, SourceType, StructuredSummary, Language } from './types';
 import { generateChatResponse, generateSourceSummary } from './services/geminiService';
-import { Layout, Menu, Globe, ChevronDown, Edit2 } from 'lucide-react';
+import { Layout, Menu, Globe, ChevronDown, Edit2, ArrowLeft } from 'lucide-react';
 import { UI_TRANSLATIONS } from './constants/translations';
 
 const App: React.FC = () => {
+    const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
+    const toolId = searchParams.get('id'); // ID de la herramienta de creación
     const [sources, setSources] = useState<Source[]>([]);
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [chatLoading, setChatLoading] = useState(false);
@@ -17,6 +21,20 @@ const App: React.FC = () => {
     const [language, setLanguage] = useState<Language>('es');
     const [langMenuOpen, setLangMenuOpen] = useState(false);
     const [notebookName, setNotebookName] = useState('NoteRAG AI LAB');
+
+    // TODO: Cargar información del notebook desde el backend usando toolId
+    useEffect(() => {
+        if (toolId) {
+            // Aquí deberás cargar la información del notebook desde el backend
+            console.log('Notebook Tool ID:', toolId);
+            // Ejemplo: fetchNotebookData(toolId).then(data => setNotebookName(data.title));
+        }
+    }, [toolId]);
+
+    const handleBackToLibrary = () => {
+        // Usar state para pasar la vista deseada
+        navigate('/dashboard', { state: { view: 'library' } });
+    };
 
     useEffect(() => {
         const selectedSources = sources.filter(s => s.selected);
@@ -84,10 +102,19 @@ const App: React.FC = () => {
     const t = UI_TRANSLATIONS[language].app;
 
     return (
-        <div className="flex flex-col h-screen bg-gray-50 text-gray-900 overflow-hidden font-inter">
+        <div className="flex flex-col h-screen w-screen bg-gray-50 text-gray-900 overflow-hidden font-inter">
             {/* Cabecera con Z-Index controlado */}
             <header className="h-16 border-b border-gray-100 flex items-center justify-between px-6 bg-white z-20 shrink-0">
                 <div className="flex items-center gap-5">
+                    {/* Botón de regreso */}
+                    <button
+                        onClick={handleBackToLibrary}
+                        className="p-2 rounded-xl hover:bg-gray-100 transition-all text-gray-600 hover:text-gray-900"
+                        title="Volver a Library"
+                    >
+                        <ArrowLeft size={20} />
+                    </button>
+                    
                     <div className="flex items-center gap-3 group">
                         <div className="w-10 h-10 bg-indigo-600 rounded-2xl flex items-center justify-center text-white shadow-xl shadow-indigo-100 shrink-0">
                             <Layout size={20} />
@@ -145,7 +172,7 @@ const App: React.FC = () => {
                 </div>
             </header>
 
-            <div className="flex-1 flex overflow-hidden">
+            <div className="flex-1 flex overflow-hidden w-full">
                 <aside className={`
                 ${sidebarOpen ? 'w-80 md:w-96 translate-x-0' : 'w-0 -translate-x-full opacity-0 pointer-events-none'} 
                 transition-all duration-300 ease-in-out flex-shrink-0 z-30 border-r border-gray-100
