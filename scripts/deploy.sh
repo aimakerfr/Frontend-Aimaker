@@ -14,10 +14,13 @@ mkdir -p "$TARGET_DIR"
 
 if command -v rsync >/dev/null 2>&1; then
   echo "[deploy] Using rsync to sync files ..."
-  rsync -a --delete ./dist/ "$TARGET_DIR"/
+  # Remove index.html and assets to ensure they are replaced, but keep other files
+  rm -rf "$TARGET_DIR/index.html" "$TARGET_DIR/assets"
+  rsync -a ./dist/ "$TARGET_DIR"/
 else
   echo "[deploy] rsync not found; falling back to rm+cp ..."
-  rm -rf "$TARGET_DIR":?/*
+  # Remove index.html and assets to ensure they are replaced, but keep other files
+  rm -rf "$TARGET_DIR/index.html" "$TARGET_DIR/assets"
   cp -a ./dist/. "$TARGET_DIR"/
 fi
 
