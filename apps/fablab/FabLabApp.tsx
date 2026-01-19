@@ -40,11 +40,13 @@ const App: React.FC = () => {
 
   // Convertir usuario de backend a formato UserProfile
   const user: UserProfile = authUser ? {
-    name: authUser.name,
-    email: authUser.email,
-    role: authUser.roles.includes('admin') ? 'Admin' : 'AI Maker Pro',
+    name: authUser.name || 'User',
+    email: authUser.email || 'user@example.com',
+    role: authUser.roles?.includes('admin') ? 'Admin' : 'AI Maker Pro',
     level: 'Intermediate',
-    joinDate: new Date(authUser.createdAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
+    joinDate: authUser.createdAt 
+      ? new Date(authUser.createdAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+      : 'N/A',
     stats: {
       projects: 5,
       documents: 142,

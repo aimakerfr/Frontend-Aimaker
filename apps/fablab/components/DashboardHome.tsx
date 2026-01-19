@@ -23,9 +23,9 @@ const DashboardHome: React.FC<DashboardHomeProps> = ({ user, onChangeView }) => 
     <div className="space-y-6">
       {/* Welcome Banner */}
       <div className="bg-gradient-to-r from-brand-600 to-indigo-600 rounded-2xl p-8 text-white shadow-lg">
-        <h2 className="text-3xl font-bold mb-2">Welcome back, {user.name.split(' ')[0]}!</h2>
+        <h2 className="text-3xl font-bold mb-2">Welcome back, {user?.name?.split(' ')[0] || 'User'}!</h2>
         <p className="opacity-90 max-w-2xl">
-          Your creative AI studio is ready. You have <strong>{user.stats.projects} active Projets</strong> and your latest documents have been successfully indexed.
+          Your creative AI studio is ready. You have <strong>{user?.stats?.projects || 0} active Projets</strong> and your latest documents have been successfully indexed.
         </p>
         <div className="mt-6 flex gap-3">
           <button 
@@ -53,7 +53,7 @@ const DashboardHome: React.FC<DashboardHomeProps> = ({ user, onChangeView }) => 
             <span className="text-xs font-semibold text-green-500 bg-green-50 dark:bg-green-900/20 px-2 py-1 rounded">+2 this week</span>
           </div>
           <h3 className="text-gray-500 dark:text-gray-400 text-sm font-medium">Active Projets</h3>
-          <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{user.stats.projects}</p>
+          <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{user?.stats?.projects || 0}</p>
         </div>
 
         <div className="bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
@@ -63,7 +63,7 @@ const DashboardHome: React.FC<DashboardHomeProps> = ({ user, onChangeView }) => 
             </div>
           </div>
           <h3 className="text-gray-500 dark:text-gray-400 text-sm font-medium">Indexed Documents</h3>
-          <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{user.stats.documents}</p>
+          <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{user?.stats?.documents || 0}</p>
         </div>
 
         <div className="bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
@@ -72,11 +72,11 @@ const DashboardHome: React.FC<DashboardHomeProps> = ({ user, onChangeView }) => 
               <Zap size={24} />
             </div>
             <span className="text-xs font-semibold text-gray-500 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">
-              {Math.round((user.stats.tokensUsed / user.stats.tokenLimit) * 100)}% Used
+              {Math.round(((user?.stats?.tokensUsed || 0) / (user?.stats?.tokenLimit || 1)) * 100)}% Used
             </span>
           </div>
           <h3 className="text-gray-500 dark:text-gray-400 text-sm font-medium">Token Usage</h3>
-          <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{(user.stats.tokensUsed / 1000).toFixed(1)}k <span className="text-sm font-normal text-gray-400">/ {(user.stats.tokenLimit / 1000).toFixed(0)}k</span></p>
+          <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{((user?.stats?.tokensUsed || 0) / 1000).toFixed(1)}k <span className="text-sm font-normal text-gray-400">/ {((user?.stats?.tokenLimit || 0) / 1000).toFixed(0)}k</span></p>
         </div>
 
          <div className="bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
@@ -86,7 +86,7 @@ const DashboardHome: React.FC<DashboardHomeProps> = ({ user, onChangeView }) => 
             </div>
           </div>
           <h3 className="text-gray-500 dark:text-gray-400 text-sm font-medium">AI Level</h3>
-          <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{user.level}</p>
+          <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{user?.level || 'N/A'}</p>
         </div>
       </div>
 
