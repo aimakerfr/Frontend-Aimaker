@@ -4,7 +4,7 @@ import {
   Smartphone, Globe, Code, Lock, ArrowLeft 
 } from 'lucide-react';
 
-type ItemType = 'agent' | 'external_link' | 'prompt' | 'note_book' | 'project' | 'app' | 'perplexity_search' | 'vibe_coding';
+type ItemType = 'agent' | 'external_link' | 'prompt' | 'note_books' | 'project' | 'app' | 'perplexity_search' | 'vibe_coding';
 
 interface FormGeneralProps {
   onClose: () => void;
@@ -18,7 +18,7 @@ const FormGeneral: React.FC<FormGeneralProps> = ({
   selectedType
 }) => {
   const [formData, setFormData] = useState({
-    type: selectedType || 'note_book',
+    type: selectedType || 'note_books',
     title: '',
     url: '',
     description: '',
@@ -28,7 +28,7 @@ const FormGeneral: React.FC<FormGeneralProps> = ({
   });
 
   const itemTypes: { type: ItemType; icon: any; label: string }[] = [
-    { type: 'note_book', icon: Notebook, label: 'Notebook' },
+    { type: 'note_books', icon: Notebook, label: 'Notebook' },
     { type: 'project', icon: FolderKanban, label: 'Project' },
     { type: 'agent', icon: BookOpen, label: 'Agent' },
     { type: 'prompt', icon: FileText, label: 'Prompt' },
@@ -45,7 +45,7 @@ const FormGeneral: React.FC<FormGeneralProps> = ({
 
   const getDetailsLabel = () => {
     const labels: Record<ItemType, string> = {
-      'note_book': 'Détails Notebook',
+      'note_books': 'Détails Notebook',
       'project': 'Détails Project',
       'agent': 'Détails Agent',
       'prompt': 'Détails Prompt',

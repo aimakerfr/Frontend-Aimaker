@@ -87,7 +87,9 @@ class AuthStore {
    * Check if token exists and validate it
    */
   private async initializeAuth(): Promise<void> {
-    if (!tokenStorage.exists()) {
+    const token = tokenStorage.get();
+    
+    if (!token) {
       return;
     }
 
@@ -95,6 +97,7 @@ class AuthStore {
 
     try {
       const user = await httpClient.get<User>(API_ENDPOINTS.auth.me);
+      
       this.setState({
         isAuthenticated: true,
         user,
@@ -208,7 +211,6 @@ class AuthStore {
       await httpClient.post(API_ENDPOINTS.auth.logout, {});
     } catch (error) {
       // Ignore errors on logout endpoint
-      console.warn('Logout endpoint failed:', error);
     } finally {
       // Always clear local state
       tokenStorage.remove();
@@ -252,3 +254,4 @@ class AuthStore {
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 export const authStore = new AuthStore();
+

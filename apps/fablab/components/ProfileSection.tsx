@@ -2,7 +2,21 @@ import React from 'react';
 import { UserProfile } from '../types';
 import { Mail, Calendar, Shield, Award } from 'lucide-react';
 
-const ProfileSection: React.FC<{ user: UserProfile }> = ({ user }) => {
+// ProfileSection Component - Shows user profile information
+const ProfileSection: React.FC<{ user: UserProfile | null }> = ({ user }) => {
+  // Early validation - show loading if user data is incomplete
+  if (!user || !user.name || !user.email) {
+    return (
+      <div className="max-w-4xl mx-auto space-y-6">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-8">
+          <div className="text-center text-gray-500">
+            Cargando perfil...
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">

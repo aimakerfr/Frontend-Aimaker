@@ -4,7 +4,7 @@ import {
   Smartphone, Globe, Code, Lock, ArrowLeft 
 } from 'lucide-react';
 
-type ItemType = 'agent' | 'external_link' | 'prompt' | 'note_book' | 'project' | 'app' | 'perplexity_search' | 'vibe_coding';
+type ItemType = 'agent' | 'external_link' | 'prompt' | 'note_books' | 'project' | 'app' | 'perplexity_search' | 'vibe_coding';
 
 interface FormEditProps {
   onClose: () => void;
@@ -16,7 +16,7 @@ const FormEdit: React.FC<FormEditProps> = ({ onClose, onSave, initialData }) => 
   console.log('FormEdit initialData recibida:', initialData);
   
   const [formData, setFormData] = useState({
-    type: initialData?.type || 'note_book',
+    type: initialData?.type || 'note_books',
     title: initialData?.title || '',
     url: initialData?.url || '',
     description: initialData?.description || '',
@@ -29,7 +29,7 @@ const FormEdit: React.FC<FormEditProps> = ({ onClose, onSave, initialData }) => 
   const [isSaving, setIsSaving] = useState(false);
 
   const itemTypes: { type: ItemType; icon: any; label: string }[] = [
-    { type: 'note_book', icon: Notebook, label: 'Notebook' },
+    { type: 'note_books', icon: Notebook, label: 'Notebook' },
     { type: 'project', icon: FolderKanban, label: 'Project' },
     { type: 'agent', icon: BookOpen, label: 'Agent' },
     { type: 'prompt', icon: FileText, label: 'Prompt' },

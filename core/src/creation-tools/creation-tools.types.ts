@@ -6,11 +6,7 @@ export type CreationToolType =
   | 'agent' 
   | 'external_link' 
   | 'prompt' 
-  | 'note_book' 
-  | 'project' 
-  | 'app' 
-  | 'perplexity_search' 
-  | 'vibe_coding';
+  | 'note_books' 
 
 export interface CreationTool {
   id: number;

@@ -118,8 +118,7 @@ class HttpClient {
    */
   private async parseResponse<T>(response: Response): Promise<ApiResponse<T> | T> {
     try {
-      const data = await response.json();
-      return data;
+      return await response.json();
     } catch (error) {
       // If JSON parsing fails, create a generic error response
       return {
@@ -195,18 +194,10 @@ class HttpClient {
     // Add body for non-GET requests
     if (options.body && method !== 'GET') {
       fetchOptions.body = JSON.stringify(options.body);
-      console.log('HTTP Client - Request Details:', {
-        method,
-        url,
-        headers: fetchOptions.headers,
-        bodyString: fetchOptions.body,
-        bodyObject: options.body
-      });
     }
 
     try {
       const response = await fetch(url, fetchOptions);
-      console.log(`HTTP Client - Response: ${method} ${url} ${response.status}`);
       return await this.handleResponse<T>(response);
     } catch (error) {
       // If it's already an HttpClientError, rethrow it

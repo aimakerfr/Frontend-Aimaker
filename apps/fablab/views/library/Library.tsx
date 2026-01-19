@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { BookOpen, Search, Link2, FileText, Notebook, FolderKanban, Smartphone, Globe, Code, Eye, Lock, Plus, X, ExternalLink, Trash2 } from 'lucide-react';
 import FormGeneral from './components/Form-general';
-import FormEdit from './components/Form-edit';
+import DetailsView from './components/DetailsView';
 import { 
   getCreationTools, 
   createCreationTool, 
@@ -14,18 +14,18 @@ import type { CreationTool, CreationToolType } from '../../../../core/src/creati
 
 // MOCK DATA - Solo se usa si falla la API
 const mockItems = [
-  { id: 1, type: 'note_book' as CreationToolType, title: 'REX Industrialisation LLM', description: 'Notes sur les tests de latence et coûts.', isPublic: false, author: 'JULIEDURAND', createdAt: '22/10/2023', category: 'Analyse', url: 'aimaker.fr/s/...', language: 'fr', usageCount: 0 },
+  { id: 1, type: 'note_books' as CreationToolType, title: 'REX Industrialisation LLM', description: 'Notes sur les tests de latence et coûts.', isPublic: false, author: 'JULIEDURAND', createdAt: '22/10/2023', category: 'Analyse', url: 'aimaker.fr/s/...', language: 'fr', usageCount: 0 },
   { id: 2, type: 'project' as CreationToolType, title: 'Prototype Chatbot Client', description: 'MVP pour le support client e-commerce.', isPublic: true, author: 'JEANDUPONT', createdAt: '20/10/2023', category: 'E-commerce', url: 'aimaker.fr/p/...', language: 'fr', usageCount: 0 },
   { id: 3, type: 'agent' as CreationToolType, title: 'Tuteur Juridique v2', description: 'Agent spécialisé en conformité RGPD pour les RH.', isPublic: false, author: 'MARCLEFEBVRE', createdAt: '15/10/2023', category: 'Juridique', url: '', language: 'fr', usageCount: 0 },
-  { id: 4, type: 'prompt' as ItemType, title: 'Générateur de Synthèse Leads', description: 'Prompt optimisé pour extraire les intentions d\'achat...', isPublic: true, author: 'JULIEDURAND', createdAt: '12/10/2023', category: 'Marketing', url: 'aimaker.fr/pr/...', language: 'fr', usageCount: 0 },
-  { id: 5, type: 'external_link' as ItemType, title: 'Documentation OpenAI API', description: 'Lien vers la doc officielle des endpoints GPT-4.', isPublic: true, author: 'SOPHIEMARTIN', createdAt: '08/10/2023', category: 'Documentation', url: 'docs.openai.com', language: 'en', usageCount: 0 },
-  { id: 6, type: 'app' as ItemType, title: 'Dashboard Analytics IA', description: 'Application de visualisation des métriques de modèles.', isPublic: false, author: 'PIERREDUBOIS', createdAt: '05/10/2023', category: 'Analytics', url: '', language: 'fr', usageCount: 0 },
-  { id: 7, type: 'perplexity_search' as ItemType, title: 'Template Recherche Juridique', description: 'Configuration optimisée pour recherches légales.', isPublic: true, author: 'MARCLEFEBVRE', createdAt: '02/10/2023', category: 'Recherche', url: 'perplexity.ai/...', language: 'fr', usageCount: 0 },
-  { id: 8, type: 'vibe_coding' as ItemType, title: 'Assistant Python FastAPI', description: 'Outil de génération de code pour APIs REST.', isPublic: false, author: 'THOMASLEROY', createdAt: '28/09/2023', category: 'Development', url: '', language: 'python', usageCount: 0 },
+  { id: 4, type: 'prompt' as CreationToolType, title: 'Générateur de Synthèse Leads', description: 'Prompt optimisé pour extraire les intentions d\'achat...', isPublic: true, author: 'JULIEDURAND', createdAt: '12/10/2023', category: 'Marketing', url: 'aimaker.fr/pr/...', language: 'fr', usageCount: 0 },
+  { id: 5, type: 'external_link' as CreationToolType, title: 'Documentation OpenAI API', description: 'Lien vers la doc officielle des endpoints GPT-4.', isPublic: true, author: 'SOPHIEMARTIN', createdAt: '08/10/2023', category: 'Documentation', url: 'docs.openai.com', language: 'en', usageCount: 0 },
+  { id: 6, type: 'app' as CreationToolType, title: 'Dashboard Analytics IA', description: 'Application de visualisation des métriques de modèles.', isPublic: false, author: 'PIERREDUBOIS', createdAt: '05/10/2023', category: 'Analytics', url: '', language: 'fr', usageCount: 0 },
+  { id: 7, type: 'perplexity_search' as CreationToolType, title: 'Template Recherche Juridique', description: 'Configuration optimisée pour recherches légales.', isPublic: true, author: 'MARCLEFEBVRE', createdAt: '02/10/2023', category: 'Recherche', url: 'perplexity.ai/...', language: 'fr', usageCount: 0 },
+  { id: 8, type: 'vibe_coding' as CreationToolType, title: 'Assistant Python FastAPI', description: 'Outil de génération de code pour APIs REST.', isPublic: false, author: 'THOMASLEROY', createdAt: '28/09/2023', category: 'Development', url: '', language: 'python', usageCount: 0 },
 ];
 
 type FilterType = 'all' | 'mine' | 'public' | 'private' | 'shared';
-type ItemType = 'agent' | 'external_link' | 'prompt' | 'note_book' | 'project' | 'app' | 'perplexity_search' | 'vibe_coding';
+type ItemType = 'agent' | 'external_link' | 'prompt' | 'note_books' | 'project' | 'app' | 'perplexity_search' | 'vibe_coding';
 
 interface LibraryItem {
   id: number;
@@ -71,9 +71,10 @@ const Library: React.FC<LibraryTableViewProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showCreateForm, setShowCreateForm] = useState(false);
-  const [showEditForm, setShowEditForm] = useState(false);
-  const [selectedType, setSelectedType] = useState<ItemType>('note_book');
+  const [showDetailsView, setShowDetailsView] = useState(false);
+  const [selectedType, setSelectedType] = useState<ItemType>('note_books');
   const [selectedItemId, setSelectedItemId] = useState<number | null>(null);
+  const [isEditMode, setIsEditMode] = useState(false);
 
   const filters: { key: FilterType; label: string }[] = [
     { key: 'all', label: 'Tous' },
@@ -87,7 +88,7 @@ const Library: React.FC<LibraryTableViewProps> = ({
     { type: 'agent', icon: BookOpen, label: 'AGENT' },
     { type: 'external_link', icon: Link2, label: 'EXTERNAL LINK' },
     { type: 'prompt', icon: FileText, label: 'PROMPT' },
-    { type: 'note_book', icon: Notebook, label: 'NOTEBOOK' },
+    { type: 'note_books', icon: Notebook, label: 'NOTEBOOK' },
     { type: 'project', icon: FolderKanban, label: 'PROJECT' },
     { type: 'app', icon: Smartphone, label: 'APP' },
     { type: 'perplexity_search', icon: Globe, label: 'PERPLEXITY SEARCH' },
@@ -117,7 +118,8 @@ const Library: React.FC<LibraryTableViewProps> = ({
 
   const handleViewDetails = (itemId: number) => {
     setSelectedItemId(itemId);
-    setShowEditForm(true);
+    setShowDetailsView(true);
+    setIsEditMode(false);
     onViewDetails?.(itemId);
   };
 
@@ -146,6 +148,9 @@ const Library: React.FC<LibraryTableViewProps> = ({
       console.log('Editando item:', selectedItemId, 'con datos:', data);
       const success = await onSave(data, selectedItemId);
       console.log('Resultado de actualización:', success);
+      if (success) {
+        setIsEditMode(false);
+      }
       return success;
     }
     return false;
@@ -153,8 +158,9 @@ const Library: React.FC<LibraryTableViewProps> = ({
 
   const handleFormClose = () => {
     setShowCreateForm(false);
-    setShowEditForm(false);
+    setShowDetailsView(false);
     setSelectedItemId(null);
+    setIsEditMode(false);
   };
 
   const getSelectedItemData = () => {
@@ -166,7 +172,18 @@ const Library: React.FC<LibraryTableViewProps> = ({
 
   return (
     <>
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50/30 dark:from-gray-900 dark:to-blue-900/10 p-6">
+      {/* Vista de Detalles de la Herramienta - Mostrar en lugar de tabla */}
+      {showDetailsView && selectedItemId ? (
+        <DetailsView
+          item={getSelectedItemData()}
+          isEditMode={isEditMode}
+          onClose={handleFormClose}
+          onEdit={() => setIsEditMode(true)}
+          onSave={handleEditSave}
+          onRedirect={handleRedirect}
+        />
+      ) : (
+        <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50/30 dark:from-gray-900 dark:to-blue-900/10 p-6">
         <div className="max-w-7xl mx-auto space-y-6">
           {/* Header */}
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -349,6 +366,7 @@ const Library: React.FC<LibraryTableViewProps> = ({
           </div>
         </div>
       </div>
+      )}
 
       {/* Create Modal */}
       {showCreateModal && (
@@ -398,25 +416,6 @@ const Library: React.FC<LibraryTableViewProps> = ({
           onClose={handleFormClose}
           onSave={handleFormSave}
           selectedType={selectedType}
-        />
-      )}
-
-      {/* Form Edit Modal - Solo para editar */}
-      {showEditForm && selectedItemId && (
-        <FormEdit
-          onClose={() => {
-            setShowEditForm(false);
-            setSelectedItemId(null);
-          }}
-          onSave={async (data) => {
-            const success = await handleEditSave(data);
-            if (success) {
-              setShowEditForm(false);
-              setSelectedItemId(null);
-            }
-            return success;
-          }}
-          initialData={getSelectedItemData()}
         />
       )}
     </>
