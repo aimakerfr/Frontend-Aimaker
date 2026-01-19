@@ -1,17 +1,17 @@
 
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import SourcePanel from './components/SourcePanel';
 import ChatInterface from './components/ChatInterface';
 import { Source, ChatMessage, SourceType, StructuredSummary, Language } from './types';
 import { generateChatResponse, generateSourceSummary } from './services/geminiService';
-import { Layout, Menu, Globe, ChevronDown, Edit2, ArrowLeft } from 'lucide-react';
+import { Layout, Menu, Globe, ChevronDown, Edit2, ArrowLeft, Save } from 'lucide-react';
 import { UI_TRANSLATIONS } from './constants/translations';
+import { NotebookService } from '../../core/src/notebooks/notebook.service';
 
 const App: React.FC = () => {
     const navigate = useNavigate();
-    const [searchParams] = useSearchParams();
-    const toolId = searchParams.get('id'); // ID de la herramienta de creación
+    const { id } = useParams<{ id: string }>();
     const [sources, setSources] = useState<Source[]>([]);
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [chatLoading, setChatLoading] = useState(false);
@@ -21,18 +21,42 @@ const App: React.FC = () => {
     const [language, setLanguage] = useState<Language>('es');
     const [langMenuOpen, setLangMenuOpen] = useState(false);
     const [notebookName, setNotebookName] = useState('NoteRAG AI LAB');
+    const [isEditingTitle, setIsEditingTitle] = useState(false);
+    const [isSavingTitle, setIsSavingTitle] = useState(false);
 
-    // TODO: Cargar información del notebook desde el backend usando toolId
+    const notebookService = new NotebookService();
+
     useEffect(() => {
-        if (toolId) {
-            // Aquí deberás cargar la información del notebook desde el backend
-            console.log('Notebook Tool ID:', toolId);
-            // Ejemplo: fetchNotebookData(toolId).then(data => setNotebookName(data.title));
+        if (id) {
+            loadNotebookData(parseInt(id));
         }
-    }, [toolId]);
+    }, [id]);
+
+    const loadNotebookData = async (notebookId: number) => {
+        try {
+            const notebook = await notebookService.getNotebook(notebookId);
+            setNotebookName(notebook.title || 'NoteRAG AI LAB');
+            setLanguage(notebook.language as Language);
+        } catch (error) {
+            console.error('Error cargando notebook:', error);
+        }
+    };
+
+    const handleSaveTitle = async () => {
+        if (!id) return;
+        
+        setIsSavingTitle(true);
+        try {
+            await notebookService.updateNotebook(parseInt(id), { title: notebookName });
+            setIsEditingTitle(false);
+        } catch (error) {
+            console.error('Error guardando título:', error);
+        } finally {
+            setIsSavingTitle(false);
+        }
+    };
 
     const handleBackToLibrary = () => {
-        // Usar state para pasar la vista deseada
         navigate('/dashboard', { state: { view: 'library' } });
     };
 
@@ -120,16 +144,37 @@ const App: React.FC = () => {
                             <Layout size={20} />
                         </div>
                         <div className="flex flex-col min-w-[140px] md:min-w-[180px]">
-                            <input
-                                type="text"
-                                value={notebookName}
-                                onChange={(e) => setNotebookName(e.target.value)}
-                                className="bg-transparent font-black text-base md:text-lg tracking-tighter leading-none text-gray-900 border-none outline-none focus:ring-0 w-full p-0"
-                                placeholder="Nombre del Notebook"
-                            />
-                            <div className="flex items-center gap-1 opacity-40 group-hover:opacity-100 transition-opacity">
+                            {isEditingTitle ? (
+                                <div className="flex items-center gap-2">
+                                    <input
+                                        type="text"
+                                        value={notebookName}
+                                        onChange={(e) => setNotebookName(e.target.value)}
+                                        onKeyDown={(e) => e.key === 'Enter' && handleSaveTitle()}
+                                        className="bg-gray-50 font-black text-base md:text-lg tracking-tighter leading-none text-gray-900 border border-indigo-200 outline-none focus:ring-2 focus:ring-indigo-500 rounded-lg px-2 py-1 w-full"
+                                        autoFocus
+                                    />
+                                    <button
+                                        onClick={handleSaveTitle}
+                                        disabled={isSavingTitle}
+                                        className="p-1.5 rounded-lg bg-indigo-500 hover:bg-indigo-600 text-white transition-all disabled:opacity-50"
+                                    >
+                                        <Save size={14} />
+                                    </button>
+                                </div>
+                            ) : (
+                                <div 
+                                    className="flex items-center gap-2 cursor-pointer"
+                                    onClick={() => setIsEditingTitle(true)}
+                                >
+                                    <h1 className="font-black text-base md:text-lg tracking-tighter leading-none text-gray-900">
+                                        {notebookName}
+                                    </h1>
+                                    <Edit2 size={14} className="text-indigo-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                </div>
+                            )}
+                            <div className="flex items-center gap-1 opacity-40 group-hover:opacity-100 transition-opacity mt-0.5">
                                 <span className="text-[9px] font-bold text-indigo-500 uppercase tracking-widest">PROYECTO ACTIVO</span>
-                                <Edit2 size={8} className="text-indigo-400" />
                             </div>
                         </div>
                     </div>
