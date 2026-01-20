@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { BookOpen, Search, Link2, FileText, Notebook, FolderKanban, Smartphone, Globe, Code, Eye, Lock, Plus, X, ExternalLink, Trash2 } from 'lucide-react';
 import FormGeneral from './components/Form-general';
 import DetailsView from './components/DetailsView';
@@ -67,8 +68,10 @@ const Library: React.FC<LibraryTableViewProps> = ({
   onDelete,
   isLoading = false
 }) => {
+  const navigate = useNavigate();
   const [activeFilter, setActiveFilter] = useState<FilterType>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [typeFilter, setTypeFilter] = useState<ItemType | 'all'>('all');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [showDetailsView, setShowDetailsView] = useState(false);
@@ -83,6 +86,50 @@ const Library: React.FC<LibraryTableViewProps> = ({
     { key: 'public', label: 'Publics' },
     { key: 'private', label: 'Privés' }
   ];
+
+  // Filtrar herramientas según el filtro activo y búsqueda
+  const getFilteredTools = () => {
+    let filtered = items;
+
+    // Aplicar filtro de tipo
+    switch (activeFilter) {
+      case 'mine':
+        // Ya están filtradas por usuario en el backend
+        break;
+      case 'shared':
+        // Compartidos = solo públicos
+        filtered = filtered.filter((tool: LibraryItem) => tool.isPublic);
+        break;
+      case 'public':
+        filtered = filtered.filter((tool: LibraryItem) => tool.isPublic);
+        break;
+      case 'private':
+        filtered = filtered.filter((tool: LibraryItem) => !tool.isPublic);
+        break;
+      case 'all':
+      default:
+        break;
+    }
+
+    // Aplicar filtro por tipo de herramienta
+    if (typeFilter !== 'all') {
+      filtered = filtered.filter((tool: LibraryItem) => tool.type === typeFilter);
+    }
+
+    // Aplicar filtro de búsqueda
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter((tool: LibraryItem) => 
+        tool.title?.toLowerCase().includes(query) ||
+        tool.description?.toLowerCase().includes(query) ||
+        tool.type?.toLowerCase().includes(query)
+      );
+    }
+
+    return filtered;
+  };
+
+  const filteredItems = getFilteredTools();
 
   const itemTypes: { type: ItemType; icon: any; label: string }[] = [
     { type: 'agent', icon: BookOpen, label: 'AGENT' },
@@ -129,8 +176,14 @@ const Library: React.FC<LibraryTableViewProps> = ({
 
   const handleRedirect = (url: string) => {
     if (url) {
-      onRedirect?.(url);
-      window.open(url.startsWith('http') ? url : `https://${url}`, '_blank');
+      // Si es una ruta interna del notebook, usar navigate
+      if (url.startsWith('/dashboard/notebook/')) {
+        navigate(url);
+      } else {
+        // Para URLs externas, abrir en nueva pestaña
+        onRedirect?.(url);
+        window.open(url.startsWith('http') ? url : `https://${url}`, '_blank');
+      }
     }
   };
 
@@ -215,6 +268,21 @@ const Library: React.FC<LibraryTableViewProps> = ({
               />
             </div>
             <div className="flex flex-wrap gap-2">
+              <select
+                value={typeFilter}
+                onChange={(e) => setTypeFilter(e.target.value as ItemType | 'all')}
+                className="px-4 py-2.5 font-medium rounded-xl bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-blue-500 outline-none"
+              >
+                <option value="all">Todos los tipos</option>
+                <option value="note_books">Notebooks</option>
+                <option value="project">Proyectos</option>
+                <option value="prompt">Prompts</option>
+                <option value="external_link">Enlaces</option>
+                <option value="agent">Agentes</option>
+                <option value="app">Apps</option>
+                <option value="vibe_coding">Vibe Coding</option>
+                <option value="perplexity_search">Perplexity</option>
+              </select>
               {filters.map(filter => (
                 <button
                   key={filter.key}
@@ -251,11 +319,11 @@ const Library: React.FC<LibraryTableViewProps> = ({
                 <div className="inline-block w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
                 <p className="mt-4">Chargement...</p>
               </div>
-            ) : items.length === 0 ? (
+            ) : filteredItems.length === 0 ? (
               <div className="px-6 py-16 text-center text-gray-500">Aucun élément trouvé</div>
             ) : (
               <div>
-                {items.map((item, index) => {
+                {filteredItems.map((item: LibraryItem, index: number) => {
                   const typeConfig = getTypeConfig(item.type as ItemType);
                   const TypeIcon = typeConfig.icon;
                   
@@ -263,7 +331,7 @@ const Library: React.FC<LibraryTableViewProps> = ({
                     <div 
                       key={item.id} 
                       className={`grid grid-cols-12 gap-4 px-6 py-6 items-center hover:bg-blue-50/50 dark:hover:bg-blue-900/10 transition-all ${
-                        index !== items.length - 1 ? 'border-b border-gray-100 dark:border-gray-700' : ''
+                        index !== filteredItems.length - 1 ? 'border-b border-gray-100 dark:border-gray-700' : ''
                       }`}
                     >
                       {/* Type */}
@@ -435,7 +503,10 @@ const LibraryContainer = () => {
     try {
       const tools = await getCreationTools();
       
-      const mappedItems: LibraryItem[] = tools.map((tool: CreationTool) => ({
+      // Ordenar por ID descendente (más recientes primero)
+      const sortedTools = tools.sort((a, b) => b.id - a.id);
+      
+      const mappedItems: LibraryItem[] = sortedTools.map((tool: CreationTool) => ({
         id: tool.id,
         type: tool.type as ItemType,
         title: tool.title,
@@ -516,10 +587,13 @@ const LibraryContainer = () => {
     try {
       setIsLoading(true);
       await deleteCreationTool(itemId);
-      await loadCreationTools();
+      // Actualizar el estado local inmediatamente
+      setItems(prev => prev.filter((item: LibraryItem) => item.id !== itemId));
     } catch (err) {
       console.error('Error eliminando:', err);
       setError('Error al eliminar');
+      // Si hay error, recargar la lista
+      await loadCreationTools();
     } finally {
       setIsLoading(false);
     }

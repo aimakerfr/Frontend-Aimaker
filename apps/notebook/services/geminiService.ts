@@ -1,6 +1,7 @@
 import { httpClient } from '../../../core/src/api/http.client';
-import { API_ENDPOINTS, type GeminiRequest, type GeminiResponse } from '../../../core/src/api/api.types';
 import { Source, StructuredSummary, Language } from "../types";
+
+const GEMINI_ENDPOINT = '/api/v1/gemini';
 
 const getContextFromSources = (sources: Source[]): string => {
   const activeSources = sources.filter(s => s.selected);
@@ -10,85 +11,162 @@ const getContextFromSources = (sources: Source[]): string => {
 };
 
 /**
- * TODO: Implementar estos endpoints en el backend
- * Por ahora retornan mensajes de placeholder
+ * Analiza una imagen con Gemini Vision
  */
-
-export const analyzeImage = async (_base64Data: string, _mimeType: string): Promise<{ title: string, content: string }> => {
-  // TODO: Crear endpoint en backend para análisis de imágenes
-  console.warn('analyzeImage: Endpoint no implementado en backend aún');
-  return {
-    title: "Imagen (Análisis pendiente)",
-    content: "Esta funcionalidad requiere implementación en el backend. El análisis de imágenes será procesado por Gemini Vision API."
-  };
+export const analyzeImage = async (base64Data: string, mimeType: string): Promise<{ title: string, content: string }> => {
+  try {
+    const result = await httpClient.post<{ title: string, content: string }>(
+      `${GEMINI_ENDPOINT}/analyze-image`,
+      { base64Data, mimeType }
+    );
+    return result;
+  } catch (error) {
+    console.error('Error analyzing image:', error);
+    return {
+      title: "Imagen (Error en análisis)",
+      content: "No se pudo analizar la imagen. Intenta con otra imagen."
+    };
+  }
 };
 
-export const processPdfVisual = async (_pagesBase64: { data: string, mimeType: string }[]): Promise<string> => {
-  // TODO: Crear endpoint en backend para análisis de PDFs
-  console.warn('processPdfVisual: Endpoint no implementado en backend aún');
-  return "Análisis de PDF pendiente de implementación en el backend.";
+/**
+ * Procesa un PDF de forma visual con Gemini
+ */
+export const processPdfVisual = async (pagesBase64: { data: string, mimeType: string }[]): Promise<string> => {
+  try {
+    const result = await httpClient.post<{ content: string }>(
+      `${GEMINI_ENDPOINT}/process-pdf`,
+      { pages: pagesBase64 }
+    );
+    return result.content;
+  } catch (error) {
+    console.error('Error processing PDF:', error);
+    return "No se pudo procesar el documento. Intenta con un archivo más pequeño.";
+  }
 };
 
-export const transcribeVideo = async (_base64Data: string, _mimeType: string): Promise<string> => {
-  // TODO: Crear endpoint en backend para transcripción de video
-  console.warn('transcribeVideo: Endpoint no implementado en backend aún');
-  return "Transcripción de video pendiente de implementación en el backend.";
+/**
+ * Transcribe un video local
+ */
+export const transcribeVideo = async (base64Data: string, mimeType: string): Promise<string> => {
+  try {
+    const result = await httpClient.post<{ content: string }>(
+      `${GEMINI_ENDPOINT}/transcribe-video`,
+      { base64Data, mimeType }
+    );
+    return result.content;
+  } catch (error) {
+    console.error('Error transcribing video:', error);
+    return "No se pudo transcribir el video.";
+  }
 };
 
+/**
+ * Transcribe un video por URL (YouTube, etc)
+ */
 export const transcribeVideoUrl = async (url: string): Promise<{ title: string, content: string }> => {
-  // TODO: Crear endpoint en backend para transcripción de video por URL
-  console.warn('transcribeVideoUrl: Endpoint no implementado en backend aún');
-  return {
-    title: "Video (Transcripción pendiente)",
-    content: `URL: ${url}\nLa transcripción de videos requiere implementación en el backend.`
-  };
+  try {
+    const result = await httpClient.post<{ title: string, content: string }>(
+      `${GEMINI_ENDPOINT}/transcribe-video-url`,
+      { url }
+    );
+    return result;
+  } catch (error) {
+    console.error('Error transcribing video URL:', error);
+    return {
+      title: "Video (Error en transcripción)",
+      content: `No se pudo transcribir el video de: ${url}`
+    };
+  }
 };
 
+/**
+ * Extrae contenido de una URL web
+ */
 export const extractUrlContent = async (url: string): Promise<{ title: string, content: string }> => {
-  // TODO: Crear endpoint en backend para extracción de contenido web
-  console.warn('extractUrlContent: Endpoint no implementado en backend aún');
-  return {
-    title: "Contenido Web (Pendiente)",
-    content: `URL: ${url}\nLa extracción de contenido web requiere implementación en el backend.`
-  };
+  try {
+    const result = await httpClient.post<{ title: string, content: string }>(
+      `${GEMINI_ENDPOINT}/extract-url`,
+      { url }
+    );
+    return result;
+  } catch (error) {
+    console.error('Error extracting URL content:', error);
+    return {
+      title: "Contenido Web (Error)",
+      content: `No se pudo extraer contenido de: ${url}`
+    };
+  }
 };
 
-export const generateSourceSummary = async (sources: Source[], _lang: Language): Promise<StructuredSummary | null> => {
+/**
+ * Genera un resumen estructurado de las fuentes
+ */
+export const generateSourceSummary = async (sources: Source[], lang: Language): Promise<StructuredSummary | null> => {
   const activeSources = sources.filter(s => s.selected);
   if (activeSources.length === 0) return null;
   
-  // TODO: Crear endpoint en backend para generar resúmenes estructurados
-  console.warn('generateSourceSummary: Endpoint no implementado en backend aún');
-  
-  // Retornar estructura mock para que la UI funcione
-  return {
-    globalOverview: "Resumen general pendiente de implementación en el backend.",
-    sourcesAnalysis: activeSources.map(source => ({
-      title: source.title,
-      type: source.type,
-      summary: "Resumen pendiente de implementación.",
-      keyTopics: ["Tema 1", "Tema 2"],
-      suggestedQuestions: ["¿Pregunta de ejemplo?"]
-    }))
-  };
+  try {
+    // Formatear las fuentes para el backend
+    const formattedSources = activeSources.map(s => ({
+      id: s.id,
+      title: s.title,
+      type: s.type,
+      content: s.content,
+      selected: s.selected
+    }));
+
+    const result = await httpClient.post<StructuredSummary>(
+      `${GEMINI_ENDPOINT}/source-summary`,
+      { sources: formattedSources, language: lang }
+    );
+    
+    return result;
+  } catch (error) {
+    console.error('Error generating summary:', error);
+    // Retornar estructura básica en caso de error
+    return {
+      globalOverview: "No se pudo generar el resumen de las fuentes.",
+      sourcesAnalysis: activeSources.map(source => ({
+        title: source.title,
+        type: source.type,
+        summary: "Resumen no disponible",
+        keyTopics: [],
+        suggestedQuestions: []
+      }))
+    };
+  }
 };
 
-export const generateChatResponse = async (_history: any[], sources: Source[], message: string, _lang: Language): Promise<string> => {
-  const context = getContextFromSources(sources);
-  
+/**
+ * Genera una respuesta de chat con contexto de fuentes
+ */
+export const generateChatResponse = async (history: any[], sources: Source[], message: string, lang: Language): Promise<string> => {
   try {
-    // Usar el endpoint del backend para generar respuestas
-    const data = await httpClient.post<GeminiResponse>(API_ENDPOINTS.ai.generate, {
-      prompt: `Contexto de fuentes:\n${context}\n\nPregunta del usuario: ${message}`,
-      options: {
-        temperature: 0.7,
-        maxTokens: 2048
-      }
-    } as GeminiRequest);
+    // Formatear las fuentes para el backend
+    const formattedSources = sources
+      .filter(s => s.selected)
+      .map(s => ({
+        id: s.id,
+        title: s.title,
+        type: s.type,
+        content: s.content,
+        selected: s.selected
+      }));
 
-    return data.text || "No se pudo generar una respuesta.";
+    const result = await httpClient.post<{ response: string }>(
+      `${GEMINI_ENDPOINT}/chat`,
+      { 
+        history, 
+        sources: formattedSources, 
+        message, 
+        language: lang 
+      }
+    );
+    
+    return result.response;
   } catch (error) {
     console.error("Chat Error:", error);
-    return "Lo siento, ocurrió un error al procesar tu consulta.";
+    return "Lo siento, ocurrió un error al procesar tu consulta con Gemini.";
   }
 };

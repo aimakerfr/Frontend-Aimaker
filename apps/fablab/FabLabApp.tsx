@@ -107,7 +107,7 @@ const App: React.FC = () => {
     <div className="flex h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 overflow-hidden">
       <Routes>
         {/* Ruta del Notebook sin Sidebar (vista completa) */}
-        <Route path="/notebook" element={<Notebook />} />
+        <Route path="/notebook/:id" element={<Notebook />} />
         
         {/* Rutas con Sidebar y Header */}
         <Route path="/*" element={

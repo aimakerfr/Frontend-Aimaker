@@ -1,0 +1,35 @@
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /
+  
+  # Si el archivo o directorio existe, sirve el archivo directamente
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  
+  # De lo contrario, redirige todo al index.html para que React Router maneje la ruta
+  RewriteRule . /index.html [L]
+</IfModule>
+
+# Opcional: Configurar headers para mejor rendimiento
+<IfModule mod_headers.c>
+  # Cache para assets estáticos
+  <FilesMatch "\.(jpg|jpeg|png|gif|svg|ico|webp)$">
+    Header set Cache-Control "max-age=31536000, public"
+  </FilesMatch>
+  
+  <FilesMatch "\.(js|css)$">
+    Header set Cache-Control "max-age=31536000, public, immutable"
+  </FilesMatch>
+  
+  # No cachear index.html para que siempre obtenga la última versión
+  <FilesMatch "index.html$">
+    Header set Cache-Control "no-cache, no-store, must-revalidate"
+    Header set Pragma "no-cache"
+    Header set Expires 0
+  </FilesMatch>
+</IfModule>
+
+# Compresión gzip
+<IfModule mod_deflate.c>
+  AddOutputFilterByType DEFLATE text/html text/plain text/xml text/css text/javascript application/javascript application/json
+</IfModule>
