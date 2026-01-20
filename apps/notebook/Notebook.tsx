@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import SourcePanel from './components/SourcePanel';
 import ChatInterface from './components/ChatInterface';
 import { Source, ChatMessage, SourceType, StructuredSummary, Language } from './types';
@@ -12,6 +12,7 @@ import { NotebookService } from '../../core/src/notebooks/notebook.service';
 const App: React.FC = () => {
     const navigate = useNavigate();
     const { id } = useParams<{ id: string }>();
+    const [searchParams] = useSearchParams();
     const [sources, setSources] = useState<Source[]>([]);
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [chatLoading, setChatLoading] = useState(false);
@@ -20,25 +21,39 @@ const App: React.FC = () => {
     const [sidebarOpen, setSidebarOpen] = useState(true);
     const [language, setLanguage] = useState<Language>('es');
     const [langMenuOpen, setLangMenuOpen] = useState(false);
-    const [notebookName, setNotebookName] = useState('NoteRAG AI LAB');
+    const [notebookName, setNotebookName] = useState('');
     const [isEditingTitle, setIsEditingTitle] = useState(false);
     const [isSavingTitle, setIsSavingTitle] = useState(false);
+    const [isPublic, setIsPublic] = useState(false);
 
     const notebookService = new NotebookService();
 
     useEffect(() => {
-        if (id) {
-            loadNotebookData(parseInt(id));
+        // Intentar obtener el título del query param primero
+        const titleFromParam = searchParams.get('title');
+        if (titleFromParam) {
+            setNotebookName(decodeURIComponent(titleFromParam));
         }
-    }, [id]);
+        
+        if (id) {
+            loadNotebookData(parseInt(id), titleFromParam);
+        }
+    }, [id, searchParams]);
 
-    const loadNotebookData = async (notebookId: number) => {
+    const loadNotebookData = async (notebookId: number, fallbackTitle?: string | null) => {
         try {
             const notebook = await notebookService.getNotebook(notebookId);
-            setNotebookName(notebook.title || 'NoteRAG AI LAB');
+            setNotebookName(notebook.title || fallbackTitle || 'Sin título');
             setLanguage(notebook.language as Language);
+            setIsPublic(notebook.hasPublicStatus || false);
         } catch (error) {
             console.error('Error cargando notebook:', error);
+            // Si falla la carga pero tenemos el título del param, lo usamos
+            if (!fallbackTitle) {
+                setNotebookName('Sin título');
+            }
+            // Si falla, asumimos que es privado por defecto
+            setIsPublic(false);
         }
     };
 
@@ -164,13 +179,14 @@ const App: React.FC = () => {
                                 </div>
                             ) : (
                                 <div 
-                                    className="flex items-center gap-2 cursor-pointer"
-                                    onClick={() => setIsEditingTitle(true)}
+                                    className={`flex items-center gap-2 ${!isPublic ? 'cursor-pointer' : 'cursor-not-allowed opacity-60'}`}
+                                    onClick={() => !isPublic && setIsEditingTitle(true)}
+                                    title={isPublic ? 'No puedes editar el título de un notebook público' : 'Haz clic para editar'}
                                 >
                                     <h1 className="font-black text-base md:text-lg tracking-tighter leading-none text-gray-900">
                                         {notebookName}
                                     </h1>
-                                    <Edit2 size={14} className="text-indigo-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                    {!isPublic && <Edit2 size={14} className="text-indigo-400 opacity-0 group-hover:opacity-100 transition-opacity" />}
                                 </div>
                             )}
                             <div className="flex items-center gap-1 opacity-40 group-hover:opacity-100 transition-opacity mt-0.5">

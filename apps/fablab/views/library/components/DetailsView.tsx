@@ -314,7 +314,7 @@ const DetailsView: React.FC<DetailsViewProps> = ({
                   {item.type === 'note_books' && (
                     <button
                       type="button"
-                      onClick={() => onRedirect(`/dashboard/notebook/${item.id}`)}
+                      onClick={() => onRedirect(`/dashboard/notebook/${item.id}?title=${encodeURIComponent(item.title)}`)}
                       className="flex-1 px-6 py-3 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white font-semibold rounded-xl transition-all shadow-lg inline-flex items-center justify-center gap-2"
                     >
                       <Notebook size={18} />
