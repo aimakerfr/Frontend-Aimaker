@@ -3,13 +3,6 @@ import { Source, StructuredSummary, Language } from "../types";
 
 const GEMINI_ENDPOINT = '/api/v1/gemini';
 
-const getContextFromSources = (sources: Source[]): string => {
-  const activeSources = sources.filter(s => s.selected);
-  if (activeSources.length === 0) return "";
-
-  return activeSources.map(s => `ID: ${s.id}\nTITULO: ${s.title}\nTIPO: ${s.type}\nCONTENIDO:\n${s.content}\n---`).join("\n");
-};
-
 /**
  * Analiza una imagen con Gemini Vision
  */
@@ -154,6 +147,14 @@ export const generateChatResponse = async (history: any[], sources: Source[], me
         selected: s.selected
       }));
 
+    console.log('Enviando petición al backend:', {
+      endpoint: `${GEMINI_ENDPOINT}/chat`,
+      sourcesCount: formattedSources.length,
+      historyLength: history.length,
+      messageLength: message.length,
+      language: lang
+    });
+
     const result = await httpClient.post<{ response: string }>(
       `${GEMINI_ENDPOINT}/chat`,
       { 
@@ -164,9 +165,32 @@ export const generateChatResponse = async (history: any[], sources: Source[], me
       }
     );
     
+    console.log('Respuesta recibida del backend:', result);
+    
+    if (!result || !result.response) {
+      console.error('Respuesta inválida del backend:', result);
+      return "No se recibió una respuesta válida del servidor.";
+    }
+    
     return result.response;
-  } catch (error) {
-    console.error("Chat Error:", error);
+  } catch (error: any) {
+    console.error("Chat Error Completo:", {
+      message: error?.message,
+      response: error?.response,
+      status: error?.response?.status,
+      data: error?.response?.data
+    });
+    
+    // Mensaje de error más detallado según el tipo de error
+    if (error?.response?.status === 401) {
+      return "Error de autenticación. Por favor, inicia sesión nuevamente.";
+    } else if (error?.response?.status === 500) {
+      const errorMsg = error?.response?.data?.message || error?.response?.data?.error;
+      return `Error en el servidor: ${errorMsg || 'Por favor, intenta nuevamente.'}`;
+    } else if (error?.response?.data?.message) {
+      return `Error: ${error.response.data.message}`;
+    }
+    
     return "Lo siento, ocurrió un error al procesar tu consulta con Gemini.";
   }
 };

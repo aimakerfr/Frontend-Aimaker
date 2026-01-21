@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutDashboard, User, Settings, Box, Library, Wrench, LogOut } from 'lucide-react';
+import { LayoutDashboard, User, Settings, Box, Wrench, LogOut } from 'lucide-react';
 import { View } from '../types';
 
 interface SidebarProps {
@@ -14,7 +14,6 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onChangeView, onLogout }
     { id: 'profile', label: 'My Profile', icon: <User size={20} /> },
     { id: 'context', label: 'AI Context', icon: <Settings size={20} /> },
     { id: 'projects', label: 'Projets', icon: <Box size={20} /> },
-    { id: 'library', label: 'Library', icon: <Library size={20} /> },
     { id: 'tools', label: 'Tools', icon: <Wrench size={20} /> },
   ];
 

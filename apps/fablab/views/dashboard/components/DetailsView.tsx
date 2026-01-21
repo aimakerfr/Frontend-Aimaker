@@ -43,9 +43,9 @@ const DetailsView: React.FC<DetailsViewProps> = ({
 
   const [formData, setFormData] = useState({
     type: item.type,
-    title: item.title,
+    title: item.title || '',
     url: item.url || '',
-    description: item.description,
+    description: item.description || '',
     language: item.language || 'fr',
     hasPublicStatus: item.isPublic,
   });
