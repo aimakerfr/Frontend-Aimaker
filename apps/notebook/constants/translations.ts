@@ -1,6 +1,4 @@
 
-import { Language } from '../types';
-
 export const UI_TRANSLATIONS = {
     es: {
         sourcePanel: {
