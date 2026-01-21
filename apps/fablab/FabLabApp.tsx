@@ -3,11 +3,10 @@ import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@core/auth/useAuth';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
-import DashboardHome from './components/DashboardHome';
+import Dashboard from './views/dashboard/Dashboard';
 import ProfileSection from './components/ProfileSection';
-import Projects from './components/Projects';
 import AIContext from './components/AIContext';
-import Library from './views/library/Library';
+import Projects from './views/projects/ProjectPlanner';
 import Tools from './components/Tools';
 import AIChat from './components/AIChat';
 import Notebook from '@apps/notebook/Notebook';
@@ -93,13 +92,12 @@ const App: React.FC = () => {
 
   const renderView = () => {
     switch (currentView) {
-      case 'dashboard': return <DashboardHome user={user} onChangeView={setCurrentView} />;
+      case 'dashboard': return <Dashboard />;
       case 'profile': return <ProfileSection user={user} />;
       case 'projects': return <Projects />;
       case 'context': return <AIContext />;
-      case 'library': return <Library />;
       case 'tools': return <Tools />;
-      default: return <DashboardHome user={user} onChangeView={setCurrentView} />;
+      default: return <Dashboard />;
     }
   };
 
