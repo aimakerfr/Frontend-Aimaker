@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { 
   BookOpen, FileText, Notebook, FolderKanban, 
-  Globe, Lock, ArrowLeft, Edit2, ExternalLink
+  Globe, Lock, ArrowLeft, Edit2, ExternalLink, Copy, CheckCircle
 } from 'lucide-react';
 
 type ItemType = 'assistant' | 'prompt' | 'note_books' | 'project' | 'perplexity_search';
@@ -16,6 +16,7 @@ interface LibraryItem {
   createdAt: string;
   category: string;
   url: string;
+  publicUrl?: string;
   language?: string;
   usageCount?: number;
 }
@@ -51,6 +52,29 @@ const DetailsView: React.FC<DetailsViewProps> = ({
   });
 
   const [isSaving, setIsSaving] = useState(false);
+  const [copiedPrivate, setCopiedPrivate] = useState(false);
+  const [copiedPublic, setCopiedPublic] = useState(false);
+
+  const copyToClipboard = async (text: string, type: 'private' | 'public') => {
+    try {
+      await navigator.clipboard.writeText(text);
+      if (type === 'private') {
+        setCopiedPrivate(true);
+        setTimeout(() => setCopiedPrivate(false), 2000);
+      } else {
+        setCopiedPublic(true);
+        setTimeout(() => setCopiedPublic(false), 2000);
+      }
+    } catch (err) {
+      console.error('Error copiando:', err);
+    }
+  };
+
+  const getFullUrl = (path: string) => {
+    if (!path) return '';
+    if (path.startsWith('http')) return path;
+    return `${window.location.origin}${path}`;
+  };
 
   const itemTypes: { type: ItemType; icon: any; label: string }[] = [
     { type: 'note_books', icon: Notebook, label: 'Notebook' },
@@ -156,12 +180,12 @@ const DetailsView: React.FC<DetailsViewProps> = ({
               )}
             </div>
 
-            {/* URL */}
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                URL (OPTIONNEL)
-              </label>
-              {isEditMode ? (
+            {/* URL - Solo mostrar en modo edición para tipos que NO sean notebooks */}
+            {isEditMode && formData.type !== 'note_books' && (
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                  URL (OPTIONNEL)
+                </label>
                 <input
                   type="text"
                   value={formData.url}
@@ -169,12 +193,89 @@ const DetailsView: React.FC<DetailsViewProps> = ({
                   placeholder="https://..."
                   className="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
                 />
-              ) : (
+              </div>
+            )}
+
+            {/* URLs para notebooks en modo vista */}
+            {!isEditMode && item.type === 'note_books' && (
+              <div className="space-y-4">
+                {/* URL Privada */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                    URL PRIVADA (Requiere login)
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={getFullUrl(item.url)}
+                      readOnly
+                      className="flex-1 px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 cursor-text"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => copyToClipboard(getFullUrl(item.url), 'private')}
+                      className="px-4 py-3 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 border-2 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-400 rounded-xl font-semibold transition-all"
+                      title="Copiar URL"
+                    >
+                      {copiedPrivate ? <CheckCircle size={20} /> : <Copy size={20} />}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => window.open(getFullUrl(item.url), '_blank')}
+                      className="px-4 py-3 bg-purple-50 dark:bg-purple-900/20 hover:bg-purple-100 dark:hover:bg-purple-900/30 border-2 border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-400 rounded-xl font-semibold transition-all"
+                      title="Abrir en nueva pestaña"
+                    >
+                      <ExternalLink size={20} />
+                    </button>
+                  </div>
+                </div>
+
+                {/* URL Pública - solo si está marcado como público */}
+                {item.isPublic && item.publicUrl && (
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                      URL PÚBLICA (Sin login, solo lectura)
+                    </label>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={getFullUrl(item.publicUrl)}
+                        readOnly
+                        className="flex-1 px-4 py-3 rounded-xl bg-green-50 dark:bg-green-900/20 text-gray-900 dark:text-white border border-green-300 dark:border-green-700 cursor-text"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => copyToClipboard(getFullUrl(item.publicUrl!), 'public')}
+                        className="px-4 py-3 bg-green-100 dark:bg-green-900/30 hover:bg-green-200 dark:hover:bg-green-900/40 border-2 border-green-300 dark:border-green-700 text-green-700 dark:text-green-400 rounded-xl font-semibold transition-all"
+                        title="Copiar URL"
+                      >
+                        {copiedPublic ? <CheckCircle size={20} /> : <Copy size={20} />}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => window.open(getFullUrl(item.publicUrl!), '_blank')}
+                        className="px-4 py-3 bg-green-100 dark:bg-green-900/30 hover:bg-green-200 dark:hover:bg-green-900/40 border-2 border-green-300 dark:border-green-700 text-green-700 dark:text-green-400 rounded-xl font-semibold transition-all"
+                        title="Abrir en nueva pestaña"
+                      >
+                        <ExternalLink size={20} />
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* URL para otros tipos en modo vista */}
+            {!isEditMode && item.type !== 'note_books' && (
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                  URL (OPTIONNEL)
+                </label>
                 <p className="px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white">
                   {item.url || 'N/A'}
                 </p>
-              )}
-            </div>
+              </div>
+            )}
 
             {/* Language */}
             <div>

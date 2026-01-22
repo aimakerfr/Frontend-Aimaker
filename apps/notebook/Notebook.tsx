@@ -9,7 +9,11 @@ import { Layout, Menu, Globe, ChevronDown, Edit2, ArrowLeft, Save } from 'lucide
 import { UI_TRANSLATIONS } from './constants/translations';
 import { NotebookService } from '../../core/src/notebooks/notebook.service';
 
-const App: React.FC = () => {
+interface NotebookProps {
+  isPublicView?: boolean;
+}
+
+const App: React.FC<NotebookProps> = ({ isPublicView = false }) => {
     const navigate = useNavigate();
     const { id } = useParams<{ id: string }>();
     const [searchParams] = useSearchParams();
@@ -179,14 +183,14 @@ const App: React.FC = () => {
                                 </div>
                             ) : (
                                 <div 
-                                    className={`flex items-center gap-2 ${!isPublic ? 'cursor-pointer' : 'cursor-not-allowed opacity-60'}`}
-                                    onClick={() => !isPublic && setIsEditingTitle(true)}
-                                    title={isPublic ? 'No puedes editar el título de un notebook público' : 'Haz clic para editar'}
+                                    className={`flex items-center gap-2 ${!isPublicView ? 'cursor-pointer' : 'cursor-not-allowed opacity-60'}`}
+                                    onClick={() => !isPublicView && setIsEditingTitle(true)}
+                                    title={isPublicView ? 'No puedes editar el título de un notebook público' : 'Haz clic para editar'}
                                 >
                                     <h1 className="font-black text-base md:text-lg tracking-tighter leading-none text-gray-900">
                                         {notebookName}
                                     </h1>
-                                    {!isPublic && <Edit2 size={14} className="text-indigo-400 opacity-0 group-hover:opacity-100 transition-opacity" />}
+                                    {!isPublicView && <Edit2 size={14} className="text-indigo-400 opacity-0 group-hover:opacity-100 transition-opacity" />}
                                 </div>
                             )}
                             <div className="flex items-center gap-1 opacity-40 group-hover:opacity-100 transition-opacity mt-0.5">
