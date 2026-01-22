@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BookOpen, Search, FileText, Notebook, FolderKanban, Smartphone, Globe, Eye, Lock, Plus, X, ExternalLink, Trash2 } from 'lucide-react';
+import { BookOpen, Search, FileText, Notebook, FolderKanban, Globe, Eye, Lock, Plus, X, ExternalLink, Trash2 } from 'lucide-react';
 import FormGeneral from './components/Form-general';
 import DetailsView from './components/DetailsView';
 import { 
@@ -20,7 +20,7 @@ const mockItems: LibraryItem[] = [
 ];
 
 type FilterType = 'all' | 'mine' | 'public' | 'private' | 'shared';
-type ItemType = 'agent' | 'prompt' | 'note_books' | 'project' | 'app' | 'perplexity_search';
+type ItemType = 'agent' | 'prompt' | 'note_books' | 'project' | 'perplexity_search';
 
 interface LibraryItem {
   id: number;
@@ -113,7 +113,6 @@ const LibraryView: React.FC<LibraryViewProps> = ({
     { type: 'prompt', icon: FileText, label: 'PROMPT' },
     { type: 'note_books', icon: Notebook, label: 'NOTEBOOK' },
     { type: 'project', icon: FolderKanban, label: 'PROJECT' },
-    { type: 'app', icon: Smartphone, label: 'APP' },
     { type: 'perplexity_search', icon: Globe, label: 'PERPLEXITY SEARCH' }
   ];
 
@@ -241,7 +240,6 @@ const LibraryView: React.FC<LibraryViewProps> = ({
                 <option value="project">Proyectos</option>
                 <option value="prompt">Prompts</option>
                 <option value="agent">Agentes</option>
-                <option value="app">Apps</option>
                 <option value="perplexity_search">Perplexity</option>
               </select>
               {filters.map(filter => (

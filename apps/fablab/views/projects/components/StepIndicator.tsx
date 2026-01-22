@@ -28,10 +28,10 @@ export const StepIndicator: React.FC<StepIndicatorProps> = ({ currentPhase, labe
           onClick={() => onStepClick(val)}
           className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all duration-300 border cursor-pointer hover:scale-105 active:scale-95 ${
             currentPhase === val 
-              ? 'bg-blue-600 border-blue-400 text-white shadow-lg shadow-blue-500/20' 
+              ? 'bg-blue-600 dark:bg-blue-600 border-blue-400 dark:border-blue-400 text-white shadow-lg shadow-blue-500/20' 
               : currentPhase > val
-              ? 'bg-green-900/40 border-green-700 text-green-300'
-              : 'bg-slate-800 border-slate-700 text-slate-500 hover:border-slate-500'
+              ? 'bg-green-100 dark:bg-green-900/40 border-green-600 dark:border-green-700 text-green-800 dark:text-green-300'
+              : 'bg-gray-100 dark:bg-slate-800 border-gray-300 dark:border-slate-700 text-gray-600 dark:text-slate-500 hover:border-gray-400 dark:hover:border-slate-500'
           }`}
         >
           {labels[idx]}

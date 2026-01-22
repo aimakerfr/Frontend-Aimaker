@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { 
-  BookOpen, Link2, FileText, Notebook, FolderKanban, 
-  Smartphone, Globe, Code, Lock, ArrowLeft, Edit2, ExternalLink
+  Link2, Notebook, Globe, Code, Lock, ArrowLeft, Edit2, ExternalLink
 } from 'lucide-react';
 
 type ItemType = 'external_link' | 'vibe_coding';
@@ -61,7 +60,7 @@ const DetailsView: React.FC<DetailsViewProps> = ({
     e.preventDefault();
     setIsSaving(true);
     
-    const success = await onSave(formData);
+    await onSave(formData);
     
     setIsSaving(false);
   };

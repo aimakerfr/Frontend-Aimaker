@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { 
-  BookOpen, Link2, FileText, Notebook, FolderKanban, 
-  Smartphone, Globe, Code, Lock, ArrowLeft 
+  BookOpen, FileText, Notebook, FolderKanban, 
+  Globe, Lock, ArrowLeft 
 } from 'lucide-react';
 
-type ItemType = 'agent' | 'external_link' | 'prompt' | 'note_books' | 'project' | 'app' | 'perplexity_search' | 'vibe_coding';
+type ItemType = 'agent' | 'prompt' | 'note_books' | 'project' | 'perplexity_search';
 
 interface FormGeneralProps {
   onClose: () => void;
@@ -32,10 +32,7 @@ const FormGeneral: React.FC<FormGeneralProps> = ({
     { type: 'project', icon: FolderKanban, label: 'Project' },
     { type: 'agent', icon: BookOpen, label: 'Agent' },
     { type: 'prompt', icon: FileText, label: 'Prompt' },
-    { type: 'external_link', icon: Link2, label: 'External Link' },
-    { type: 'app', icon: Smartphone, label: 'App' },
-    { type: 'perplexity_search', icon: Globe, label: 'Perplexity Search' },
-    { type: 'vibe_coding', icon: Code, label: 'Vibe Coding' }
+    { type: 'perplexity_search', icon: Globe, label: 'Perplexity Search' }
   ];
 
   const getCurrentTypeLabel = () => {
@@ -49,10 +46,7 @@ const FormGeneral: React.FC<FormGeneralProps> = ({
       'project': 'Détails Project',
       'agent': 'Détails Agent',
       'prompt': 'Détails Prompt',
-      'external_link': 'Détails External Link',
-      'app': 'Détails App',
-      'perplexity_search': 'Détails Perplexity Search',
-      'vibe_coding': 'Détails Vibe Coding'
+      'perplexity_search': 'Détails Perplexity Search'
     };
     return labels[formData.type as ItemType] || 'Détails';
   };
