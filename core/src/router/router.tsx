@@ -14,6 +14,7 @@ import { useAuth } from '../auth/useAuth';
 import AuthApp from '@apps/auth/AuthApp';
 import HomeApp from '@apps/home/HomeApp';
 import FabLabApp from '@apps/fablab/FabLabApp';
+import Notebook from '@apps/notebook/Notebook';
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // Protected Route Component
@@ -95,6 +96,9 @@ export function AppRouter() {
             </PublicRoute>
           }
         />
+        
+        {/* Public Notebook - No auth required, read-only */}
+        <Route path="/public/notebook/:id" element={<Notebook isPublicView={true} />} />
 
         {/* Protected Routes */}
         <Route

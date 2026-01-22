@@ -93,3 +93,13 @@ export const toggleCreationToolVisibility = async (
 ): Promise<CreationTool> => {
   return updateCreationTool(id, { hasPublicStatus: isPublic });
 };
+
+// ========================================
+// Alias exports with simplified names
+// ========================================
+export const getTools = getCreationTools;
+export const getTool = getCreationTool;
+export const createTool = createCreationTool;
+export const updateTool = updateCreationTool;
+export const deleteTool = deleteCreationTool;
+export const toggleToolVisibility = toggleCreationToolVisibility;

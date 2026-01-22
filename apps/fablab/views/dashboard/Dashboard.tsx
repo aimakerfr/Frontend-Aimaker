@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Notebook, FolderKanban, BookOpen, FileText, ArrowRight, TrendingUp, Sparkles, Zap, Target } from 'lucide-react';
-import { getCreationTools } from '@core/creation-tools/creation-tools.service';
-import type { CreationTool } from '@core/creation-tools/creation-tools.types';
+import { getTools } from '@core/creation-tools/creation-tools.service';
+import type { Tool } from '@core/creation-tools/creation-tools.types';
 import { useLanguage } from '../../language/useLanguage';
 import { translations } from '../../language/translations';
 import { useAuth } from '@core/auth/useAuth';
@@ -29,13 +29,13 @@ const Dashboard: React.FC = () => {
 
   const loadStats = async () => {
     try {
-      const tools = await getCreationTools();
+      const tools = await getTools();
       
       const newStats: Stats = {
-        notebooks: tools.filter((t: CreationTool) => t.type === 'note_books').length,
-        projects: tools.filter((t: CreationTool) => t.type === 'project').length,
-        assistant: tools.filter((t: CreationTool) => t.type === 'assistant').length,
-        prompts: tools.filter((t: CreationTool) => t.type === 'prompt').length,
+        notebooks: tools.filter((t: Tool) => t.type === 'note_books').length,
+        projects: tools.filter((t: Tool) => t.type === 'project').length,
+        assistant: tools.filter((t: Tool) => t.type === 'assistant').length,
+        prompts: tools.filter((t: Tool) => t.type === 'prompt').length,
       };
       
       setStats(newStats);
@@ -75,7 +75,7 @@ const Dashboard: React.FC = () => {
     },
     { 
       icon: FolderKanban, 
-      label: t.dashboard.stats.projects, 
+      label: t.dashboard.stats.makerPath, 
       value: stats.projects, 
       color: 'from-purple-500 to-pink-500',
       bgColor: 'bg-purple-50 dark:bg-purple-900/20',
@@ -117,7 +117,7 @@ const Dashboard: React.FC = () => {
       action: () => handleNavigate('library')
     },
     {
-      title: t.dashboard.sections.projects,
+      title: t.dashboard.sections.makerPath,
       description: language === 'en' ? 'Plan and organize projects' : language === 'es' ? 'Planifica y organiza proyectos' : 'Planifiez et organisez des projets',
       icon: Target,
       color: 'from-purple-500 via-pink-500 to-purple-600',

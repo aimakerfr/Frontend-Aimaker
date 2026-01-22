@@ -4,9 +4,13 @@ import { Mail, Calendar, Shield, FolderKanban, FileText, Notebook, BookOpen, Glo
 import { ProfileService } from '@core/profile/profile.service';
 import { httpClient } from '@core/api/http.client';
 import type { UserProfile as ApiUserProfile } from '@core/profile/profile.types';
+import { useLanguage } from '../language/useLanguage';
+import { translations } from '../language/translations';
 
 // ProfileSection Component - Shows user profile information
 const ProfileSection: React.FC<{ user: UserProfile | null }> = () => {
+  const { language } = useLanguage();
+  const t = translations[language];
   const [profileData, setProfileData] = useState<ApiUserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
@@ -42,9 +46,17 @@ const ProfileSection: React.FC<{ user: UserProfile | null }> = () => {
   const handleSave = async () => {
     setSaving(true);
     try {
+      const oldLanguage = profileData?.uiLanguage;
       await httpClient.patch('/api/v1/profile', editForm);
       await loadProfileData();
       setIsEditing(false);
+      
+      // Dispatch language change event if language was updated
+      if (oldLanguage !== editForm.uiLanguage) {
+        window.dispatchEvent(new CustomEvent('languageChanged', { 
+          detail: { language: editForm.uiLanguage } 
+        }));
+      }
     } catch (error) {
       console.error('Error al actualizar perfil:', error);
       alert('Error al guardar cambios');
@@ -67,7 +79,7 @@ const ProfileSection: React.FC<{ user: UserProfile | null }> = () => {
       <div className="max-w-4xl mx-auto space-y-6">
         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-8">
           <div className="text-center text-gray-500">
-            Cargando perfil...
+            {t.profile.loadingProfile}
           </div>
         </div>
       </div>

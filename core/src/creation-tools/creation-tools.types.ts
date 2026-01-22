@@ -19,6 +19,7 @@ export interface CreationTool {
   type: CreationToolType;
   language: 'fr' | 'en' | 'es';
   url: string | null;
+  publicUrl: string | null;
   hasPublicStatus: boolean | null;
   isTemplate: boolean;
   usageCount: number;
@@ -49,3 +50,12 @@ export interface UpdateCreationToolRequest {
   hasPublicStatus?: boolean;
   isTemplate?: boolean;
 }
+
+// ========================================
+// Type aliases with simplified names
+// ========================================
+export type ToolType = CreationToolType;
+export type Tool = CreationTool;
+export type ToolsParams = CreationToolsParams;
+export type CreateToolRequest = CreateCreationToolRequest;
+export type UpdateToolRequest = UpdateCreationToolRequest;

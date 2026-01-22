@@ -25,12 +25,22 @@ export const useLanguage = () => {
   useEffect(() => {
     loadUserLanguage();
 
-    // Poll for language changes every 2 seconds
+    // Poll for language changes every 30 seconds
     const intervalId = setInterval(() => {
       loadUserLanguage();
-    }, 2000);
+    }, 30000);
 
-    return () => clearInterval(intervalId);
+    // Listen for language change events for immediate updates
+    const handleLanguageChange = () => {
+      loadUserLanguage();
+    };
+
+    window.addEventListener('languageChanged', handleLanguageChange);
+
+    return () => {
+      clearInterval(intervalId);
+      window.removeEventListener('languageChanged', handleLanguageChange);
+    };
   }, [loadUserLanguage]);
 
   return { language, isLoading, refreshLanguage: loadUserLanguage };

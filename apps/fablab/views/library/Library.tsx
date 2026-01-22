@@ -4,14 +4,16 @@ import { useNavigate } from 'react-router-dom';
 import { BookOpen, Search, FileText, Notebook, FolderKanban, Globe, Eye, Lock, Plus, X, ExternalLink, Trash2 } from 'lucide-react';
 import FormGeneral from './components/Form-general';
 import DetailsView from './components/DetailsView';
+import { useLanguage } from '../../language/useLanguage';
+import { translations } from '../../language/translations';
 import { 
-  getCreationTools, 
-  createCreationTool, 
-  updateCreationTool, 
-  deleteCreationTool, 
-  toggleCreationToolVisibility 
+  getTools, 
+  createTool, 
+  updateTool, 
+  deleteTool, 
+  toggleToolVisibility 
 } from '@core/creation-tools/creation-tools.service';
-import type { CreationTool } from '@core/creation-tools/creation-tools.types';
+import type { Tool } from '@core/creation-tools/creation-tools.types';
 
 // MOCK DATA - Solo se usa si falla la API
 const mockItems: LibraryItem[] = [
@@ -32,6 +34,7 @@ interface LibraryItem {
   createdAt: string;
   category: string;
   url: string;
+  publicUrl?: string;
   language?: string;
   usageCount?: number;
 }
@@ -52,6 +55,8 @@ const LibraryView: React.FC<LibraryViewProps> = ({
   isLoading = false
 }) => {
   const navigate = useNavigate();
+  const { language } = useLanguage();
+  const t = translations[language];
   const [activeFilter, setActiveFilter] = useState<FilterType>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState<ItemType | 'all'>('all');
@@ -63,11 +68,11 @@ const LibraryView: React.FC<LibraryViewProps> = ({
   const [isEditMode, setIsEditMode] = useState(false);
 
   const filters: { key: FilterType; label: string }[] = [
-    { key: 'all', label: 'Tous' },
-    { key: 'mine', label: 'Mios' },
-    { key: 'shared', label: 'Partagés' },
-    { key: 'public', label: 'Publics' },
-    { key: 'private', label: 'Privés' }
+    { key: 'all', label: t.library.filters.all },
+    { key: 'mine', label: t.library.filters.mine },
+    { key: 'shared', label: t.library.filters.shared },
+    { key: 'public', label: t.library.filters.public },
+    { key: 'private', label: t.library.filters.private }
   ];
 
   const getFilteredTools = () => {
@@ -109,11 +114,11 @@ const LibraryView: React.FC<LibraryViewProps> = ({
   const filteredItems = getFilteredTools();
 
   const itemTypes: { type: ItemType; icon: any; label: string }[] = [
-    { type: 'assistant', icon: BookOpen, label: 'ASSISTANT' },
-    { type: 'prompt', icon: FileText, label: 'PROMPT' },
-    { type: 'note_books', icon: Notebook, label: 'NOTEBOOK' },
-    { type: 'project', icon: FolderKanban, label: 'PROJECT' },
-    { type: 'perplexity_search', icon: Globe, label: 'PERPLEXITY SEARCH' }
+    { type: 'assistant', icon: BookOpen, label: t.library.types.assistant },
+    { type: 'prompt', icon: FileText, label: t.library.types.prompt },
+    { type: 'note_books', icon: Notebook, label: t.library.types.notebook },
+    { type: 'project', icon: FolderKanban, label: t.library.types.project },
+    { type: 'perplexity_search', icon: Globe, label: t.library.types.perplexitySearch }
   ];
 
   const getTypeConfig = (type: ItemType) => {
@@ -336,23 +341,34 @@ const LibraryView: React.FC<LibraryViewProps> = ({
                       </div>
 
                       <div className="col-span-2">
-                        {item.isPublic && item.url ? (
-                          <button
-                            onClick={() => handleRedirect(item.url)}
-                            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl font-semibold text-sm transition-all bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/30 cursor-pointer hover:scale-105"
-                          >
-                            <Globe size={18} />
-                            Public
-                            <ExternalLink size={14} />
-                          </button>
-                        ) : item.isPublic ? (
-                          <button
-                            onClick={() => handleToggleVisibility(item.id, item.isPublic)}
-                            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl font-semibold text-sm transition-all bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/30"
-                          >
-                            <Globe size={18} />
-                            Public
-                          </button>
+                        {item.isPublic ? (
+                          item.type === 'note_books' && item.publicUrl ? (
+                            <button
+                              onClick={() => handleRedirect(item.publicUrl!)}
+                              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl font-semibold text-sm transition-all bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/30 cursor-pointer hover:scale-105"
+                            >
+                              <Globe size={18} />
+                              Public
+                              <ExternalLink size={14} />
+                            </button>
+                          ) : item.url ? (
+                            <button
+                              onClick={() => handleRedirect(item.url)}
+                              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl font-semibold text-sm transition-all bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/30 cursor-pointer hover:scale-105"
+                            >
+                              <Globe size={18} />
+                              Public
+                              <ExternalLink size={14} />
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => handleToggleVisibility(item.id, item.isPublic)}
+                              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl font-semibold text-sm transition-all bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/30"
+                            >
+                              <Globe size={18} />
+                              Public
+                            </button>
+                          )
                         ) : (
                           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl font-semibold text-sm bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 opacity-75 cursor-not-allowed">
                             <Lock size={18} />
@@ -448,20 +464,21 @@ const Library = () => {
     setIsLoading(true);
     setError(null);
     try {
-      const tools = await getCreationTools();
+      const tools = await getTools();
       // Filtrar external_link y vibe_coding (ahora están en Acceso Externo)
-      const filteredTools = tools.filter((tool: CreationTool) => 
+      const filteredTools = tools.filter((tool: Tool) => 
         (tool.type as string) !== 'external_link' && (tool.type as string) !== 'vibe_coding'
       );
       const sortedTools = filteredTools.sort((a, b) => b.id - a.id);
       
-      const mappedItems: LibraryItem[] = sortedTools.map((tool: CreationTool) => ({
+      const mappedItems: LibraryItem[] = sortedTools.map((tool: Tool) => ({
         id: tool.id,
         type: tool.type as ItemType,
         title: tool.title,
         description: tool.description,
         isPublic: tool.hasPublicStatus ?? false,
         url: tool.url || '',
+        publicUrl: tool.publicUrl || undefined,
         language: tool.language,
         usageCount: tool.usageCount,
         author: 'USER',
@@ -498,9 +515,9 @@ const Library = () => {
       payload.isTemplate = data.isTemplate ?? false;
 
       if (itemId) {
-        await updateCreationTool(itemId, payload);
+        await updateTool(itemId, payload);
       } else {
-        await createCreationTool(payload);
+        await createTool(payload);
       }
 
       await loadCreationTools();
@@ -519,7 +536,7 @@ const Library = () => {
     
     try {
       setIsLoading(true);
-      await deleteCreationTool(itemId);
+      await deleteTool(itemId);
       setItems(prev => prev.filter((item: LibraryItem) => item.id !== itemId));
     } catch (err) {
       console.error('Error eliminando:', err);
@@ -532,7 +549,7 @@ const Library = () => {
 
   const handleToggleVisibility = async (itemId: number, currentIsPublic: boolean) => {
     try {
-      await toggleCreationToolVisibility(itemId, !currentIsPublic);
+      await toggleToolVisibility(itemId, !currentIsPublic);
       await loadCreationTools();
     } catch (err) {
       console.error('Error cambiando visibilidad:', err);

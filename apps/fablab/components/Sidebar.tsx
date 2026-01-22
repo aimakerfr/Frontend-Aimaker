@@ -19,7 +19,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onChangeView, onLogout }
     { id: 'library', label: t.sidebar.library, icon: <LibraryIcon size={20} /> },
     { id: 'profile', label: t.sidebar.profile, icon: <User size={20} /> },
     { id: 'context', label: t.sidebar.context, icon: <Server size={20} /> },
-    { id: 'projects', label: t.sidebar.projects, icon: <Box size={20} /> },
+    { id: 'projects', label: t.sidebar.makerPath, icon: <Box size={20} /> },
     { id: 'tools', label: t.sidebar.tools, icon: <ExternalLink size={20} /> },
   ];
 
