@@ -6,7 +6,7 @@ export interface Translations {
     subtitle: string;
     stats: {
       notebooks: string;
-      projects: string;
+      makerPath: string;
       assistants: string;
       prompts: string;
     };
@@ -14,7 +14,7 @@ export interface Translations {
     goTo: string;
     sections: {
       library: string;
-      projects: string;
+      makerPath: string;
       profile: string;
       tools: string;
     };
@@ -24,7 +24,7 @@ export interface Translations {
     library: string;
     profile: string;
     context: string;
-    projects: string;
+    makerPath: string;
     tools: string;
     signOut: string;
   };
@@ -42,7 +42,7 @@ export const translations: Record<Language, Translations> = {
       subtitle: 'Here\'s an overview of your AI resources',
       stats: {
         notebooks: 'Notebooks',
-        projects: 'Projects',
+        makerPath: 'Maker Path',
         assistants: 'Assistants',
         prompts: 'Prompts',
       },
@@ -50,7 +50,7 @@ export const translations: Record<Language, Translations> = {
       goTo: 'Go to',
       sections: {
         library: 'Library',
-        projects: 'Projects',
+        makerPath: 'Maker Path',
         profile: 'My Profile',
         tools: 'External Access',
       },
@@ -60,7 +60,7 @@ export const translations: Record<Language, Translations> = {
       library: 'Library',
       profile: 'My Profile',
       context: 'Server',
-      projects: 'Projects',
+      makerPath: 'Maker Path',
       tools: 'External Access',
       signOut: 'Sign Out',
     },
@@ -76,7 +76,7 @@ export const translations: Record<Language, Translations> = {
       subtitle: 'Aquí tienes un resumen de tus recursos de IA',
       stats: {
         notebooks: 'Notebooks',
-        projects: 'Proyectos',
+        makerPath: 'Ruta del Maker',
         assistants: 'Asistentes',
         prompts: 'Prompts',
       },
@@ -84,7 +84,7 @@ export const translations: Record<Language, Translations> = {
       goTo: 'Ir a',
       sections: {
         library: 'Biblioteca',
-        projects: 'Proyectos',
+        makerPath: 'Ruta del Maker',
         profile: 'Mi Perfil',
         tools: 'Acceso Externo',
       },
@@ -94,7 +94,7 @@ export const translations: Record<Language, Translations> = {
       library: 'Biblioteca',
       profile: 'Mi Perfil',
       context: 'Servidor',
-      projects: 'Proyectos',
+      makerPath: 'Ruta del Maker',
       tools: 'Acceso Externo',
       signOut: 'Cerrar Sesión',
     },
@@ -110,7 +110,7 @@ export const translations: Record<Language, Translations> = {
       subtitle: 'Voici un aperçu de vos ressources IA',
       stats: {
         notebooks: 'Notebooks',
-        projects: 'Projets',
+        makerPath: 'Chemin du Maker',
         assistants: 'Assistants',
         prompts: 'Prompts',
       },
@@ -118,7 +118,7 @@ export const translations: Record<Language, Translations> = {
       goTo: 'Aller à',
       sections: {
         library: 'Bibliothèque',
-        projects: 'Projets',
+        makerPath: 'Chemin du Maker',
         profile: 'Mon Profil',
         tools: 'Accès Externe',
       },
@@ -128,7 +128,7 @@ export const translations: Record<Language, Translations> = {
       library: 'Bibliothèque',
       profile: 'Mon Profil',
       context: 'Serveur',
-      projects: 'Projets',
+      makerPath: 'Chemin du Maker',
       tools: 'Accès Externe',
       signOut: 'Déconnexion',
     },

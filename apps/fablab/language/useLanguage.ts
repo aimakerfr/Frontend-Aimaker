@@ -25,10 +25,10 @@ export const useLanguage = () => {
   useEffect(() => {
     loadUserLanguage();
 
-    // Poll for language changes every 2 seconds
+    // Poll for language changes every 30 seconds
     const intervalId = setInterval(() => {
       loadUserLanguage();
-    }, 2000);
+    }, 30000);
 
     return () => clearInterval(intervalId);
   }, [loadUserLanguage]);

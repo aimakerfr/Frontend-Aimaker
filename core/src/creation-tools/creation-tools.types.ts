@@ -49,3 +49,12 @@ export interface UpdateCreationToolRequest {
   hasPublicStatus?: boolean;
   isTemplate?: boolean;
 }
+
+// ========================================
+// Type aliases with simplified names
+// ========================================
+export type ToolType = CreationToolType;
+export type Tool = CreationTool;
+export type ToolsParams = CreationToolsParams;
+export type CreateToolRequest = CreateCreationToolRequest;
+export type UpdateToolRequest = UpdateCreationToolRequest;

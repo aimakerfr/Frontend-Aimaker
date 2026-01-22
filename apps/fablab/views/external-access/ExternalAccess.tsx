@@ -4,13 +4,13 @@ import { Search, Link2, Globe, Code, Eye, Lock, Plus, X, ExternalLink, Trash2 } 
 import FormGeneral from './components/Form-general';
 import DetailsView from './components/DetailsView';
 import { 
-  getCreationTools, 
-  createCreationTool, 
-  updateCreationTool, 
-  deleteCreationTool, 
-  toggleCreationToolVisibility 
+  getTools, 
+  createTool, 
+  updateTool, 
+  deleteTool, 
+  toggleToolVisibility 
 } from '@core/creation-tools/creation-tools.service';
-import type { CreationTool } from '@core/creation-tools/creation-tools.types';
+import type { Tool } from '@core/creation-tools/creation-tools.types';
 
 // MOCK DATA - Solo se usa si falla la API
 const mockItems: ExternalAccessItem[] = [
@@ -435,14 +435,14 @@ const ExternalAccess = () => {
     setIsLoading(true);
     setError(null);
     try {
-      const tools = await getCreationTools();
+      const tools = await getTools();
       // Filtrar solo external_link y vibe_coding
-      const filteredTools = tools.filter((tool: CreationTool) => 
+      const filteredTools = tools.filter((tool: Tool) => 
         (tool.type as string) === 'external_link' || (tool.type as string) === 'vibe_coding'
       );
       const sortedTools = filteredTools.sort((a, b) => b.id - a.id);
       
-      const mappedItems: ExternalAccessItem[] = sortedTools.map((tool: CreationTool) => ({
+      const mappedItems: ExternalAccessItem[] = sortedTools.map((tool: Tool) => ({
         id: tool.id,
         type: tool.type as ItemType,
         title: tool.title,
@@ -485,9 +485,9 @@ const ExternalAccess = () => {
       payload.isTemplate = data.isTemplate ?? false;
 
       if (itemId) {
-        await updateCreationTool(itemId, payload);
+        await updateTool(itemId, payload);
       } else {
-        await createCreationTool(payload);
+        await createTool(payload);
       }
 
       await loadCreationTools();
@@ -506,7 +506,7 @@ const ExternalAccess = () => {
     
     try {
       setIsLoading(true);
-      await deleteCreationTool(itemId);
+      await deleteTool(itemId);
       setItems(prev => prev.filter((item: ExternalAccessItem) => item.id !== itemId));
     } catch (err) {
       console.error('Error eliminando:', err);
@@ -519,7 +519,7 @@ const ExternalAccess = () => {
 
   const handleToggleVisibility = async (itemId: number, currentIsPublic: boolean) => {
     try {
-      await toggleCreationToolVisibility(itemId, !currentIsPublic);
+      await toggleToolVisibility(itemId, !currentIsPublic);
       await loadCreationTools();
     } catch (err) {
       console.error('Error cambiando visibilidad:', err);
