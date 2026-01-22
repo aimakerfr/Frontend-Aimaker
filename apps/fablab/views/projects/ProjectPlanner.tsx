@@ -4,6 +4,7 @@ import { Phase, ProjectState, Language } from './types';
 import { StepIndicator } from './components/StepIndicator';
 import { dashboardAIService } from '@core/ai/dashboard.service';
 import { translations } from './translations';
+import { useLanguage } from '../../language/useLanguage';
 
 const createInitialState = (): ProjectState => ({
   objective: { title: '', goal: '', type: '' },
@@ -14,10 +15,8 @@ const createInitialState = (): ProjectState => ({
 });
 
 const App: React.FC = () => {
-  const [lang, setLang] = useState<Language>(() => {
-    const saved = localStorage.getItem('ai_architect_lang');
-    return (saved as Language) || 'en';
-  });
+  const { language } = useLanguage();
+  const lang = language as Language;
   
   const [phase, setPhase] = useState<Phase>(() => {
     const saved = localStorage.getItem('ai_architect_phase');
@@ -36,10 +35,6 @@ const App: React.FC = () => {
   useEffect(() => {
     localStorage.setItem('ai_architect_state', JSON.stringify(state));
   }, [state]);
-
-  useEffect(() => {
-    localStorage.setItem('ai_architect_lang', lang);
-  }, [lang]);
 
   useEffect(() => {
     localStorage.setItem('ai_architect_phase', phase.toString());
@@ -108,20 +103,6 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50/30 dark:from-gray-900 dark:to-blue-900/10 pb-20 pt-10 px-4 max-w-4xl mx-auto">
-      <div className="flex justify-end mb-6 gap-2">
-        {(['en', 'es', 'fr'] as Language[]).map(l => (
-          <button
-            key={l}
-            onClick={() => setLang(l)}
-            className={`px-3 py-1 rounded text-xs font-bold transition-colors ${
-              lang === l ? 'bg-blue-600 text-white' : 'bg-gray-200 dark:bg-slate-800 text-gray-700 dark:text-slate-400 hover:bg-gray-300 dark:hover:bg-slate-700'
-            }`}
-          >
-            {l.toUpperCase()}
-          </button>
-        ))}
-      </div>
-
       <header className="text-center mb-12">
         <h1 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400 bg-clip-text text-transparent">
           {t.title}

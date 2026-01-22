@@ -3,10 +3,14 @@
  */
 
 export type CreationToolType = 
-  | 'agent' 
+  | 'assistant' 
   | 'external_link' 
   | 'prompt' 
   | 'note_books' 
+  | 'project'
+  | 'app'
+  | 'perplexity_search'
+  | 'vibe_coding' 
 
 export interface CreationTool {
   id: number;

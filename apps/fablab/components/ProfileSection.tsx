@@ -230,9 +230,9 @@ const ProfileSection: React.FC<{ user: UserProfile | null }> = () => {
           <div className="p-4 bg-gradient-to-br from-indigo-50 to-indigo-100 dark:from-indigo-900/20 dark:to-indigo-800/20 rounded-xl border border-indigo-200 dark:border-indigo-700">
             <Shield className="text-indigo-600 dark:text-indigo-400 mb-2" size={24} />
             <div className="text-2xl font-bold text-indigo-900 dark:text-indigo-100">
-              {profileData.stats.byType?.agent || 0}
+              {profileData.stats.byType?.assistant || 0}
             </div>
-            <div className="text-xs text-indigo-700 dark:text-indigo-300 font-medium">Agentes</div>
+            <div className="text-xs text-indigo-700 dark:text-indigo-300 font-medium">Asistentes</div>
           </div>
 
           <div className="p-4 bg-gradient-to-br from-pink-50 to-pink-100 dark:from-pink-900/20 dark:to-pink-800/20 rounded-xl border border-pink-200 dark:border-pink-700">

@@ -4,10 +4,11 @@ import { useAuth } from '@core/auth/useAuth';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
 import Dashboard from './views/dashboard/Dashboard';
+import Library from './views/library/Library';
 import ProfileSection from './components/ProfileSection';
 import AIContext from './components/AIContext';
 import Projects from './views/projects/ProjectPlanner';
-import Tools from './components/Tools';
+import ExternalAccess from './views/external-access/ExternalAccess';
 import AIChat from './components/AIChat';
 import Notebook from '@apps/notebook/Notebook';
 import { View, UserProfile } from './types';
@@ -93,10 +94,11 @@ const App: React.FC = () => {
   const renderView = () => {
     switch (currentView) {
       case 'dashboard': return <Dashboard />;
+      case 'library': return <Library />;
       case 'profile': return <ProfileSection user={user} />;
       case 'projects': return <Projects />;
       case 'context': return <AIContext />;
-      case 'tools': return <Tools />;
+      case 'tools': return <ExternalAccess />;
       default: return <Dashboard />;
     }
   };
