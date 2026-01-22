@@ -11,12 +11,12 @@ import {
   deleteCreationTool, 
   toggleCreationToolVisibility 
 } from '@core/creation-tools/creation-tools.service';
-import type { CreationTool, CreationToolType } from '@core/creation-tools/creation-tools.types';
+import type { CreationTool } from '@core/creation-tools/creation-tools.types';
 
 // MOCK DATA - Solo se usa si falla la API
-const mockItems = [
-  { id: 1, type: 'note_books' as CreationToolType, title: 'REX Industrialisation LLM', description: 'Notes sur les tests de latence et coûts.', isPublic: false, author: 'JULIEDURAND', createdAt: '22/10/2023', category: 'Analyse', url: 'aimaker.fr/s/...', language: 'fr', usageCount: 0 },
-  { id: 2, type: 'project' as CreationToolType, title: 'Prototype Chatbot Client', description: 'MVP pour le support client e-commerce.', isPublic: true, author: 'JEANDUPONT', createdAt: '20/10/2023', category: 'E-commerce', url: 'aimaker.fr/p/...', language: 'fr', usageCount: 0 },
+const mockItems: LibraryItem[] = [
+  { id: 1, type: 'note_books', title: 'REX Industrialisation LLM', description: 'Notes sur les tests de latence et coûts.', isPublic: false, author: 'JULIEDURAND', createdAt: '22/10/2023', category: 'Analyse', url: 'aimaker.fr/s/...', language: 'fr', usageCount: 0 },
+  { id: 2, type: 'project', title: 'Prototype Chatbot Client', description: 'MVP pour le support client e-commerce.', isPublic: true, author: 'JEANDUPONT', createdAt: '20/10/2023', category: 'E-commerce', url: 'aimaker.fr/p/...', language: 'fr', usageCount: 0 },
 ];
 
 type FilterType = 'all' | 'mine' | 'public' | 'private' | 'shared';
@@ -453,7 +453,7 @@ const Library = () => {
       const tools = await getCreationTools();
       // Filtrar external_link y vibe_coding (ahora están en Acceso Externo)
       const filteredTools = tools.filter((tool: CreationTool) => 
-        tool.type !== 'external_link' && tool.type !== 'vibe_coding'
+        (tool.type as string) !== 'external_link' && (tool.type as string) !== 'vibe_coding'
       );
       const sortedTools = filteredTools.sort((a, b) => b.id - a.id);
       
@@ -469,7 +469,7 @@ const Library = () => {
         author: 'USER',
         createdAt: new Date().toLocaleDateString('fr-FR'),
         category: ''
-      }));
+      })) as LibraryItem[];
       
       setItems(mappedItems);
     } catch (err) {

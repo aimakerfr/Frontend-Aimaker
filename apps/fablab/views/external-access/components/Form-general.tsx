@@ -34,24 +34,24 @@ const FormGeneral: React.FC<FormGeneralProps> = ({
 
   const getCurrentTypeLabel = () => {
     const typeConfig = itemTypes.find(t => t.type === formData.type);
-    return typeConfig?.label || 'Notebook';
+    return typeConfig?.label || 'External Link';
   };
 
   const getDetailsLabel = () => {
     const labels: Record<ItemType, string> = {
-      'note_books': 'Détails Notebook',
-      'project': 'Détails ProjectExternal Lin
-      'agent': 'Détails Agent',
-      'prompt': 'Détails Prompt',
       'external_link': 'Détails External Link',
-      'app': 'Détails App',
-      'external_link': 'Détails External Link
+      'vibe_coding': 'Détails Vibe Coding'
+    };
+    return labels[formData.type] || 'Détails';
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSave?.(formData);
     onClose();
   };
 
-  const TypeIcon = itemTypes.find(t => t.type === formData.type)?.icon || Notebook;
+  const TypeIcon = itemTypes.find(t => t.type === formData.type)?.icon || Link2;
 
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm">

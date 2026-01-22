@@ -1,6 +1,5 @@
 
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Search, Link2, Globe, Code, Eye, Lock, Plus, X, ExternalLink, Trash2 } from 'lucide-react';
 import FormGeneral from './components/Form-general';
 import DetailsView from './components/DetailsView';
@@ -11,11 +10,11 @@ import {
   deleteCreationTool, 
   toggleCreationToolVisibility 
 } from '@core/creation-tools/creation-tools.service';
-import type { CreationTool, CreationToolType } from '@core/creation-tools/creation-tools.types';
+import type { CreationTool } from '@core/creation-tools/creation-tools.types';
 
 // MOCK DATA - Solo se usa si falla la API
-const mockItems = [
-  { id: 1, type: 'external_link' as CreationToolType, title: 'External API', description: 'Integration with external services.', isPublic: false, author: 'JULIEDURAND', createdAt: '22/10/2023', category: 'Integration', url: 'aimaker.fr/s/...', language: 'fr', usageCount: 0 },
+const mockItems: ExternalAccessItem[] = [
+  { id: 1, type: 'external_link', title: 'External API', description: 'Integration with external services.', isPublic: false, author: 'JULIEDURAND', createdAt: '22/10/2023', category: 'Integration', url: 'aimaker.fr/s/...', language: 'fr', usageCount: 0 },
 ];
 
 type FilterType = 'all' | 'mine' | 'public' | 'private' | 'shared';
@@ -172,7 +171,7 @@ const ExternalAccessView: React.FC<ExternalAccessViewProps> = ({
     setIsEditMode(false);
   };
 
-  const getSelectedItemData = () => {
+  const getSelectedItemData = (): ExternalAccessItem | undefined => {
     if (selectedItemId) {
       return items.find(item => item.id === selectedItemId);
     }
@@ -439,7 +438,7 @@ const ExternalAccess = () => {
       const tools = await getCreationTools();
       // Filtrar solo external_link y vibe_coding
       const filteredTools = tools.filter((tool: CreationTool) => 
-        tool.type === 'external_link' || tool.type === 'vibe_coding'
+        (tool.type as string) === 'external_link' || (tool.type as string) === 'vibe_coding'
       );
       const sortedTools = filteredTools.sort((a, b) => b.id - a.id);
       
@@ -455,7 +454,7 @@ const ExternalAccess = () => {
         author: 'USER',
         createdAt: new Date().toLocaleDateString('fr-FR'),
         category: ''
-      }));
+      })) as ExternalAccessItem[];
       
       setItems(mappedItems);
     } catch (err) {
