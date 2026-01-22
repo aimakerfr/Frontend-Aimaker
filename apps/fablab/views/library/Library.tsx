@@ -4,6 +4,8 @@ import { useNavigate } from 'react-router-dom';
 import { BookOpen, Search, FileText, Notebook, FolderKanban, Globe, Eye, Lock, Plus, X, ExternalLink, Trash2 } from 'lucide-react';
 import FormGeneral from './components/Form-general';
 import DetailsView from './components/DetailsView';
+import { useLanguage } from '../../language/useLanguage';
+import { translations } from '../../language/translations';
 import { 
   getTools, 
   createTool, 
@@ -52,6 +54,8 @@ const LibraryView: React.FC<LibraryViewProps> = ({
   isLoading = false
 }) => {
   const navigate = useNavigate();
+  const { language } = useLanguage();
+  const t = translations[language];
   const [activeFilter, setActiveFilter] = useState<FilterType>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState<ItemType | 'all'>('all');
@@ -63,11 +67,11 @@ const LibraryView: React.FC<LibraryViewProps> = ({
   const [isEditMode, setIsEditMode] = useState(false);
 
   const filters: { key: FilterType; label: string }[] = [
-    { key: 'all', label: 'Tous' },
-    { key: 'mine', label: 'Mios' },
-    { key: 'shared', label: 'Partagés' },
-    { key: 'public', label: 'Publics' },
-    { key: 'private', label: 'Privés' }
+    { key: 'all', label: t.library.filters.all },
+    { key: 'mine', label: t.library.filters.mine },
+    { key: 'shared', label: t.library.filters.shared },
+    { key: 'public', label: t.library.filters.public },
+    { key: 'private', label: t.library.filters.private }
   ];
 
   const getFilteredTools = () => {
@@ -109,11 +113,11 @@ const LibraryView: React.FC<LibraryViewProps> = ({
   const filteredItems = getFilteredTools();
 
   const itemTypes: { type: ItemType; icon: any; label: string }[] = [
-    { type: 'assistant', icon: BookOpen, label: 'ASSISTANT' },
-    { type: 'prompt', icon: FileText, label: 'PROMPT' },
-    { type: 'note_books', icon: Notebook, label: 'NOTEBOOK' },
-    { type: 'project', icon: FolderKanban, label: 'PROJECT' },
-    { type: 'perplexity_search', icon: Globe, label: 'PERPLEXITY SEARCH' }
+    { type: 'assistant', icon: BookOpen, label: t.library.types.assistant },
+    { type: 'prompt', icon: FileText, label: t.library.types.prompt },
+    { type: 'note_books', icon: Notebook, label: t.library.types.notebook },
+    { type: 'project', icon: FolderKanban, label: t.library.types.project },
+    { type: 'perplexity_search', icon: Globe, label: t.library.types.perplexitySearch }
   ];
 
   const getTypeConfig = (type: ItemType) => {

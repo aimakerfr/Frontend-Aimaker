@@ -3,6 +3,8 @@ import React, { useState, useEffect } from 'react';
 import { Search, Link2, Globe, Code, Eye, Lock, Plus, X, ExternalLink, Trash2 } from 'lucide-react';
 import FormGeneral from './components/Form-general';
 import DetailsView from './components/DetailsView';
+import { useLanguage } from '../../language/useLanguage';
+import { translations } from '../../language/translations';
 import { 
   getTools, 
   createTool, 
@@ -49,6 +51,8 @@ const ExternalAccessView: React.FC<ExternalAccessViewProps> = ({
   onToggleVisibility,
   isLoading = false
 }) => {
+  const { language } = useLanguage();
+  const t = translations[language];
   const [activeFilter, setActiveFilter] = useState<FilterType>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState<ItemType | 'all'>('all');
@@ -60,11 +64,11 @@ const ExternalAccessView: React.FC<ExternalAccessViewProps> = ({
   const [isEditMode, setIsEditMode] = useState(false);
 
   const filters: { key: FilterType; label: string }[] = [
-    { key: 'all', label: 'Tous' },
-    { key: 'mine', label: 'Mios' },
-    { key: 'shared', label: 'Partagés' },
-    { key: 'public', label: 'Publics' },
-    { key: 'private', label: 'Privés' }
+    { key: 'all', label: t.externalAccess.filters.all },
+    { key: 'mine', label: t.externalAccess.filters.mine },
+    { key: 'shared', label: t.externalAccess.filters.shared },
+    { key: 'public', label: t.externalAccess.filters.public },
+    { key: 'private', label: t.externalAccess.filters.private }
   ];
 
   const getFilteredTools = () => {
@@ -106,8 +110,8 @@ const ExternalAccessView: React.FC<ExternalAccessViewProps> = ({
   const filteredItems = getFilteredTools();
 
   const itemTypes: { type: ItemType; icon: any; label: string }[] = [
-    { type: 'external_link', icon: Link2, label: 'EXTERNAL LINK' },
-    { type: 'vibe_coding', icon: Code, label: 'VIBE CODING' }
+    { type: 'external_link', icon: Link2, label: t.externalAccess.types.externalLink },
+    { type: 'vibe_coding', icon: Code, label: t.externalAccess.types.vibeCoding }
   ];
 
   const getTypeConfig = (type: ItemType) => {
@@ -195,16 +199,16 @@ const ExternalAccessView: React.FC<ExternalAccessViewProps> = ({
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
               <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                Acceso Externo
+                {t.externalAccess.title}
               </h1>
-              <p className="text-gray-600 dark:text-gray-400 mt-1">Gestiona tus enlaces externos y herramientas de código.</p>
+              <p className="text-gray-600 dark:text-gray-400 mt-1">{t.externalAccess.subtitle}</p>
             </div>
             <button
               onClick={() => setShowCreateModal(true)}
               className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold rounded-xl transition-all shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40 hover:scale-[1.02]"
             >
               <Plus size={20} />
-              Créer
+              {t.externalAccess.createNew}
             </button>
           </div>
 
@@ -213,7 +217,7 @@ const ExternalAccessView: React.FC<ExternalAccessViewProps> = ({
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
               <input
                 type="text"
-                placeholder="Rechercher..."
+                placeholder={t.externalAccess.searchPlaceholder}
                 value={searchQuery}
                 onChange={handleSearchChange}
                 className="pl-12 pr-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none w-full shadow-sm"
@@ -225,9 +229,9 @@ const ExternalAccessView: React.FC<ExternalAccessViewProps> = ({
                 onChange={(e) => setTypeFilter(e.target.value as ItemType | 'all')}
                 className="px-4 py-2.5 font-medium rounded-xl bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-blue-500 outline-none"
               >
-                <option value="all">Todos los tipos</option>
-                <option value="external_link">Enlaces Externos</option>
-                <option value="vibe_coding">Vibe Coding</option>
+                <option value="all">{t.externalAccess.allTypes}</option>
+                <option value="external_link">{t.externalAccess.types.externalLink}</option>
+                <option value="vibe_coding">{t.externalAccess.types.vibeCoding}</option>
               </select>
               {filters.map(filter => (
                 <button
@@ -248,22 +252,22 @@ const ExternalAccessView: React.FC<ExternalAccessViewProps> = ({
           <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 overflow-hidden">
             <div className="bg-gradient-to-r from-gray-50 to-blue-50/50 dark:from-gray-900 dark:to-blue-900/20 border-b border-gray-200 dark:border-gray-700">
               <div className="grid grid-cols-12 gap-4 px-6 py-4">
-                <div className="col-span-1 text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider">Type</div>
-                <div className="col-span-4 text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider">Nom & Description</div>
-                <div className="col-span-1 text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider">Language</div>
-                <div className="col-span-2 text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider">Action</div>
-                <div className="col-span-2 text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider">Public/Privé</div>
-                <div className="col-span-2 text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider">Auteur / Date</div>
+                <div className="col-span-1 text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider">{t.externalAccess.tableHeaders.type}</div>
+                <div className="col-span-4 text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider">{t.externalAccess.tableHeaders.nameDescription}</div>
+                <div className="col-span-1 text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider">{t.externalAccess.tableHeaders.language}</div>
+                <div className="col-span-2 text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider">{t.externalAccess.tableHeaders.action}</div>
+                <div className="col-span-2 text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider">{t.externalAccess.tableHeaders.publicPrivate}</div>
+                <div className="col-span-2 text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider">{t.externalAccess.tableHeaders.authorDate}</div>
               </div>
             </div>
 
             {isLoading ? (
               <div className="px-6 py-16 text-center text-gray-500">
                 <div className="inline-block w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-                <p className="mt-4">Chargement...</p>
+                <p className="mt-4">{t.common.loading}</p>
               </div>
             ) : filteredItems.length === 0 ? (
-              <div className="px-6 py-16 text-center text-gray-500">Aucun élément trouvé</div>
+              <div className="px-6 py-16 text-center text-gray-500">{t.externalAccess.noResults}</div>
             ) : (
               <div>
                 {filteredItems.map((item: ExternalAccessItem, index: number) => {
@@ -310,12 +314,12 @@ const ExternalAccessView: React.FC<ExternalAccessViewProps> = ({
                             className="inline-flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 border-2 border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-xl font-semibold transition-all text-sm hover:scale-105"
                           >
                             <Eye size={16} />
-                            VOIR
+                            {t.externalAccess.buttons.view}
                           </button>
                           <button
                             onClick={() => onDelete?.(item.id)}
                             className="inline-flex items-center gap-2 px-3 py-2.5 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 border-2 border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 rounded-xl font-semibold transition-all text-sm hover:scale-105"
-                            title="Supprimer"
+                            title={t.externalAccess.buttons.delete}
                           >
                             <Trash2 size={16} />
                           </button>
@@ -329,7 +333,7 @@ const ExternalAccessView: React.FC<ExternalAccessViewProps> = ({
                             className="inline-flex items-center gap-2 px-4 py-2 rounded-xl font-semibold text-sm transition-all bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/30 cursor-pointer hover:scale-105"
                           >
                             <Globe size={18} />
-                            Public
+                            {t.externalAccess.buttons.public}
                             <ExternalLink size={14} />
                           </button>
                         ) : item.isPublic ? (
@@ -338,12 +342,12 @@ const ExternalAccessView: React.FC<ExternalAccessViewProps> = ({
                             className="inline-flex items-center gap-2 px-4 py-2 rounded-xl font-semibold text-sm transition-all bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/30"
                           >
                             <Globe size={18} />
-                            Public
+                            {t.externalAccess.buttons.public}
                           </button>
                         ) : (
                           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl font-semibold text-sm bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 opacity-75 cursor-not-allowed">
                             <Lock size={18} />
-                            Privé
+                            {t.externalAccess.buttons.private}
                           </div>
                         )}
                       </div>
@@ -378,9 +382,9 @@ const ExternalAccessView: React.FC<ExternalAccessViewProps> = ({
           <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-4xl w-full max-h-[85vh] overflow-auto">
             <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700 sticky top-0 bg-white dark:bg-gray-800 z-10">
               <div>
-                <h3 className="text-2xl font-bold text-gray-900 dark:text-white">Créer une ressource</h3>
+                <h3 className="text-2xl font-bold text-gray-900 dark:text-white">{t.externalAccess.modal.createTitle}</h3>
                 <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                  Sélectionnez le type de ressource que vous souhaitez créer
+                  {t.externalAccess.modal.createSubtitle}
                 </p>
               </div>
               <button
