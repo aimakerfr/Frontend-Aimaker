@@ -4,7 +4,7 @@ import {
   Globe, Lock, ArrowLeft 
 } from 'lucide-react';
 
-type ItemType = 'agent' | 'prompt' | 'note_books' | 'project' | 'perplexity_search';
+type ItemType = 'assistant' | 'prompt' | 'note_books' | 'project' | 'perplexity_search';
 
 interface FormGeneralProps {
   onClose: () => void;
@@ -30,7 +30,7 @@ const FormGeneral: React.FC<FormGeneralProps> = ({
   const itemTypes: { type: ItemType; icon: any; label: string }[] = [
     { type: 'note_books', icon: Notebook, label: 'Notebook' },
     { type: 'project', icon: FolderKanban, label: 'Project' },
-    { type: 'agent', icon: BookOpen, label: 'Agent' },
+    { type: 'assistant', icon: BookOpen, label: 'Assistant' },
     { type: 'prompt', icon: FileText, label: 'Prompt' },
     { type: 'perplexity_search', icon: Globe, label: 'Perplexity Search' }
   ];
@@ -44,7 +44,7 @@ const FormGeneral: React.FC<FormGeneralProps> = ({
     const labels: Record<ItemType, string> = {
       'note_books': 'Détails Notebook',
       'project': 'Détails Project',
-      'agent': 'Détails Agent',
+      'assistant': 'Détails Assistant',
       'prompt': 'Détails Prompt',
       'perplexity_search': 'Détails Perplexity Search'
     };

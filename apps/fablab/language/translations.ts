@@ -7,7 +7,7 @@ export interface Translations {
     stats: {
       notebooks: string;
       projects: string;
-      agents: string;
+      assistants: string;
       prompts: string;
     };
     quickAccess: string;
@@ -43,7 +43,7 @@ export const translations: Record<Language, Translations> = {
       stats: {
         notebooks: 'Notebooks',
         projects: 'Projects',
-        agents: 'Agents',
+        assistants: 'Assistants',
         prompts: 'Prompts',
       },
       quickAccess: 'Quick Access',
@@ -77,7 +77,7 @@ export const translations: Record<Language, Translations> = {
       stats: {
         notebooks: 'Notebooks',
         projects: 'Proyectos',
-        agents: 'Agentes',
+        assistants: 'Asistentes',
         prompts: 'Prompts',
       },
       quickAccess: 'Acceso Rápido',
@@ -111,7 +111,7 @@ export const translations: Record<Language, Translations> = {
       stats: {
         notebooks: 'Notebooks',
         projects: 'Projets',
-        agents: 'Agents',
+        assistants: 'Assistants',
         prompts: 'Prompts',
       },
       quickAccess: 'Accès Rapide',

@@ -10,7 +10,7 @@ import { useAuth } from '@core/auth/useAuth';
 interface Stats {
   notebooks: number;
   projects: number;
-  agents: number;
+  assistant: number;
   prompts: number;
 }
 
@@ -18,7 +18,7 @@ const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { language, isLoading: langLoading } = useLanguage();
-  const [stats, setStats] = useState<Stats>({ notebooks: 0, projects: 0, agents: 0, prompts: 0 });
+  const [stats, setStats] = useState<Stats>({ notebooks: 0, projects: 0, assistant: 0, prompts: 0 });
   const [isLoading, setIsLoading] = useState(true);
 
   const t = translations[language];
@@ -34,7 +34,7 @@ const Dashboard: React.FC = () => {
       const newStats: Stats = {
         notebooks: tools.filter((t: CreationTool) => t.type === 'note_books').length,
         projects: tools.filter((t: CreationTool) => t.type === 'project').length,
-        agents: tools.filter((t: CreationTool) => t.type === 'agent').length,
+        assistant: tools.filter((t: CreationTool) => t.type === 'assistant').length,
         prompts: tools.filter((t: CreationTool) => t.type === 'prompt').length,
       };
       
@@ -86,8 +86,8 @@ const Dashboard: React.FC = () => {
     },
     { 
       icon: BookOpen, 
-      label: t.dashboard.stats.agents, 
-      value: stats.agents, 
+      label: t.dashboard.stats.assistants, 
+      value: stats.assistant, 
       color: 'from-green-500 to-emerald-500',
       bgColor: 'bg-green-50 dark:bg-green-900/20',
       textColor: 'text-green-600 dark:text-green-400',

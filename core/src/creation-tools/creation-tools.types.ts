@@ -3,7 +3,7 @@
  */
 
 export type CreationToolType = 
-  | 'agent' 
+  | 'assistant' 
   | 'external_link' 
   | 'prompt' 
   | 'note_books' 

@@ -20,7 +20,7 @@ const mockItems: LibraryItem[] = [
 ];
 
 type FilterType = 'all' | 'mine' | 'public' | 'private' | 'shared';
-type ItemType = 'agent' | 'prompt' | 'note_books' | 'project' | 'perplexity_search';
+type ItemType = 'assistant' | 'prompt' | 'note_books' | 'project' | 'perplexity_search';
 
 interface LibraryItem {
   id: number;
@@ -109,7 +109,7 @@ const LibraryView: React.FC<LibraryViewProps> = ({
   const filteredItems = getFilteredTools();
 
   const itemTypes: { type: ItemType; icon: any; label: string }[] = [
-    { type: 'agent', icon: BookOpen, label: 'AGENT' },
+    { type: 'assistant', icon: BookOpen, label: 'ASSISTANT' },
     { type: 'prompt', icon: FileText, label: 'PROMPT' },
     { type: 'note_books', icon: Notebook, label: 'NOTEBOOK' },
     { type: 'project', icon: FolderKanban, label: 'PROJECT' },
@@ -239,7 +239,7 @@ const LibraryView: React.FC<LibraryViewProps> = ({
                 <option value="note_books">Notebooks</option>
                 <option value="project">Proyectos</option>
                 <option value="prompt">Prompts</option>
-                <option value="agent">Agentes</option>
+                <option value="assistant">Asistentes</option>
                 <option value="perplexity_search">Perplexity</option>
               </select>
               {filters.map(filter => (

@@ -4,7 +4,7 @@ import {
   Globe, Lock, ArrowLeft, Edit2, ExternalLink
 } from 'lucide-react';
 
-type ItemType = 'agent' | 'prompt' | 'note_books' | 'project' | 'perplexity_search';
+type ItemType = 'assistant' | 'prompt' | 'note_books' | 'project' | 'perplexity_search';
 
 interface LibraryItem {
   id: number;
@@ -55,7 +55,7 @@ const DetailsView: React.FC<DetailsViewProps> = ({
   const itemTypes: { type: ItemType; icon: any; label: string }[] = [
     { type: 'note_books', icon: Notebook, label: 'Notebook' },
     { type: 'project', icon: FolderKanban, label: 'Project' },
-    { type: 'agent', icon: BookOpen, label: 'Agent' },
+    { type: 'assistant', icon: BookOpen, label: 'Assistant' },
     { type: 'prompt', icon: FileText, label: 'Prompt' },
     { type: 'perplexity_search', icon: Globe, label: 'Perplexity Search' }
   ];
@@ -64,7 +64,7 @@ const DetailsView: React.FC<DetailsViewProps> = ({
     e.preventDefault();
     setIsSaving(true);
     
-    const success = await onSave(formData);
+    await onSave(formData);
     
     setIsSaving(false);
   };
