@@ -42,9 +42,17 @@ const ProfileSection: React.FC<{ user: UserProfile | null }> = () => {
   const handleSave = async () => {
     setSaving(true);
     try {
+      const oldLanguage = profileData?.uiLanguage;
       await httpClient.patch('/api/v1/profile', editForm);
       await loadProfileData();
       setIsEditing(false);
+      
+      // Dispatch language change event if language was updated
+      if (oldLanguage !== editForm.uiLanguage) {
+        window.dispatchEvent(new CustomEvent('languageChanged', { 
+          detail: { language: editForm.uiLanguage } 
+        }));
+      }
     } catch (error) {
       console.error('Error al actualizar perfil:', error);
       alert('Error al guardar cambios');

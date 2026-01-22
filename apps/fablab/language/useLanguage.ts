@@ -30,7 +30,17 @@ export const useLanguage = () => {
       loadUserLanguage();
     }, 30000);
 
-    return () => clearInterval(intervalId);
+    // Listen for language change events for immediate updates
+    const handleLanguageChange = () => {
+      loadUserLanguage();
+    };
+
+    window.addEventListener('languageChanged', handleLanguageChange);
+
+    return () => {
+      clearInterval(intervalId);
+      window.removeEventListener('languageChanged', handleLanguageChange);
+    };
   }, [loadUserLanguage]);
 
   return { language, isLoading, refreshLanguage: loadUserLanguage };
