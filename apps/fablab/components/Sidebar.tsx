@@ -1,6 +1,8 @@
 import React from 'react';
-import { LayoutDashboard, User, Settings, Box, Wrench, LogOut } from 'lucide-react';
+import { LayoutDashboard, User, Settings, Box, Wrench, LogOut, Library as LibraryIcon } from 'lucide-react';
 import { View } from '../types';
+import { useLanguage } from '../i18n/useLanguage';
+import { translations } from '../i18n/translations';
 
 interface SidebarProps {
   currentView: View;
@@ -9,12 +11,16 @@ interface SidebarProps {
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ currentView, onChangeView, onLogout }) => {
+  const { language } = useLanguage();
+  const t = translations[language];
+
   const menuItems: { id: View; label: string; icon: React.ReactNode }[] = [
-    { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard size={20} /> },
-    { id: 'profile', label: 'My Profile', icon: <User size={20} /> },
-    { id: 'context', label: 'AI Context', icon: <Settings size={20} /> },
-    { id: 'projects', label: 'Projets', icon: <Box size={20} /> },
-    { id: 'tools', label: 'Tools', icon: <Wrench size={20} /> },
+    { id: 'dashboard', label: t.sidebar.dashboard, icon: <LayoutDashboard size={20} /> },
+    { id: 'library', label: t.sidebar.library, icon: <LibraryIcon size={20} /> },
+    { id: 'profile', label: t.sidebar.profile, icon: <User size={20} /> },
+    { id: 'context', label: t.sidebar.context, icon: <Settings size={20} /> },
+    { id: 'projects', label: t.sidebar.projects, icon: <Box size={20} /> },
+    { id: 'tools', label: t.sidebar.tools, icon: <Wrench size={20} /> },
   ];
 
   return (
@@ -49,7 +55,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onChangeView, onLogout }
           className="w-full flex items-center gap-3 px-4 py-3 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-lg transition-colors"
         >
           <LogOut size={20} />
-          <span>Sign Out</span>
+          <span>{t.sidebar.signOut}</span>
         </button>
       </div>
     </aside>

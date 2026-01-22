@@ -4,6 +4,7 @@ import { useAuth } from '@core/auth/useAuth';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
 import Dashboard from './views/dashboard/Dashboard';
+import Library from './views/library/Library';
 import ProfileSection from './components/ProfileSection';
 import AIContext from './components/AIContext';
 import Projects from './views/projects/ProjectPlanner';
@@ -93,6 +94,7 @@ const App: React.FC = () => {
   const renderView = () => {
     switch (currentView) {
       case 'dashboard': return <Dashboard />;
+      case 'library': return <Library />;
       case 'profile': return <ProfileSection user={user} />;
       case 'projects': return <Projects />;
       case 'context': return <AIContext />;
