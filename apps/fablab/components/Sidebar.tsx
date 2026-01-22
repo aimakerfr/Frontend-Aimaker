@@ -1,8 +1,8 @@
 import React from 'react';
-import { LayoutDashboard, User, Settings, Box, Wrench, LogOut, Library as LibraryIcon } from 'lucide-react';
+import { LayoutDashboard, User, Server, Box, ExternalLink, LogOut, Library as LibraryIcon } from 'lucide-react';
 import { View } from '../types';
-import { useLanguage } from '../i18n/useLanguage';
-import { translations } from '../i18n/translations';
+import { useLanguage } from '../language/useLanguage';
+import { translations } from '../language/translations';
 
 interface SidebarProps {
   currentView: View;
@@ -18,9 +18,9 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onChangeView, onLogout }
     { id: 'dashboard', label: t.sidebar.dashboard, icon: <LayoutDashboard size={20} /> },
     { id: 'library', label: t.sidebar.library, icon: <LibraryIcon size={20} /> },
     { id: 'profile', label: t.sidebar.profile, icon: <User size={20} /> },
-    { id: 'context', label: t.sidebar.context, icon: <Settings size={20} /> },
+    { id: 'context', label: t.sidebar.context, icon: <Server size={20} /> },
     { id: 'projects', label: t.sidebar.projects, icon: <Box size={20} /> },
-    { id: 'tools', label: t.sidebar.tools, icon: <Wrench size={20} /> },
+    { id: 'tools', label: t.sidebar.tools, icon: <ExternalLink size={20} /> },
   ];
 
   return (

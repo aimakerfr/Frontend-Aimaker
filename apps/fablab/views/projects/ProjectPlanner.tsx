@@ -4,7 +4,7 @@ import { Phase, ProjectState, Language } from './types';
 import { StepIndicator } from './components/StepIndicator';
 import { dashboardAIService } from '@core/ai/dashboard.service';
 import { translations } from './translations';
-import { useLanguage } from '../../i18n/useLanguage';
+import { useLanguage } from '../../language/useLanguage';
 
 const createInitialState = (): ProjectState => ({
   objective: { title: '', goal: '', type: '' },

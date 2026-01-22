@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BookOpen, Search, FileText, Notebook, FolderKanban, Smartphone, Globe, Eye, Lock, Plus, X, ExternalLink, Trash2 } from 'lucide-react';
+import { Search, Link2, Globe, Code, Eye, Lock, Plus, X, ExternalLink, Trash2 } from 'lucide-react';
 import FormGeneral from './components/Form-general';
 import DetailsView from './components/DetailsView';
 import { 
@@ -15,14 +15,13 @@ import type { CreationTool, CreationToolType } from '@core/creation-tools/creati
 
 // MOCK DATA - Solo se usa si falla la API
 const mockItems = [
-  { id: 1, type: 'note_books' as CreationToolType, title: 'REX Industrialisation LLM', description: 'Notes sur les tests de latence et coûts.', isPublic: false, author: 'JULIEDURAND', createdAt: '22/10/2023', category: 'Analyse', url: 'aimaker.fr/s/...', language: 'fr', usageCount: 0 },
-  { id: 2, type: 'project' as CreationToolType, title: 'Prototype Chatbot Client', description: 'MVP pour le support client e-commerce.', isPublic: true, author: 'JEANDUPONT', createdAt: '20/10/2023', category: 'E-commerce', url: 'aimaker.fr/p/...', language: 'fr', usageCount: 0 },
+  { id: 1, type: 'external_link' as CreationToolType, title: 'External API', description: 'Integration with external services.', isPublic: false, author: 'JULIEDURAND', createdAt: '22/10/2023', category: 'Integration', url: 'aimaker.fr/s/...', language: 'fr', usageCount: 0 },
 ];
 
 type FilterType = 'all' | 'mine' | 'public' | 'private' | 'shared';
-type ItemType = 'agent' | 'prompt' | 'note_books' | 'project' | 'app' | 'perplexity_search';
+type ItemType = 'external_link' | 'vibe_coding';
 
-interface LibraryItem {
+interface ExternalAccessItem {
   id: number;
   type: ItemType;
   title: string;
@@ -36,29 +35,28 @@ interface LibraryItem {
   usageCount?: number;
 }
 
-interface LibraryViewProps {
-  items?: LibraryItem[];
+interface ExternalAccessViewProps {
+  items?: ExternalAccessItem[];
   onSave?: (data: any, itemId?: number) => Promise<boolean>;
   onDelete?: (itemId: number) => void;
   onToggleVisibility?: (itemId: number, isPublic: boolean) => void;
   isLoading?: boolean;
 }
 
-const LibraryView: React.FC<LibraryViewProps> = ({
+const ExternalAccessView: React.FC<ExternalAccessViewProps> = ({
   items = mockItems,
   onSave,
   onDelete,
   onToggleVisibility,
   isLoading = false
 }) => {
-  const navigate = useNavigate();
   const [activeFilter, setActiveFilter] = useState<FilterType>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState<ItemType | 'all'>('all');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [showDetailsView, setShowDetailsView] = useState(false);
-  const [selectedType, setSelectedType] = useState<ItemType>('note_books');
+  const [selectedType, setSelectedType] = useState<ItemType>('external_link');
   const [selectedItemId, setSelectedItemId] = useState<number | null>(null);
   const [isEditMode, setIsEditMode] = useState(false);
 
@@ -77,13 +75,13 @@ const LibraryView: React.FC<LibraryViewProps> = ({
       case 'mine':
         break;
       case 'shared':
-        filtered = filtered.filter((tool: LibraryItem) => tool.isPublic);
+        filtered = filtered.filter((tool: ExternalAccessItem) => tool.isPublic);
         break;
       case 'public':
-        filtered = filtered.filter((tool: LibraryItem) => tool.isPublic);
+        filtered = filtered.filter((tool: ExternalAccessItem) => tool.isPublic);
         break;
       case 'private':
-        filtered = filtered.filter((tool: LibraryItem) => !tool.isPublic);
+        filtered = filtered.filter((tool: ExternalAccessItem) => !tool.isPublic);
         break;
       case 'all':
       default:
@@ -91,12 +89,12 @@ const LibraryView: React.FC<LibraryViewProps> = ({
     }
 
     if (typeFilter !== 'all') {
-      filtered = filtered.filter((tool: LibraryItem) => tool.type === typeFilter);
+      filtered = filtered.filter((tool: ExternalAccessItem) => tool.type === typeFilter);
     }
 
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
-      filtered = filtered.filter((tool: LibraryItem) => 
+      filtered = filtered.filter((tool: ExternalAccessItem) => 
         tool.title?.toLowerCase().includes(query) ||
         tool.description?.toLowerCase().includes(query) ||
         tool.type?.toLowerCase().includes(query)
@@ -109,12 +107,8 @@ const LibraryView: React.FC<LibraryViewProps> = ({
   const filteredItems = getFilteredTools();
 
   const itemTypes: { type: ItemType; icon: any; label: string }[] = [
-    { type: 'agent', icon: BookOpen, label: 'AGENT' },
-    { type: 'prompt', icon: FileText, label: 'PROMPT' },
-    { type: 'note_books', icon: Notebook, label: 'NOTEBOOK' },
-    { type: 'project', icon: FolderKanban, label: 'PROJECT' },
-    { type: 'app', icon: Smartphone, label: 'APP' },
-    { type: 'perplexity_search', icon: Globe, label: 'PERPLEXITY SEARCH' }
+    { type: 'external_link', icon: Link2, label: 'EXTERNAL LINK' },
+    { type: 'vibe_coding', icon: Code, label: 'VIBE CODING' }
   ];
 
   const getTypeConfig = (type: ItemType) => {
@@ -147,11 +141,7 @@ const LibraryView: React.FC<LibraryViewProps> = ({
 
   const handleRedirect = (url: string) => {
     if (url) {
-      if (url.startsWith('/dashboard/notebook/')) {
-        navigate(url);
-      } else {
-        window.open(url.startsWith('http') ? url : `https://${url}`, '_blank');
-      }
+      window.open(url.startsWith('http') ? url : `https://${url}`, '_blank');
     }
   };
 
@@ -206,9 +196,9 @@ const LibraryView: React.FC<LibraryViewProps> = ({
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
               <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                Library
+                Acceso Externo
               </h1>
-              <p className="text-gray-600 dark:text-gray-400 mt-1">Gérez vos ressources IA en un clin d'œil.</p>
+              <p className="text-gray-600 dark:text-gray-400 mt-1">Gestiona tus enlaces externos y herramientas de código.</p>
             </div>
             <button
               onClick={() => setShowCreateModal(true)}
@@ -237,12 +227,8 @@ const LibraryView: React.FC<LibraryViewProps> = ({
                 className="px-4 py-2.5 font-medium rounded-xl bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-blue-500 outline-none"
               >
                 <option value="all">Todos los tipos</option>
-                <option value="note_books">Notebooks</option>
-                <option value="project">Proyectos</option>
-                <option value="prompt">Prompts</option>
-                <option value="agent">Agentes</option>
-                <option value="app">Apps</option>
-                <option value="perplexity_search">Perplexity</option>
+                <option value="external_link">Enlaces Externos</option>
+                <option value="vibe_coding">Vibe Coding</option>
               </select>
               {filters.map(filter => (
                 <button
@@ -281,7 +267,7 @@ const LibraryView: React.FC<LibraryViewProps> = ({
               <div className="px-6 py-16 text-center text-gray-500">Aucun élément trouvé</div>
             ) : (
               <div>
-                {filteredItems.map((item: LibraryItem, index: number) => {
+                {filteredItems.map((item: ExternalAccessItem, index: number) => {
                   const typeConfig = getTypeConfig(item.type as ItemType);
                   const TypeIcon = typeConfig.icon;
                   
@@ -406,7 +392,7 @@ const LibraryView: React.FC<LibraryViewProps> = ({
               </button>
             </div>
 
-            <div className="p-6 grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="p-6 grid grid-cols-2 gap-4">
               {itemTypes.map(type => {
                 const Icon = type.icon;
                 return (
@@ -441,8 +427,8 @@ const LibraryView: React.FC<LibraryViewProps> = ({
 };
 
 // Componente contenedor que maneja la carga de datos desde la API
-const Library = () => {
-  const [items, setItems] = useState<LibraryItem[]>([]);
+const ExternalAccess = () => {
+  const [items, setItems] = useState<ExternalAccessItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -451,13 +437,13 @@ const Library = () => {
     setError(null);
     try {
       const tools = await getCreationTools();
-      // Filtrar external_link y vibe_coding (ahora están en Acceso Externo)
+      // Filtrar solo external_link y vibe_coding
       const filteredTools = tools.filter((tool: CreationTool) => 
-        tool.type !== 'external_link' && tool.type !== 'vibe_coding'
+        tool.type === 'external_link' || tool.type === 'vibe_coding'
       );
       const sortedTools = filteredTools.sort((a, b) => b.id - a.id);
       
-      const mappedItems: LibraryItem[] = sortedTools.map((tool: CreationTool) => ({
+      const mappedItems: ExternalAccessItem[] = sortedTools.map((tool: CreationTool) => ({
         id: tool.id,
         type: tool.type as ItemType,
         title: tool.title,
@@ -522,7 +508,7 @@ const Library = () => {
     try {
       setIsLoading(true);
       await deleteCreationTool(itemId);
-      setItems(prev => prev.filter((item: LibraryItem) => item.id !== itemId));
+      setItems(prev => prev.filter((item: ExternalAccessItem) => item.id !== itemId));
     } catch (err) {
       console.error('Error eliminando:', err);
       setError('Error al eliminar');
@@ -559,7 +545,7 @@ const Library = () => {
   }
 
   return (
-    <LibraryView 
+    <ExternalAccessView 
       items={items} 
       isLoading={isLoading}
       onSave={handleSave}
@@ -569,4 +555,4 @@ const Library = () => {
   );
 };
 
-export default Library;
+export default ExternalAccess;

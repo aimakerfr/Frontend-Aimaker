@@ -3,8 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { Notebook, FolderKanban, BookOpen, FileText, ArrowRight, TrendingUp } from 'lucide-react';
 import { getCreationTools } from '@core/creation-tools/creation-tools.service';
 import type { CreationTool } from '@core/creation-tools/creation-tools.types';
-import { useLanguage } from '../../i18n/useLanguage';
-import { translations } from '../../i18n/translations';
+import { useLanguage } from '../../language/useLanguage';
+import { translations } from '../../language/translations';
 import { useAuth } from '@core/auth/useAuth';
 
 interface Stats {
