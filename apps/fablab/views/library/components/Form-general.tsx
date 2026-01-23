@@ -188,52 +188,6 @@ const FormGeneral: React.FC<FormGeneralProps> = ({
               className="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none resize-none"
             />
           </div>
-
-          {/* Visibility */}
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
-              VISIBILITÉ
-            </label>
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                type="button"
-                onClick={() => setFormData({ ...formData, hasPublicStatus: false })}
-                className={`flex items-center gap-3 p-4 rounded-xl border-2 transition-all ${
-                  !formData.hasPublicStatus
-                    ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                    : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'
-                }`}
-              >
-                <Lock size={20} className={!formData.hasPublicStatus ? 'text-blue-600' : 'text-gray-400'} />
-                <div className="text-left">
-                  <div className={`font-semibold text-sm ${
-                    !formData.hasPublicStatus ? 'text-blue-600 dark:text-blue-400' : 'text-gray-900 dark:text-white'
-                  }`}>
-                    PRIVÉ
-                  </div>
-                </div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setFormData({ ...formData, hasPublicStatus: true })}
-                className={`flex items-center gap-3 p-4 rounded-xl border-2 transition-all ${
-                  formData.hasPublicStatus
-                    ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
-                    : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'
-                }`}
-              >
-                <Globe size={20} className={formData.hasPublicStatus ? 'text-green-600' : 'text-gray-400'} />
-                <div className="text-left">
-                  <div className={`font-semibold text-sm ${
-                    formData.hasPublicStatus ? 'text-green-600 dark:text-green-400' : 'text-gray-900 dark:text-white'
-                  }`}>
-                    PUBLIC
-                  </div>
-                </div>
-              </button>
-            </div>
-          </div>
         </form>
       </div>
     </div>

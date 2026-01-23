@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BookOpen, Search, FileText, Notebook, FolderKanban, Globe, Eye, Lock, Plus, X, ExternalLink, Trash2 } from 'lucide-react';
+import { BookOpen, Search, FileText, Notebook, FolderKanban, Globe, Eye, Lock, Plus, X, ExternalLink, Trash2, Edit2 } from 'lucide-react';
 import FormGeneral from './components/Form-general';
 import DetailsView from './components/DetailsView';
 import { useLanguage } from '../../language/useLanguage';
@@ -324,11 +324,18 @@ const LibraryView: React.FC<LibraryViewProps> = ({
                       <div className="col-span-2">
                         <div className="flex gap-2">
                           <button
-                            onClick={() => handleViewDetails(item.id)}
+                            onClick={() => handleRedirect(`/dashboard/notebook/${item.id}?title=${encodeURIComponent(item.title)}`)}
                             className="inline-flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 border-2 border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-xl font-semibold transition-all text-sm hover:scale-105"
                           >
                             <Eye size={16} />
                             VOIR
+                          </button>
+                          <button
+                            onClick={() => handleViewDetails(item.id)}
+                            className="inline-flex items-center gap-2 px-3 py-2.5 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 border-2 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-400 rounded-xl font-semibold transition-all text-sm hover:scale-105"
+                            title="Modifier"
+                          >
+                            <Edit2 size={16} />
                           </button>
                           <button
                             onClick={() => onDelete?.(item.id)}
