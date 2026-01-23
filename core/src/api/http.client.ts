@@ -86,11 +86,15 @@ class HttpClient {
    */
   private buildHeaders(options: RequestOptions, method: string = 'GET'): HeadersInit {
     const headers: Record<string, string> = {
-      // Symfony requires application/merge-patch+json for PATCH requests
-      'Content-Type': method === 'PATCH' ? 'application/merge-patch+json' : 'application/json',
       Accept: 'application/json',
       ...options.headers,
     };
+
+    // Only set Content-Type if not already set and body is NOT FormData
+    if (!headers['Content-Type'] && !(options.body instanceof FormData)) {
+      // Symfony requires application/merge-patch+json for PATCH requests
+      headers['Content-Type'] = method === 'PATCH' ? 'application/merge-patch+json' : 'application/json';
+    }
 
     // Add JWT token if authentication is required
     if (options.requiresAuth !== false) {
@@ -193,7 +197,9 @@ class HttpClient {
 
     // Add body for non-GET requests
     if (options.body && method !== 'GET') {
-      fetchOptions.body = JSON.stringify(options.body);
+      fetchOptions.body = options.body instanceof FormData 
+        ? options.body 
+        : JSON.stringify(options.body);
     }
 
     try {

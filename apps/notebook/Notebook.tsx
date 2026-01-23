@@ -7,7 +7,7 @@ import { Source, ChatMessage, SourceType, StructuredSummary, Language } from './
 import { generateChatResponse, generateSourceSummary } from './services/geminiService';
 import { Layout, Menu, Globe, ChevronDown, Edit2, ArrowLeft, Save } from 'lucide-react';
 import { UI_TRANSLATIONS } from './constants/translations';
-import { NotebookService } from '../../core/src/notebooks/notebook.service';
+import { postNoteBookSource, NotebookService } from '../../core/src/notebooks/notebooks.service';
 
 interface NotebookProps {
   isPublicView?: boolean;
@@ -15,7 +15,8 @@ interface NotebookProps {
 
 const App: React.FC<NotebookProps> = ({ isPublicView = false }) => {
     const navigate = useNavigate();
-    const { id } = useParams<{ id: string }>();
+    const { id: urlId } = useParams<{ id: string }>();
+    const [id, setId] = useState<string | undefined>(urlId);
     const [searchParams] = useSearchParams();
     const [sources, setSources] = useState<Source[]>([]);
     const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -28,7 +29,13 @@ const App: React.FC<NotebookProps> = ({ isPublicView = false }) => {
     const [notebookName, setNotebookName] = useState('');
     const [isEditingTitle, setIsEditingTitle] = useState(false);
     const [isSavingTitle, setIsSavingTitle] = useState(false);
-    const [isPublic, setIsPublic] = useState(false);
+    // const [isPublic, setIsPublic] = useState(false); // Unused
+
+    useEffect(() => {
+        if (urlId) {
+            setId(urlId);
+        }
+    }, [urlId]);
 
     const notebookService = new NotebookService();
 
@@ -48,8 +55,8 @@ const App: React.FC<NotebookProps> = ({ isPublicView = false }) => {
         try {
             const notebook = await notebookService.getNotebook(notebookId);
             setNotebookName(notebook.title || fallbackTitle || 'Sin título');
-            setLanguage(notebook.language as Language);
-            setIsPublic(notebook.hasPublicStatus || false);
+            setLanguage(notebook.tool.language as Language);
+            // setIsPublic(notebook.hasPublicStatus || false);
         } catch (error) {
             console.error('Error cargando notebook:', error);
             // Si falla la carga pero tenemos el título del param, lo usamos
@@ -57,7 +64,7 @@ const App: React.FC<NotebookProps> = ({ isPublicView = false }) => {
                 setNotebookName('Sin título');
             }
             // Si falla, asumimos que es privado por defecto
-            setIsPublic(false);
+            // setIsPublic(false);
         }
     };
 
@@ -100,18 +107,59 @@ const App: React.FC<NotebookProps> = ({ isPublicView = false }) => {
         }
     };
 
-    const handleAddSource = (type: SourceType, content: string, title: string, url?: string, previewUrl?: string) => {
+    const uploadSource = async (apiType: string, title: string, file?: File) => {
+        if (!id) throw new Error('Notebook ID is missing');
+
+        if (apiType === 'WEBSITE') {
+            return await postNoteBookSource({
+                note_book_id: parseInt(id),
+                type: apiType,
+                name: title
+            });
+        } else {
+            const formData = new FormData();
+            formData.append('note_book_id', id.toString());
+            formData.append('name', title);
+            formData.append('type', apiType);
+            if (file) {
+                formData.append('stream_file', file);
+            }
+            return await postNoteBookSource(formData);
+        }
+    };
+
+    const processSourceLocally = (
+        response: any, 
+        type: SourceType, 
+        content: string, 
+        url?: string, 
+        previewUrl?: string
+    ) => {
         const newSource: Source = {
-            id: Math.random().toString(36).substring(7),
-            title,
+            id: response.data.id.toString(),
+            title: response.data.name,
             type,
             content,
             url,
             previewUrl,
-            dateAdded: new Date(),
+            dateAdded: new Date(response.data.createdAt),
             selected: true,
         };
         setSources(prev => [...prev, newSource]);
+    };
+
+    const handleAddSource = async (type: SourceType, content: string, title: string, url?: string, previewUrl?: string, file?: File) => {
+        if (!id) return;
+
+        try {
+            let apiType = type.toUpperCase();
+            if (apiType === 'URL') apiType = 'WEBSITE';
+
+            const response = await uploadSource(apiType, title, file);
+            processSourceLocally(response, type, content, url, previewUrl);
+        } catch (error) {
+            console.error('Error adding source to backend:', error);
+        }
     };
 
     const handleToggleSource = (id: string) => {

@@ -50,6 +50,41 @@ export interface UpdateNotebookRequest {
   settings?: NotebookSettings;
 }
 
+export interface PostNoteBookSourceResponse {
+  status: string;
+  data: {
+    id: number;
+    name: string;
+    type: string;
+    filePath?: string;
+    createdAt: string;
+  };
+}
+
+export class NotebookService {
+  private baseUrl = '/api/v1/notebooks';
+
+  async getNotebooks(): Promise<Notebook[]> {
+    return httpClient.get<Notebook[]>(this.baseUrl);
+  }
+
+  async getNotebook(id: number): Promise<Notebook> {
+    return httpClient.get<Notebook>(`${this.baseUrl}/${id}`);
+  }
+
+  async createNotebook(data: { creationToolId: number }): Promise<Notebook> {
+    return httpClient.post<Notebook>(this.baseUrl, data);
+  }
+
+  async updateNotebook(id: number, data: { title?: string }): Promise<Notebook> {
+    return httpClient.patch<Notebook>(`${this.baseUrl}/${id}`, data);
+  }
+
+  async deleteNotebook(id: number): Promise<void> {
+    return httpClient.delete(`${this.baseUrl}/${id}`);
+  }
+}
+
 /**
  * Obtener notebook por creation_tool_id
  * TODO: Implementar este endpoint en el backend
@@ -72,4 +107,11 @@ export const updateNotebook = async (notebookId: number, updates: UpdateNotebook
  */
 export const deleteNotebook = async (notebookId: number): Promise<void> => {
   await httpClient.delete<void>(`${ENDPOINT}/${notebookId}`);
+};
+
+/**
+ * Añadir una fuente al notebook
+ */
+export const postNoteBookSource = async (data: FormData | { note_book_id: number; type: string; name: string }): Promise<PostNoteBookSourceResponse> => {
+  return httpClient.post<PostNoteBookSourceResponse>('/api/v1/notebook-sources', data);
 };
