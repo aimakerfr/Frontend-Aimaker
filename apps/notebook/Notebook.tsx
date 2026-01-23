@@ -7,7 +7,7 @@ import { Source, ChatMessage, SourceType, StructuredSummary, Language } from './
 import { generateChatResponse, generateSourceSummary } from './services/geminiService';
 import { Layout, Menu, Globe, ChevronDown, Edit2, ArrowLeft, Save } from 'lucide-react';
 import { UI_TRANSLATIONS } from './constants/translations';
-import { postNoteBookSource, NotebookService } from '../../core/src/notebooks/notebooks.service';
+import { postNoteBookSource, NotebookService } from '@core/notebooks';
 
 interface NotebookProps {
   isPublicView?: boolean;
