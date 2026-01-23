@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import FrontendTemplateVisualizer from './FrontendTemplateVisualizer';
+import { downloadHtmlFile } from '../utils/download_file';
 
 const TemplateSelector: React.FC = () => {
   const [selectedTemplate, setSelectedTemplate] = useState<string>('simple_header.html');
@@ -9,28 +10,10 @@ const TemplateSelector: React.FC = () => {
     const fileUrl = `${baseUrl}/frontend_templates/${selectedTemplate}`;
     
     try {
-      const response = await fetch(fileUrl, {
-        method: 'GET',
-        headers: {
-          'Accept': 'text/html',
-        },
+      await downloadHtmlFile({
+        url: fileUrl,
+        filename: selectedTemplate,
       });
-      
-      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-      
-      const text = await response.text();
-      const blob = new Blob([text], { type: 'application/octet-stream' });
-      const url = window.URL.createObjectURL(blob);
-      
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = selectedTemplate;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      
-      // Delay revocation to ensure browser has started the download
-      setTimeout(() => window.URL.revokeObjectURL(url), 100);
     } catch (error) {
       console.error('Download failed:', error);
       // If fetch fails, we can't really "force" a download of a cross-origin resource 
