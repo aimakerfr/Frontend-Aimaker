@@ -46,5 +46,5 @@ export interface UpdateProfileData {
   uiLanguage?: 'fr' | 'en' | 'es';
 }
 
-export { NotebookService } from '../notebooks/notebook.service';
-export type { Notebook, CreateNotebookData, UpdateNotebookData } from '../notebooks/notebook.service';
+export { NotebookService } from '../notebooks/notebooks.service';
+export type { Notebook } from '../notebooks/notebooks.service';

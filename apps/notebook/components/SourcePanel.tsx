@@ -7,7 +7,7 @@ import { UI_TRANSLATIONS } from '../constants/translations';
 
 interface SourcePanelProps {
     sources: Source[];
-    onAddSource: (type: SourceType, content: string, title: string, url?: string, previewUrl?: string) => void;
+    onAddSource: (type: SourceType, content: string, title: string, url?: string, previewUrl?: string, file?: File) => void;
     onToggleSource: (id: string) => void;
     onDeleteSource: (id: string) => void;
     lang: Language;
@@ -25,6 +25,7 @@ const SourcePanel: React.FC<SourcePanelProps> = ({ sources, onAddSource, onToggl
     const [isLoading, setIsLoading] = useState(false);
     const [mimeType, setMimeType] = useState('');
     const [localPreviewUrl, setLocalPreviewUrl] = useState<string>('');
+    const [selectedFile, setSelectedFile] = useState<File | undefined>(undefined);
 
     const fileInputRef = useRef<HTMLInputElement>(null);
     const videoInputRef = useRef<HTMLInputElement>(null);
@@ -80,6 +81,7 @@ const SourcePanel: React.FC<SourcePanelProps> = ({ sources, onAddSource, onToggl
             setIsLoading(true);
             setFileName(file.name);
             setMimeType(file.type);
+            setSelectedFile(file);
 
             const objectUrl = URL.createObjectURL(file);
             setLocalPreviewUrl(objectUrl);
@@ -138,7 +140,7 @@ const SourcePanel: React.FC<SourcePanelProps> = ({ sources, onAddSource, onToggl
                 finalTitle = (content || "").split('\n')[0].substring(0, 30) || "Texto Libre";
             }
 
-            onAddSource(activeTab, finalContent, finalTitle, url, finalPreviewUrl);
+            onAddSource(activeTab, finalContent, finalTitle, url, finalPreviewUrl, selectedFile);
             setIsModalOpen(false);
             resetForm();
         } catch (err) {
@@ -148,7 +150,7 @@ const SourcePanel: React.FC<SourcePanelProps> = ({ sources, onAddSource, onToggl
         finally { setIsLoading(false); }
     };
 
-    const resetForm = () => { setContent(null); setUrl(''); setFileName(''); setMimeType(''); setLocalPreviewUrl(''); };
+    const resetForm = () => { setContent(null); setUrl(''); setFileName(''); setMimeType(''); setLocalPreviewUrl(''); setSelectedFile(undefined); };
 
     const handleOpenPreview = (source: Source) => {
         setPreviewSource(source);
