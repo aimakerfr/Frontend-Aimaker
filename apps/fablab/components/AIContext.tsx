@@ -1,150 +1,222 @@
 import React, { useState } from 'react';
-import { AIContextConfig } from '../types';
-import { Sliders, HelpCircle, Save } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Bot, Workflow, Database, Zap, Image as ImageIcon, Settings, ExternalLink, Edit2, Save, X } from 'lucide-react';
+
+interface ServerTool {
+  id: string;
+  name: string;
+  description: string;
+  icon: any;
+  color: string;
+  url: string;
+  isExternal: boolean;
+  internalRoute?: string;
+}
 
 const AIContext: React.FC = () => {
-  const [config, setConfig] = useState<AIContextConfig>({
-    tone: 'professional',
-    responseLength: 'balanced',
-    expertiseLevel: 'intermediate',
-    citeSources: true,
-    autoSummary: false
-  });
+  const navigate = useNavigate();
+  const [editingTool, setEditingTool] = useState<string | null>(null);
+  const [editUrl, setEditUrl] = useState('');
 
-  const handleChange = (key: keyof AIContextConfig, value: any) => {
-    setConfig(prev => ({ ...prev, [key]: value }));
+  const [tools, setTools] = useState<ServerTool[]>([
+    {
+      id: 'llm',
+      name: 'LLM',
+      description: 'Large Language Models - Ollama',
+      icon: Bot,
+      color: 'from-purple-100 to-pink-100 dark:from-purple-900/40 dark:to-pink-900/40',
+      url: 'https://ollama.aimaker.fr/auth?redirect=%2F',
+      isExternal: true
+    },
+    {
+      id: 'n8n_workflow',
+      name: 'n8n Workflow',
+      description: 'Automation & Integration',
+      icon: Workflow,
+      color: 'from-orange-100 to-red-100 dark:from-orange-900/40 dark:to-red-900/40',
+      url: 'https://n8n.utopiamaker.com/',
+      isExternal: true
+    },
+    {
+      id: 'perplexity_index',
+      name: 'Perplexity Index',
+      description: 'Search & Knowledge Base',
+      icon: Database,
+      color: 'from-blue-100 to-cyan-100 dark:from-blue-900/40 dark:to-cyan-900/40',
+      url: '',
+      isExternal: false,
+      internalRoute: '/dashboard/perplexity-index'
+    },
+    {
+      id: 'api_prompt_optimize',
+      name: 'API Prompt Optimize',
+      description: 'Optimize your prompts',
+      icon: Zap,
+      color: 'from-yellow-100 to-orange-100 dark:from-yellow-900/40 dark:to-orange-900/40',
+      url: '',
+      isExternal: false,
+      internalRoute: '/dashboard/prompt-optimize'
+    },
+    {
+      id: 'image_generation',
+      name: 'Image Generation',
+      description: 'AI-powered image creation',
+      icon: ImageIcon,
+      color: 'from-green-100 to-teal-100 dark:from-green-900/40 dark:to-teal-900/40',
+      url: '',
+      isExternal: false,
+      internalRoute: '/dashboard/image-generation'
+    },
+    {
+      id: 'administration',
+      name: 'Administration',
+      description: 'System management',
+      icon: Settings,
+      color: 'from-gray-100 to-slate-100 dark:from-gray-800/40 dark:to-slate-800/40',
+      url: '',
+      isExternal: false,
+      internalRoute: '/dashboard/administration'
+    }
+  ]);
+
+  const handleToolClick = (tool: ServerTool) => {
+    if (tool.isExternal) {
+      window.open(tool.url, '_blank');
+    } else if (tool.internalRoute) {
+      navigate(tool.internalRoute);
+    }
+  };
+
+  const handleEditUrl = (toolId: string, currentUrl: string) => {
+    setEditingTool(toolId);
+    setEditUrl(currentUrl);
+  };
+
+  const handleSaveUrl = (toolId: string) => {
+    setTools(tools.map(tool => 
+      tool.id === toolId ? { ...tool, url: editUrl } : tool
+    ));
+    setEditingTool(null);
+    setEditUrl('');
+  };
+
+  const handleCancelEdit = () => {
+    setEditingTool(null);
+    setEditUrl('');
   };
 
   return (
-    <div className="max-w-3xl mx-auto space-y-8">
-       <div className="bg-gradient-to-br from-indigo-50 to-blue-50 dark:from-indigo-900/20 dark:to-blue-900/10 p-6 rounded-xl border border-indigo-100 dark:border-indigo-800/30">
+    <div className="space-y-8">
+      {/* Header */}
+      <div className="bg-gradient-to-br from-indigo-50 to-blue-50 dark:from-indigo-900/20 dark:to-blue-900/10 p-6 rounded-xl border border-indigo-100 dark:border-indigo-800/30">
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
-          <Sliders className="text-indigo-600 dark:text-indigo-400" />
-          AI Context Configuration
+          <Settings className="text-indigo-600 dark:text-indigo-400" />
+          Server Tools
         </h2>
         <p className="text-gray-600 dark:text-gray-300 mt-2">
-          Define how your AI behaves by default. These settings apply to all your FabLabs unless overridden.
+          Accede a las herramientas de servidor e integraciones externas.
         </p>
       </div>
 
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
-        <div className="p-6 space-y-6">
-          
-          {/* Tone */}
-          <div>
-            <label className="block text-sm font-semibold text-gray-900 dark:text-white mb-3">Response Tone</label>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {['professional', 'creative', 'educational', 'technical'].map((t) => (
+      {/* Tools Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {tools.map((tool) => {
+          const Icon = tool.icon;
+          const isEditing = editingTool === tool.id;
+
+          return (
+            <div
+              key={tool.id}
+              className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden hover:shadow-xl transition-all duration-300 group"
+            >
+              {/* Header con gradiente */}
+              <div className={`h-32 bg-gradient-to-br ${tool.color} relative overflow-hidden border-b border-gray-200 dark:border-gray-700`}>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <Icon size={48} className="text-gray-700 dark:text-gray-300" />
+                </div>
+              </div>
+
+              {/* Content */}
+              <div className="p-6 space-y-4">
+                <div>
+                  <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
+                    {tool.name}
+                  </h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    {tool.description}
+                  </p>
+                </div>
+
+                {/* URL Edit for External Tools */}
+                {tool.isExternal && (
+                  <div className="space-y-2">
+                    {isEditing ? (
+                      <div className="space-y-2">
+                        <input
+                          type="url"
+                          value={editUrl}
+                          onChange={(e) => setEditUrl(e.target.value)}
+                          className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                          placeholder="https://..."
+                        />
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => handleSaveUrl(tool.id)}
+                            className="flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors text-sm font-medium"
+                          >
+                            <Save size={14} />
+                            Guardar
+                          </button>
+                          <button
+                            onClick={handleCancelEdit}
+                            className="flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-gray-300 dark:bg-gray-600 hover:bg-gray-400 dark:hover:bg-gray-500 text-gray-700 dark:text-gray-200 rounded-lg transition-colors text-sm font-medium"
+                          >
+                            <X size={14} />
+                            Cancelar
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1 text-xs text-gray-500 dark:text-gray-400 truncate">
+                          {tool.url}
+                        </div>
+                        <button
+                          onClick={() => handleEditUrl(tool.id, tool.url)}
+                          className="p-1.5 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-400 rounded transition-colors"
+                          title="Editar URL"
+                        >
+                          <Edit2 size={14} />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Action Button */}
                 <button
-                  key={t}
-                  onClick={() => handleChange('tone', t)}
-                  className={`px-4 py-3 rounded-lg border text-sm font-medium capitalize transition-all ${
-                    config.tone === t
-                      ? 'border-brand-500 bg-brand-50 dark:bg-brand-900/20 text-brand-700 dark:text-brand-400 ring-2 ring-brand-500/20'
-                      : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'
-                  }`}
+                  onClick={() => handleToolClick(tool)}
+                  disabled={isEditing}
+                  className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white font-semibold rounded-xl transition-all shadow-md hover:shadow-lg hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {t}
+                  {tool.isExternal ? (
+                    <>
+                      Abrir
+                      <ExternalLink size={18} />
+                    </>
+                  ) : (
+                    <>
+                      Acceder
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </>
+                  )}
                 </button>
-              ))}
-            </div>
-          </div>
-
-          <hr className="border-gray-100 dark:border-gray-700" />
-
-          {/* Response Length */}
-          <div>
-             <label className="block text-sm font-semibold text-gray-900 dark:text-white mb-3">Response Length</label>
-             <div className="flex items-center gap-6 bg-gray-50 dark:bg-gray-900/50 p-1 rounded-lg border border-gray-200 dark:border-gray-700">
-               {['short', 'balanced', 'detailed'].map((len) => (
-                 <button
-                  key={len}
-                  onClick={() => handleChange('responseLength', len)}
-                  className={`flex-1 py-2 rounded-md text-sm font-medium capitalize transition-all ${
-                    config.responseLength === len
-                    ? 'bg-white dark:bg-gray-700 shadow-sm text-gray-900 dark:text-white'
-                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
-                  }`}
-                 >
-                   {len}
-                 </button>
-               ))}
-             </div>
-          </div>
-
-           <hr className="border-gray-100 dark:border-gray-700" />
-
-          {/* Expertise Level */}
-          <div>
-             <label className="block text-sm font-semibold text-gray-900 dark:text-white mb-3">Target Expertise Level</label>
-             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-               {[
-                 { id: 'beginner', label: 'Beginner', desc: 'Simple concepts, no jargon' },
-                 { id: 'intermediate', label: 'Intermediate', desc: 'Standard professional terms' },
-                 { id: 'expert', label: 'Expert', desc: 'Deep technical details' }
-               ].map((level) => (
-                 <div 
-                  key={level.id}
-                  onClick={() => handleChange('expertiseLevel', level.id)}
-                  className={`cursor-pointer p-4 rounded-lg border transition-all ${
-                    config.expertiseLevel === level.id
-                     ? 'border-brand-500 bg-brand-50 dark:bg-brand-900/20 ring-1 ring-brand-500'
-                     : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
-                  }`}
-                 >
-                   <div className="font-medium text-gray-900 dark:text-white">{level.label}</div>
-                   <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">{level.desc}</div>
-                 </div>
-               ))}
-             </div>
-          </div>
-
-          <hr className="border-gray-100 dark:border-gray-700" />
-
-          {/* Toggles */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="font-medium text-gray-900 dark:text-white">Cite Sources</div>
-                <div className="text-sm text-gray-500 dark:text-gray-400">Include references in answers</div>
               </div>
-              <button
-                onClick={() => handleChange('citeSources', !config.citeSources)}
-                className={`w-12 h-6 rounded-full transition-colors relative ${
-                  config.citeSources ? 'bg-brand-600' : 'bg-gray-300 dark:bg-gray-600'
-                }`}
-              >
-                <div className={`w-4 h-4 rounded-full bg-white absolute top-1 transition-transform ${
-                  config.citeSources ? 'left-7' : 'left-1'
-                }`}></div>
-              </button>
             </div>
-
-             <div className="flex items-center justify-between">
-              <div>
-                <div className="font-medium text-gray-900 dark:text-white">Auto-Summary</div>
-                <div className="text-sm text-gray-500 dark:text-gray-400">Add TL;DR to long responses</div>
-              </div>
-              <button
-                onClick={() => handleChange('autoSummary', !config.autoSummary)}
-                className={`w-12 h-6 rounded-full transition-colors relative ${
-                  config.autoSummary ? 'bg-brand-600' : 'bg-gray-300 dark:bg-gray-600'
-                }`}
-              >
-                <div className={`w-4 h-4 rounded-full bg-white absolute top-1 transition-transform ${
-                  config.autoSummary ? 'left-7' : 'left-1'
-                }`}></div>
-              </button>
-            </div>
-          </div>
-
-        </div>
-        <div className="bg-gray-50 dark:bg-gray-900/50 p-4 border-t border-gray-200 dark:border-gray-700 flex justify-end">
-          <button className="bg-brand-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-brand-700 transition-colors flex items-center gap-2">
-            <Save size={18} />
-            Save Configuration
-          </button>
-        </div>
+          );
+        })}
       </div>
     </div>
   );

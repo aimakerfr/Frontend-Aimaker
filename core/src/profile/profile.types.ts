@@ -27,6 +27,9 @@ export interface UserProfile {
   avatarFilename?: string;
   uiLanguage: 'fr' | 'en' | 'es';
   type?: string;
+  category?: 'student' | 'teacher' | 'developer' | 'apprentice' | 'professional' | 'researcher' | 'other';
+  level?: number;
+  experiencePoints?: number;
   createdAt: string;
   lastLoginAt?: string;
   isActive: boolean;
@@ -44,6 +47,9 @@ export interface UpdateProfileData {
   gender?: string;
   birthday?: string;
   uiLanguage?: 'fr' | 'en' | 'es';
+  category?: 'student' | 'teacher' | 'developer' | 'apprentice' | 'professional' | 'researcher' | 'other';
+  level?: number;
+  experiencePoints?: number;
 }
 
 export { NotebookService } from '../notebooks/notebook.service';
