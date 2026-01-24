@@ -1,5 +1,5 @@
 
-export type SourceType = 'pdf' | 'url' | 'text' | 'video' | 'image';
+export type SourceType = 'pdf' | 'url' | 'text' | 'video' | 'image' | 'html';
 export type Language = 'es' | 'en' | 'fr';
 
 export interface Source {

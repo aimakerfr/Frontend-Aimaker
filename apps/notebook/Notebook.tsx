@@ -154,6 +154,7 @@ const App: React.FC<NotebookProps> = ({ isPublicView = false }) => {
         try {
             let apiType = type.toUpperCase();
             if (apiType === 'URL') apiType = 'WEBSITE';
+            if (apiType === 'HTML') apiType = 'PDF';
 
             const response = await uploadSource(apiType, title, file);
             processSourceLocally(response, type, content, url, previewUrl);
