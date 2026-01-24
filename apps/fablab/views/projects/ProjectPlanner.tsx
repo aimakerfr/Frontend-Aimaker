@@ -1,13 +1,16 @@
 
 import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { Phase, ProjectState, Language } from './types';
 import { StepIndicator } from './components/StepIndicator';
 import { dashboardAIService } from '@core/ai/dashboard.service';
+import { getMakerPath, updateMakerPath } from '@core/maker-path';
 import { translations } from './translations';
 import { useLanguage } from '../../language/useLanguage';
+import { ArrowLeft } from 'lucide-react';
 
 const createInitialState = (): ProjectState => ({
-  objective: { title: '', goal: '', type: '' },
+  objective: { title: '', description: '', goal: '', type: '' },
   research: [],
   notebook: { source1: '', source2: '', source3: '', source4: '', synthesis: '' },
   design: { role: '', experience: '', communication: '', process: ['', '', '', ''] },
@@ -15,6 +18,9 @@ const createInitialState = (): ProjectState => ({
 });
 
 const App: React.FC = () => {
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const pathId = id ? parseInt(id, 10) : undefined;
   const { language } = useLanguage();
   const lang = language as Language;
   
@@ -32,9 +38,46 @@ const App: React.FC = () => {
 
   const t = translations[lang];
 
+  // Cargar datos del maker path si existe pathId
   useEffect(() => {
+    if (pathId) {
+      const loadMakerPath = async () => {
+        try {
+          const path = await getMakerPath(pathId);
+          // Si hay datos guardados en el path, cargarlos al state
+          if (path.data) {
+            setState(JSON.parse(path.data));
+          }
+        } catch (error) {
+          console.error('Error loading maker path:', error);
+        }
+      };
+      loadMakerPath();
+    }
+  }, [pathId]);
+
+  // Guardar automáticamente el state en el backend cuando cambia
+  useEffect(() => {
+    if (pathId && state) {
+      const saveToBackend = async () => {
+        try {
+          await updateMakerPath(pathId, {
+            title: state.objective.title || 'Nueva Ruta',
+            description: state.objective.description || '',
+            data: JSON.stringify(state),
+            status: phase === Phase.PHASE_6 ? 'completed' : state.objective.title ? 'in_progress' : 'draft'
+          });
+        } catch (error) {
+          console.error('Error saving to backend:', error);
+        }
+      };
+      // Debounce para evitar muchas llamadas
+      const timeoutId = setTimeout(saveToBackend, 1000);
+      return () => clearTimeout(timeoutId);
+    }
+    // También guardar en localStorage como backup
     localStorage.setItem('ai_architect_state', JSON.stringify(state));
-  }, [state]);
+  }, [state, pathId, phase]);
 
   useEffect(() => {
     localStorage.setItem('ai_architect_phase', phase.toString());
@@ -103,6 +146,15 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50/30 dark:from-gray-900 dark:to-blue-900/10 pb-20 pt-10 px-4 max-w-4xl mx-auto">
+      {/* Botón de regreso */}
+      <button
+        onClick={() => navigate('/dashboard/maker-path')}
+        className="flex items-center gap-2 mb-6 px-4 py-2 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl border border-gray-200 dark:border-gray-700 transition-colors font-medium shadow-sm"
+      >
+        <ArrowLeft size={20} />
+        Volver a Rutas
+      </button>
+      
       <header className="text-center mb-12">
         <h1 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400 bg-clip-text text-transparent">
           {t.title}
@@ -146,6 +198,17 @@ const App: React.FC = () => {
                   value={state.objective.title}
                   onChange={(e) => updateObjective('title', e.target.value)}
                   placeholder="Ej: Asistente de Atención al Cliente"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Descripción</label>
+                <textarea 
+                  className="w-full bg-gray-50 dark:bg-slate-800 border border-gray-300 dark:border-slate-700 rounded-lg p-3 text-gray-900 dark:text-slate-200 focus:ring-2 focus:ring-blue-500 outline-none resize-none"
+                  value={state.objective.description}
+                  onChange={(e) => updateObjective('description', e.target.value)}
+                  placeholder="Breve descripción de tu proyecto..."
+                  rows={3}
                 />
               </div>
               
