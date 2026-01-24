@@ -6,7 +6,7 @@ export interface Translations {
     subtitle: string;
     stats: {
       notebooks: string;
-      makerPath: string;
+      projects: string;
       assistants: string;
       prompts: string;
     };
@@ -135,7 +135,7 @@ export const translations: Record<Language, Translations> = {
       subtitle: 'Here\'s an overview of your AI resources',
       stats: {
         notebooks: 'Notebooks',
-        makerPath: 'Maker Path',
+        projects: 'Projects',
         assistants: 'Assistants',
         prompts: 'Prompts',
       },
@@ -262,7 +262,7 @@ export const translations: Record<Language, Translations> = {
       subtitle: 'Aquí tienes un resumen de tus recursos de IA',
       stats: {
         notebooks: 'Notebooks',
-        makerPath: 'Ruta del Maker',
+        projects: 'Proyectos',
         assistants: 'Asistentes',
         prompts: 'Prompts',
       },
@@ -389,7 +389,7 @@ export const translations: Record<Language, Translations> = {
       subtitle: 'Voici un aperçu de vos ressources IA',
       stats: {
         notebooks: 'Notebooks',
-        makerPath: 'Chemin du Maker',
+        projects: 'Projets',
         assistants: 'Assistants',
         prompts: 'Prompts',
       },

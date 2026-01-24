@@ -14,7 +14,12 @@ const ProfileSection: React.FC<{ user: UserProfile | null }> = () => {
   const [profileData, setProfileData] = useState<ApiUserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
-  const [editForm, setEditForm] = useState({ firstName: '', uiLanguage: '', phoneNumber: '' });
+  const [editForm, setEditForm] = useState({ 
+    firstName: '', 
+    uiLanguage: '', 
+    phoneNumber: '', 
+    category: 'student' as const
+  });
   const [saving, setSaving] = useState(false);
 
   const profileService = new ProfileService();
@@ -30,7 +35,8 @@ const ProfileSection: React.FC<{ user: UserProfile | null }> = () => {
       setEditForm({
         firstName: data.firstName || '',
         uiLanguage: data.uiLanguage || 'es',
-        phoneNumber: data.phoneNumber || ''
+        phoneNumber: data.phoneNumber || '',
+        category: (data.category as any) || 'student'
       });
     } catch (error) {
       console.error('Error cargando perfil:', error);
@@ -69,7 +75,8 @@ const ProfileSection: React.FC<{ user: UserProfile | null }> = () => {
     setEditForm({
       firstName: profileData?.firstName || '',
       uiLanguage: profileData?.uiLanguage || 'es',
-      phoneNumber: profileData?.phoneNumber || ''
+      phoneNumber: profileData?.phoneNumber || '',
+      category: (profileData?.category as any) || 'student'
     });
     setIsEditing(false);
   };
@@ -199,6 +206,63 @@ const ProfileSection: React.FC<{ user: UserProfile | null }> = () => {
                 <span className="text-sm font-medium">Miembro desde</span>
               </div>
               <div className="text-lg font-semibold text-gray-900 dark:text-white">{joinDate}</div>
+            </div>
+          </div>
+
+          {/* Category and Level Section */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+            <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-200 dark:border-blue-700">
+              <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400 mb-1">
+                <Shield size={16} />
+                <span className="text-sm font-medium">Categoría</span>
+              </div>
+              {isEditing ? (
+                <select
+                  value={editForm.category}
+                  onChange={(e) => setEditForm({ ...editForm, category: e.target.value as any })}
+                  className="text-lg font-semibold text-gray-900 dark:text-white bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded px-2 py-1 w-full"
+                >
+                  <option value="student">Estudiante</option>
+                  <option value="teacher">Profesor</option>
+                  <option value="developer">Desarrollador</option>
+                  <option value="apprentice">Aprendiz</option>
+                  <option value="professional">Profesional</option>
+                  <option value="researcher">Investigador</option>
+                  <option value="other">Otro</option>
+                </select>
+              ) : (
+                <div className="text-lg font-semibold text-gray-900 dark:text-white capitalize">
+                  {profileData.category === 'student' && 'Estudiante'}
+                  {profileData.category === 'teacher' && 'Profesor'}
+                  {profileData.category === 'developer' && 'Desarrollador'}
+                  {profileData.category === 'apprentice' && 'Aprendiz'}
+                  {profileData.category === 'professional' && 'Profesional'}
+                  {profileData.category === 'researcher' && 'Investigador'}
+                  {profileData.category === 'other' && 'Otro'}
+                </div>
+              )}
+            </div>
+            <div className="p-4 bg-purple-50 dark:bg-purple-900/20 rounded-xl border border-purple-200 dark:border-purple-700">
+              <div className="flex items-center gap-2 text-purple-600 dark:text-purple-400 mb-1">
+                <Code size={16} />
+                <span className="text-sm font-medium">Nivel</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="text-2xl font-bold text-gray-900 dark:text-white">
+                  {profileData.level || 0}
+                </div>
+                <div className="flex-1">
+                  <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-gradient-to-r from-purple-500 to-blue-500 transition-all duration-500"
+                      style={{ width: `${Math.min(100, (profileData.experiencePoints || 0) / 10)}%` }}
+                    ></div>
+                  </div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    {profileData.experiencePoints || 0} XP
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>

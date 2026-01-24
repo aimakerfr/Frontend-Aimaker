@@ -1,4 +1,4 @@
-export type View = 'dashboard' | 'profile' | 'context' | 'projects' | 'library' | 'tools';
+export type View = 'dashboard' | 'profile' | 'context' | 'maker-path' | 'library' | 'tools';
 
 export interface UserProfile {
     name: string;

@@ -46,8 +46,8 @@ const Dashboard: React.FC = () => {
     }
   };
 
-  const handleNavigate = (view: string) => {
-    navigate(`/dashboard`, { state: { view } });
+  const handleNavigate = (path: string) => {
+    navigate(path);
   };
 
   if (langLoading || isLoading) {
@@ -71,18 +71,18 @@ const Dashboard: React.FC = () => {
       textColor: 'text-blue-600 dark:text-blue-400',
       borderColor: 'border-blue-200 dark:border-blue-800',
       iconBg: 'bg-blue-100 dark:bg-blue-900/40',
-      action: () => handleNavigate('library')
+      action: () => handleNavigate('/dashboard/library')
     },
     { 
       icon: FolderKanban, 
-      label: t.dashboard.stats.makerPath, 
+      label: t.dashboard.stats.projects, 
       value: stats.projects, 
       color: 'from-purple-500 to-pink-500',
       bgColor: 'bg-purple-50 dark:bg-purple-900/20',
       textColor: 'text-purple-600 dark:text-purple-400',
       borderColor: 'border-purple-200 dark:border-purple-800',
       iconBg: 'bg-purple-100 dark:bg-purple-900/40',
-      action: () => handleNavigate('library')
+      action: () => handleNavigate('/dashboard/library')
     },
     { 
       icon: BookOpen, 
@@ -93,7 +93,7 @@ const Dashboard: React.FC = () => {
       textColor: 'text-green-600 dark:text-green-400',
       borderColor: 'border-green-200 dark:border-green-800',
       iconBg: 'bg-green-100 dark:bg-green-900/40',
-      action: () => handleNavigate('library')
+      action: () => handleNavigate('/dashboard/library')
     },
     { 
       icon: FileText, 
@@ -104,7 +104,7 @@ const Dashboard: React.FC = () => {
       textColor: 'text-orange-600 dark:text-orange-400',
       borderColor: 'border-orange-200 dark:border-orange-800',
       iconBg: 'bg-orange-100 dark:bg-orange-900/40',
-      action: () => handleNavigate('library')
+      action: () => handleNavigate('/dashboard/library')
     },
   ];
 
@@ -114,28 +114,28 @@ const Dashboard: React.FC = () => {
       description: language === 'en' ? 'Manage your AI resources' : language === 'es' ? 'Gestiona tus recursos de IA' : 'Gérez vos ressources IA',
       icon: Sparkles,
       color: 'from-blue-500 via-cyan-500 to-blue-600',
-      action: () => handleNavigate('library')
+      action: () => handleNavigate('/dashboard/library')
     },
     {
       title: t.dashboard.sections.makerPath,
-      description: language === 'en' ? 'Plan and organize projects' : language === 'es' ? 'Planifica y organiza proyectos' : 'Planifiez et organisez des projets',
+      description: language === 'en' ? 'Create and manage your paths' : language === 'es' ? 'Crea y gestiona tus rutas' : 'Créez et gérez vos parcours',
       icon: Target,
       color: 'from-purple-500 via-pink-500 to-purple-600',
-      action: () => handleNavigate('projects')
+      action: () => handleNavigate('/dashboard/maker-path')
     },
     {
       title: t.dashboard.sections.profile,
       description: language === 'en' ? 'Update your settings' : language === 'es' ? 'Actualiza tu configuración' : 'Mettez à jour vos paramètres',
       icon: BookOpen,
       color: 'from-green-500 via-emerald-500 to-green-600',
-      action: () => handleNavigate('profile')
+      action: () => handleNavigate('/dashboard/profile')
     },
     {
       title: t.dashboard.sections.tools,
       description: language === 'en' ? 'Configure AI tools' : language === 'es' ? 'Configura herramientas de IA' : 'Configurez les outils IA',
       icon: Zap,
       color: 'from-orange-500 via-amber-500 to-orange-600',
-      action: () => handleNavigate('tools')
+      action: () => handleNavigate('/dashboard/tools')
     },
   ];
 

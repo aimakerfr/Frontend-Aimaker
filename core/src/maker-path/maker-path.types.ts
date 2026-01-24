@@ -1,0 +1,54 @@
+/**
+ * Maker Path Types
+ */
+
+export type MakerPathType = 'architect_ai' | 'custom';
+export type MakerPathStatus = 'draft' | 'in_progress' | 'completed';
+
+export interface MakerPath {
+  id: number;
+  title: string;
+  description: string;
+  type: MakerPathType;
+  status: MakerPathStatus;
+  data: string | null;
+  projectType: string | null;
+  projectName: string | null;
+  projectMission: string | null;
+  hasDatabase: boolean | null;
+  optimizationProvider: string | null;
+  apiSource: string | null;
+  selectedTool: string | null;
+  deploymentUrl: string | null;
+  createdAt: string;
+  updatedAt: string | null;
+  userId: number;
+}
+
+export interface MakerPathsParams {
+  type?: MakerPathType;
+}
+
+export interface CreateMakerPathRequest {
+  title: string;
+  description?: string;
+  type?: MakerPathType;
+  status?: MakerPathStatus;
+  data?: string;
+  projectType?: string;
+  projectName?: string;
+  projectMission?: string;
+  hasDatabase?: boolean;
+}
+
+export interface UpdateMakerPathRequest {
+  title?: string;
+  description?: string;
+  type?: MakerPathType;
+  status?: MakerPathStatus;
+  data?: string;
+  projectType?: string;
+  projectName?: string;
+  projectMission?: string;
+  hasDatabase?: boolean;
+}

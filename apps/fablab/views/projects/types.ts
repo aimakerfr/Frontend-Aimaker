@@ -4,6 +4,7 @@ export type Language = 'en' | 'es' | 'fr';
 export interface ProjectState {
   objective: {
     title: string;
+    description: string;
     goal: string;
     type: 'assistant' | 'web-app' | 'landing-page' | 'pdf' | '';
   };

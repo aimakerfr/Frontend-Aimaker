@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BookOpen, Search, FileText, Notebook, FolderKanban, Globe, Eye, Lock, Plus, X, ExternalLink, Trash2 } from 'lucide-react';
+import { BookOpen, Search, FileText, Notebook, FolderKanban, Globe, Eye, Lock, Plus, X, ExternalLink, Trash2, Edit2 } from 'lucide-react';
 import FormGeneral from './components/Form-general';
 import DetailsView from './components/DetailsView';
 import { useLanguage } from '../../language/useLanguage';
@@ -65,7 +65,6 @@ const LibraryView: React.FC<LibraryViewProps> = ({
   const [showDetailsView, setShowDetailsView] = useState(false);
   const [selectedType, setSelectedType] = useState<ItemType>('note_books');
   const [selectedItemId, setSelectedItemId] = useState<number | null>(null);
-  const [isEditMode, setIsEditMode] = useState(false);
 
   const filters: { key: FilterType; label: string }[] = [
     { key: 'all', label: t.library.filters.all },
@@ -142,7 +141,6 @@ const LibraryView: React.FC<LibraryViewProps> = ({
   const handleViewDetails = (itemId: number) => {
     setSelectedItemId(itemId);
     setShowDetailsView(true);
-    setIsEditMode(false);
   };
 
   const handleToggleVisibility = (itemId: number, currentIsPublic: boolean) => {
@@ -171,9 +169,6 @@ const LibraryView: React.FC<LibraryViewProps> = ({
   const handleEditSave = async (data: any): Promise<boolean> => {
     if (onSave && selectedItemId) {
       const success = await onSave(data, selectedItemId);
-      if (success) {
-        setIsEditMode(false);
-      }
       return success;
     }
     return false;
@@ -183,7 +178,6 @@ const LibraryView: React.FC<LibraryViewProps> = ({
     setShowCreateForm(false);
     setShowDetailsView(false);
     setSelectedItemId(null);
-    setIsEditMode(false);
   };
 
   const getSelectedItemData = () => {
@@ -198,11 +192,8 @@ const LibraryView: React.FC<LibraryViewProps> = ({
       {showDetailsView && selectedItemId ? (
         <DetailsView
           item={getSelectedItemData()}
-          isEditMode={isEditMode}
           onClose={handleFormClose}
-          onEdit={() => setIsEditMode(true)}
           onSave={handleEditSave}
-          onRedirect={handleRedirect}
         />
       ) : (
         <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50/30 dark:from-gray-900 dark:to-blue-900/10 p-6">
@@ -324,11 +315,18 @@ const LibraryView: React.FC<LibraryViewProps> = ({
                       <div className="col-span-2">
                         <div className="flex gap-2">
                           <button
-                            onClick={() => handleViewDetails(item.id)}
+                            onClick={() => handleRedirect(`/dashboard/notebook/${item.id}?title=${encodeURIComponent(item.title)}`)}
                             className="inline-flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 border-2 border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-xl font-semibold transition-all text-sm hover:scale-105"
                           >
                             <Eye size={16} />
                             VOIR
+                          </button>
+                          <button
+                            onClick={() => handleViewDetails(item.id)}
+                            className="inline-flex items-center gap-2 px-3 py-2.5 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 border-2 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-400 rounded-xl font-semibold transition-all text-sm hover:scale-105"
+                            title="Modifier"
+                          >
+                            <Edit2 size={16} />
                           </button>
                           <button
                             onClick={() => onDelete?.(item.id)}
