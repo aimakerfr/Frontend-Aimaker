@@ -65,7 +65,6 @@ const LibraryView: React.FC<LibraryViewProps> = ({
   const [showDetailsView, setShowDetailsView] = useState(false);
   const [selectedType, setSelectedType] = useState<ItemType>('note_books');
   const [selectedItemId, setSelectedItemId] = useState<number | null>(null);
-  const [isEditMode, setIsEditMode] = useState(false);
 
   const filters: { key: FilterType; label: string }[] = [
     { key: 'all', label: t.library.filters.all },
@@ -142,7 +141,6 @@ const LibraryView: React.FC<LibraryViewProps> = ({
   const handleViewDetails = (itemId: number) => {
     setSelectedItemId(itemId);
     setShowDetailsView(true);
-    setIsEditMode(false);
   };
 
   const handleToggleVisibility = (itemId: number, currentIsPublic: boolean) => {
@@ -171,9 +169,6 @@ const LibraryView: React.FC<LibraryViewProps> = ({
   const handleEditSave = async (data: any): Promise<boolean> => {
     if (onSave && selectedItemId) {
       const success = await onSave(data, selectedItemId);
-      if (success) {
-        setIsEditMode(false);
-      }
       return success;
     }
     return false;
@@ -183,7 +178,6 @@ const LibraryView: React.FC<LibraryViewProps> = ({
     setShowCreateForm(false);
     setShowDetailsView(false);
     setSelectedItemId(null);
-    setIsEditMode(false);
   };
 
   const getSelectedItemData = () => {
@@ -198,11 +192,8 @@ const LibraryView: React.FC<LibraryViewProps> = ({
       {showDetailsView && selectedItemId ? (
         <DetailsView
           item={getSelectedItemData()}
-          isEditMode={isEditMode}
           onClose={handleFormClose}
-          onEdit={() => setIsEditMode(true)}
           onSave={handleEditSave}
-          onRedirect={handleRedirect}
         />
       ) : (
         <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50/30 dark:from-gray-900 dark:to-blue-900/10 p-6">

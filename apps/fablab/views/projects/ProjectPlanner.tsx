@@ -184,13 +184,13 @@ const App: React.FC = () => {
         )}
 
         {phase === Phase.PHASE_1 && (
-          <div className="space-y-6">
-            <h2 className="text-2xl font-bold">{t.phase1.title}</h2>
-            <div className="flex items-center gap-2 text-blue-400">
+          <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-3xl shadow-2xl p-8 md:p-12 space-y-6">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{t.phase1.title}</h2>
+            <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400">
               <span className="font-bold">{t.phase1.tool}</span> 
-              <a href="https://perplexity.ai" target="_blank" className="underline hover:text-blue-300">Perplexity.ai</a>
+              <a href="https://perplexity.ai" target="_blank" className="underline hover:text-blue-500 dark:hover:text-blue-300">Perplexity.ai</a>
             </div>
-            <p className="text-slate-400">{t.phase1.desc}</p>
+            <p className="text-gray-600 dark:text-slate-400">{t.phase1.desc}</p>
             
             <div className="grid gap-4">
               {t.phase1.questions.map((qTemplate: string, i: number) => {
@@ -199,11 +199,11 @@ const App: React.FC = () => {
                   .replace('{result}', state.objective.goal || '...');
                   
                 return (
-                  <div key={i} className="group relative bg-slate-800 border border-slate-700 p-4 rounded-xl flex justify-between items-center">
-                    <span className="text-sm italic text-slate-300">"{q}"</span>
+                  <div key={i} className="group relative bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 p-4 rounded-xl flex justify-between items-center">
+                    <span className="text-sm italic text-gray-700 dark:text-slate-300">"{q}"</span>
                     <button 
                       onClick={() => copyToClipboard(q)}
-                      className="ml-4 p-2 bg-slate-700 group-hover:bg-blue-600 rounded-lg transition-colors"
+                      className="ml-4 p-2 bg-gray-200 dark:bg-slate-700 group-hover:bg-blue-600 rounded-lg transition-colors"
                       title="Copy Prompt"
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"></path></svg>
@@ -213,55 +213,55 @@ const App: React.FC = () => {
               })}
             </div>
 
-            <div className="bg-yellow-900/10 border border-yellow-700/50 p-4 rounded-xl">
-              <h3 className="text-yellow-500 font-bold mb-2 text-sm">📌 {t.phase1.ruleTitle}</h3>
-              <p className="text-xs text-slate-400">{t.phase1.ruleDesc}</p>
+            <div className="bg-yellow-50 dark:bg-yellow-900/10 border border-yellow-300 dark:border-yellow-700/50 p-4 rounded-xl">
+              <h3 className="text-yellow-700 dark:text-yellow-500 font-bold mb-2 text-sm">📌 {t.phase1.ruleTitle}</h3>
+              <p className="text-xs text-gray-600 dark:text-slate-400">{t.phase1.ruleDesc}</p>
             </div>
 
             <div className="flex gap-3">
-              <button onClick={prev} className="flex-1 border border-slate-700 py-3 rounded-xl font-bold">{t.common.back}</button>
-              <button onClick={next} className="flex-[2] bg-blue-600 hover:bg-blue-700 py-3 rounded-xl font-bold">{t.common.next}</button>
+              <button onClick={prev} className="flex-1 border border-gray-300 dark:border-slate-700 text-gray-700 dark:text-white py-3 rounded-xl font-bold hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors">{t.common.back}</button>
+              <button onClick={next} className="flex-[2] bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl font-bold">{t.common.next}</button>
             </div>
           </div>
         )}
 
         {phase === Phase.PHASE_2 && (
-          <div className="space-y-6">
-            <h2 className="text-2xl font-bold">{t.phase2.title}</h2>
-            <div className="flex items-center gap-2 text-indigo-400">
+          <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-3xl shadow-2xl p-8 md:p-12 space-y-6">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{t.phase2.title}</h2>
+            <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400">
               <span className="font-bold">{t.phase1.tool}</span> 
-              <a href="https://notebooklm.google.com" target="_blank" className="underline hover:text-indigo-300">Google NotebookLM</a>
+              <a href="https://notebooklm.google.com" target="_blank" className="underline hover:text-indigo-500 dark:hover:text-indigo-300">Google NotebookLM</a>
             </div>
             
             <div className="space-y-4">
-              <div className="p-4 bg-indigo-900/20 rounded-xl border border-indigo-500/30">
-                <h3 className="font-bold text-indigo-300 mb-2">{t.phase2.desc}</h3>
+              <div className="p-4 bg-indigo-50 dark:bg-indigo-900/20 rounded-xl border border-indigo-200 dark:border-indigo-500/30">
+                <h3 className="font-bold text-indigo-700 dark:text-indigo-300 mb-2">{t.phase2.desc}</h3>
               </div>
 
               <div className="grid md:grid-cols-2 gap-4">
-                <div className="p-4 bg-slate-800 rounded-xl border border-slate-700">
-                  <h4 className="text-blue-400 font-bold text-xs uppercase mb-2">{t.phase2.s1}</h4>
-                  <p className="text-xs text-slate-500">{t.phase2.s1Desc}</p>
+                <div className="p-4 bg-gray-50 dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700">
+                  <h4 className="text-blue-600 dark:text-blue-400 font-bold text-xs uppercase mb-2">{t.phase2.s1}</h4>
+                  <p className="text-xs text-gray-600 dark:text-slate-500">{t.phase2.s1Desc}</p>
                 </div>
-                <div className="p-4 bg-slate-800 rounded-xl border border-slate-700">
-                  <h4 className="text-green-400 font-bold text-xs uppercase mb-2">{t.phase2.s2}</h4>
-                  <p className="text-xs text-slate-500">{t.phase2.s2Desc}</p>
+                <div className="p-4 bg-gray-50 dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700">
+                  <h4 className="text-green-600 dark:text-green-400 font-bold text-xs uppercase mb-2">{t.phase2.s2}</h4>
+                  <p className="text-xs text-gray-600 dark:text-slate-500">{t.phase2.s2Desc}</p>
                 </div>
-                <div className="p-4 bg-slate-800 rounded-xl border border-slate-700">
-                  <h4 className="text-red-400 font-bold text-xs uppercase mb-2">{t.phase2.s3}</h4>
-                  <p className="text-xs text-slate-500">{t.phase2.s3Desc}</p>
+                <div className="p-4 bg-gray-50 dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700">
+                  <h4 className="text-red-600 dark:text-red-400 font-bold text-xs uppercase mb-2">{t.phase2.s3}</h4>
+                  <p className="text-xs text-gray-600 dark:text-slate-500">{t.phase2.s3Desc}</p>
                 </div>
-                <div className="p-4 bg-slate-800 rounded-xl border border-slate-700">
-                  <h4 className="text-purple-400 font-bold text-xs uppercase mb-2">{t.phase2.s4}</h4>
-                  <p className="text-xs text-slate-500">{t.phase2.s4Desc}</p>
+                <div className="p-4 bg-gray-50 dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700">
+                  <h4 className="text-purple-600 dark:text-purple-400 font-bold text-xs uppercase mb-2">{t.phase2.s4}</h4>
+                  <p className="text-xs text-gray-600 dark:text-slate-500">{t.phase2.s4Desc}</p>
                 </div>
               </div>
 
-              <div className="space-y-4 pt-4 border-t border-slate-800">
-                <h3 className="font-bold">{t.phase2.synth}</h3>
-                <p className="text-xs text-slate-400 italic">{t.phase2.synthDesc}</p>
+              <div className="space-y-4 pt-4 border-t border-gray-200 dark:border-slate-800">
+                <h3 className="font-bold text-gray-900 dark:text-white">{t.phase2.synth}</h3>
+                <p className="text-xs text-gray-600 dark:text-slate-400 italic">{t.phase2.synthDesc}</p>
                 <textarea 
-                  className="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 text-slate-200 h-32 text-sm"
+                  className="w-full bg-gray-50 dark:bg-slate-800 border border-gray-300 dark:border-slate-700 rounded-lg p-3 text-gray-900 dark:text-slate-200 h-32 text-sm"
                   value={state.notebook.synthesis}
                   onChange={(e) => setState(s => ({ ...s, notebook: { ...s.notebook, synthesis: e.target.value } }))}
                   placeholder={t.phase2.synthPlaceholder}
@@ -270,41 +270,41 @@ const App: React.FC = () => {
             </div>
 
             <div className="flex gap-3">
-              <button onClick={prev} className="flex-1 border border-slate-700 py-3 rounded-xl font-bold">{t.common.back}</button>
-              <button onClick={next} className="flex-[2] bg-blue-600 hover:bg-blue-700 py-3 rounded-xl font-bold">{t.common.next}</button>
+              <button onClick={prev} className="flex-1 border border-gray-300 dark:border-slate-700 text-gray-700 dark:text-white py-3 rounded-xl font-bold hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors">{t.common.back}</button>
+              <button onClick={next} className="flex-[2] bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl font-bold">{t.common.next}</button>
             </div>
           </div>
         )}
 
         {phase === Phase.PHASE_3 && (
-          <div className="space-y-6">
-            <h2 className="text-2xl font-bold">{t.phase3.title}</h2>
-            <p className="text-slate-400">{t.phase3.desc}</p>
+          <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-3xl shadow-2xl p-8 md:p-12 space-y-6">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{t.phase3.title}</h2>
+            <p className="text-gray-600 dark:text-slate-400">{t.phase3.desc}</p>
 
             <div className="space-y-4">
               <div className="grid md:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">{t.phase3.role}</label>
+                  <label className="block text-xs font-bold text-gray-600 dark:text-slate-500 uppercase mb-1">{t.phase3.role}</label>
                   <input 
-                    className="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 text-slate-200 text-sm"
+                    className="w-full bg-gray-50 dark:bg-slate-800 border border-gray-300 dark:border-slate-700 rounded-lg p-3 text-gray-900 dark:text-slate-200 text-sm"
                     value={state.design.role}
                     onChange={(e) => setState(s => ({ ...s, design: { ...s.design, role: e.target.value } }))}
                     placeholder="Expert Data Analyst"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">{t.phase3.exp}</label>
+                  <label className="block text-xs font-bold text-gray-600 dark:text-slate-500 uppercase mb-1">{t.phase3.exp}</label>
                   <input 
-                    className="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 text-slate-200 text-sm"
+                    className="w-full bg-gray-50 dark:bg-slate-800 border border-gray-300 dark:border-slate-700 rounded-lg p-3 text-gray-900 dark:text-slate-200 text-sm"
                     value={state.design.experience}
                     onChange={(e) => setState(s => ({ ...s, design: { ...s.design, experience: e.target.value } }))}
                     placeholder="10+ years"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">{t.phase3.style}</label>
+                  <label className="block text-xs font-bold text-gray-600 dark:text-slate-500 uppercase mb-1">{t.phase3.style}</label>
                   <input 
-                    className="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 text-slate-200 text-sm"
+                    className="w-full bg-gray-50 dark:bg-slate-800 border border-gray-300 dark:border-slate-700 rounded-lg p-3 text-gray-900 dark:text-slate-200 text-sm"
                     value={state.design.communication}
                     onChange={(e) => setState(s => ({ ...s, design: { ...s.design, communication: e.target.value } }))}
                     placeholder="Clear & Professional"
@@ -313,13 +313,13 @@ const App: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase mb-2">{t.phase3.process}</label>
+                <label className="block text-xs font-bold text-gray-600 dark:text-slate-500 uppercase mb-2">{t.phase3.process}</label>
                 <div className="space-y-3">
                   {state.design.process.map((step, idx) => (
                     <div key={idx} className="flex items-center gap-3">
-                      <span className="text-slate-600 font-bold">{idx + 1}.</span>
+                      <span className="text-gray-500 dark:text-slate-600 font-bold">{idx + 1}.</span>
                       <input 
-                        className="flex-1 bg-slate-800 border border-slate-700 rounded-lg p-3 text-slate-200 text-sm"
+                        className="flex-1 bg-gray-50 dark:bg-slate-800 border border-gray-300 dark:border-slate-700 rounded-lg p-3 text-gray-900 dark:text-slate-200 text-sm"
                         value={step}
                         onChange={(e) => updateDesignProcess(idx, e.target.value)}
                         placeholder={t.phase3.stepPlaceholder.replace('{n}', (idx + 1).toString())}
@@ -331,11 +331,11 @@ const App: React.FC = () => {
             </div>
 
             <div className="flex gap-3">
-              <button onClick={prev} className="flex-1 border border-slate-700 py-3 rounded-xl font-bold">{t.common.back}</button>
+              <button onClick={prev} className="flex-1 border border-gray-300 dark:border-slate-700 text-gray-700 dark:text-white py-3 rounded-xl font-bold hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors">{t.common.back}</button>
               <button 
                 onClick={handleOptimize} 
                 disabled={loading}
-                className="flex-[2] bg-purple-600 hover:bg-purple-700 py-3 rounded-xl font-bold shadow-lg shadow-purple-500/20 flex items-center justify-center gap-2"
+                className="flex-[2] bg-purple-600 hover:bg-purple-700 text-white py-3 rounded-xl font-bold shadow-lg shadow-purple-500/20 flex items-center justify-center gap-2"
               >
                 {loading ? t.common.loading : t.phase3.optimizeBtn}
               </button>
@@ -344,110 +344,110 @@ const App: React.FC = () => {
         )}
 
         {phase === Phase.PHASE_4 && (
-          <div className="space-y-6">
-            <h2 className="text-2xl font-bold">{t.phase4.title}</h2>
-            <div className="p-4 bg-slate-800 border border-slate-700 rounded-xl">
-              <h3 className="text-xs font-bold text-slate-500 uppercase mb-3">{t.phase4.master}</h3>
-              <div className="bg-slate-900 p-4 rounded-lg text-sm text-slate-300 font-mono leading-relaxed whitespace-pre-wrap">
+          <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-3xl shadow-2xl p-8 md:p-12 space-y-6">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{t.phase4.title}</h2>
+            <div className="p-4 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl">
+              <h3 className="text-xs font-bold text-gray-600 dark:text-slate-500 uppercase mb-3">{t.phase4.master}</h3>
+              <div className="bg-white dark:bg-slate-900 p-4 rounded-lg text-sm text-gray-800 dark:text-slate-300 font-mono leading-relaxed whitespace-pre-wrap border border-gray-200 dark:border-slate-800">
                 {state.optimizedPrompt}
               </div>
               <button 
                 onClick={() => copyToClipboard(state.optimizedPrompt)}
-                className="mt-4 w-full bg-slate-700 hover:bg-slate-600 py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-2"
+                className="mt-4 w-full bg-gray-300 dark:bg-slate-700 hover:bg-gray-400 dark:hover:bg-slate-600 text-gray-900 dark:text-white py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-2"
               >
                 {t.phase4.copy}
               </button>
             </div>
 
-            <div className="bg-blue-900/10 border border-blue-700/50 p-4 rounded-xl text-sm">
-              <h4 className="font-bold text-blue-400 mb-1">{t.phase4.improved}</h4>
-              <ul className="list-disc list-inside text-slate-400 space-y-1">
+            <div className="bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-700/50 p-4 rounded-xl text-sm">
+              <h4 className="font-bold text-blue-600 dark:text-blue-400 mb-1">{t.phase4.improved}</h4>
+              <ul className="list-disc list-inside text-gray-700 dark:text-slate-400 space-y-1">
                 {t.phase4.improvements.map((item: string, i: number) => <li key={i}>{item}</li>)}
               </ul>
             </div>
 
             <div className="flex gap-3">
-              <button onClick={prev} className="flex-1 border border-slate-700 py-3 rounded-xl font-bold">{t.common.back}</button>
-              <button onClick={next} className="flex-[2] bg-blue-600 hover:bg-blue-700 py-3 rounded-xl font-bold">{t.common.next}</button>
+              <button onClick={prev} className="flex-1 border border-gray-300 dark:border-slate-700 text-gray-700 dark:text-white py-3 rounded-xl font-bold hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors">{t.common.back}</button>
+              <button onClick={next} className="flex-[2] bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl font-bold">{t.common.next}</button>
             </div>
           </div>
         )}
 
         {phase === Phase.PHASE_5 && (
-          <div className="space-y-6">
-            <h2 className="text-2xl font-bold">{t.phase5.title}</h2>
-            <div className="flex items-center gap-2 text-cyan-400">
+          <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-3xl shadow-2xl p-8 md:p-12 space-y-6">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{t.phase5.title}</h2>
+            <div className="flex items-center gap-2 text-cyan-600 dark:text-cyan-400">
               <span className="font-bold">{t.phase1.tool}</span> 
-              <a href="https://aistudio.google.com" target="_blank" className="underline hover:text-cyan-300">Google AI Studio</a>
+              <a href="https://aistudio.google.com" target="_blank" className="underline hover:text-cyan-500 dark:hover:text-cyan-300">Google AI Studio</a>
             </div>
 
             <div className="grid md:grid-cols-2 gap-4">
-              <div className="bg-slate-800 p-4 rounded-xl border border-slate-700">
-                <h4 className="text-xs font-bold text-slate-500 uppercase mb-3">{t.phase5.settings}</h4>
-                <ul className="text-sm space-y-2 text-slate-300">
-                  <li className="flex justify-between"><span>Model:</span> <span className="text-white">Gemini 3 Flash</span></li>
-                  <li className="flex justify-between"><span>Temperature:</span> <span className="text-white">0.3</span></li>
-                  <li className="flex justify-between"><span>Top-P:</span> <span className="text-white">Default</span></li>
-                  <li className="flex justify-between"><span>Safety:</span> <span className="text-white">Default</span></li>
+              <div className="bg-gray-50 dark:bg-slate-800 p-4 rounded-xl border border-gray-200 dark:border-slate-700">
+                <h4 className="text-xs font-bold text-gray-600 dark:text-slate-500 uppercase mb-3">{t.phase5.settings}</h4>
+                <ul className="text-sm space-y-2 text-gray-700 dark:text-slate-300">
+                  <li className="flex justify-between"><span>Model:</span> <span className="text-gray-900 dark:text-white">Gemini 3 Flash</span></li>
+                  <li className="flex justify-between"><span>Temperature:</span> <span className="text-gray-900 dark:text-white">0.3</span></li>
+                  <li className="flex justify-between"><span>Top-P:</span> <span className="text-gray-900 dark:text-white">Default</span></li>
+                  <li className="flex justify-between"><span>Safety:</span> <span className="text-gray-900 dark:text-white">Default</span></li>
                 </ul>
               </div>
-              <div className="bg-slate-800 p-4 rounded-xl border border-slate-700">
-                <h4 className="text-xs font-bold text-slate-500 uppercase mb-3">{t.phase5.structure}</h4>
-                <p className="text-xs text-slate-400">{t.phase5.structureDesc}</p>
+              <div className="bg-gray-50 dark:bg-slate-800 p-4 rounded-xl border border-gray-200 dark:border-slate-700">
+                <h4 className="text-xs font-bold text-gray-600 dark:text-slate-500 uppercase mb-3">{t.phase5.structure}</h4>
+                <p className="text-xs text-gray-600 dark:text-slate-400">{t.phase5.structureDesc}</p>
               </div>
             </div>
 
-            <div className="p-6 bg-gradient-to-br from-indigo-900/40 to-purple-900/40 border border-indigo-500/30 rounded-2xl text-center">
-              <h3 className="text-xl font-bold mb-4">🚀 {t.phase5.launchTitle}</h3>
-              <p className="text-slate-400 text-sm mb-6">{t.phase5.launchDesc}</p>
+            <div className="p-6 bg-gradient-to-br from-indigo-100 to-purple-100 dark:from-indigo-900/40 dark:to-purple-900/40 border border-indigo-300 dark:border-indigo-500/30 rounded-2xl text-center">
+              <h3 className="text-xl font-bold mb-4 text-gray-900 dark:text-white">🚀 {t.phase5.launchTitle}</h3>
+              <p className="text-gray-700 dark:text-slate-400 text-sm mb-6">{t.phase5.launchDesc}</p>
               <button 
                 onClick={() => window.open('https://aistudio.google.com', '_blank')}
-                className="bg-white text-slate-900 px-8 py-3 rounded-full font-bold hover:bg-slate-200 transition-colors"
+                className="bg-white dark:bg-white text-gray-900 dark:text-slate-900 px-8 py-3 rounded-full font-bold hover:bg-gray-100 dark:hover:bg-slate-200 transition-colors"
               >
                 {t.phase5.openBtn}
               </button>
             </div>
 
             <div className="flex gap-3">
-              <button onClick={prev} className="flex-1 border border-slate-700 py-3 rounded-xl font-bold">{t.common.back}</button>
-              <button onClick={next} className="flex-[2] bg-blue-600 hover:bg-blue-700 py-3 rounded-xl font-bold">{t.common.nextReview}</button>
+              <button onClick={prev} className="flex-1 border border-gray-300 dark:border-slate-700 text-gray-700 dark:text-white py-3 rounded-xl font-bold hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors">{t.common.back}</button>
+              <button onClick={next} className="flex-[2] bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl font-bold">{t.common.nextReview}</button>
             </div>
           </div>
         )}
 
         {phase === Phase.PHASE_6 && (
-          <div className="space-y-6">
-            <h2 className="text-2xl font-bold">{t.phase6.title}</h2>
-            <p className="text-slate-400">{t.phase6.desc}</p>
+          <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-3xl shadow-2xl p-8 md:p-12 space-y-6">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{t.phase6.title}</h2>
+            <p className="text-gray-600 dark:text-slate-400">{t.phase6.desc}</p>
 
             <div className="grid gap-4">
-              <div className="bg-green-900/10 border border-green-500/20 p-4 rounded-xl">
-                <h4 className="font-bold text-green-400 mb-2">{t.phase6.checklistTitle}</h4>
-                <ul className="text-sm text-slate-300 space-y-2">
+              <div className="bg-green-50 dark:bg-green-900/10 border border-green-200 dark:border-green-500/20 p-4 rounded-xl">
+                <h4 className="font-bold text-green-700 dark:text-green-400 mb-2">{t.phase6.checklistTitle}</h4>
+                <ul className="text-sm text-gray-700 dark:text-slate-300 space-y-2">
                   {t.phase6.checkItems.map((item: string, i: number) => <li key={i} className="flex gap-2"><span>✅</span> {item}</li>)}
                 </ul>
               </div>
 
-              <div className="bg-slate-800 p-4 rounded-xl border border-slate-700">
-                <h4 className="text-xs font-bold text-slate-500 uppercase mb-3">{t.phase6.refinementTitle}</h4>
+              <div className="bg-gray-50 dark:bg-slate-800 p-4 rounded-xl border border-gray-200 dark:border-slate-700">
+                <h4 className="text-xs font-bold text-gray-600 dark:text-slate-500 uppercase mb-3">{t.phase6.refinementTitle}</h4>
                 <div className="space-y-2">
-                  <div className="bg-slate-900 p-2 rounded text-xs text-blue-300 font-mono">"Always include a summary table at the end."</div>
-                  <div className="bg-slate-900 p-2 rounded text-xs text-blue-300 font-mono">"Avoid using technical jargon if not requested."</div>
-                  <div className="bg-slate-900 p-2 rounded text-xs text-blue-300 font-mono">"If data is missing, ask the user before continuing."</div>
+                  <div className="bg-white dark:bg-slate-900 p-2 rounded text-xs text-blue-600 dark:text-blue-300 font-mono border border-gray-200 dark:border-slate-800">"Always include a summary table at the end."</div>
+                  <div className="bg-white dark:bg-slate-900 p-2 rounded text-xs text-blue-600 dark:text-blue-300 font-mono border border-gray-200 dark:border-slate-800">"Avoid using technical jargon if not requested."</div>
+                  <div className="bg-white dark:bg-slate-900 p-2 rounded text-xs text-blue-600 dark:text-blue-300 font-mono border border-gray-200 dark:border-slate-800">"If data is missing, ask the user before continuing."</div>
                 </div>
               </div>
             </div>
 
             <div className="text-center pt-8">
-              <div className="inline-block p-4 rounded-full bg-blue-500/10 text-blue-500 mb-4">
+              <div className="inline-block p-4 rounded-full bg-blue-100 dark:bg-blue-500/10 text-blue-600 dark:text-blue-500 mb-4">
                 <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
               </div>
-              <h3 className="text-2xl font-bold mb-2">{t.phase6.masteryTitle}</h3>
-              <p className="text-slate-400 mb-6">{t.phase6.masteryDesc}</p>
+              <h3 className="text-2xl font-bold mb-2 text-gray-900 dark:text-white">{t.phase6.masteryTitle}</h3>
+              <p className="text-gray-600 dark:text-slate-400 mb-6">{t.phase6.masteryDesc}</p>
               <button 
                 type="button"
                 onClick={handleReset}
-                className="text-slate-500 hover:text-white text-sm underline cursor-pointer focus:outline-none"
+                className="text-gray-500 dark:text-slate-500 hover:text-gray-900 dark:hover:text-white text-sm underline cursor-pointer focus:outline-none"
               >
                 {t.phase6.newProject}
               </button>
