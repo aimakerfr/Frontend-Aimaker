@@ -31,6 +31,8 @@ const SourcePanel: React.FC<SourcePanelProps> = ({ sources, onAddSource, onToggl
     const videoInputRef = useRef<HTMLInputElement>(null);
     const imageInputRef = useRef<HTMLInputElement>(null);
 
+    const htmlInputRef = useRef<HTMLInputElement>(null);
+
     const fileToBase64 = (file: File): Promise<string> => {
         return new Promise((resolve) => {
             const reader = new FileReader();
@@ -89,6 +91,13 @@ const SourcePanel: React.FC<SourcePanelProps> = ({ sources, onAddSource, onToggl
             try {
                 if (type === 'pdf') {
                     setContent(await processPdfForAI(file));
+                } else if (type === 'html') {
+                    const text = await new Promise<string>((resolve) => {
+                        const reader = new FileReader();
+                        reader.onload = (e) => resolve(e.target?.result as string);
+                        reader.readAsText(file);
+                    });
+                    setContent(text);
                 } else if (type === 'image' || type === 'video') {
                     setContent(await fileToBase64(file));
                 }
@@ -193,9 +202,10 @@ const SourcePanel: React.FC<SourcePanelProps> = ({ sources, onAddSource, onToggl
                             <div className="flex items-center gap-2 mt-1.5">
                                 <span className={`text-[8px] uppercase font-black px-1.5 py-0.5 rounded-md ${source.type === 'pdf' ? 'bg-red-50 text-red-500' :
                                     source.type === 'url' ? 'bg-blue-50 text-blue-500' :
-                                        source.type === 'image' ? 'bg-amber-50 text-amber-500' :
-                                            source.type === 'video' ? 'bg-purple-50 text-purple-500' :
-                                                'bg-green-50 text-green-500'}`}>{source.type === 'pdf' ? 'DOCUMENTO' : source.type === 'url' ? 'WEBSITE' : source.type.toUpperCase()}</span>
+                                        source.type === 'html' ? 'bg-blue-600 text-white' :
+                                            source.type === 'image' ? 'bg-amber-50 text-amber-500' :
+                                                source.type === 'video' ? 'bg-purple-50 text-purple-500' :
+                                                    'bg-green-50 text-green-500'}`}>{source.type === 'pdf' ? 'DOCUMENTO' : source.type === 'url' ? 'WEBSITE' : source.type.toUpperCase()}</span>
                             </div>
                         </div>
                         <button onClick={(e) => { e.stopPropagation(); onDeleteSource(source.id); }} className="absolute -top-1 -right-1 opacity-0 group-hover:opacity-100 p-1.5 bg-white border border-gray-200 rounded-full text-gray-400 hover:text-red-500 transition-all shadow-md z-10"><Trash2 size={10} /></button>
@@ -225,11 +235,12 @@ const SourcePanel: React.FC<SourcePanelProps> = ({ sources, onAddSource, onToggl
                         <div className="bg-gray-50/50 p-4 shrink-0">
                             <div className="grid grid-cols-5 gap-2 md:gap-3">
                                 {[
-                                    { id: 'pdf', label: 'PDF/DOC', icon: FileText, color: 'text-red-500', bg: 'bg-red-50' },
-                                    { id: 'image', label: 'IMAGEN', icon: ImageIcon, color: 'text-amber-500', bg: 'bg-amber-50' },
-                                    { id: 'video', label: 'VIDEO', icon: Video, color: 'text-purple-500', bg: 'bg-purple-50' },
-                                    { id: 'url', label: 'WEBSITE', icon: Globe, color: 'text-blue-500', bg: 'bg-blue-50' },
-                                    { id: 'text', label: 'TEXTO', icon: AlignLeft, color: 'text-green-500', bg: 'bg-green-50' }
+                                    { id: 'pdf', icon: FileText, color: 'text-red-500', bg: 'bg-red-50' },
+                                    { id: 'html', icon: Globe, color: 'text-blue-600', bg: 'bg-blue-50' },
+                                    { id: 'image', icon: ImageIcon, color: 'text-amber-500', bg: 'bg-amber-50' },
+                                    { id: 'video', icon: Video, color: 'text-purple-500', bg: 'bg-purple-50' },
+                                    { id: 'url', icon: Globe, color: 'text-blue-500', bg: 'bg-blue-50' },
+                                    { id: 'text', icon: AlignLeft, color: 'text-green-500', bg: 'bg-green-50' }
                                 ].map((tab) => (
                                     <button
                                         key={tab.id}
@@ -240,7 +251,7 @@ const SourcePanel: React.FC<SourcePanelProps> = ({ sources, onAddSource, onToggl
                                             <tab.icon size={18} />
                                         </div>
                                         <span className={`text-[8px] font-black uppercase tracking-tight ${activeTab === tab.id ? 'text-indigo-600' : 'text-gray-400'}`}>
-                                            {tab.label}
+                                            {tab.id === 'html' ? 'HTML' : tab.id === 'pdf' ? 'PDF/DOC' : tab.id === 'image' ? 'IMAGEN' : tab.id === 'video' ? 'VIDEO' : tab.id === 'url' ? 'WEBSITE' : 'TEXTO'}
                                         </span>
                                     </button>
                                 ))}
@@ -253,6 +264,14 @@ const SourcePanel: React.FC<SourcePanelProps> = ({ sources, onAddSource, onToggl
                                     <input type="file" ref={fileInputRef} className="hidden" accept=".pdf,.txt,.csv" onChange={(e) => handleFileUpload(e, 'pdf')} disabled={isLoading} />
                                     <FileText className="mb-3 text-gray-300 group-hover:text-red-400 transition-all" size={36} />
                                     <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">{fileName || "Seleccionar archivo"}</span>
+                                </div>
+                            )}
+
+                            {activeTab === 'html' && (
+                                <div onClick={() => !isLoading && htmlInputRef.current?.click()} className="border-2 border-dashed rounded-[1.5rem] p-8 flex flex-col items-center justify-center cursor-pointer bg-blue-50/5 border-blue-50 hover:border-blue-200 hover:bg-blue-50/20 transition-all group">
+                                    <input type="file" ref={htmlInputRef} className="hidden" accept=".html" onChange={(e) => handleFileUpload(e, 'html')} disabled={isLoading} />
+                                    <Globe className="mb-3 text-blue-200 group-hover:text-blue-500 transition-all" size={36} />
+                                    <span className="text-[10px] font-black text-blue-400 uppercase tracking-widest text-center">{fileName || "Subir Archivo HTML"}</span>
                                 </div>
                             )}
 
