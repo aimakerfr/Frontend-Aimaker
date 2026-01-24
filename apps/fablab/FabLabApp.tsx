@@ -7,10 +7,15 @@ import Dashboard from './views/dashboard/Dashboard';
 import Library from './views/library/Library';
 import ProfileSection from './components/ProfileSection';
 import AIContext from './components/AIContext';
-import Projects from './views/projects/ProjectPlanner';
+import MakerPathView from './views/maker-path/MakerPath';
+import ProjectPlanner from './views/projects/ProjectPlanner';
 import ExternalAccess from './views/external-access/ExternalAccess';
 import AIChat from './components/AIChat';
 import Notebook from '@apps/notebook/Notebook';
+import PerplexityIndex from './views/server-tools/PerplexityIndex';
+import PromptOptimize from './views/server-tools/PromptOptimize';
+import ImageGeneration from './views/server-tools/ImageGeneration';
+import Administration from './views/server-tools/Administration';
 import { View, UserProfile } from './types';
 
 const App: React.FC = () => {
@@ -25,18 +30,12 @@ const App: React.FC = () => {
     return saved === 'dark';
   });
 
-  const [currentView, setCurrentView] = useState<View>('dashboard');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
-  // Detectar si se debe navegar a una vista específica desde el state
+  // Cerrar sidebar cuando cambia la ruta (útil en móvil)
   useEffect(() => {
-    const state = location.state as { view?: View };
-    if (state?.view) {
-      setCurrentView(state.view);
-      // Limpiar el state para evitar que se reaplique
-      navigate(location.pathname, { replace: true, state: {} });
-    }
-  }, [location.state, location.pathname, navigate]);
+    setIsSidebarOpen(false);
+  }, [location.pathname]);
 
   // Convertir usuario de backend a formato UserProfile
   const user: UserProfile = authUser ? {
@@ -91,23 +90,19 @@ const App: React.FC = () => {
     }
   };
 
-  const renderView = () => {
-    switch (currentView) {
-      case 'dashboard': return <Dashboard />;
-      case 'library': return <Library />;
-      case 'profile': return <ProfileSection user={user} />;
-      case 'projects': return <Projects />;
-      case 'context': return <AIContext />;
-      case 'tools': return <ExternalAccess />;
-      default: return <Dashboard />;
-    }
-  };
+
 
   return (
     <div className="flex h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 overflow-hidden">
       <Routes>
         {/* Ruta del Notebook sin Sidebar (vista completa) - Private access */}
         <Route path="/notebook/:id" element={<Notebook isPublicView={false} />} />
+        
+        {/* Server Tools Routes - Sin Sidebar */}
+        <Route path="/perplexity-index" element={<PerplexityIndex />} />
+        <Route path="/prompt-optimize" element={<PromptOptimize />} />
+        <Route path="/image-generation" element={<ImageGeneration />} />
+        <Route path="/administration" element={<Administration />} />
         
         {/* Rutas con Sidebar y Header */}
         <Route path="/*" element={
@@ -123,10 +118,15 @@ const App: React.FC = () => {
             {/* Sidebar - Responsive */}
             <div className={`fixed inset-y-0 left-0 z-10 transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:relative md:translate-x-0 transition-transform duration-200 ease-in-out`}>
               <Sidebar
-                currentView={currentView}
-                onChangeView={(view) => { setCurrentView(view); setIsSidebarOpen(false); }}
                 onLogout={handleLogout}
               />
+              {/* Overlay para cerrar sidebar en móvil al hacer click */}
+              {isSidebarOpen && (
+                <div 
+                  className="md:hidden fixed inset-0 z-[-1]"
+                  onClick={() => setIsSidebarOpen(false)}
+                />
+              )}
             </div>
 
             <div className="flex-1 flex flex-col h-screen overflow-hidden">
@@ -134,12 +134,21 @@ const App: React.FC = () => {
                 toggleTheme={toggleTheme}
                 isDark={isDark}
                 toggleSidebar={toggleSidebar}
-                title={currentView}
+                title="dashboard"
               />
 
               <main className="flex-1 overflow-y-auto p-6 md:p-8">
                 <div className="max-w-7xl mx-auto">
-                  {renderView()}
+                  <Routes>
+                    {/* Rutas específicas para cada sección */}
+                    <Route path="/" element={<Dashboard />} />
+                    <Route path="/library" element={<Library />} />
+                    <Route path="/profile" element={<ProfileSection user={user} />} />
+                    <Route path="/context" element={<AIContext />} />
+                    <Route path="/maker-path" element={<MakerPathView />} />
+                    <Route path="/maker-path/:id" element={<ProjectPlanner />} />
+                    <Route path="/tools" element={<ExternalAccess />} />
+                  </Routes>
                 </div>
               </main>
             </div>
