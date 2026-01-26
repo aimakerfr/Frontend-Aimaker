@@ -57,7 +57,7 @@ export const getCreationTool = async (id: number): Promise<CreationTool> => {
 export const createCreationTool = async (
   data: CreateCreationToolRequest
 ): Promise<CreationTool> => {
-  return httpClient.post<CreationTool>(ENDPOINT, data);
+  return httpClient.post<CreationTool>(`${ENDPOINT}/create`, data);
 };
 
 /**
