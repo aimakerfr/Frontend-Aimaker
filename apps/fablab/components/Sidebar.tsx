@@ -15,9 +15,8 @@ const Sidebar: React.FC<SidebarProps> = ({ onLogout }) => {
   const t = translations[language];
 
   const menuItems: { path: string; label: string; icon: React.ReactNode }[] = [
-    { path: '/dashboard', label: t.sidebar.dashboard, icon: <LayoutDashboard size={20} /> },
-    { path: '/dashboard/library', label: t.sidebar.library, icon: <LibraryIcon size={20} /> },
     { path: '/dashboard/profile', label: t.sidebar.profile, icon: <User size={20} /> },
+    { path: '/dashboard/library', label: t.sidebar.library, icon: <LibraryIcon size={20} /> },
     { path: '/dashboard/context', label: t.sidebar.context, icon: <Server size={20} /> },
     { path: '/dashboard/maker-path', label: t.sidebar.makerPath, icon: <Route size={20} /> },
     { path: '/dashboard/tools', label: t.sidebar.tools, icon: <ExternalLink size={20} /> },

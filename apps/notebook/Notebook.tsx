@@ -55,7 +55,14 @@ const App: React.FC<NotebookProps> = ({ isPublicView = false }) => {
         try {
             const notebook = await notebookService.getNotebook(notebookId);
             setNotebookName(notebook.title || fallbackTitle || 'Sin título');
-            setLanguage(notebook.tool.language as Language);
+            // Verificar que tool y language existan antes de acceder
+            if (notebook.tool && notebook.tool.language) {
+                // Language es 'es' | 'en' | 'fr' (idioma de la UI)
+                setLanguage(notebook.tool.language as Language);
+            } else {
+                // Valor por defecto si no existe (idioma de la UI, no lenguaje de programación)
+                setLanguage('es');
+            }
             // setIsPublic(notebook.hasPublicStatus || false);
         } catch (error) {
             console.error('Error cargando notebook:', error);

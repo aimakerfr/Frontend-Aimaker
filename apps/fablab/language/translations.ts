@@ -172,7 +172,7 @@ export const translations: Record<Language, Translations> = {
       types: {
         assistant: 'ASSISTANT',
         prompt: 'PROMPT',
-        notebook: 'NOTEBOOK',
+        notebook: 'RAG MULTIMODAL',
         project: 'PROJECT',
         perplexitySearch: 'PERPLEXITY SEARCH',
       },
@@ -299,7 +299,7 @@ export const translations: Record<Language, Translations> = {
       types: {
         assistant: 'ASISTENTE',
         prompt: 'PROMPT',
-        notebook: 'NOTEBOOK',
+        notebook: 'RAG MULTIMODAL',
         project: 'PROYECTO',
         perplexitySearch: 'BÚSQUEDA PERPLEXITY',
       },
@@ -426,7 +426,7 @@ export const translations: Record<Language, Translations> = {
       types: {
         assistant: 'ASSISTANT',
         prompt: 'PROMPT',
-        notebook: 'NOTEBOOK',
+        notebook: 'RAG MULTIMODAL',
         project: 'PROJET',
         perplexitySearch: 'RECHERCHE PERPLEXITY',
       },

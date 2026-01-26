@@ -31,6 +31,7 @@ export interface NotebookSettings {
 
 export interface Notebook {
   id: number;
+  title?: string;
   creation_tool_id: number;
   tool: {
     title: string;
@@ -45,6 +46,7 @@ export interface Notebook {
 }
 
 export interface UpdateNotebookRequest {
+  title?: string;
   sources?: NotebookSource[];
   messages?: NotebookMessage[];
   settings?: NotebookSettings;

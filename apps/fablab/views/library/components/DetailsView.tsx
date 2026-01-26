@@ -82,7 +82,16 @@ const DetailsView: React.FC<DetailsViewProps> = ({
     e.preventDefault();
     setIsSaving(true);
     
-    await onSave(formData);
+    const success = await onSave(formData);
+    
+    // Si se guardó exitosamente y es público, actualizar el item local con la URL pública generada
+    if (success && formData.hasPublicStatus) {
+      // Generar la URL pública basada en el tipo e ID
+      const urlType = item.type === 'note_books' ? 'notebook' : item.type;
+      item.publicUrl = `/public/${urlType}/${item.id}`;
+      // Forzar re-render
+      setFormData({...formData});
+    }
     
     setIsSaving(false);
   };
@@ -144,22 +153,6 @@ const DetailsView: React.FC<DetailsViewProps> = ({
                 className="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
               />
             </div>
-
-            {/* URL - Solo para tipos que NO sean notebooks - Editable */}
-            {item.type !== 'note_books' && (
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                  URL (OPTIONNEL)
-                </label>
-                <input
-                  type="text"
-                  value={formData.url}
-                  onChange={(e) => setFormData({ ...formData, url: e.target.value })}
-                  placeholder="https://..."
-                  className="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
-                />
-              </div>
-            )}
 
             {/* Language - Editable */}
             <div>
@@ -243,8 +236,8 @@ const DetailsView: React.FC<DetailsViewProps> = ({
               </h3>
             </div>
 
-            {/* URLs para notebooks (solo lectura) */}
-            {item.type === 'note_books' && (
+            {/* URLs para tipos automáticos (solo lectura) */}
+            {(item.type === 'note_books' || item.type === 'prompt' || item.type === 'assistant' || item.type === 'project') && (
               <div className="space-y-4 bg-gray-50 dark:bg-gray-900/30 p-4 rounded-xl border border-gray-200 dark:border-gray-700">
                 {/* URL Privada */}
                 <div>
@@ -254,13 +247,16 @@ const DetailsView: React.FC<DetailsViewProps> = ({
                   <div className="flex gap-2">
                     <input
                       type="text"
-                      value={getFullUrl(item.url)}
+                      value={item.url || `http://localhost:3001/dashboard/${item.type === 'note_books' ? 'notebook' : item.type}/${item.id}`}
                       readOnly
                       className="flex-1 px-4 py-3 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 cursor-text"
                     />
                     <button
                       type="button"
-                      onClick={() => copyToClipboard(getFullUrl(item.url), 'private')}
+                      onClick={() => {
+                        const privateUrl = item.url || `http://localhost:3001/dashboard/${item.type === 'note_books' ? 'notebook' : item.type}/${item.id}`;
+                        copyToClipboard(privateUrl, 'private');
+                      }}
                       className="px-4 py-3 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 border-2 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-400 rounded-xl font-semibold transition-all"
                       title="Copiar URL"
                     >
@@ -268,7 +264,10 @@ const DetailsView: React.FC<DetailsViewProps> = ({
                     </button>
                     <button
                       type="button"
-                      onClick={() => window.open(getFullUrl(item.url), '_blank')}
+                      onClick={() => {
+                        const privateUrl = item.url || `http://localhost:3001/dashboard/${item.type === 'note_books' ? 'notebook' : item.type}/${item.id}`;
+                        window.open(privateUrl, '_blank');
+                      }}
                       className="px-4 py-3 bg-purple-50 dark:bg-purple-900/20 hover:bg-purple-100 dark:hover:bg-purple-900/30 border-2 border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-400 rounded-xl font-semibold transition-all"
                       title="Abrir en nueva pestaña"
                     >
@@ -277,8 +276,8 @@ const DetailsView: React.FC<DetailsViewProps> = ({
                   </div>
                 </div>
 
-                {/* URL Pública - solo si está marcado como público */}
-                {item.isPublic && item.publicUrl && (
+                {/* URL Pública - mostrar si es público (con URL del backend o generada) */}
+                {formData.hasPublicStatus && (
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                       URL PÚBLICA (Sin login, solo lectura)
@@ -286,13 +285,16 @@ const DetailsView: React.FC<DetailsViewProps> = ({
                     <div className="flex gap-2">
                       <input
                         type="text"
-                        value={getFullUrl(item.publicUrl)}
+                        value={item.publicUrl || `http://localhost:3001/public/${item.type === 'note_books' ? 'notebook' : item.type}/${item.id}`}
                         readOnly
                         className="flex-1 px-4 py-3 rounded-xl bg-green-50 dark:bg-green-900/20 text-gray-900 dark:text-white border border-green-300 dark:border-green-700 cursor-text"
                       />
                       <button
                         type="button"
-                        onClick={() => copyToClipboard(getFullUrl(item.publicUrl!), 'public')}
+                        onClick={() => {
+                          const publicUrl = item.publicUrl || `http://localhost:3001/public/${item.type === 'note_books' ? 'notebook' : item.type}/${item.id}`;
+                          copyToClipboard(publicUrl, 'public');
+                        }}
                         className="px-4 py-3 bg-green-100 dark:bg-green-900/30 hover:bg-green-200 dark:hover:bg-green-900/40 border-2 border-green-300 dark:border-green-700 text-green-700 dark:text-green-400 rounded-xl font-semibold transition-all"
                         title="Copiar URL"
                       >
@@ -300,7 +302,10 @@ const DetailsView: React.FC<DetailsViewProps> = ({
                       </button>
                       <button
                         type="button"
-                        onClick={() => window.open(getFullUrl(item.publicUrl!), '_blank')}
+                        onClick={() => {
+                          const publicUrl = item.publicUrl || `http://localhost:3001/public/${item.type === 'note_books' ? 'notebook' : item.type}/${item.id}`;
+                          window.open(publicUrl, '_blank');
+                        }}
                         className="px-4 py-3 bg-green-100 dark:bg-green-900/30 hover:bg-green-200 dark:hover:bg-green-900/40 border-2 border-green-300 dark:border-green-700 text-green-700 dark:text-green-400 rounded-xl font-semibold transition-all"
                         title="Abrir en nueva pestaña"
                       >
