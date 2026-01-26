@@ -113,11 +113,10 @@ const LibraryView: React.FC<LibraryViewProps> = ({
   const filteredItems = getFilteredTools();
 
   const itemTypes: { type: ItemType; icon: any; label: string }[] = [
-    { type: 'assistant', icon: BookOpen, label: t.library.types.assistant },
-    { type: 'prompt', icon: FileText, label: t.library.types.prompt },
     { type: 'note_books', icon: Notebook, label: t.library.types.notebook },
-    { type: 'project', icon: FolderKanban, label: t.library.types.project },
-    { type: 'perplexity_search', icon: Globe, label: t.library.types.perplexitySearch }
+    { type: 'prompt', icon: FileText, label: t.library.types.prompt },
+    { type: 'assistant', icon: BookOpen, label: t.library.types.assistant },
+    { type: 'project', icon: FolderKanban, label: t.library.types.project }
   ];
 
   const getTypeConfig = (type: ItemType) => {
