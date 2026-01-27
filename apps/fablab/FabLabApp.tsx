@@ -3,7 +3,6 @@ import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@core/auth/useAuth';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
-import Dashboard from './views/dashboard/Dashboard';
 import Library from './views/library/Library';
 import ProfileSection from './components/ProfileSection';
 import AIContext from './components/AIContext';
@@ -95,10 +94,8 @@ const App: React.FC = () => {
     }
   };
 
-
-
   return (
-    <div className="flex h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 overflow-hidden">
+    <>
       <Routes>
         {/* Rutas privadas sin Sidebar (vista completa) */}
         <Route path="/notebook/:id" element={<Notebook isPublicView={false} />} />
@@ -118,7 +115,7 @@ const App: React.FC = () => {
         
         {/* Rutas con Sidebar y Header */}
         <Route path="/*" element={
-          <>
+          <div className="flex h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 overflow-hidden">
             {/* Mobile Sidebar Overlay */}
             {isSidebarOpen && (
               <div
@@ -166,10 +163,10 @@ const App: React.FC = () => {
             </div>
 
             <AIChat />
-          </>
+          </div>
         } />
       </Routes>
-    </div>
+    </>
   );
 };
 
