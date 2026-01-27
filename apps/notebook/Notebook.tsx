@@ -53,7 +53,9 @@ const App: React.FC<NotebookProps> = ({ isPublicView = false }) => {
 
     const loadNotebookData = async (notebookId: number, fallbackTitle?: string | null) => {
         try {
-            const notebook = await notebookService.getNotebook(notebookId);
+            const notebook = isPublicView 
+                ? await notebookService.getPublicNotebook(notebookId)
+                : await notebookService.getNotebook(notebookId);
             setNotebookName(notebook.title || fallbackTitle || 'Sin título');
             // Verificar que tool y language existan antes de acceder
             if (notebook.tool && notebook.tool.language) {

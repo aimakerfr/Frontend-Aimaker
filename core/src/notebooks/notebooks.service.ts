@@ -65,6 +65,7 @@ export interface PostNoteBookSourceResponse {
 
 export class NotebookService {
   private baseUrl = '/api/v1/notebooks';
+  private publicBaseUrl = '/api/v1/public/notebooks';
 
   async getNotebooks(): Promise<Notebook[]> {
     return httpClient.get<Notebook[]>(this.baseUrl);
@@ -72,6 +73,10 @@ export class NotebookService {
 
   async getNotebook(id: number): Promise<Notebook> {
     return httpClient.get<Notebook>(`${this.baseUrl}/${id}`);
+  }
+
+  async getPublicNotebook(id: number): Promise<Notebook> {
+    return httpClient.get<Notebook>(`${this.publicBaseUrl}/${id}`, { requiresAuth: false });
   }
 
   async createNotebook(data: { creationToolId: number }): Promise<Notebook> {
