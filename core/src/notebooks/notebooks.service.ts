@@ -53,14 +53,11 @@ export interface UpdateNotebookRequest {
 }
 
 export interface PostNoteBookSourceResponse {
-  status: string;
-  data: {
-    id: number;
-    name: string;
-    type: string;
-    filePath?: string;
-    createdAt: string;
-  };
+  id: number;
+  name: string;
+  type: string;
+  filePath?: string | null;
+  createdAt: string;
 }
 
 export class NotebookService {

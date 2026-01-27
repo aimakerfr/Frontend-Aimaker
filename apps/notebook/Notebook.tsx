@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import SourcePanel from './components/SourcePanel';
 import ChatInterface from './components/ChatInterface';
@@ -95,21 +95,32 @@ const App: React.FC<NotebookProps> = ({ isPublicView = false }) => {
         navigate('/dashboard', { state: { view: 'library' } });
     };
 
+    // Memoizar las fuentes seleccionadas para evitar recalcular en cada render
+    const selectedSources = useMemo(() => {
+        const selected = sources.filter(s => s.selected);
+        console.log('[Notebook] Selected sources:', selected.length, selected);
+        return selected;
+    }, [sources]);
+
     useEffect(() => {
-        const selectedSources = sources.filter(s => s.selected);
+        console.log('[Notebook] useEffect triggered - selectedSources:', selectedSources.length);
         if (selectedSources.length > 0) {
+            console.log('[Notebook] Calling updateSummary with sources:', selectedSources.map(s => ({ title: s.title, hasContent: !!s.content, contentLength: s.content?.length })));
             updateSummary(selectedSources, language);
         } else {
             setSummary(null);
         }
-    }, [sources.filter(s => s.selected).length, language]);
+    }, [selectedSources.length, language]);
 
     const updateSummary = async (activeSources: Source[], lang: Language) => {
+        console.log('[Notebook] updateSummary called with', activeSources.length, 'sources');
         setSummaryLoading(true);
         try {
             const res = await generateSourceSummary(activeSources, lang);
+            console.log('[Notebook] Summary result:', res);
             setSummary(res);
         } catch (e) {
+            console.error('[Notebook] Error generating summary:', e);
             setSummary(null);
         } finally {
             setSummaryLoading(false);
@@ -119,51 +130,60 @@ const App: React.FC<NotebookProps> = ({ isPublicView = false }) => {
     const uploadSource = async (apiType: string, title: string, file?: File) => {
         if (!id) throw new Error('Notebook ID is missing');
 
-        if (apiType === 'WEBSITE') {
-            return await postNoteBookSource({
-                note_book_id: parseInt(id),
-                type: apiType,
-                name: title
-            });
-        } else {
-            const formData = new FormData();
-            formData.append('note_book_id', id.toString());
-            formData.append('name', title);
-            formData.append('type', apiType);
-            if (file) {
-                formData.append('stream_file', file);
-            }
-            return await postNoteBookSource(formData);
+        // WEBSITE, HTML, TEXT, and VIDEO can be sent without a file
+        // TEXT can come from textarea (direct text input)
+        // VIDEO can come from YouTube URLs
+        const formData = new FormData();
+        formData.append('note_book_id', id.toString());
+        formData.append('name', title);
+        formData.append('type', apiType);
+        
+        // Include file only if provided (optional for WEBSITE, HTML, TEXT, VIDEO from URLs)
+        if (file) {
+            formData.append('stream_file', file);
         }
+        
+        return await postNoteBookSource(formData);
     };
 
     const processSourceLocally = (
         response: any, 
         type: SourceType, 
         content: string, 
-        url?: string, 
+        url?: string,
         previewUrl?: string
     ) => {
+        console.log('[Notebook] processSourceLocally - Creating new source:', { 
+            title: response.name, 
+            type, 
+            hasContent: !!content, 
+            contentLength: content?.length 
+        });
         const newSource: Source = {
-            id: response.data.id.toString(),
-            title: response.data.name,
+            id: response.id.toString(),
+            title: response.name,
             type,
             content,
             url,
             previewUrl,
-            dateAdded: new Date(response.data.createdAt),
+            dateAdded: new Date(response.createdAt),
             selected: true,
         };
-        setSources(prev => [...prev, newSource]);
+        console.log('[Notebook] New source created:', newSource);
+        setSources(prev => {
+            console.log('[Notebook] Previous sources:', prev.length, 'Adding new source');
+            return [...prev, newSource];
+        });
     };
 
     const handleAddSource = async (type: SourceType, content: string, title: string, url?: string, previewUrl?: string, file?: File) => {
         if (!id) return;
 
         try {
+            // Map frontend types to backend types
             let apiType = type.toUpperCase();
             if (apiType === 'URL') apiType = 'WEBSITE';
-            if (apiType === 'HTML') apiType = 'PDF';
+            // Keep HTML, PDF, TEXT, VIDEO, IMAGE as is (already uppercase)
 
             const response = await uploadSource(apiType, title, file);
             processSourceLocally(response, type, content, url, previewUrl);

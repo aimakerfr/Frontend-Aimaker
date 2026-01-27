@@ -96,8 +96,14 @@ export const extractUrlContent = async (url: string): Promise<{ title: string, c
  * Genera un resumen estructurado de las fuentes
  */
 export const generateSourceSummary = async (sources: Source[], lang: Language): Promise<StructuredSummary | null> => {
+  console.log('[geminiService] generateSourceSummary called with', sources.length, 'sources');
   const activeSources = sources.filter(s => s.selected);
-  if (activeSources.length === 0) return null;
+  console.log('[geminiService] Active sources:', activeSources.length);
+  
+  if (activeSources.length === 0) {
+    console.warn('[geminiService] No active sources found!');
+    return null;
+  }
   
   try {
     // Formatear las fuentes para el backend
@@ -109,14 +115,31 @@ export const generateSourceSummary = async (sources: Source[], lang: Language): 
       selected: s.selected
     }));
 
+    console.log('[geminiService] Formatted sources:', formattedSources.map(s => ({
+      title: s.title,
+      hasContent: !!s.content,
+      contentLength: s.content?.length,
+      selected: s.selected
+    })));
+    
+    console.log('[geminiService] DETAILED - First source:', JSON.stringify({
+      id: formattedSources[0]?.id,
+      title: formattedSources[0]?.title,
+      type: formattedSources[0]?.type,
+      hasContent: !!formattedSources[0]?.content,
+      contentPreview: formattedSources[0]?.content?.substring(0, 100),
+      selected: formattedSources[0]?.selected
+    }, null, 2));
+
     const result = await httpClient.post<StructuredSummary>(
       `${GEMINI_ENDPOINT}/source-summary`,
       { sources: formattedSources, language: lang }
     );
     
+    console.log('[geminiService] Summary generated successfully:', result);
     return result;
   } catch (error) {
-    console.error('Error generating summary:', error);
+    console.error('[geminiService] Error generating summary:', error);
     // Retornar estructura básica en caso de error
     return {
       globalOverview: "No se pudo generar el resumen de las fuentes.",
