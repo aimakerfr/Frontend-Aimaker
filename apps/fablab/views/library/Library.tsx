@@ -314,7 +314,11 @@ const LibraryView: React.FC<LibraryViewProps> = ({
                       <div className="col-span-2">
                         <div className="flex gap-2">
                           <button
-                            onClick={() => handleRedirect(`/dashboard/notebook/${item.id}?title=${encodeURIComponent(item.title)}`)}
+                            onClick={() => {
+                              const urlType = item.type === 'note_books' ? 'notebook' : item.type;
+                              const privateUrl = item.url || `http://localhost:3001/dashboard/${urlType}/${item.id}`;
+                              window.open(privateUrl, '_blank');
+                            }}
                             className="inline-flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 border-2 border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-xl font-semibold transition-all text-sm hover:scale-105"
                           >
                             <Eye size={16} />
@@ -339,33 +343,18 @@ const LibraryView: React.FC<LibraryViewProps> = ({
 
                       <div className="col-span-2">
                         {item.isPublic ? (
-                          item.type === 'note_books' && item.publicUrl ? (
-                            <button
-                              onClick={() => handleRedirect(item.publicUrl!)}
-                              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl font-semibold text-sm transition-all bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/30 cursor-pointer hover:scale-105"
-                            >
-                              <Globe size={18} />
-                              Public
-                              <ExternalLink size={14} />
-                            </button>
-                          ) : item.url ? (
-                            <button
-                              onClick={() => handleRedirect(item.url)}
-                              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl font-semibold text-sm transition-all bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/30 cursor-pointer hover:scale-105"
-                            >
-                              <Globe size={18} />
-                              Public
-                              <ExternalLink size={14} />
-                            </button>
-                          ) : (
-                            <button
-                              onClick={() => handleToggleVisibility(item.id, item.isPublic)}
-                              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl font-semibold text-sm transition-all bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/30"
-                            >
-                              <Globe size={18} />
-                              Public
-                            </button>
-                          )
+                          <button
+                            onClick={() => {
+                              const urlType = item.type === 'note_books' ? 'notebook' : item.type;
+                              const publicUrl = item.publicUrl || `http://localhost:3001/public/${urlType}/${item.id}`;
+                              window.open(publicUrl, '_blank');
+                            }}
+                            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl font-semibold text-sm transition-all bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/30 cursor-pointer hover:scale-105"
+                          >
+                            <Globe size={18} />
+                            Public
+                            <ExternalLink size={14} />
+                          </button>
                         ) : (
                           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl font-semibold text-sm bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 opacity-75 cursor-not-allowed">
                             <Lock size={18} />
@@ -461,11 +450,17 @@ const Library = () => {
     setIsLoading(true);
     setError(null);
     try {
+      console.log('=== LOADING CREATION TOOLS ===');
       const tools = await getTools();
+      console.log('Tools recibidos del backend:', tools);
+      console.log('Número de tools:', tools.length);
+      
       // Filtrar external_link y vibe_coding (ahora están en Acceso Externo)
       const filteredTools = tools.filter((tool: Tool) => 
         (tool.type as string) !== 'external_link' && (tool.type as string) !== 'vibe_coding'
       );
+      console.log('Tools después de filtrar:', filteredTools.length);
+      
       const sortedTools = filteredTools.sort((a, b) => b.id - a.id);
       
       const mappedItems: LibraryItem[] = sortedTools.map((tool: Tool) => ({
@@ -483,6 +478,8 @@ const Library = () => {
         category: ''
       })) as LibraryItem[];
       
+      console.log('Items mapeados:', mappedItems);
+      console.log('===============================');
       setItems(mappedItems);
     } catch (err) {
       console.error('Error cargando creation tools:', err);
@@ -512,12 +509,33 @@ const Library = () => {
       payload.isTemplate = data.isTemplate ?? false;
 
       if (itemId) {
-        await updateTool(itemId, payload);
+        const updatedTool = await updateTool(itemId, payload);
+        console.log('=== TOOL UPDATE RESPONSE ===');
+        console.log('Updated Tool:', updatedTool);
+        console.log('publicUrl:', updatedTool.publicUrl);
+        console.log('url:', updatedTool.url);
+        console.log('hasPublicStatus:', updatedTool.hasPublicStatus);
+        console.log('============================');
+        
+        // Actualizar el item en el estado con la respuesta del servidor
+        setItems(prev => prev.map((item: LibraryItem) => 
+          item.id === itemId ? {
+            ...item,
+            title: updatedTool.title,
+            description: updatedTool.description,
+            type: updatedTool.type,
+            language: updatedTool.language,
+            url: updatedTool.url,
+            publicUrl: updatedTool.publicUrl,
+            isPublic: updatedTool.hasPublicStatus,
+            isTemplate: updatedTool.isTemplate,
+          } : item
+        ));
       } else {
         await createTool(payload);
+        await loadCreationTools();
       }
 
-      await loadCreationTools();
       return true;
     } catch (err) {
       console.error('Error guardando:', err);

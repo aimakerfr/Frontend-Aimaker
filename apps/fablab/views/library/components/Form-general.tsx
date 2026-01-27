@@ -20,7 +20,6 @@ const FormGeneral: React.FC<FormGeneralProps> = ({
   const [formData, setFormData] = useState({
     type: selectedType || 'note_books',
     title: '',
-    url: '',
     description: '',
     language: 'fr',
     hasPublicStatus: false,
@@ -142,22 +141,6 @@ const FormGeneral: React.FC<FormGeneralProps> = ({
               className="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
             />
           </div>
-
-          {/* URL - Only show for types other than note_books */}
-          {formData.type !== 'note_books' && (
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                URL (OPTIONNEL)
-              </label>
-              <input
-                type="text"
-                value={formData.url}
-                onChange={(e) => setFormData({ ...formData, url: e.target.value })}
-                placeholder="aimaker.fr/s/..."
-                className="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
-              />
-            </div>
-          )}
 
           {/* Language */}
           <div>

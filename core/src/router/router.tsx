@@ -16,6 +16,8 @@ import HomeApp from '@apps/home/HomeApp';
 import FabLabApp from '@apps/fablab/FabLabApp';
 import Notebook from '@apps/notebook/Notebook';
 import TemplateSelector from '@apps/frontend_template_visualizer/components/TemplateSelector';
+import PublicPrompt from '@apps/fablab/views/public/PublicPrompt';
+import PublicAssistant from '@apps/fablab/views/public/PublicAssistant';
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // Protected Route Component
@@ -100,6 +102,12 @@ export function AppRouter() {
         
         {/* Public Notebook - No auth required, read-only */}
         <Route path="/public/notebook/:id" element={<Notebook isPublicView={true} />} />
+        
+        {/* Public Prompt - No auth required, read-only */}
+        <Route path="/public/prompt/:id" element={<PublicPrompt />} />
+        
+        {/* Public Assistant - No auth required, read-only */}
+        <Route path="/public/assistant/:id" element={<PublicAssistant />} />
 
         {/* Templates Visualizer */}
         <Route path="/templates_visualizer" element={<TemplateSelector />} />

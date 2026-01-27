@@ -50,6 +50,15 @@ export const getCreationTool = async (id: number): Promise<CreationTool> => {
 };
 
 /**
+ * GET /api/creation_tools/{id} - PUBLIC (no auth required)
+ * Get a single PUBLIC creation tool by ID without authentication
+ * Used for public views
+ */
+export const getPublicCreationTool = async (id: number): Promise<CreationTool> => {
+  return httpClient.get<CreationTool>(`${ENDPOINT}/${id}`, { requiresAuth: false });
+};
+
+/**
  * POST /api/creation_tools
  * Create a new creation tool
  * Requires authentication (Bearer JWT)

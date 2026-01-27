@@ -3,7 +3,6 @@ import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@core/auth/useAuth';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
-import Dashboard from './views/dashboard/Dashboard';
 import Library from './views/library/Library';
 import ProfileSection from './components/ProfileSection';
 import AIContext from './components/AIContext';
@@ -16,7 +15,12 @@ import PerplexityIndex from './views/server-tools/PerplexityIndex';
 import PromptOptimize from './views/server-tools/PromptOptimize';
 import ImageGeneration from './views/server-tools/ImageGeneration';
 import Administration from './views/server-tools/Administration';
-import { View, UserProfile } from './types';
+import PromptView from './views/prompt/PromptView';
+import AssistantView from './views/assistant/AssistantView';
+import PublicNotebook from './views/public/PublicNotebook';
+import PublicPrompt from './views/public/PublicPrompt';
+import PublicAssistant from './views/public/PublicAssistant';
+import { UserProfile } from './types';
 
 const App: React.FC = () => {
   const navigate = useNavigate();
@@ -90,13 +94,18 @@ const App: React.FC = () => {
     }
   };
 
-
-
   return (
-    <div className="flex h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 overflow-hidden">
+    <>
       <Routes>
-        {/* Ruta del Notebook sin Sidebar (vista completa) - Private access */}
+        {/* Rutas privadas sin Sidebar (vista completa) */}
         <Route path="/notebook/:id" element={<Notebook isPublicView={false} />} />
+        <Route path="/prompt/:id" element={<PromptView />} />
+        <Route path="/assistant/:id" element={<AssistantView />} />
+        
+        {/* Rutas públicas - Sin autenticación requerida */}
+        <Route path="/public/notebook/:id" element={<PublicNotebook />} />
+        <Route path="/public/prompt/:id" element={<PublicPrompt />} />
+        <Route path="/public/assistant/:id" element={<PublicAssistant />} />
         
         {/* Server Tools Routes - Sin Sidebar */}
         <Route path="/perplexity-index" element={<PerplexityIndex />} />
@@ -106,7 +115,7 @@ const App: React.FC = () => {
         
         {/* Rutas con Sidebar y Header */}
         <Route path="/*" element={
-          <>
+          <div className="flex h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 overflow-hidden">
             {/* Mobile Sidebar Overlay */}
             {isSidebarOpen && (
               <div
@@ -141,7 +150,7 @@ const App: React.FC = () => {
                 <div className="max-w-7xl mx-auto">
                   <Routes>
                     {/* Rutas específicas para cada sección */}
-                    <Route path="/" element={<Dashboard />} />
+                    <Route path="/" element={<ProfileSection user={user} />} />
                     <Route path="/library" element={<Library />} />
                     <Route path="/profile" element={<ProfileSection user={user} />} />
                     <Route path="/context" element={<AIContext />} />
@@ -154,10 +163,10 @@ const App: React.FC = () => {
             </div>
 
             <AIChat />
-          </>
+          </div>
         } />
       </Routes>
-    </div>
+    </>
   );
 };
 

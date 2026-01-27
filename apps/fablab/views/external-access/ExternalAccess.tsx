@@ -32,6 +32,7 @@ interface ExternalAccessItem {
   createdAt: string;
   category: string;
   url: string;
+  publicUrl?: string;
   language?: string;
   usageCount?: number;
 }
@@ -327,22 +328,18 @@ const ExternalAccessView: React.FC<ExternalAccessViewProps> = ({
                       </div>
 
                       <div className="col-span-2">
-                        {item.isPublic && item.url ? (
+                        {item.isPublic ? (
                           <button
-                            onClick={() => handleRedirect(item.url)}
+                            onClick={() => {
+                              const urlType = item.type === 'note_books' ? 'notebook' : item.type;
+                              const publicUrl = item.publicUrl || `/public/${urlType}/${item.id}`;
+                              handleRedirect(publicUrl);
+                            }}
                             className="inline-flex items-center gap-2 px-4 py-2 rounded-xl font-semibold text-sm transition-all bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/30 cursor-pointer hover:scale-105"
                           >
                             <Globe size={18} />
                             {t.externalAccess.buttons.public}
                             <ExternalLink size={14} />
-                          </button>
-                        ) : item.isPublic ? (
-                          <button
-                            onClick={() => handleToggleVisibility(item.id, item.isPublic)}
-                            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl font-semibold text-sm transition-all bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/30"
-                          >
-                            <Globe size={18} />
-                            {t.externalAccess.buttons.public}
                           </button>
                         ) : (
                           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl font-semibold text-sm bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 opacity-75 cursor-not-allowed">
@@ -453,6 +450,7 @@ const ExternalAccess = () => {
         description: tool.description,
         isPublic: tool.hasPublicStatus ?? false,
         url: tool.url || '',
+        publicUrl: tool.publicUrl || undefined,
         language: tool.language,
         usageCount: tool.usageCount,
         author: 'USER',
