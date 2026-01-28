@@ -17,6 +17,7 @@ import ImageGeneration from './views/server-tools/ImageGeneration';
 import Administration from './views/server-tools/Administration';
 import PromptView from './views/prompt/PromptView';
 import AssistantView from './views/assistant/AssistantView';
+import { ProjectView } from './views/projects';
 import PublicNotebook from './views/public/PublicNotebook';
 import PublicPrompt from './views/public/PublicPrompt';
 import PublicAssistant from './views/public/PublicAssistant';
@@ -101,6 +102,7 @@ const App: React.FC = () => {
         <Route path="/notebook/:id" element={<Notebook isPublicView={false} />} />
         <Route path="/prompt/:id" element={<PromptView />} />
         <Route path="/assistant/:id" element={<AssistantView />} />
+        <Route path="/project/:id" element={<ProjectView />} />
         
         {/* Rutas públicas - Sin autenticación requerida */}
         <Route path="/public/notebook/:id" element={<PublicNotebook />} />
