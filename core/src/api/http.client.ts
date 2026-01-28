@@ -121,10 +121,34 @@ class HttpClient {
    * Parse API response
    */
   private async parseResponse<T>(response: Response): Promise<ApiResponse<T> | T> {
+    // Handle 204 No Content responses (e.g., DELETE operations)
+    if (response.status === 204 || response.headers.get('content-length') === '0') {
+      return {
+        success: true,
+        data: null as T,
+        meta: {
+          timestamp: new Date().toISOString(),
+          requestId: 'unknown',
+        },
+      } as ApiSuccessResponse<T>;
+    }
+
     try {
       return await response.json();
     } catch (error) {
-      // If JSON parsing fails, create a generic error response
+      // If JSON parsing fails and it's a success status, return success response
+      if (response.ok) {
+        return {
+          success: true,
+          data: null as T,
+          meta: {
+            timestamp: new Date().toISOString(),
+            requestId: 'unknown',
+          },
+        } as ApiSuccessResponse<T>;
+      }
+      
+      // Otherwise, create a generic error response
       return {
         success: false,
         data: null,
