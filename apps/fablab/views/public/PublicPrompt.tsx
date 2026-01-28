@@ -114,7 +114,7 @@ const PublicPrompt: React.FC = () => {
               <div className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
                 <User size={16} />
                 <span className="font-semibold">Autor:</span>
-                <span>AI Maker</span>
+                <span>{prompt.authorName || 'Usuario'}</span>
               </div>
               <div className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
                 <Calendar size={16} />
