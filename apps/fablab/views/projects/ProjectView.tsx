@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { BookOpen, ArrowLeft, Globe, Lock, Copy, CheckCircle, ExternalLink } from 'lucide-react';
+import { FolderKanban, ArrowLeft, Globe, Lock, Copy, CheckCircle, ExternalLink } from 'lucide-react';
 import { getTool, updateTool } from '@core/creation-tools/creation-tools.service';
 import type { CreationTool } from '@core/creation-tools/creation-tools.types';
 
@@ -9,21 +9,24 @@ enum Visibility {
   PUBLIC = 'PÚBLICO'
 }
 
-interface AssistantState {
+type ProjectType = 'landing page' | 'app' | 'automation';
+
+interface ProjectState {
   title: string;
   description: string;
   visibility: Visibility;
   category: string;
   isFavorite: boolean;
   language: string;
-  instruction: string;
+  projectType: ProjectType;
+  deploymentUrl: string;
   context: string;
 }
 
-const AssistantView: React.FC = () => {
+const ProjectView: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [assistant, setAssistant] = useState<CreationTool | null>(null);
+  const [project, setProject] = useState<CreationTool | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -31,33 +34,34 @@ const AssistantView: React.FC = () => {
   const [copiedPublic, setCopiedPublic] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   
-  const [state, setState] = useState<AssistantState>({
+  const [state, setState] = useState<ProjectState>({
     title: '',
     description: '',
     visibility: Visibility.PRIVATE,
     category: 'Marketing',
     isFavorite: false,
     language: 'Español',
-    instruction: '',
+    projectType: 'landing page',
+    deploymentUrl: '',
     context: ''
   });
 
   useEffect(() => {
-    const loadAssistant = async () => {
+    const loadProject = async () => {
       if (!id) return;
       
       try {
         setLoading(true);
         const data = await getTool(parseInt(id));
         
-        if (data.type !== 'assistant') {
-          setError('El recurso solicitado no es un asistente.');
+        if (data.type !== 'project') {
+          setError('El recurso solicitado no es un proyecto.');
           return;
         }
         
-        setAssistant(data);
+        setProject(data);
         
-        // Inicializar el estado con los datos del asistente
+        // Inicializar el estado con los datos del proyecto
         setState({
           title: data.title || '',
           description: data.description || '',
@@ -65,46 +69,47 @@ const AssistantView: React.FC = () => {
           category: 'Marketing',
           isFavorite: false,
           language: data.language || 'Español',
-          instruction: data.description || '',
+          projectType: 'landing page',
+          deploymentUrl: '',
           context: ''
         });
       } catch (err) {
-        console.error('Error cargando asistente:', err);
-        setError('No se pudo cargar el asistente.');
+        console.error('Error cargando proyecto:', err);
+        setError('No se pudo cargar el proyecto.');
       } finally {
         setLoading(false);
       }
     };
 
-    loadAssistant();
+    loadProject();
   }, [id]);
 
-  const handleUpdate = (updates: Partial<AssistantState>) => {
+  const handleUpdate = (updates: Partial<ProjectState>) => {
     setState(prev => ({ ...prev, ...updates }));
   };
 
   const handleSave = async () => {
-    if (!assistant || !id) return;
+    if (!project || !id) return;
     
     try {
       setIsSaving(true);
       
       await updateTool(parseInt(id), {
-        type: 'assistant',
+        type: 'project',
         title: state.title,
-        description: state.instruction || state.description,
+        description: state.description,
         language: state.language as 'fr' | 'en' | 'es',
         hasPublicStatus: state.visibility === Visibility.PUBLIC,
       });
       
-      alert('Asistente guardado con éxito!');
+      alert('Proyecto guardado con éxito!');
       
       // Recargar datos
       const updatedData = await getTool(parseInt(id));
-      setAssistant(updatedData);
+      setProject(updatedData);
     } catch (err) {
-      console.error('Error guardando asistente:', err);
-      alert('Error al guardar el asistente');
+      console.error('Error guardando proyecto:', err);
+      alert('Error al guardar el proyecto');
     } finally {
       setIsSaving(false);
     }
@@ -139,24 +144,24 @@ const AssistantView: React.FC = () => {
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50/30 flex items-center justify-center">
         <div className="text-center">
           <div className="inline-block w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-          <p className="mt-4 text-gray-600">Cargando asistente...</p>
+          <p className="mt-4 text-gray-600">Cargando proyecto...</p>
         </div>
       </div>
     );
   }
 
-  if (error || !assistant) {
+  if (error || !project) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50/30 flex items-center justify-center p-6">
         <div className="max-w-md w-full bg-white rounded-2xl shadow-xl border border-gray-200 p-8 text-center">
           <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <BookOpen size={32} className="text-red-600" />
+            <FolderKanban size={32} className="text-red-600" />
           </div>
           <h2 className="text-2xl font-bold text-gray-900 mb-2">
-            Asistente no disponible
+            Proyecto no disponible
           </h2>
           <p className="text-gray-600 mb-6">
-            {error || 'No se encontró el asistente solicitado.'}
+            {error || 'No se encontró el proyecto solicitado.'}
           </p>
           <button
             onClick={() => navigate('/dashboard/library')}
@@ -170,8 +175,8 @@ const AssistantView: React.FC = () => {
     );
   }
 
-  const privateUrl = `${window.location.origin}/dashboard/assistant/${id}`;
-  const publicUrl = `${window.location.origin}/public/assistant/${id}`;
+  const privateUrl = `${window.location.origin}/dashboard/project/${id}`;
+  const publicUrl = `${window.location.origin}/public/project/${id}`;
 
   return (
     <div className="flex justify-center p-4 md:p-8 relative bg-gradient-to-br from-gray-50 to-blue-50/30 min-h-screen">
@@ -188,11 +193,11 @@ const AssistantView: React.FC = () => {
               <ArrowLeft size={20} />
             </button>
             <div className="bg-[#3b82f6] w-10 h-10 rounded-lg flex items-center justify-center text-white shadow-lg shadow-blue-500/20">
-              <BookOpen size={20} />
+              <FolderKanban size={20} />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-slate-900 leading-tight">Configuración de Asistente</h1>
-              <p className="text-sm text-slate-500">Gestiona los detalles de tu asistente</p>
+              <h1 className="text-xl font-bold text-slate-900 leading-tight">Configuración de Proyecto</h1>
+              <p className="text-sm text-slate-500">Gestiona los detalles de tu proyecto</p>
             </div>
           </div>
 
@@ -203,8 +208,8 @@ const AssistantView: React.FC = () => {
               <div className="md:col-span-2">
                 <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">TIPO</label>
                 <div className="flex items-center justify-center gap-2 px-4 py-2.5 bg-[#eff6ff] border border-[#dbeafe] rounded-xl text-[#2563eb] font-bold shadow-sm h-[46px]">
-                  <BookOpen size={16} />
-                  <span className="text-sm">Asistente</span>
+                  <FolderKanban size={16} />
+                  <span className="text-sm">Proyecto</span>
                 </div>
               </div>
 
@@ -215,7 +220,7 @@ const AssistantView: React.FC = () => {
                   value={state.title}
                   onChange={(e) => handleUpdate({ title: e.target.value })}
                   className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-slate-700 bg-white shadow-sm h-[46px]"
-                  placeholder="Título del Asistente"
+                  placeholder="Título del Proyecto"
                 />
               </div>
 
@@ -235,7 +240,7 @@ const AssistantView: React.FC = () => {
               </div>
             </div>
 
-            {/* Row 2: DESCRIPTION | CATEGORY | FAVORITE | LANGUAGE */}
+            {/* Row 2: DESCRIPTION | PROJECT TYPE | FAVORITE | LANGUAGE */}
             <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
               <div className="md:col-span-5">
                 <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">DESCRIPCIÓN</label>
@@ -244,21 +249,20 @@ const AssistantView: React.FC = () => {
                   value={state.description}
                   onChange={(e) => handleUpdate({ description: e.target.value })}
                   className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-slate-700 bg-white shadow-sm h-[46px]"
-                  placeholder="Descripción del Asistente"
+                  placeholder="Descripción del Proyecto"
                 />
               </div>
 
               <div className="md:col-span-3">
-                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">CATEGORÍA</label>
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">TIPO DE PROYECTO</label>
                 <select
-                  value={state.category}
-                  onChange={(e) => handleUpdate({ category: e.target.value })}
+                  value={state.projectType}
+                  onChange={(e) => handleUpdate({ projectType: e.target.value as ProjectType })}
                   className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all bg-white appearance-none cursor-pointer text-slate-700 shadow-sm h-[46px]"
                 >
-                  <option value="Marketing">Marketing</option>
-                  <option value="Ventas">Ventas</option>
-                  <option value="Desarrollo">Desarrollo</option>
-                  <option value="RRHH">RRHH</option>
+                  <option value="landing page">Landing Page</option>
+                  <option value="app">App</option>
+                  <option value="automation">Automation</option>
                 </select>
               </div>
 
@@ -292,25 +296,26 @@ const AssistantView: React.FC = () => {
             <div className="border-b border-slate-100 pt-2"></div>
           </div>
 
-          {/* Body Section - Instructions */}
+          {/* Body Section - Project Details */}
           <div className="space-y-6">
             <div>
-              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">INSTRUCCIONES DEL ASISTENTE</label>
-              <textarea
-                value={state.instruction}
-                onChange={(e) => handleUpdate({ instruction: e.target.value })}
-                className="w-full h-48 px-6 py-6 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all text-sm leading-relaxed text-slate-700 bg-slate-50/30"
-                placeholder="Describe cómo debe comportarse el asistente..."
-              ></textarea>
+              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">URL DE DESPLIEGUE</label>
+              <input
+                type="url"
+                value={state.deploymentUrl}
+                onChange={(e) => handleUpdate({ deploymentUrl: e.target.value })}
+                className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-slate-700 bg-white"
+                placeholder="https://mi-proyecto.vercel.app"
+              />
             </div>
 
             <div>
-              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">CONTEXTO ADICIONAL</label>
+              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">CONTEXTO DEL PROYECTO</label>
               <textarea
                 value={state.context}
                 onChange={(e) => handleUpdate({ context: e.target.value })}
-                className="w-full h-32 px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm text-slate-600 bg-white"
-                placeholder="Información adicional relevante..."
+                className="w-full h-48 px-6 py-6 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all text-sm leading-relaxed text-slate-700 bg-slate-50/30"
+                placeholder="Describe el contexto y detalles del proyecto..."
               ></textarea>
             </div>
           </div>
@@ -381,7 +386,7 @@ const AssistantView: React.FC = () => {
             {/* Save Button */}
             <div className="flex flex-col md:flex-row items-center justify-between gap-4 pt-8 border-t border-slate-100">
               <span className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">
-                CONFIGURACIÓN DE ASISTENTE
+                CONFIGURACIÓN DE PROYECTO
               </span>
               <button
                 onClick={handleSave}
@@ -399,9 +404,9 @@ const AssistantView: React.FC = () => {
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl p-8 max-w-md w-full shadow-2xl">
-            <h2 className="text-2xl font-bold text-slate-900 mb-4">Publicar Asistente</h2>
+            <h2 className="text-2xl font-bold text-slate-900 mb-4">Publicar Proyecto</h2>
             <p className="text-slate-600 mb-6">
-              ¿Estás seguro de que quieres hacer público este asistente? Cualquier persona con el enlace podrá acceder a él.
+              ¿Estás seguro de que quieres hacer público este proyecto? Cualquier persona con el enlace podrá acceder a él.
             </p>
             <div className="flex gap-3">
               <button
@@ -424,4 +429,4 @@ const AssistantView: React.FC = () => {
   );
 };
 
-export default AssistantView;
+export default ProjectView;
