@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { 
   BookOpen, FileText, Notebook, FolderKanban, 
   Globe, Lock, ArrowLeft, ExternalLink, Copy, CheckCircle
 } from 'lucide-react';
+import { copyToClipboard } from '@core/ui_utils/navigator_utilies';
 
 type ItemType = 'assistant' | 'prompt' | 'note_books' | 'project' | 'perplexity_search';
 
@@ -32,42 +33,47 @@ const DetailsView: React.FC<DetailsViewProps> = ({
   onClose, 
   onSave
 }) => {
-  if (!item) {
-    return null;
-  }
-
-  const [formData, setFormData] = useState({
-    type: item.type,
-    title: item.title || '',
-    url: item.url || '',
-    description: item.description || '',
-    language: item.language || 'fr',
-    hasPublicStatus: item.isPublic,
-  });
+  const [formData, setFormData] = useState(() => ({
+    type: item?.type ?? 'assistant',
+    title: item?.title ?? '',
+    url: item?.url ?? '',
+    description: item?.description ?? '',
+    language: item?.language ?? 'fr',
+    hasPublicStatus: item?.isPublic ?? false,
+  }));
 
   const [isSaving, setIsSaving] = useState(false);
   const [copiedPrivate, setCopiedPrivate] = useState(false);
   const [copiedPublic, setCopiedPublic] = useState(false);
 
-  const copyToClipboard = async (text: string, type: 'private' | 'public') => {
-    try {
-      await navigator.clipboard.writeText(text);
-      if (type === 'private') {
-        setCopiedPrivate(true);
-        setTimeout(() => setCopiedPrivate(false), 2000);
-      } else {
-        setCopiedPublic(true);
-        setTimeout(() => setCopiedPublic(false), 2000);
-      }
-    } catch (err) {
-      console.error('Error copiando:', err);
-    }
-  };
+  useEffect(() => {
+    if (!item) return;
 
-  const getFullUrl = (path: string) => {
-    if (!path) return '';
-    if (path.startsWith('http')) return path;
-    return `${window.location.origin}${path}`;
+    setFormData({
+      type: item.type,
+      title: item.title || '',
+      url: item.url || '',
+      description: item.description || '',
+      language: item.language || 'fr',
+      hasPublicStatus: item.isPublic,
+    });
+  }, [item]);
+
+  if (!item) {
+    return null;
+  }
+
+  const handleCopyToClipboard = async (text: string, type: 'private' | 'public') => {
+    const copied = await copyToClipboard(text);
+    if (!copied) return;
+
+    if (type === 'private') {
+      setCopiedPrivate(true);
+      setTimeout(() => setCopiedPrivate(false), 2000);
+    } else {
+      setCopiedPublic(true);
+      setTimeout(() => setCopiedPublic(false), 2000);
+    }
   };
 
   const itemTypes: { type: ItemType; icon: any; label: string }[] = [
@@ -255,7 +261,7 @@ const DetailsView: React.FC<DetailsViewProps> = ({
                       type="button"
                       onClick={() => {
                         const privateUrl = item.url || `http://localhost:3001/dashboard/${item.type === 'note_books' ? 'notebook' : item.type}/${item.id}`;
-                        copyToClipboard(privateUrl, 'private');
+                        handleCopyToClipboard(privateUrl, 'private');
                       }}
                       className="px-4 py-3 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 border-2 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-400 rounded-xl font-semibold transition-all"
                       title="Copiar URL"
@@ -293,7 +299,7 @@ const DetailsView: React.FC<DetailsViewProps> = ({
                         type="button"
                         onClick={() => {
                           const publicUrl = item.publicUrl || `http://localhost:3001/public/${item.type === 'note_books' ? 'notebook' : item.type}/${item.id}`;
-                          copyToClipboard(publicUrl, 'public');
+                          handleCopyToClipboard(publicUrl, 'public');
                         }}
                         className="px-4 py-3 bg-green-100 dark:bg-green-900/30 hover:bg-green-200 dark:hover:bg-green-900/40 border-2 border-green-300 dark:border-green-700 text-green-700 dark:text-green-400 rounded-xl font-semibold transition-all"
                         title="Copiar URL"

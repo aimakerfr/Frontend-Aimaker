@@ -26,6 +26,12 @@ export interface CreationTool {
   category?: string;
   isFavorite?: boolean;
   authorName?: string;
+  promptBody?: string;
+  context?: string;
+  outputFormat?: string;
+  instruction?: string;
+  projectType?: string;
+  deploymentUrl?: string;
 }
 
 export interface CreationToolsParams {
@@ -44,6 +50,12 @@ export interface CreateCreationToolRequest {
   isTemplate?: boolean;
   category?: string;
   isFavorite?: boolean;
+  promptBody?: string;
+  context?: string;
+  outputFormat?: string;
+  instruction?: string;
+  projectType?: string;
+  deploymentUrl?: string;
 }
 
 export interface UpdateCreationToolRequest {
@@ -56,6 +68,12 @@ export interface UpdateCreationToolRequest {
   isTemplate?: boolean;
   category?: string;
   isFavorite?: boolean;
+  promptBody?: string;
+  context?: string;
+  outputFormat?: string;
+  instruction?: string;
+  projectType?: string;
+  deploymentUrl?: string;
 }
 
 // ========================================

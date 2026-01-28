@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { FolderKanban, ArrowLeft, Globe, Lock, Copy, CheckCircle, ExternalLink } from 'lucide-react';
+import { FolderKanban, ArrowLeft, Globe, Lock, Copy, CheckCircle, ExternalLink, Save, Loader2 } from 'lucide-react';
 import { getTool, updateTool } from '@core/creation-tools/creation-tools.service';
+import { copyToClipboard } from '@core/ui_utils/navigator_utilies';
 import type { CreationTool } from '@core/creation-tools/creation-tools.types';
 
 enum Visibility {
@@ -66,12 +67,12 @@ const ProjectView: React.FC = () => {
           title: data.title || '',
           description: data.description || '',
           visibility: data.hasPublicStatus ? Visibility.PUBLIC : Visibility.PRIVATE,
-          category: 'Marketing',
-          isFavorite: false,
+          category: data.category || 'Marketing',
+          isFavorite: data.isFavorite || false,
           language: data.language || 'Español',
-          projectType: 'landing page',
-          deploymentUrl: '',
-          context: ''
+          projectType: (data.projectType as ProjectType) || 'landing page',
+          deploymentUrl: data.deploymentUrl || '',
+          context: data.context || ''
         });
       } catch (err) {
         console.error('Error cargando proyecto:', err);
@@ -98,6 +99,10 @@ const ProjectView: React.FC = () => {
         type: 'project',
         title: state.title,
         description: state.description,
+        projectType: state.projectType,
+        deploymentUrl: state.deploymentUrl,
+        context: state.context,
+        category: state.category,
         language: state.language as 'fr' | 'en' | 'es',
         hasPublicStatus: state.visibility === Visibility.PUBLIC,
       });
@@ -124,18 +129,16 @@ const ProjectView: React.FC = () => {
     setIsModalOpen(false);
   };
 
-  const copyToClipboard = async (text: string, type: 'private' | 'public') => {
-    try {
-      await navigator.clipboard.writeText(text);
-      if (type === 'private') {
-        setCopiedPrivate(true);
-        setTimeout(() => setCopiedPrivate(false), 2000);
-      } else {
-        setCopiedPublic(true);
-        setTimeout(() => setCopiedPublic(false), 2000);
-      }
-    } catch (err) {
-      console.error('Error copiando:', err);
+  const handleCopyToClipboard = async (text: string, type: 'private' | 'public') => {
+    const copied = await copyToClipboard(text);
+    if (!copied) return;
+
+    if (type === 'private') {
+      setCopiedPrivate(true);
+      setTimeout(() => setCopiedPrivate(false), 2000);
+    } else {
+      setCopiedPublic(true);
+      setTimeout(() => setCopiedPublic(false), 2000);
     }
   };
 
@@ -185,20 +188,31 @@ const ProjectView: React.FC = () => {
         <div className="p-6 md:p-10 space-y-8">
           
           {/* Top Title Section */}
-          <div className="flex items-center gap-4 mb-8">
-            <button 
-              onClick={() => navigate('/dashboard/library')}
-              className="text-slate-400 hover:text-slate-600 transition-colors"
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
+            <div className="flex items-center gap-4">
+              <button 
+                onClick={() => navigate('/dashboard/library')}
+                className="text-slate-400 hover:text-slate-600 transition-colors"
+              >
+                <ArrowLeft size={20} />
+              </button>
+              <div className="bg-[#3b82f6] w-10 h-10 rounded-lg flex items-center justify-center text-white shadow-lg shadow-blue-500/20">
+                <FolderKanban size={20} />
+              </div>
+              <div>
+                <h1 className="text-xl font-bold text-slate-900 leading-tight">Configuración de Proyecto</h1>
+                <p className="text-sm text-slate-500">Gestiona los detalles de tu proyecto</p>
+              </div>
+            </div>
+            <button
+              onClick={handleSave}
+              disabled={isSaving}
+              title="Save"
+              aria-label="Save"
+              className="bg-[#3b82f6] hover:bg-blue-600 text-white px-4 py-3 rounded-xl shadow-lg shadow-blue-500/30 transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <ArrowLeft size={20} />
+              {isSaving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
             </button>
-            <div className="bg-[#3b82f6] w-10 h-10 rounded-lg flex items-center justify-center text-white shadow-lg shadow-blue-500/20">
-              <FolderKanban size={20} />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold text-slate-900 leading-tight">Configuración de Proyecto</h1>
-              <p className="text-sm text-slate-500">Gestiona los detalles de tu proyecto</p>
-            </div>
           </div>
 
           {/* Header Section - Metadata */}
@@ -338,7 +352,7 @@ const ProjectView: React.FC = () => {
                   />
                   <button
                     type="button"
-                    onClick={() => copyToClipboard(privateUrl, 'private')}
+                    onClick={() => handleCopyToClipboard(privateUrl, 'private')}
                     className="px-4 py-2 bg-blue-50 hover:bg-blue-100 border-2 border-blue-200 text-blue-700 rounded-lg font-semibold transition-all"
                   >
                     {copiedPrivate ? <CheckCircle size={18} /> : <Copy size={18} />}
@@ -366,7 +380,7 @@ const ProjectView: React.FC = () => {
                     />
                     <button
                       type="button"
-                      onClick={() => copyToClipboard(publicUrl, 'public')}
+                      onClick={() => handleCopyToClipboard(publicUrl, 'public')}
                       className="px-4 py-2 bg-green-100 hover:bg-green-200 border-2 border-green-300 text-green-700 rounded-lg font-semibold transition-all"
                     >
                       {copiedPublic ? <CheckCircle size={18} /> : <Copy size={18} />}
@@ -383,19 +397,6 @@ const ProjectView: React.FC = () => {
               )}
             </div>
 
-            {/* Save Button */}
-            <div className="flex flex-col md:flex-row items-center justify-between gap-4 pt-8 border-t border-slate-100">
-              <span className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">
-                CONFIGURACIÓN DE PROYECTO
-              </span>
-              <button
-                onClick={handleSave}
-                disabled={isSaving}
-                className="bg-[#3b82f6] hover:bg-blue-600 text-white font-bold px-8 py-3 rounded-xl shadow-lg shadow-blue-500/30 transition-all active:scale-[0.98] text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isSaving ? 'Guardando...' : 'Guardar Cambios'}
-              </button>
-            </div>
           </div>
         </div>
       </div>
