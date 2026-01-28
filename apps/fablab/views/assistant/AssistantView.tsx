@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { BookOpen, ArrowLeft, Globe, Lock, Copy, CheckCircle, ExternalLink } from 'lucide-react';
 import { getTool, updateTool } from '@core/creation-tools/creation-tools.service';
+import { copyToClipboard } from '@core/ui_utils/navigator_utilies';
 import type { CreationTool } from '@core/creation-tools/creation-tools.types';
 
 enum Visibility {
@@ -62,11 +63,11 @@ const AssistantView: React.FC = () => {
           title: data.title || '',
           description: data.description || '',
           visibility: data.hasPublicStatus ? Visibility.PUBLIC : Visibility.PRIVATE,
-          category: 'Marketing',
-          isFavorite: false,
+          category: data.category || 'Marketing',
+          isFavorite: data.isFavorite || false,
           language: data.language || 'Español',
-          instruction: data.description || '',
-          context: ''
+          instruction: data.instruction || data.description || '',
+          context: data.context || ''
         });
       } catch (err) {
         console.error('Error cargando asistente:', err);
@@ -92,7 +93,10 @@ const AssistantView: React.FC = () => {
       await updateTool(parseInt(id), {
         type: 'assistant',
         title: state.title,
-        description: state.instruction || state.description,
+        description: state.description,
+        instruction: state.instruction,
+        context: state.context,
+        category: state.category,
         language: state.language as 'fr' | 'en' | 'es',
         hasPublicStatus: state.visibility === Visibility.PUBLIC,
       });
@@ -119,18 +123,16 @@ const AssistantView: React.FC = () => {
     setIsModalOpen(false);
   };
 
-  const copyToClipboard = async (text: string, type: 'private' | 'public') => {
-    try {
-      await navigator.clipboard.writeText(text);
-      if (type === 'private') {
-        setCopiedPrivate(true);
-        setTimeout(() => setCopiedPrivate(false), 2000);
-      } else {
-        setCopiedPublic(true);
-        setTimeout(() => setCopiedPublic(false), 2000);
-      }
-    } catch (err) {
-      console.error('Error copiando:', err);
+  const handleCopyToClipboard = async (text: string, type: 'private' | 'public') => {
+    const copied = await copyToClipboard(text);
+    if (!copied) return;
+
+    if (type === 'private') {
+      setCopiedPrivate(true);
+      setTimeout(() => setCopiedPrivate(false), 2000);
+    } else {
+      setCopiedPublic(true);
+      setTimeout(() => setCopiedPublic(false), 2000);
     }
   };
 
@@ -333,7 +335,7 @@ const AssistantView: React.FC = () => {
                   />
                   <button
                     type="button"
-                    onClick={() => copyToClipboard(privateUrl, 'private')}
+                    onClick={() => handleCopyToClipboard(privateUrl, 'private')}
                     className="px-4 py-2 bg-blue-50 hover:bg-blue-100 border-2 border-blue-200 text-blue-700 rounded-lg font-semibold transition-all"
                   >
                     {copiedPrivate ? <CheckCircle size={18} /> : <Copy size={18} />}
@@ -361,7 +363,7 @@ const AssistantView: React.FC = () => {
                     />
                     <button
                       type="button"
-                      onClick={() => copyToClipboard(publicUrl, 'public')}
+                      onClick={() => handleCopyToClipboard(publicUrl, 'public')}
                       className="px-4 py-2 bg-green-100 hover:bg-green-200 border-2 border-green-300 text-green-700 rounded-lg font-semibold transition-all"
                     >
                       {copiedPublic ? <CheckCircle size={18} /> : <Copy size={18} />}

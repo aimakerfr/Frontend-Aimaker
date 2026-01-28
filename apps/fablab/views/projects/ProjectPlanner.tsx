@@ -8,6 +8,7 @@ import { getMakerPath, updateMakerPath } from '@core/maker-path';
 import { translations } from './translations';
 import { useLanguage } from '../../language/useLanguage';
 import { ArrowLeft } from 'lucide-react';
+import {copyToClipboard} from "@core/ui_utils";
 
 const createInitialState = (): ProjectState => ({
   objective: { title: '', description: '', goal: '', type: '' },
@@ -124,9 +125,8 @@ const App: React.FC = () => {
     }
   };
 
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-    alert(t.common.copySuccess);
+  const handleCopyToClipboard = (text: string) => {
+    copyToClipboard(text);
   };
 
   const handleReset = () => {
@@ -265,7 +265,7 @@ const App: React.FC = () => {
                   <div key={i} className="group relative bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 p-4 rounded-xl flex justify-between items-center">
                     <span className="text-sm italic text-gray-700 dark:text-slate-300">"{q}"</span>
                     <button 
-                      onClick={() => copyToClipboard(q)}
+                      onClick={() => handleCopyToClipboard(q)}
                       className="ml-4 p-2 bg-gray-200 dark:bg-slate-700 group-hover:bg-blue-600 rounded-lg transition-colors"
                       title="Copy Prompt"
                     >
@@ -415,7 +415,7 @@ const App: React.FC = () => {
                 {state.optimizedPrompt}
               </div>
               <button 
-                onClick={() => copyToClipboard(state.optimizedPrompt)}
+                onClick={() => handleCopyToClipboard(state.optimizedPrompt)}
                 className="mt-4 w-full bg-gray-300 dark:bg-slate-700 hover:bg-gray-400 dark:hover:bg-slate-600 text-gray-900 dark:text-white py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-2"
               >
                 {t.phase4.copy}
