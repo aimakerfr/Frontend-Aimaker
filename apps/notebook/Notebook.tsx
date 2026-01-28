@@ -1,13 +1,18 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import SourcePanel from './components/SourcePanel';
 import ChatInterface from './components/ChatInterface';
 import { Source, ChatMessage, SourceType, StructuredSummary, Language } from './types';
 import { generateChatResponse, generateSourceSummary } from './services/geminiService';
-import { Layout, Menu, Globe, ChevronDown, Edit2, ArrowLeft, Save } from 'lucide-react';
-import { UI_TRANSLATIONS } from './constants/translations';
-import { postNoteBookSource, NotebookService } from '@core/notebooks';
+import { Layout, Menu, Globe, ChevronDown, ArrowLeft, Star, ExternalLink, Lock } from 'lucide-react';
+import { postNoteBookSource } from '@core/notebooks';
+import { getTool, updateTool } from '@core/creation-tools/creation-tools.service';
+
+enum Visibility {
+  PRIVATE = 'private',
+  PUBLIC = 'public'
+}
 
 interface NotebookProps {
   isPublicView?: boolean;
@@ -25,19 +30,21 @@ const App: React.FC<NotebookProps> = ({ isPublicView = false }) => {
     const [summaryLoading, setSummaryLoading] = useState(false);
     const [sidebarOpen, setSidebarOpen] = useState(true);
     const [language, setLanguage] = useState<Language>('es');
-    const [langMenuOpen, setLangMenuOpen] = useState(false);
     const [notebookName, setNotebookName] = useState('');
-    const [isEditingTitle, setIsEditingTitle] = useState(false);
-    const [isSavingTitle, setIsSavingTitle] = useState(false);
-    // const [isPublic, setIsPublic] = useState(false); // Unused
+    const [description, setDescription] = useState('');
+    const [category, setCategory] = useState('Marketing');
+    const [isFavorite, setIsFavorite] = useState(false);
+    const [visibility, setVisibility] = useState<Visibility>(Visibility.PRIVATE);
+    const [showPublishModal, setShowPublishModal] = useState(false);
+    const [toolLanguage, setToolLanguage] = useState<'fr' | 'en' | 'es'>('es');
+    
+    const publicUrl = id ? `${window.location.origin}/public/notebook/${id}` : '';
 
     useEffect(() => {
         if (urlId) {
             setId(urlId);
         }
     }, [urlId]);
-
-    const notebookService = new NotebookService();
 
     useEffect(() => {
         // Intentar obtener el título del query param primero
@@ -53,39 +60,68 @@ const App: React.FC<NotebookProps> = ({ isPublicView = false }) => {
 
     const loadNotebookData = async (notebookId: number, fallbackTitle?: string | null) => {
         try {
-            const notebook = await notebookService.getNotebook(notebookId);
-            setNotebookName(notebook.title || fallbackTitle || 'Sin título');
-            // Verificar que tool y language existan antes de acceder
-            if (notebook.tool && notebook.tool.language) {
-                // Language es 'es' | 'en' | 'fr' (idioma de la UI)
-                setLanguage(notebook.tool.language as Language);
-            } else {
-                // Valor por defecto si no existe (idioma de la UI, no lenguaje de programación)
-                setLanguage('es');
-            }
-            // setIsPublic(notebook.hasPublicStatus || false);
+            const tool = await getTool(notebookId);
+            setNotebookName(tool.title || fallbackTitle || 'Sin título');
+            setDescription(tool.description || '');
+            setCategory(tool.category || 'Marketing');
+            setIsFavorite(tool.isFavorite || false);
+            setVisibility(tool.hasPublicStatus ? Visibility.PUBLIC : Visibility.PRIVATE);
+            setToolLanguage((tool.language as 'fr' | 'en' | 'es') || 'es');
+            setLanguage((tool.language as Language) || 'es');
         } catch (error) {
             console.error('Error cargando notebook:', error);
-            // Si falla la carga pero tenemos el título del param, lo usamos
             if (!fallbackTitle) {
                 setNotebookName('Sin título');
             }
-            // Si falla, asumimos que es privado por defecto
-            // setIsPublic(false);
         }
     };
 
-    const handleSaveTitle = async () => {
+    const handleSave = async () => {
         if (!id) return;
         
-        setIsSavingTitle(true);
         try {
-            await notebookService.updateNotebook(parseInt(id), { title: notebookName });
-            setIsEditingTitle(false);
+            await updateTool(parseInt(id), {
+                title: notebookName,
+                description: description,
+                category: category,
+                language: toolLanguage,
+                hasPublicStatus: visibility === Visibility.PUBLIC,
+            });
         } catch (error) {
-            console.error('Error guardando título:', error);
-        } finally {
-            setIsSavingTitle(false);
+            console.error('Error guardando notebook:', error);
+        }
+    };
+
+    const handlePublish = async () => {
+        if (!id) return;
+        
+        const newVisibility = visibility === Visibility.PUBLIC ? Visibility.PRIVATE : Visibility.PUBLIC;
+        setVisibility(newVisibility);
+        setShowPublishModal(false);
+        
+        try {
+            await updateTool(parseInt(id), {
+                hasPublicStatus: newVisibility === Visibility.PUBLIC
+            });
+        } catch (error) {
+            console.error('Error cambiando visibilidad:', error);
+            setVisibility(visibility);
+        }
+    };
+
+    const handleToggleFavorite = async () => {
+        if (!id) return;
+        
+        const newFavorite = !isFavorite;
+        setIsFavorite(newFavorite);
+        
+        try {
+            await updateTool(parseInt(id), {
+                isFavorite: newFavorite
+            });
+        } catch (error) {
+            console.error('Error cambiando favorito:', error);
+            setIsFavorite(!newFavorite);
         }
     };
 
@@ -93,21 +129,32 @@ const App: React.FC<NotebookProps> = ({ isPublicView = false }) => {
         navigate('/dashboard', { state: { view: 'library' } });
     };
 
+    // Memoizar las fuentes seleccionadas para evitar recalcular en cada render
+    const selectedSources = useMemo(() => {
+        const selected = sources.filter(s => s.selected);
+        console.log('[Notebook] Selected sources:', selected.length, selected);
+        return selected;
+    }, [sources]);
+
     useEffect(() => {
-        const selectedSources = sources.filter(s => s.selected);
+        console.log('[Notebook] useEffect triggered - selectedSources:', selectedSources.length);
         if (selectedSources.length > 0) {
+            console.log('[Notebook] Calling updateSummary with sources:', selectedSources.map(s => ({ title: s.title, hasContent: !!s.content, contentLength: s.content?.length })));
             updateSummary(selectedSources, language);
         } else {
             setSummary(null);
         }
-    }, [sources.filter(s => s.selected).length, language]);
+    }, [selectedSources.length, language]);
 
     const updateSummary = async (activeSources: Source[], lang: Language) => {
+        console.log('[Notebook] updateSummary called with', activeSources.length, 'sources');
         setSummaryLoading(true);
         try {
             const res = await generateSourceSummary(activeSources, lang);
+            console.log('[Notebook] Summary result:', res);
             setSummary(res);
         } catch (e) {
+            console.error('[Notebook] Error generating summary:', e);
             setSummary(null);
         } finally {
             setSummaryLoading(false);
@@ -117,51 +164,60 @@ const App: React.FC<NotebookProps> = ({ isPublicView = false }) => {
     const uploadSource = async (apiType: string, title: string, file?: File) => {
         if (!id) throw new Error('Notebook ID is missing');
 
-        if (apiType === 'WEBSITE') {
-            return await postNoteBookSource({
-                note_book_id: parseInt(id),
-                type: apiType,
-                name: title
-            });
-        } else {
-            const formData = new FormData();
-            formData.append('note_book_id', id.toString());
-            formData.append('name', title);
-            formData.append('type', apiType);
-            if (file) {
-                formData.append('stream_file', file);
-            }
-            return await postNoteBookSource(formData);
+        // WEBSITE, HTML, TEXT, and VIDEO can be sent without a file
+        // TEXT can come from textarea (direct text input)
+        // VIDEO can come from YouTube URLs
+        const formData = new FormData();
+        formData.append('note_book_id', id.toString());
+        formData.append('name', title);
+        formData.append('type', apiType);
+        
+        // Include file only if provided (optional for WEBSITE, HTML, TEXT, VIDEO from URLs)
+        if (file) {
+            formData.append('stream_file', file);
         }
+        
+        return await postNoteBookSource(formData);
     };
 
     const processSourceLocally = (
         response: any, 
         type: SourceType, 
         content: string, 
-        url?: string, 
+        url?: string,
         previewUrl?: string
     ) => {
+        console.log('[Notebook] processSourceLocally - Creating new source:', { 
+            title: response.name, 
+            type, 
+            hasContent: !!content, 
+            contentLength: content?.length 
+        });
         const newSource: Source = {
-            id: response.data.id.toString(),
-            title: response.data.name,
+            id: response.id.toString(),
+            title: response.name,
             type,
             content,
             url,
             previewUrl,
-            dateAdded: new Date(response.data.createdAt),
+            dateAdded: new Date(response.createdAt),
             selected: true,
         };
-        setSources(prev => [...prev, newSource]);
+        console.log('[Notebook] New source created:', newSource);
+        setSources(prev => {
+            console.log('[Notebook] Previous sources:', prev.length, 'Adding new source');
+            return [...prev, newSource];
+        });
     };
 
     const handleAddSource = async (type: SourceType, content: string, title: string, url?: string, previewUrl?: string, file?: File) => {
         if (!id) return;
 
         try {
+            // Map frontend types to backend types
             let apiType = type.toUpperCase();
             if (apiType === 'URL') apiType = 'WEBSITE';
-            if (apiType === 'HTML') apiType = 'PDF';
+            // Keep HTML, PDF, TEXT, VIDEO, IMAGE as is (already uppercase)
 
             const response = await uploadSource(apiType, title, file);
             processSourceLocally(response, type, content, url, previewUrl);
@@ -197,107 +253,43 @@ const App: React.FC<NotebookProps> = ({ isPublicView = false }) => {
         setChatLoading(false);
     };
 
-    const langLabels = { es: 'ES', en: 'EN', fr: 'FR' };
-    const t = UI_TRANSLATIONS[language].app;
-
     return (
-        <div className="flex flex-col h-screen w-screen bg-gray-50 text-gray-900 overflow-hidden font-inter">
-            {/* Cabecera con Z-Index controlado */}
-            <header className="h-16 border-b border-gray-100 flex items-center justify-between px-6 bg-white z-20 shrink-0">
-                <div className="flex items-center gap-5">
-                    {/* Botón de regreso */}
-                    <button
-                        onClick={handleBackToLibrary}
-                        className="p-2 rounded-xl hover:bg-gray-100 transition-all text-gray-600 hover:text-gray-900"
-                        title="Volver a Library"
-                    >
-                        <ArrowLeft size={20} />
-                    </button>
-                    
-                    <div className="flex items-center gap-3 group">
-                        <div className="w-10 h-10 bg-indigo-600 rounded-2xl flex items-center justify-center text-white shadow-xl shadow-indigo-100 shrink-0">
-                            <Layout size={20} />
-                        </div>
-                        <div className="flex flex-col min-w-[140px] md:min-w-[180px]">
-                            {isEditingTitle ? (
-                                <div className="flex items-center gap-2">
-                                    <input
-                                        type="text"
-                                        value={notebookName}
-                                        onChange={(e) => setNotebookName(e.target.value)}
-                                        onKeyDown={(e) => e.key === 'Enter' && handleSaveTitle()}
-                                        className="bg-gray-50 font-black text-base md:text-lg tracking-tighter leading-none text-gray-900 border border-indigo-200 outline-none focus:ring-2 focus:ring-indigo-500 rounded-lg px-2 py-1 w-full"
-                                        autoFocus
-                                    />
-                                    <button
-                                        onClick={handleSaveTitle}
-                                        disabled={isSavingTitle}
-                                        className="p-1.5 rounded-lg bg-indigo-500 hover:bg-indigo-600 text-white transition-all disabled:opacity-50"
-                                    >
-                                        <Save size={14} />
-                                    </button>
-                                </div>
-                            ) : (
-                                <div 
-                                    className={`flex items-center gap-2 ${!isPublicView ? 'cursor-pointer' : 'cursor-not-allowed opacity-60'}`}
-                                    onClick={() => !isPublicView && setIsEditingTitle(true)}
-                                    title={isPublicView ? 'No puedes editar el título de un notebook público' : 'Haz clic para editar'}
-                                >
-                                    <h1 className="font-black text-base md:text-lg tracking-tighter leading-none text-gray-900">
-                                        {notebookName}
-                                    </h1>
-                                    {!isPublicView && <Edit2 size={14} className="text-indigo-400 opacity-0 group-hover:opacity-100 transition-opacity" />}
-                                </div>
-                            )}
-                            <div className="flex items-center gap-1 opacity-40 group-hover:opacity-100 transition-opacity mt-0.5">
-                                <span className="text-[9px] font-bold text-indigo-500 uppercase tracking-widest">PROYECTO ACTIVO</span>
-                            </div>
-                        </div>
-                    </div>
-                    <div className="h-6 w-px bg-gray-100 mx-2 hidden lg:block"></div>
-                    <span className="text-xs font-bold text-gray-400 hidden lg:block uppercase tracking-wider">{t.title}</span>
-                </div>
-
-                <div className="flex items-center gap-3">
-                    <div className="relative">
+        <div className="flex flex-col h-screen w-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 text-gray-900 overflow-hidden font-inter">
+            {/* Header minimalista */}
+            <header className="bg-white/80 backdrop-blur-md border-b border-gray-200/50 z-20 shrink-0">
+                <div className="px-6 py-3 flex items-center justify-between">
+                    <div className="flex items-center gap-4">
                         <button
-                            onClick={() => setLangMenuOpen(!langMenuOpen)}
-                            className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-xl hover:bg-gray-100 transition-all border border-gray-100 group shadow-sm"
+                            onClick={handleBackToLibrary}
+                            className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-gray-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"
                         >
-                            <Globe size={14} className="text-indigo-500" />
-                            <span className="text-[10px] font-black text-gray-600">{langLabels[language]}</span>
-                            <ChevronDown size={12} className={`text-gray-400 transition-transform ${langMenuOpen ? 'rotate-180' : ''}`} />
+                            <ArrowLeft size={16} />
+                            <span>Volver</span>
                         </button>
-
-                        {langMenuOpen && (
-                            <div className="absolute top-full right-0 mt-2 w-32 bg-white border border-gray-100 rounded-xl shadow-2xl z-50 overflow-hidden p-1.5 animate-in zoom-in-95 duration-150 origin-top-right">
-                                {(['es', 'en', 'fr'] as Language[]).map(l => (
-                                    <button
-                                        key={l}
-                                        onClick={() => { setLanguage(l); setLangMenuOpen(false); }}
-                                        className={`w-full text-left px-3 py-2 rounded-lg text-[10px] font-black transition-all ${language === l ? 'bg-indigo-50 text-indigo-600' : 'text-gray-500 hover:bg-gray-50'}`}
-                                    >
-                                        {l === 'es' ? 'Español' : l === 'en' ? 'English' : 'Français'}
-                                    </button>
-                                ))}
-                            </div>
-                        )}
+                        <div className="flex items-center gap-2.5 px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl text-white shadow-lg shadow-indigo-200">
+                            <Layout size={16} />
+                            <span className="text-sm font-bold tracking-wide">RAG MULTIMODAL</span>
+                        </div>
                     </div>
-
                     <button
                         onClick={() => setSidebarOpen(!sidebarOpen)}
-                        className={`p-2 rounded-xl transition-all ${sidebarOpen ? 'bg-indigo-50 text-indigo-600 border border-indigo-100' : 'bg-gray-50 text-gray-400 border border-gray-100'}`}
+                        className={`p-2.5 rounded-xl transition-all ${
+                            sidebarOpen 
+                                ? 'bg-indigo-100 text-indigo-600 shadow-sm' 
+                                : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                        }`}
                     >
-                        <Menu size={18} />
+                        <Menu size={20} />
                     </button>
                 </div>
             </header>
 
             <div className="flex-1 flex overflow-hidden w-full">
+                {/* Sidebar de fuentes */}
                 <aside className={`
-                ${sidebarOpen ? 'w-80 md:w-96 translate-x-0' : 'w-0 -translate-x-full opacity-0 pointer-events-none'} 
-                transition-all duration-300 ease-in-out flex-shrink-0 z-30 border-r border-gray-100
-            `}>
+                    ${sidebarOpen ? 'w-80 md:w-96 translate-x-0' : 'w-0 -translate-x-full opacity-0 pointer-events-none'} 
+                    transition-all duration-300 ease-in-out flex-shrink-0 z-30 border-r border-gray-200/50
+                `}>
                     <div className="h-full w-full">
                         <SourcePanel
                             sources={sources}
@@ -309,17 +301,192 @@ const App: React.FC<NotebookProps> = ({ isPublicView = false }) => {
                     </div>
                 </aside>
 
-                <main className="flex-1 min-w-0 bg-white relative z-0 overflow-hidden">
-                    <ChatInterface
-                        messages={messages}
-                        onSendMessage={handleSendMessage}
-                        isLoading={chatLoading}
-                        sourceSummary={summary}
-                        isSummaryLoading={summaryLoading}
-                        lang={language}
-                    />
+                {/* Área principal con formulario integrado */}
+                <main className="flex-1 min-w-0 relative z-0 overflow-hidden flex flex-col">
+                    {/* Tarjeta de configuración flotante */}
+                    <div className="px-6 py-6 border-b border-gray-200/50 bg-white/60 backdrop-blur-sm">
+                        <div className="max-w-7xl mx-auto">
+                            {/* Header de la tarjeta con título y estado */}
+                            <div className="flex items-start justify-between mb-4">
+                                <div className="flex-1 mr-4">
+                                    <input
+                                        type="text"
+                                        value={notebookName}
+                                        onChange={(e) => setNotebookName(e.target.value)}
+                                        onBlur={handleSave}
+                                        disabled={isPublicView}
+                                        className="w-full text-2xl font-bold text-gray-900 bg-transparent border-none outline-none focus:ring-0 px-0 placeholder:text-gray-300 disabled:cursor-not-allowed"
+                                        placeholder="Título del Notebook..."
+                                    />
+                                    <input
+                                        type="text"
+                                        value={description}
+                                        onChange={(e) => setDescription(e.target.value)}
+                                        onBlur={handleSave}
+                                        disabled={isPublicView}
+                                        className="w-full mt-1 text-sm text-gray-600 bg-transparent border-none outline-none focus:ring-0 px-0 placeholder:text-gray-300 disabled:cursor-not-allowed"
+                                        placeholder="Agrega una descripción..."
+                                    />
+                                </div>
+                                
+                                {/* Toggle de visibilidad visual y claro */}
+                                <div className="flex items-center gap-3 bg-white rounded-xl border-2 border-gray-200 p-1 shadow-sm">
+                                    <button
+                                        onClick={() => {
+                                            if (visibility === Visibility.PUBLIC) {
+                                                setShowPublishModal(true);
+                                            }
+                                        }}
+                                        disabled={isPublicView || visibility === Visibility.PRIVATE}
+                                        className={`flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm transition-all ${
+                                            visibility === Visibility.PRIVATE
+                                                ? 'bg-gradient-to-r from-slate-700 to-slate-600 text-white shadow-md'
+                                                : 'text-gray-500 hover:bg-gray-100'
+                                        }`}
+                                    >
+                                        <Lock size={16} />
+                                        <span>Privado</span>
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            if (visibility === Visibility.PRIVATE) {
+                                                setShowPublishModal(true);
+                                            }
+                                        }}
+                                        disabled={isPublicView || visibility === Visibility.PUBLIC}
+                                        className={`flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm transition-all ${
+                                            visibility === Visibility.PUBLIC
+                                                ? 'bg-gradient-to-r from-emerald-500 to-green-500 text-white shadow-md shadow-emerald-200'
+                                                : 'text-gray-500 hover:bg-gray-100'
+                                        }`}
+                                    >
+                                        <Globe size={16} />
+                                        <span>Público</span>
+                                    </button>
+                                    {visibility === Visibility.PUBLIC && (
+                                        <button
+                                            onClick={() => window.open(publicUrl, '_blank')}
+                                            className="p-2 hover:bg-emerald-50 rounded-lg text-emerald-600 transition-all"
+                                            title="Abrir enlace público"
+                                        >
+                                            <ExternalLink size={16} />
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Badges de metadatos */}
+                            <div className="flex items-center gap-2 flex-wrap">
+                                {/* Categoría */}
+                                <div className="relative group">
+                                    <select
+                                        value={category}
+                                        onChange={(e) => { setCategory(e.target.value); handleSave(); }}
+                                        disabled={isPublicView}
+                                        className="appearance-none pl-3 pr-8 py-1.5 text-xs font-semibold bg-blue-50 text-blue-700 rounded-full border border-blue-200 cursor-pointer hover:bg-blue-100 transition-all disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-blue-400"
+                                    >
+                                        <option value="Marketing">📊 Marketing</option>
+                                        <option value="Desarrollo">💻 Development</option>
+                                        <option value="Investigación">🔬 Research</option>
+                                        <option value="Análisis">📈 Analysis</option>
+                                    </select>
+                                    <ChevronDown size={12} className="absolute right-2 top-1/2 -translate-y-1/2 text-blue-600 pointer-events-none" />
+                                </div>
+
+                                {/* Idioma */}
+                                <div className="relative group">
+                                    <select
+                                        value={toolLanguage}
+                                        onChange={(e) => { 
+                                            const newLang = e.target.value as 'fr' | 'en' | 'es';
+                                            setToolLanguage(newLang); 
+                                            setLanguage(newLang as Language);
+                                            handleSave(); 
+                                        }}
+                                        disabled={isPublicView}
+                                        className="appearance-none pl-3 pr-8 py-1.5 text-xs font-semibold bg-purple-50 text-purple-700 rounded-full border border-purple-200 cursor-pointer hover:bg-purple-100 transition-all disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-purple-400"
+                                    >
+                                        <option value="es">🇪🇸 Español</option>
+                                        <option value="en">🇬🇧 English</option>
+                                        <option value="fr">🇫🇷 Français</option>
+                                    </select>
+                                    <ChevronDown size={12} className="absolute right-2 top-1/2 -translate-y-1/2 text-purple-600 pointer-events-none" />
+                                </div>
+
+                                {/* Favorito */}
+                                <button
+                                    onClick={handleToggleFavorite}
+                                    disabled={isPublicView}
+                                    className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-full border transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
+                                        isFavorite 
+                                            ? 'bg-gradient-to-r from-pink-50 to-rose-50 text-pink-700 border-pink-300 shadow-sm' 
+                                            : 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100'
+                                    }`}
+                                >
+                                    <Star size={14} fill={isFavorite ? 'currentColor' : 'none'} strokeWidth={2} />
+                                    <span>{isFavorite ? 'Favorito' : 'Agregar a favoritos'}</span>
+                                </button>
+
+                                {/* Indicador de estado si es público */}
+                                {visibility === Visibility.PUBLIC && (
+                                    <div className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-700 rounded-full text-xs font-semibold border border-emerald-200">
+                                        <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+                                        <span>Visible públicamente</span>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Área de chat */}
+                    <div className="flex-1 overflow-hidden">
+                        <ChatInterface
+                            messages={messages}
+                            onSendMessage={handleSendMessage}
+                            isLoading={chatLoading}
+                            sourceSummary={summary}
+                            isSummaryLoading={summaryLoading}
+                            lang={language}
+                        />
+                    </div>
                 </main>
             </div>
+
+            {/* Modal de publicación */}
+            {showPublishModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-black/20 backdrop-blur-sm" onClick={() => setShowPublishModal(false)}></div>
+                    <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden border border-gray-100 animate-in zoom-in-95 duration-200">
+                        <div className="p-8 text-center">
+                            <div className="w-16 h-16 rounded-full mx-auto mb-6 flex items-center justify-center bg-indigo-50 text-indigo-600">
+                                <Globe size={28} />
+                            </div>
+                            <h3 className="text-xl font-black text-gray-900 mb-2">
+                                {visibility === Visibility.PUBLIC ? '¿Hacer privado?' : '¿Publicar notebook?'}
+                            </h3>
+                            <p className="text-gray-500 text-sm mb-8 font-medium">
+                                {visibility === Visibility.PUBLIC 
+                                    ? 'El notebook ya no será accesible públicamente'
+                                    : 'El notebook será accesible mediante URL pública'}
+                            </p>
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={() => setShowPublishModal(false)}
+                                    className="flex-1 h-12 rounded-xl border-2 border-gray-200 text-gray-700 font-bold hover:bg-gray-50 transition-all"
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    onClick={handlePublish}
+                                    className="flex-1 h-12 rounded-xl bg-indigo-600 text-white font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100"
+                                >
+                                    Confirmar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

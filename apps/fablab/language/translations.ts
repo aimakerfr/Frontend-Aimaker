@@ -39,6 +39,7 @@ export interface Translations {
       shared: string;
       public: string;
       private: string;
+      favorites: string;
     };
     types: {
       assistant: string;
@@ -79,6 +80,7 @@ export interface Translations {
       shared: string;
       public: string;
       private: string;
+      favorites: string;
     };
     types: {
       externalLink: string;
@@ -167,8 +169,7 @@ export const translations: Record<Language, Translations> = {
         mine: 'Mine',
         shared: 'Shared',
         public: 'Public',
-        private: 'Private',
-      },
+        private: 'Private',        favorites: 'Favorites',      },
       types: {
         assistant: 'ASSISTANT',
         prompt: 'PROMPT',
@@ -208,6 +209,7 @@ export const translations: Record<Language, Translations> = {
         shared: 'Shared',
         public: 'Public',
         private: 'Private',
+        favorites: 'Favorites',
       },
       types: {
         externalLink: 'EXTERNAL LINK',
@@ -295,6 +297,7 @@ export const translations: Record<Language, Translations> = {
         shared: 'Compartidos',
         public: 'Públicos',
         private: 'Privados',
+        favorites: 'Favoritos',
       },
       types: {
         assistant: 'ASISTENTE',
@@ -335,6 +338,7 @@ export const translations: Record<Language, Translations> = {
         shared: 'Compartidos',
         public: 'Públicos',
         private: 'Privados',
+        favorites: 'Favoritos',
       },
       types: {
         externalLink: 'ENLACE EXTERNO',
@@ -422,6 +426,7 @@ export const translations: Record<Language, Translations> = {
         shared: 'Partagés',
         public: 'Publics',
         private: 'Privés',
+        favorites: 'Favoris',
       },
       types: {
         assistant: 'ASSISTANT',
@@ -462,6 +467,7 @@ export const translations: Record<Language, Translations> = {
         shared: 'Partagés',
         public: 'Publics',
         private: 'Privés',
+        favorites: 'Favoris',
       },
       types: {
         externalLink: 'LIEN EXTERNE',

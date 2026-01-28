@@ -1,9 +1,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BookOpen, Search, FileText, Notebook, FolderKanban, Globe, Eye, Lock, Plus, X, ExternalLink, Trash2, Edit2 } from 'lucide-react';
+import { BookOpen, Search, FileText, Notebook, FolderKanban, Globe, Eye, Lock, Plus, X, ExternalLink, Trash2, Star } from 'lucide-react';
 import FormGeneral from './components/Form-general';
-import DetailsView from './components/DetailsView';
 import { useLanguage } from '../../language/useLanguage';
 import { translations } from '../../language/translations';
 import { 
@@ -11,7 +10,7 @@ import {
   createTool, 
   updateTool, 
   deleteTool, 
-  toggleToolVisibility 
+  toggleToolFavorite
 } from '@core/creation-tools/creation-tools.service';
 import type { Tool } from '@core/creation-tools/creation-tools.types';
 
@@ -21,7 +20,7 @@ const mockItems: LibraryItem[] = [
   { id: 2, type: 'project', title: 'Prototype Chatbot Client', description: 'MVP pour le support client e-commerce.', isPublic: true, author: 'JEANDUPONT', createdAt: '20/10/2023', category: 'E-commerce', url: 'aimaker.fr/p/...', language: 'fr', usageCount: 0 },
 ];
 
-type FilterType = 'all' | 'mine' | 'public' | 'private' | 'shared';
+type FilterType = 'all' | 'mine' | 'public' | 'private' | 'shared' | 'favorites';
 type ItemType = 'assistant' | 'prompt' | 'note_books' | 'project' | 'perplexity_search';
 
 interface LibraryItem {
@@ -31,19 +30,21 @@ interface LibraryItem {
   description: string;
   isPublic: boolean;
   author: string;
+  authorName?: string;
   createdAt: string;
   category: string;
   url: string;
   publicUrl?: string;
   language?: string;
   usageCount?: number;
+  isFavorite?: boolean;
 }
 
 interface LibraryViewProps {
   items?: LibraryItem[];
   onSave?: (data: any, itemId?: number) => Promise<boolean>;
   onDelete?: (itemId: number) => void;
-  onToggleVisibility?: (itemId: number, isPublic: boolean) => void;
+  onToggleFavorite?: (itemId: number) => Promise<void>;
   isLoading?: boolean;
 }
 
@@ -51,7 +52,7 @@ const LibraryView: React.FC<LibraryViewProps> = ({
   items = mockItems,
   onSave,
   onDelete,
-  onToggleVisibility,
+  onToggleFavorite,
   isLoading = false
 }) => {
   const navigate = useNavigate();
@@ -62,16 +63,15 @@ const LibraryView: React.FC<LibraryViewProps> = ({
   const [typeFilter, setTypeFilter] = useState<ItemType | 'all'>('all');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showCreateForm, setShowCreateForm] = useState(false);
-  const [showDetailsView, setShowDetailsView] = useState(false);
   const [selectedType, setSelectedType] = useState<ItemType>('note_books');
-  const [selectedItemId, setSelectedItemId] = useState<number | null>(null);
 
   const filters: { key: FilterType; label: string }[] = [
     { key: 'all', label: t.library.filters.all },
     { key: 'mine', label: t.library.filters.mine },
     { key: 'shared', label: t.library.filters.shared },
     { key: 'public', label: t.library.filters.public },
-    { key: 'private', label: t.library.filters.private }
+    { key: 'private', label: t.library.filters.private },
+    { key: 'favorites', label: t.library.filters.favorites || 'Favoris' }
   ];
 
   const getFilteredTools = () => {
@@ -88,6 +88,9 @@ const LibraryView: React.FC<LibraryViewProps> = ({
         break;
       case 'private':
         filtered = filtered.filter((tool: LibraryItem) => !tool.isPublic);
+        break;
+      case 'favorites':
+        filtered = filtered.filter((tool: any) => tool.isFavorite === true);
         break;
       case 'all':
       default:
@@ -137,22 +140,10 @@ const LibraryView: React.FC<LibraryViewProps> = ({
     setShowCreateForm(true);
   };
 
-  const handleViewDetails = (itemId: number) => {
-    setSelectedItemId(itemId);
-    setShowDetailsView(true);
-  };
-
-  const handleToggleVisibility = (itemId: number, currentIsPublic: boolean) => {
-    onToggleVisibility?.(itemId, !currentIsPublic);
-  };
-
-  const handleRedirect = (url: string) => {
-    if (url) {
-      if (url.startsWith('/dashboard/notebook/')) {
-        navigate(url);
-      } else {
-        window.open(url.startsWith('http') ? url : `https://${url}`, '_blank');
-      }
+  const handleToggleFavorite = async (itemId: number, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onToggleFavorite) {
+      await onToggleFavorite(itemId);
     }
   };
 
@@ -165,53 +156,29 @@ const LibraryView: React.FC<LibraryViewProps> = ({
     }
   };
 
-  const handleEditSave = async (data: any): Promise<boolean> => {
-    if (onSave && selectedItemId) {
-      const success = await onSave(data, selectedItemId);
-      return success;
-    }
-    return false;
-  };
-
   const handleFormClose = () => {
     setShowCreateForm(false);
-    setShowDetailsView(false);
-    setSelectedItemId(null);
-  };
-
-  const getSelectedItemData = () => {
-    if (selectedItemId) {
-      return items.find(item => item.id === selectedItemId);
-    }
-    return undefined;
   };
 
   return (
     <>
-      {showDetailsView && selectedItemId ? (
-        <DetailsView
-          item={getSelectedItemData()}
-          onClose={handleFormClose}
-          onSave={handleEditSave}
-        />
-      ) : (
-        <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50/30 dark:from-gray-900 dark:to-blue-900/10 p-6">
-        <div className="max-w-7xl mx-auto space-y-6">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div>
-              <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                Library
-              </h1>
-              <p className="text-gray-600 dark:text-gray-400 mt-1">Gérez vos ressources IA en un clin d'œil.</p>
-            </div>
-            <button
-              onClick={() => setShowCreateModal(true)}
-              className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold rounded-xl transition-all shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40 hover:scale-[1.02]"
-            >
-              <Plus size={20} />
-              Créer
-            </button>
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50/30 dark:from-gray-900 dark:to-blue-900/10 p-6">
+      <div className="max-w-7xl mx-auto space-y-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              Library
+            </h1>
+            <p className="text-gray-600 dark:text-gray-400 mt-1">Gérez vos ressources IA en un clin d'œil.</p>
           </div>
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold rounded-xl transition-all shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40 hover:scale-[1.02]"
+          >
+            <Plus size={20} />
+            Créer
+          </button>
+        </div>
 
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="relative flex-1 max-w-md">
@@ -257,11 +224,12 @@ const LibraryView: React.FC<LibraryViewProps> = ({
             <div className="bg-gradient-to-r from-gray-50 to-blue-50/50 dark:from-gray-900 dark:to-blue-900/20 border-b border-gray-200 dark:border-gray-700">
               <div className="grid grid-cols-12 gap-4 px-6 py-4">
                 <div className="col-span-1 text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider">Type</div>
-                <div className="col-span-4 text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider">Nom & Description</div>
+                <div className="col-span-3 text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider">Nom & Description</div>
                 <div className="col-span-1 text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider">Language</div>
                 <div className="col-span-2 text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider">Action</div>
                 <div className="col-span-2 text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider">Public/Privé</div>
                 <div className="col-span-2 text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider">Auteur / Date</div>
+                <div className="col-span-1 text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider text-center">Favoris</div>
               </div>
             </div>
 
@@ -296,7 +264,7 @@ const LibraryView: React.FC<LibraryViewProps> = ({
                         </div>
                       </div>
 
-                      <div className="col-span-4">
+                      <div className="col-span-3">
                         <h3 className="text-base font-bold text-gray-900 dark:text-white mb-1">
                           {item.title}
                         </h3>
@@ -316,20 +284,12 @@ const LibraryView: React.FC<LibraryViewProps> = ({
                           <button
                             onClick={() => {
                               const urlType = item.type === 'note_books' ? 'notebook' : item.type;
-                              const privateUrl = item.url || `http://localhost:3001/dashboard/${urlType}/${item.id}`;
-                              window.open(privateUrl, '_blank');
+                              navigate(`/dashboard/${urlType}/${item.id}`);
                             }}
                             className="inline-flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 border-2 border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-xl font-semibold transition-all text-sm hover:scale-105"
                           >
                             <Eye size={16} />
                             VOIR
-                          </button>
-                          <button
-                            onClick={() => handleViewDetails(item.id)}
-                            className="inline-flex items-center gap-2 px-3 py-2.5 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 border-2 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-400 rounded-xl font-semibold transition-all text-sm hover:scale-105"
-                            title="Modifier"
-                          >
-                            <Edit2 size={16} />
                           </button>
                           <button
                             onClick={() => onDelete?.(item.id)}
@@ -366,17 +326,35 @@ const LibraryView: React.FC<LibraryViewProps> = ({
                       <div className="col-span-2">
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center text-white font-bold text-xs shadow-md">
-                            {item.author.substring(0, 2)}
+                            {(item.authorName || item.author).substring(0, 2).toUpperCase()}
                           </div>
                           <div>
                             <div className="text-sm font-bold text-gray-900 dark:text-white">
-                              {item.author}
+                              {item.authorName || item.author}
                             </div>
                             <div className="text-xs text-gray-500 dark:text-gray-400">
                               {item.createdAt}
                             </div>
                           </div>
                         </div>
+                      </div>
+
+                      <div className="col-span-1 flex justify-center">
+                        <button
+                          onClick={(e) => handleToggleFavorite(item.id, e)}
+                          className={`p-2 rounded-lg transition-all hover:scale-110 ${
+                            (item as any).isFavorite 
+                              ? 'text-yellow-500 hover:text-yellow-600' 
+                              : 'text-gray-400 hover:text-yellow-500'
+                          }`}
+                          title={(item as any).isFavorite ? 'Retirer des favoris' : 'Ajouter aux favoris'}
+                        >
+                          <Star 
+                            size={24} 
+                            fill={(item as any).isFavorite ? 'currentColor' : 'none'}
+                            className="transition-all"
+                          />
+                        </button>
                       </div>
                     </div>
                   );
@@ -386,8 +364,7 @@ const LibraryView: React.FC<LibraryViewProps> = ({
           </div>
         </div>
       </div>
-      )}
-
+      
       {showCreateModal && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
           <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-4xl w-full max-h-[85vh] overflow-auto">
@@ -473,9 +450,11 @@ const Library = () => {
         publicUrl: tool.publicUrl || undefined,
         language: tool.language,
         usageCount: tool.usageCount,
-        author: 'USER',
+        isFavorite: tool.isFavorite ?? false,
+        author: tool.authorName || 'Usuario',
+        authorName: tool.authorName || 'Usuario',
         createdAt: new Date().toLocaleDateString('fr-FR'),
-        category: ''
+        category: tool.category || ''
       })) as LibraryItem[];
       
       console.log('Items mapeados:', mappedItems);
@@ -523,12 +502,12 @@ const Library = () => {
             ...item,
             title: updatedTool.title,
             description: updatedTool.description,
-            type: updatedTool.type,
+            type: updatedTool.type as ItemType,
             language: updatedTool.language,
-            url: updatedTool.url,
-            publicUrl: updatedTool.publicUrl,
-            isPublic: updatedTool.hasPublicStatus,
-            isTemplate: updatedTool.isTemplate,
+            url: updatedTool.url || '',
+            publicUrl: updatedTool.publicUrl || undefined,
+            isPublic: updatedTool.hasPublicStatus ?? false,
+            isFavorite: updatedTool.isFavorite ?? item.isFavorite
           } : item
         ));
       } else {
@@ -562,13 +541,18 @@ const Library = () => {
     }
   };
 
-  const handleToggleVisibility = async (itemId: number, currentIsPublic: boolean) => {
+  const handleToggleFavorite = async (itemId: number) => {
     try {
-      await toggleToolVisibility(itemId, !currentIsPublic);
-      await loadCreationTools();
+      const result = await toggleToolFavorite(itemId);
+      // Actualizar el estado local inmediatamente
+      setItems(prev => prev.map((item: LibraryItem) => 
+        item.id === itemId 
+          ? { ...item, isFavorite: result.isFavorite }
+          : item
+      ));
     } catch (err) {
-      console.error('Error cambiando visibilidad:', err);
-      setError('Error al cambiar visibilidad');
+      console.error('Error cambiando favorito:', err);
+      setError('Error al cambiar favorito');
     }
   };
 
@@ -594,7 +578,7 @@ const Library = () => {
       isLoading={isLoading}
       onSave={handleSave}
       onDelete={handleDelete}
-      onToggleVisibility={handleToggleVisibility}
+      onToggleFavorite={handleToggleFavorite}
     />
   );
 };

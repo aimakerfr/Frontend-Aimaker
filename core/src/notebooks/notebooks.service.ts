@@ -53,18 +53,16 @@ export interface UpdateNotebookRequest {
 }
 
 export interface PostNoteBookSourceResponse {
-  status: string;
-  data: {
-    id: number;
-    name: string;
-    type: string;
-    filePath?: string;
-    createdAt: string;
-  };
+  id: number;
+  name: string;
+  type: string;
+  filePath?: string | null;
+  createdAt: string;
 }
 
 export class NotebookService {
   private baseUrl = '/api/v1/notebooks';
+  private publicBaseUrl = '/api/v1/public/notebooks';
 
   async getNotebooks(): Promise<Notebook[]> {
     return httpClient.get<Notebook[]>(this.baseUrl);
@@ -72,6 +70,10 @@ export class NotebookService {
 
   async getNotebook(id: number): Promise<Notebook> {
     return httpClient.get<Notebook>(`${this.baseUrl}/${id}`);
+  }
+
+  async getPublicNotebook(id: number): Promise<Notebook> {
+    return httpClient.get<Notebook>(`${this.publicBaseUrl}/${id}`, { requiresAuth: false });
   }
 
   async createNotebook(data: { creationToolId: number }): Promise<Notebook> {
