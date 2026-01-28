@@ -74,6 +74,85 @@ const defaultState: ToolViewState = {
   outputFormat: '',
 };
 
+const CATEGORY_OPTIONS = ['Marketing', 'Ventes', 'Développement', 'RH'];
+const LANGUAGE_OPTIONS = ['Espagnol', 'Anglais', 'Français'];
+
+// MetadataSection component - shared across all tool views
+const MetadataSection: React.FC = () => {
+  const { tool, state, update } = useToolView();
+  const toolType = tool?.type ? tool.type.charAt(0).toUpperCase() + tool.type.slice(1) : 'Tool';
+  
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
+        <div className="md:col-span-2">
+          <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">TYPE</label>
+          <div className="flex items-center justify-center gap-2 px-4 py-2.5 bg-[#eff6ff] border border-[#dbeafe] rounded-xl text-[#2563eb] font-bold shadow-sm h-[46px]">
+            <FileText size={16} />
+            <span className="text-sm">{toolType}</span>
+          </div>
+        </div>
+
+        <div className="md:col-span-10">
+          <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">TITRE</label>
+          <input
+            type="text"
+            value={state.title}
+            onChange={(e) => update({ title: e.target.value })}
+            className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-slate-700 bg-white shadow-sm h-[46px]"
+            placeholder={`Titre du ${toolType.toLowerCase()}`}
+          />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
+        <div className="md:col-span-5">
+          <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">DESCRIPTION</label>
+          <input
+            type="text"
+            value={state.description}
+            onChange={(e) => update({ description: e.target.value })}
+            className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-slate-700 bg-white shadow-sm h-[46px]"
+            placeholder={`Description du ${toolType.toLowerCase()}`}
+          />
+        </div>
+
+        <div className="md:col-span-3">
+          <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">CATÉGORIE</label>
+          <select
+            value={state.category}
+            onChange={(e) => update({ category: e.target.value })}
+            className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all bg-white appearance-none cursor-pointer text-slate-700 shadow-sm h-[46px]"
+          >
+            {CATEGORY_OPTIONS.map((option) => (
+              <option key={option} value={option}>
+                {option}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="md:col-span-3">
+          <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">LANGUE</label>
+          <select
+            value={state.language}
+            onChange={(e) => update({ language: e.target.value })}
+            className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all bg-white appearance-none cursor-pointer text-slate-700 shadow-sm h-[46px]"
+            disabled={true}
+          >
+            {LANGUAGE_OPTIONS.map((option) => (
+              <option key={option} value={option}>
+                {option}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+      <div className="border-b border-slate-100 pt-2"></div>
+    </div>
+  );
+};
+
 const ToolViewContext = createContext<ToolViewContextType | undefined>(undefined);
 export const useToolView = (): ToolViewContextType => {
   const ctx = useContext(ToolViewContext);
@@ -553,7 +632,12 @@ const ToolViewCard: React.FC<ToolViewCardProps> = ({
         {/* Content area */}
         <ToolViewContext.Provider value={ctxValue}>
           <div className="pt-6">
-            {toolId && loading ? loadingContent : error ? errorContent : children}
+            {toolId && loading ? loadingContent : error ? errorContent : (
+              <>
+                <MetadataSection />
+                {children}
+              </>
+            )}
           </div>
         </ToolViewContext.Provider>
         <PublishConfirmModal
