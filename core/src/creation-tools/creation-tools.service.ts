@@ -103,6 +103,17 @@ export const toggleCreationToolVisibility = async (
   return updateCreationTool(id, { hasPublicStatus: isPublic });
 };
 
+/**
+ * PATCH /api/v1/tools/{id}/toggle-favorite
+ * Toggle favorite status of a creation tool
+ * Requires authentication (Bearer JWT)
+ */
+export const toggleCreationToolFavorite = async (
+  id: number
+): Promise<{ isFavorite: boolean }> => {
+  return httpClient.patch<{ isFavorite: boolean }>(`${ENDPOINT}/${id}/toggle-favorite`, {});
+};
+
 // ========================================
 // Alias exports with simplified names
 // ========================================
@@ -112,3 +123,4 @@ export const createTool = createCreationTool;
 export const updateTool = updateCreationTool;
 export const deleteTool = deleteCreationTool;
 export const toggleToolVisibility = toggleCreationToolVisibility;
+export const toggleToolFavorite = toggleCreationToolFavorite;

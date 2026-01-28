@@ -23,6 +23,9 @@ export interface CreationTool {
   hasPublicStatus: boolean | null;
   isTemplate: boolean;
   usageCount: number;
+  category?: string;
+  isFavorite?: boolean;
+  authorName?: string;
 }
 
 export interface CreationToolsParams {
@@ -39,6 +42,8 @@ export interface CreateCreationToolRequest {
   url?: string;
   hasPublicStatus?: boolean;
   isTemplate?: boolean;
+  category?: string;
+  isFavorite?: boolean;
 }
 
 export interface UpdateCreationToolRequest {
@@ -49,6 +54,8 @@ export interface UpdateCreationToolRequest {
   url?: string;
   hasPublicStatus?: boolean;
   isTemplate?: boolean;
+  category?: string;
+  isFavorite?: boolean;
 }
 
 // ========================================
