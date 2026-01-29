@@ -1,6 +1,6 @@
 #!/bin/bash
 
-DEFAULT_TARGET_DIR="/data/sites/doitandshare.com/www"
+DEFAULT_TARGET_DIR="/data/sites/doitandshare.com/build"
 ALTERNATIVE_TARGET_DIR="/data/sites/doitandshare.com/build"
 TARGET_DIR="$DEFAULT_TARGET_DIR"
 

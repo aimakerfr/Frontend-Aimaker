@@ -13,11 +13,12 @@ I. clean.sh
 II. vite_build.sh
 - Purpose: Clean, install dependencies, and build the frontend with Vite in the `doitandshare` mode.
 - Business logic:
+  - Uses strict shell options (`set -euo pipefail`).
   - Resolves project root.
-  - Runs cleanup via `scripts/clean.sh`.
+  - Runs cleanup via `scripts/clean.sh` (with `sudo`).
   - Verifies `npm` availability.
   - Runs `npm install`.
-  - Runs `npm run build -- --mode doitandshare` and outputs to `./dist`.
+  - Runs `npm run build:doitandshare` (build output in `./dist`).
 - Quick run:
   - sudo bash scripts/vite_build.sh
 
@@ -26,11 +27,12 @@ III. deploy.sh
 - Business logic:
   - Resolves project root.
   - Checks that `./dist` exists; aborts if missing.
-  - Default target directory: `/data/sites/doitandshare.com/www`.
-  - `-a/--alternative` sets target to `/data/sites/doitandshare.com/build`.
+  - Default target directory: `/data/sites/doitandshare.com/build`.
+  - `-a/--alternative` also targets `/data/sites/doitandshare.com/build` (kept for compatibility).
   - `-t/--target <dir>` (or positional `<dir>`) overrides the target directory.
-  - If `rsync` is available: `rsync -a --delete ./dist/ <target>/`.
-  - Else: falls back to `rm -rf` + `cp -a` to mirror contents.
+  - Ensures target directory exists.
+  - If `rsync` is available: removes `index.html` and `assets` in target, then `rsync -a ./dist/ <target>/`.
+  - Else: removes `index.html` and `assets` in target, then falls back to `cp -a ./dist/. <target>/`.
 - Quick run:
   - sudo bash scripts/deploy.sh
   - sudo bash scripts/deploy.sh -a                     # deploy to /build
@@ -41,7 +43,7 @@ IV. build_and_deploy.sh
 - Purpose: Wrapper to clean, build, then deploy — all in one.
 - Business logic:
   - Resolves project root.
-  - Optional flag `--clean-then-simple` or `-c` can run `scripts/clean.sh` first (note: `vite_build.sh` already cleans).
+  - Optional flag `--clean-then-simple` or `-c` runs `scripts/clean.sh` first (extra clean; `vite_build.sh` already cleans).
   - Runs `scripts/vite_build.sh` to clean and build.
   - Forwards any remaining args to `scripts/deploy.sh` (e.g., `-a`, `--target`).
 - Quick run:
