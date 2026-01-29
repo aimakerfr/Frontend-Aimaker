@@ -12,7 +12,6 @@ import { useAuth } from '../auth/useAuth';
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 import AuthApp from '@apps/auth/AuthApp';
-import HomeApp from '@apps/home/HomeApp';
 import FabLabApp from '@apps/fablab/FabLabApp';
 import Notebook from '@apps/notebook/Notebook';
 import TemplateSelector from '@apps/frontend_template_visualizer/components/TemplateSelector';
@@ -87,11 +86,33 @@ function PublicRoute({ children }: PublicRouteProps) {
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 export function AppRouter() {
+  const { isAuthenticated, isLoading } = useAuth();
+
   return (
     <BrowserRouter>
       <Routes>
+        {/* Root Route - Redirect based on authentication */}
+        <Route 
+          path="/" 
+          element={
+            isLoading ? (
+              <div style={{
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                height: '100vh'
+              }}>
+                <div>Cargando...</div>
+              </div>
+            ) : isAuthenticated ? (
+              <Navigate to="/dashboard" replace />
+            ) : (
+              <Navigate to="/auth/login" replace />
+            )
+          } 
+        />
+        
         {/* Public Routes */}
-        <Route path="/" element={<HomeApp />} />
         <Route
           path="/auth/*"
           element={
