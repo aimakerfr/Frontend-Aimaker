@@ -1,10 +1,12 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import { CheckCircle, Copy, ExternalLink, Globe, Lock, Heart, FileText, ArrowLeft } from 'lucide-react';
+import { CheckCircle, Copy, ExternalLink, Globe, Lock, Heart, FileText, ArrowLeft, MessageSquare, FolderKanban } from 'lucide-react';
 import { getTool, toggleToolFavorite, toggleToolVisibility, updateTool } from '@core/creation-tools/creation-tools.service';
 import type { CreationTool } from '@core/creation-tools/creation-tools.types';
 import { copyToClipboard } from '@core/ui_utils/navigator_utilies';
 import { useNavigate } from 'react-router-dom';
-import PublishConfirmModal from '../prompt/PublishConfirmModal';
+import PromptPublishModal from '../prompt/PublishConfirmModal';
+import ProjectPublishModal from '../project/PublishConfirmModal';
+import AssistantPublishModal from '../assistant/PublishConfirmModal';
 import SaveStatusModal from '../prompt/SaveStatusModal';
 
 type ToolViewCardProps = {
@@ -253,11 +255,11 @@ const ToolViewCard: React.FC<ToolViewCardProps> = ({
   }, []);
 
   const save = useCallback(async () => {
-    if (!toolId) return;
+    if (!toolId || !tool) return;
     try {
       setIsSaving(true);
       await updateTool(Number(toolId), {
-        type: 'prompt',
+        type: tool.type,
         title: state.title,
         description: state.description,
         context: state.context,
@@ -268,7 +270,8 @@ const ToolViewCard: React.FC<ToolViewCardProps> = ({
         hasPublicStatus: state.visibility === 'PUBLIC',
       });
       setSaveModalType('success');
-      setSaveModalMessage('Le prompt a été enregistré avec succès.');
+      const saveTexts = getSaveModalTexts();
+      setSaveModalMessage(saveTexts.successMessage);
       setIsSaveModalOpen(true);
       // refresh tool
       const refreshed = await getTool(Number(toolId));
@@ -276,19 +279,19 @@ const ToolViewCard: React.FC<ToolViewCardProps> = ({
       setState(mapToolToState(refreshed));
     } catch (e) {
       setSaveModalType('error');
-      setSaveModalMessage("Une erreur est survenue lors de l’enregistrement du prompt.");
+      setSaveModalMessage(`Une erreur est survenue lors de l'enregistrement du ${tool?.type || 'outil'}.`);
       setIsSaveModalOpen(true);
     } finally {
       setIsSaving(false);
     }
-  }, [toolId, state, mapToolToState]);
+  }, [toolId, tool, state, mapToolToState]);
 
   const confirmPublish = useCallback(async () => {
-    if (!toolId) return;
+    if (!toolId || !tool) return;
     try {
       setIsPublishing(true);
       await updateTool(Number(toolId), {
-        type: 'prompt',
+        type: tool.type,
         title: state.title,
         description: state.description,
         context: state.context,
@@ -302,17 +305,17 @@ const ToolViewCard: React.FC<ToolViewCardProps> = ({
       setTool(refreshed);
       setState(mapToolToState(refreshed));
       setSaveModalType('success');
-      setSaveModalMessage('Prompt publié et enregistré avec succès.');
+      setSaveModalMessage(`${tool?.type || 'Outil'} publi\u00e9 et enregistr\u00e9 avec succ\u00e8s.`);
       setIsSaveModalOpen(true);
       setIsPublishModalOpen(false);
     } catch (e) {
       setSaveModalType('error');
-      setSaveModalMessage('Une erreur est survenue lors de la publication du prompt.');
+      setSaveModalMessage(`Une erreur est survenue lors de la publication du ${tool?.type || 'outil'}.`);
       setIsSaveModalOpen(true);
     } finally {
       setIsPublishing(false);
     }
-  }, [toolId, state, mapToolToState]);
+  }, [toolId, tool, state, mapToolToState]);
 
   const openPublish = useCallback(() => setIsPublishModalOpen(true), []);
 
@@ -427,6 +430,53 @@ const ToolViewCard: React.FC<ToolViewCardProps> = ({
   ) : null));
 
   // Internal default title section (moved from PromptView)
+  const getTypeIcon = () => {
+    const type = tool?.type || 'prompt';
+    switch (type) {
+      case 'assistant':
+        return <MessageSquare size={20} />;
+      case 'project':
+        return <FolderKanban size={20} />;
+      default:
+        return <FileText size={20} />;
+    }
+  };
+
+  const getTypeLabel = () => {
+    const type = tool?.type || 'prompt';
+    switch (type) {
+      case 'assistant':
+        return { title: 'Configuration de l\'assistant', subtitle: 'Gérez les détails de votre assistant' };
+      case 'project':
+        return { title: 'Configuration du projet', subtitle: 'Gérez les détails de votre projet' };
+      default:
+        return { title: 'Configuration du prompt', subtitle: 'Gérez les détails de votre prompt' };
+    }
+  };
+
+  const getSaveModalTexts = () => {
+    const type = tool?.type || 'prompt';
+    switch (type) {
+      case 'assistant':
+        return {
+          successTitle: 'Assistant enregistré',
+          successMessage: 'L\'assistant a été enregistré avec succès.'
+        };
+      case 'project':
+        return {
+          successTitle: 'Projet enregistré',
+          successMessage: 'Le projet a été enregistré avec succès.'
+        };
+      default:
+        return {
+          successTitle: 'Prompt enregistré',
+          successMessage: 'Le prompt a été enregistré avec succès.'
+        };
+    }
+  };
+
+  const typeLabel = getTypeLabel();
+
   const internalTitleSection = (
     <div className="flex items-center gap-4 mb-8">
       <button
@@ -437,11 +487,11 @@ const ToolViewCard: React.FC<ToolViewCardProps> = ({
         <ArrowLeft size={20} />
       </button>
       <div className="bg-[#3b82f6] w-10 h-10 rounded-lg flex items-center justify-center text-white shadow-lg shadow-blue-500/20">
-        <FileText size={20} />
+        {getTypeIcon()}
       </div>
       <div>
-        <h1 className="text-xl font-bold text-slate-900 leading-tight">Configuration du prompt</h1>
-        <p className="text-sm text-slate-500">Gérez les détails de votre prompt</p>
+        <h1 className="text-xl font-bold text-slate-900 leading-tight">{typeLabel.title}</h1>
+        <p className="text-sm text-slate-500">{typeLabel.subtitle}</p>
       </div>
     </div>
   );
@@ -640,16 +690,37 @@ const ToolViewCard: React.FC<ToolViewCardProps> = ({
             )}
           </div>
         </ToolViewContext.Provider>
-        <PublishConfirmModal
-          open={isPublishModalOpen}
-          onCancel={() => setIsPublishModalOpen(false)}
-          onConfirm={confirmPublish}
-          isWorking={isPublishing}
-        />
+        
+        {/* Render the correct publish modal based on tool type */}
+        {tool?.type === 'assistant' && (
+          <AssistantPublishModal
+            open={isPublishModalOpen}
+            onCancel={() => setIsPublishModalOpen(false)}
+            onConfirm={confirmPublish}
+            isWorking={isPublishing}
+          />
+        )}
+        {tool?.type === 'project' && (
+          <ProjectPublishModal
+            open={isPublishModalOpen}
+            onCancel={() => setIsPublishModalOpen(false)}
+            onConfirm={confirmPublish}
+            isWorking={isPublishing}
+          />
+        )}
+        {tool?.type === 'prompt' && (
+          <PromptPublishModal
+            open={isPublishModalOpen}
+            onCancel={() => setIsPublishModalOpen(false)}
+            onConfirm={confirmPublish}
+            isWorking={isPublishing}
+          />
+        )}
+        
         <SaveStatusModal
           open={isSaveModalOpen}
           type={saveModalType}
-          title={saveModalType === 'success' ? 'Prompt enregistré' : "Erreur lors de l’enregistrement"}
+          title={saveModalType === 'success' ? getSaveModalTexts().successTitle : "Erreur lors de l'enregistrement"}
           message={saveModalMessage}
           onClose={() => setIsSaveModalOpen(false)}
         />

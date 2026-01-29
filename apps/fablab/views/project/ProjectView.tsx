@@ -1,20 +1,20 @@
 import React from 'react';
 import { useParams } from 'react-router-dom';
 import ToolViewCard from '../tool/ToolViewCard';
-import AssistantDetails from './AssistantDetails';
+import ProjectDetails from './ProjectDetails';
 
-const AssistantView: React.FC = () => {
+const ProjectView: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const toolId = id ? parseInt(id, 10) : null;
 
 
   return (
-    <div className="flex justify-center p-4 md:p-8 relative bg-gradient-to-br from-gray-50 to-purple-50/30 min-h-screen">
+    <div className="flex justify-center p-4 md:p-8 relative bg-gradient-to-br from-gray-50 to-indigo-50/30 min-h-screen">
       <ToolViewCard toolId={toolId}>
-        {toolId && <AssistantDetails toolId={toolId} />}
+        {toolId && <ProjectDetails toolId={toolId} />}
       </ToolViewCard>
     </div>
   );
 };
 
-export default AssistantView;
+export default ProjectView;

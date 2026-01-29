@@ -3,10 +3,12 @@ import { useParams } from 'react-router-dom';
 import { FileText, Globe, Calendar, User, ChevronLeft } from 'lucide-react';
 import { getPublicCreationTool } from '@core/creation-tools/creation-tools.service';
 import type { CreationTool } from '@core/creation-tools/creation-tools.types';
+import { httpClient } from '@core/api/http.client';
 
 const PublicPrompt: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const [prompt, setPrompt] = useState<CreationTool | null>(null);
+  const [promptContent, setPromptContent] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -31,6 +33,18 @@ const PublicPrompt: React.FC = () => {
         }
         
         setPrompt(data);
+        
+        // Cargar el contenido del prompt desde la tabla prompts
+        try {
+          const promptData = await httpClient.get<{ prompt: string }>(
+            `/api/v1/tools/${id}/prompt`,
+            { requiresAuth: false }
+          );
+          setPromptContent(promptData.prompt || '');
+        } catch (promptErr) {
+          console.error('Error cargando contenido del prompt:', promptErr);
+          // No es error crítico, puede no tener contenido aún
+        }
       } catch (err) {
         console.error('Error cargando prompt:', err);
         setError('No se pudo cargar el prompt. Puede que no exista o no sea público.');
@@ -129,8 +143,9 @@ const PublicPrompt: React.FC = () => {
             </div>
           </div>
 
-          {/* Description */}
+          {/* Content */}
           <div className="p-6 space-y-6">
+            {/* Description */}
             <div>
               <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-3">
                 Descripción
@@ -138,6 +153,27 @@ const PublicPrompt: React.FC = () => {
               <p className="text-gray-700 dark:text-gray-300 leading-relaxed">
                 {prompt.description || 'Sin descripción disponible.'}
               </p>
+            </div>
+
+            {/* Divider */}
+            <div className="border-t border-gray-200 dark:border-gray-700"></div>
+
+            {/* Prompt Content */}
+            <div>
+              <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-3">
+                Contenido del Prompt
+              </h2>
+              {promptContent ? (
+                <div className="bg-slate-50 dark:bg-gray-900/50 border border-slate-200 dark:border-gray-700 rounded-xl p-6">
+                  <pre className="whitespace-pre-wrap break-words text-gray-700 dark:text-gray-300 leading-relaxed font-mono text-sm overflow-x-auto">
+{promptContent}
+                  </pre>
+                </div>
+              ) : (
+                <p className="text-gray-500 dark:text-gray-400 italic">
+                  No hay contenido disponible para este prompt.
+                </p>
+              )}
             </div>
 
             {/* Divider */}
