@@ -4,7 +4,9 @@ import { getTool, toggleToolFavorite, toggleToolVisibility, updateTool } from '@
 import type { CreationTool } from '@core/creation-tools/creation-tools.types';
 import { copyToClipboard } from '@core/ui_utils/navigator_utilies';
 import { useNavigate } from 'react-router-dom';
-import PublishConfirmModal from '../prompt/PublishConfirmModal';
+import PromptPublishModal from '../prompt/PublishConfirmModal';
+import ProjectPublishModal from '../project/PublishConfirmModal';
+import AssistantPublishModal from '../assistant/PublishConfirmModal';
 import SaveStatusModal from '../prompt/SaveStatusModal';
 
 type ToolViewCardProps = {
@@ -688,12 +690,33 @@ const ToolViewCard: React.FC<ToolViewCardProps> = ({
             )}
           </div>
         </ToolViewContext.Provider>
-        <PublishConfirmModal
-          open={isPublishModalOpen}
-          onCancel={() => setIsPublishModalOpen(false)}
-          onConfirm={confirmPublish}
-          isWorking={isPublishing}
-        />
+        
+        {/* Render the correct publish modal based on tool type */}
+        {tool?.type === 'assistant' && (
+          <AssistantPublishModal
+            open={isPublishModalOpen}
+            onCancel={() => setIsPublishModalOpen(false)}
+            onConfirm={confirmPublish}
+            isWorking={isPublishing}
+          />
+        )}
+        {tool?.type === 'project' && (
+          <ProjectPublishModal
+            open={isPublishModalOpen}
+            onCancel={() => setIsPublishModalOpen(false)}
+            onConfirm={confirmPublish}
+            isWorking={isPublishing}
+          />
+        )}
+        {tool?.type === 'prompt' && (
+          <PromptPublishModal
+            open={isPublishModalOpen}
+            onCancel={() => setIsPublishModalOpen(false)}
+            onConfirm={confirmPublish}
+            isWorking={isPublishing}
+          />
+        )}
+        
         <SaveStatusModal
           open={isSaveModalOpen}
           type={saveModalType}
