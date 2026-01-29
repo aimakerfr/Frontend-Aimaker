@@ -5,7 +5,8 @@
 
 # Resolve project root (one level up from this script)
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")"/.. && pwd)"
-cd "$ROOT_DIR"
+
+cd "$ROOT_DIR" || exit
 
 echo "[clean] Cleaning project at: $ROOT_DIR"
 

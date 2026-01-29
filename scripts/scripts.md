@@ -26,12 +26,16 @@ III. deploy.sh
 - Business logic:
   - Resolves project root.
   - Checks that `./dist` exists; aborts if missing.
-  - Ensures target directory `/data/sites/doitandshare.com/www` exists.
-  - If `rsync` is available: `rsync -a --delete ./dist/ /data/sites/doitandshare.com/www/`.
+  - Default target directory: `/data/sites/doitandshare.com/www`.
+  - `-a/--alternative` sets target to `/data/sites/doitandshare.com/build`.
+  - `-t/--target <dir>` (or positional `<dir>`) overrides the target directory.
+  - If `rsync` is available: `rsync -a --delete ./dist/ <target>/`.
   - Else: falls back to `rm -rf` + `cp -a` to mirror contents.
 - Quick run:
   - sudo bash scripts/deploy.sh
-  - Note: Requires permissions to write to `/data/sites/doitandshare.com/www`.
+  - sudo bash scripts/deploy.sh -a                     # deploy to /build
+  - sudo bash scripts/deploy.sh --target /custom/path  # custom target
+  - Note: Requires permissions to write to the chosen target directory.
 
 IV. build_and_deploy.sh
 - Purpose: Wrapper to optionally clean, then build, then deploy — all in one.
@@ -39,10 +43,12 @@ IV. build_and_deploy.sh
   - Resolves project root.
   - Optional flag `--clean-then-simple` or `-c` to run `scripts/clean.sh` first.
   - Runs `scripts/vite_build_simple.sh` to build.
-  - Runs `scripts/deploy.sh` to copy `./dist` to the web root.
+  - Forwards any remaining args to `scripts/deploy.sh` (e.g., `-a`, `--target`).
 - Quick run:
-  - sudo bash scripts/build_and_deploy.sh           # build + deploy
-  - sudo bash scripts/build_and_deploy.sh -c        # clean + build + deploy
+  - sudo bash scripts/build_and_deploy.sh                 # build + deploy
+  - sudo bash scripts/build_and_deploy.sh -c              # clean + build + deploy
+  - sudo bash scripts/build_and_deploy.sh -a              # build + deploy to /build
+  - sudo bash scripts/build_and_deploy.sh -c --target /custom/path
 
 V. vite_dev.sh
 - Purpose: Start a clean development environment and launch Vite dev server.
