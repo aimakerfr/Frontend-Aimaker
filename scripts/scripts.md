@@ -8,18 +8,18 @@ I. clean.sh
   - Resolves project root (one level up from `scripts/`).
   - Deletes `node_modules/`, `package-lock.json`, and `dist/` if they exist.
 - Quick run:
-  - bash scripts/clean.sh
-  - sudo may be required if files were created with elevated permissions.
+  - sudo bash scripts/clean.sh
 
 II. vite_build.sh
-- Purpose: Install dependencies and build the frontend with Vite in the `doitandshare` mode.
+- Purpose: Clean, install dependencies, and build the frontend with Vite in the `doitandshare` mode.
 - Business logic:
   - Resolves project root.
+  - Runs cleanup via `scripts/clean.sh`.
   - Verifies `npm` availability.
   - Runs `npm install`.
   - Runs `npm run build -- --mode doitandshare` and outputs to `./dist`.
 - Quick run:
-  - bash scripts/vite_build.sh
+  - sudo bash scripts/vite_build.sh
 
 III. deploy.sh
 - Purpose: Deploy the built assets in `./dist` to the server web root.
@@ -38,16 +38,16 @@ III. deploy.sh
   - Note: Requires permissions to write to the chosen target directory.
 
 IV. build_and_deploy.sh
-- Purpose: Wrapper to optionally clean, then build, then deploy — all in one.
+- Purpose: Wrapper to clean, build, then deploy — all in one.
 - Business logic:
   - Resolves project root.
-  - Optional flag `--clean-then-simple` or `-c` to run `scripts/clean.sh` first.
-  - Runs `scripts/vite_build.sh` to build.
+  - Optional flag `--clean-then-simple` or `-c` can run `scripts/clean.sh` first (note: `vite_build.sh` already cleans).
+  - Runs `scripts/vite_build.sh` to clean and build.
   - Forwards any remaining args to `scripts/deploy.sh` (e.g., `-a`, `--target`).
 - Quick run:
-  - sudo bash scripts/build_and_deploy.sh                 # build + deploy
-  - sudo bash scripts/build_and_deploy.sh -c              # clean + build + deploy
-  - sudo bash scripts/build_and_deploy.sh -a              # build + deploy to /build
+  - sudo bash scripts/build_and_deploy.sh                 # clean (via build) + build + deploy
+  - sudo bash scripts/build_and_deploy.sh -c              # extra clean + build + deploy
+  - sudo bash scripts/build_and_deploy.sh -a              # clean + build + deploy to /build
   - sudo bash scripts/build_and_deploy.sh -c --target /custom/path
 
 V. vite_dev.sh
