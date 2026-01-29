@@ -16,7 +16,7 @@ if ! command -v npm >/dev/null 2>&1; then
 fi
 
 echo "[vite_dev] Running cleanup ..."
-sh ./scripts/clean.sh
+bash ./scripts/clean.sh
 
 echo "[vite_dev] Installing dependencies (npm install) ..."
 npm install

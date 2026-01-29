@@ -1,10 +1,15 @@
 #!/bin/bash
+set -euo pipefail
 
-# Vite simple build script
-# - Assumes deps are already installed
-# - Runs npm run build (Vite build)
+# Vite build script
+# - Installs dependencies (npm install)
+# - Runs npm run build:doitandshare (Vite build)
 
-echo "[vite_build_simple] Starting simple build in: $ROOT_DIR"
+# Resolve project root (one level up from this script)
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")"/.. && pwd)"
+cd "$ROOT_DIR"
+
+echo "[vite_build] Starting build in: $ROOT_DIR"
 pwd
 
 if ! command -v npm >/dev/null 2>&1; then
@@ -12,10 +17,10 @@ if ! command -v npm >/dev/null 2>&1; then
   exit 1
 fi
 
-echo "[vite_build_simple] Installing dependencies (npm install) ..."
+echo "[vite_build] Installing dependencies (npm install) ..."
 npm install
 
-echo "[vite_build_simple] Building with mode 'doitandshare' (npm run build:doitandshare) ..."
+echo "[vite_build] Building with mode 'doitandshare' (npm run build:doitandshare) ..."
 npm run build:doitandshare
 
-echo "[vite_build_simple] Build complete. Output available in ./dist"
+echo "[vite_build] Build complete. Output available in ./dist"
