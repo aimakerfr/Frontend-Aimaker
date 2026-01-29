@@ -5,56 +5,68 @@ This is a short guide to build the frontend with Vite and deploy the output to t
 - Build output: `./dist` (see `vite.config.ts`)
 - Deploy target: `/data/sites/doitandshare.com/www`
 
-## Quick (recommended)
+## I. Main Deployment Process (recommended)
 
-Run these on the server, from the repo path.
+Run these on the server, from the repo path. The wrapper runs a clean (via `vite_build.sh`) before building.
 
 ### Option 1: Clean + build + deploy (defaults to `/www`)
 
 ```bash
 cd /data/sites/doitandshare.com/Frontend-Aimaker; \
 sudo git pull; \
-sudo sh ./scripts/build_and_deploy.sh -c
+sudo bash ./scripts/build_and_deploy.sh
 ```
 
-### Option 2: Build + deploy (no clean; defaults to `/www`)
+### Option 2: Deploy to alternative target (`/data/sites/doitandshare.com/build`)
 
 ```bash
 cd /data/sites/doitandshare.com/Frontend-Aimaker; \
 sudo git pull; \
-sudo sh ./scripts/build_and_deploy.sh
+sudo bash ./scripts/build_and_deploy.sh -a
 ```
 
-The wrapper will optionally clean (`scripts/clean.sh`), build (`scripts/vite_build.sh`), then deploy (`scripts/deploy.sh`). Any extra flags are forwarded to `deploy.sh` (e.g., `-a` or `--target`).
-
-### Option 3: Deploy to alternative target (`/data/sites/doitandshare.com/build`)
+### Option 3: Deploy to a custom target
 
 ```bash
 cd /data/sites/doitandshare.com/Frontend-Aimaker; \
 sudo git pull; \
-sudo sh ./scripts/build_and_deploy.sh -a
+sudo bash ./scripts/build_and_deploy.sh --target /path/to/your/dir
 ```
 
-### Option 4: Deploy to a custom target
+The wrapper cleans (`scripts/clean.sh`), builds (`scripts/vite_build.sh`), then deploys (`scripts/deploy.sh`). Extra flags are forwarded to `deploy.sh` (e.g., `-a` or `--target`).
+
+## II. Individual scripts
+
+1. Clean
 
 ```bash
-cd /data/sites/doitandshare.com/Frontend-Aimaker; \
-sudo git pull; \
-sudo sh ./scripts/build_and_deploy.sh --target /path/to/your/dir
+sudo bash ./scripts/clean.sh
 ```
 
-## Manual build only
+2. Clean + Build (Vite build always runs clean first)
 
 ```bash
-npm install
-npm run build -- --mode doitandshare
+sudo bash ./scripts/vite_build.sh
+```
+
+3. Deploy to custom target (e.g., `/data/sites/doitandshare.com/build`)
+
+```bash
+sudo bash ./scripts/deploy.sh --target /data/sites/doitandshare.com/build
+```
+
+## III. Manual build only
+
+```bash
+sudo npm install
+sudo npm run build -- --mode doitandshare
 ```
 
 Notes:
 - Mode `doitandshare` loads `.env.doitandshare` (e.g., sets `VITE_API_URL=https://back.doitandshare.com/`).
 - Output goes to `./dist`.
 
-## Manual deploy (copy) only
+## IV. Manual deploy (copy) only
 
 Run this after a successful build (i.e., when `./dist` exists).
 
@@ -75,9 +87,9 @@ sudo cp -a ./dist/. /data/sites/doitandshare.com/www/
 Alternatively, use the script (supports `-a` for `/build` or `--target <dir>` for custom locations):
 
 ```bash
-sudo ./scripts/deploy.sh
+sudo bash ./scripts/deploy.sh
 ```
 
-## Additional notes
+## V. Additional notes
 - Use `sudo` if your user lacks permissions for `/data/sites/doitandshare.com/www`.
 - Adjust paths or mode as needed for other environments.
