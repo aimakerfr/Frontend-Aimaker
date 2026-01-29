@@ -47,7 +47,7 @@ done
 echo "[deploy] Starting deployment from /dist to $TARGET_DIR"
 
 if [[ ! -d "./dist" ]]; then
-  echo "ERROR: dist directory not found. Run the build first (scripts/vite_build_simple.sh)." >&2
+  echo "ERROR: dist directory not found. Run the build first (scripts/vite_build.sh)." >&2
   exit 1
 fi
 

@@ -25,7 +25,7 @@ sudo git pull; \
 sudo sh ./scripts/build_and_deploy.sh
 ```
 
-The wrapper will optionally clean (`scripts/clean.sh`), build (`scripts/vite_build_simple.sh`), then deploy (`scripts/deploy.sh`). Any extra flags are forwarded to `deploy.sh` (e.g., `-a` or `--target`).
+The wrapper will optionally clean (`scripts/clean.sh`), build (`scripts/vite_build.sh`), then deploy (`scripts/deploy.sh`). Any extra flags are forwarded to `deploy.sh` (e.g., `-a` or `--target`).
 
 ### Option 3: Deploy to alternative target (`/data/sites/doitandshare.com/build`)
 

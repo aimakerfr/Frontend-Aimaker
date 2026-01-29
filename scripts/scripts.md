@@ -11,7 +11,7 @@ I. clean.sh
   - bash scripts/clean.sh
   - sudo may be required if files were created with elevated permissions.
 
-II. vite_build_simple.sh
+II. vite_build.sh
 - Purpose: Install dependencies and build the frontend with Vite in the `doitandshare` mode.
 - Business logic:
   - Resolves project root.
@@ -19,7 +19,7 @@ II. vite_build_simple.sh
   - Runs `npm install`.
   - Runs `npm run build -- --mode doitandshare` and outputs to `./dist`.
 - Quick run:
-  - bash scripts/vite_build_simple.sh
+  - bash scripts/vite_build.sh
 
 III. deploy.sh
 - Purpose: Deploy the built assets in `./dist` to the server web root.
@@ -42,7 +42,7 @@ IV. build_and_deploy.sh
 - Business logic:
   - Resolves project root.
   - Optional flag `--clean-then-simple` or `-c` to run `scripts/clean.sh` first.
-  - Runs `scripts/vite_build_simple.sh` to build.
+  - Runs `scripts/vite_build.sh` to build.
   - Forwards any remaining args to `scripts/deploy.sh` (e.g., `-a`, `--target`).
 - Quick run:
   - sudo bash scripts/build_and_deploy.sh                 # build + deploy
