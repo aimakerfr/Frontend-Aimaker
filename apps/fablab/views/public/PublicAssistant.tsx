@@ -3,10 +3,12 @@ import { useParams } from 'react-router-dom';
 import { BookOpen, Globe, Calendar, User, ChevronLeft, MessageSquare } from 'lucide-react';
 import { getPublicCreationTool } from '@core/creation-tools/creation-tools.service';
 import type { CreationTool } from '@core/creation-tools/creation-tools.types';
+import { httpClient } from '@core/api/http.client';
 
 const PublicAssistant: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const [assistant, setAssistant] = useState<CreationTool | null>(null);
+  const [assistantData, setAssistantData] = useState<{ platform?: string; url?: string; baseUrl?: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -31,6 +33,18 @@ const PublicAssistant: React.FC = () => {
         }
         
         setAssistant(data);
+        
+        // Cargar datos específicos del asistente desde la tabla assistants
+        try {
+          const assistantRes = await httpClient.get<{ platform?: string; url?: string; baseUrl?: string }>(
+            `/api/v1/tools/${id}/assistant`,
+            { requiresAuth: false }
+          );
+          setAssistantData(assistantRes);
+        } catch (assistantErr) {
+          console.error('Error cargando datos del asistente:', assistantErr);
+          // No es error crítico, puede no tener datos específicos aún
+        }
       } catch (err) {
         console.error('Error cargando asistente:', err);
         setError('No se pudo cargar el asistente. Puede que no exista o no sea público.');
@@ -143,34 +157,51 @@ const PublicAssistant: React.FC = () => {
             {/* Divider */}
             <div className="border-t border-gray-200 dark:border-gray-700"></div>
 
-            {/* Capacidades del asistente */}
-            <div>
-              <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-                <MessageSquare size={20} />
-                Capacidades
-              </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <div className="p-4 bg-gray-50 dark:bg-gray-900/30 rounded-lg border border-gray-200 dark:border-gray-700">
-                  <h3 className="font-semibold text-gray-900 dark:text-white mb-1 text-sm">
-                    Conversación Natural
-                  </h3>
-                  <p className="text-xs text-gray-600 dark:text-gray-400">
-                    Interacción fluida y contextual
-                  </p>
+            {/* Configuración del asistente */}
+            {assistantData && (assistantData.platform || assistantData.url || assistantData.baseUrl) && (
+              <>
+                <div>
+                  <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+                    <MessageSquare size={20} />
+                    Configuración
+                  </h2>
+                  <div className="grid grid-cols-1 gap-3">
+                    {assistantData.platform && (
+                      <div className="p-4 bg-gray-50 dark:bg-gray-900/30 rounded-lg border border-gray-200 dark:border-gray-700">
+                        <h3 className="font-semibold text-gray-900 dark:text-white mb-1 text-sm">
+                          Plataforma
+                        </h3>
+                        <p className="text-xs text-gray-600 dark:text-gray-400">
+                          {assistantData.platform}
+                        </p>
+                      </div>
+                    )}
+                    {assistantData.url && (
+                      <div className="p-4 bg-gray-50 dark:bg-gray-900/30 rounded-lg border border-gray-200 dark:border-gray-700">
+                        <h3 className="font-semibold text-gray-900 dark:text-white mb-1 text-sm">
+                          URL del Asistente
+                        </h3>
+                        <p className="text-xs text-gray-600 dark:text-gray-400 break-all">
+                          {assistantData.url}
+                        </p>
+                      </div>
+                    )}
+                    {assistantData.baseUrl && (
+                      <div className="p-4 bg-gray-50 dark:bg-gray-900/30 rounded-lg border border-gray-200 dark:border-gray-700">
+                        <h3 className="font-semibold text-gray-900 dark:text-white mb-1 text-sm">
+                          Base URL
+                        </h3>
+                        <p className="text-xs text-gray-600 dark:text-gray-400 break-all">
+                          {assistantData.baseUrl}
+                        </p>
+                      </div>
+                    )}
+                  </div>
                 </div>
-                <div className="p-4 bg-gray-50 dark:bg-gray-900/30 rounded-lg border border-gray-200 dark:border-gray-700">
-                  <h3 className="font-semibold text-gray-900 dark:text-white mb-1 text-sm">
-                    Respuestas Personalizadas
-                  </h3>
-                  <p className="text-xs text-gray-600 dark:text-gray-400">
-                    Adaptado a tus necesidades
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Divider */}
-            <div className="border-t border-gray-200 dark:border-gray-700"></div>
+                {/* Divider */}
+                <div className="border-t border-gray-200 dark:border-gray-700"></div>
+              </>
+            )}
 
             {/* Info box */}
             <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4">

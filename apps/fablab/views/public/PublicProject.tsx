@@ -1,12 +1,21 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { FolderKanban, Globe, Calendar, User, ChevronLeft, ExternalLink, Heart, Code2 } from 'lucide-react';
+import { FolderKanban, Globe, Calendar, User, ChevronLeft, ExternalLink, Heart, Code2, Database } from 'lucide-react';
 import { getPublicCreationTool } from '@core/creation-tools/creation-tools.service';
 import type { CreationTool } from '@core/creation-tools/creation-tools.types';
+import { httpClient } from '@core/api/http.client';
 
 const PublicProject: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const [project, setProject] = useState<CreationTool | null>(null);
+  const [projectData, setProjectData] = useState<{
+    filesUrl?: string;
+    deploymentUrl?: string;
+    databaseUrl?: string;
+    dataBaseName?: string;
+    appName?: string;
+    category?: string;
+  } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -31,6 +40,25 @@ const PublicProject: React.FC = () => {
         }
         
         setProject(data);
+        
+        // Cargar datos específicos del proyecto desde la tabla projects
+        try {
+          const projectRes = await httpClient.get<{
+            filesUrl?: string;
+            deploymentUrl?: string;
+            databaseUrl?: string;
+            dataBaseName?: string;
+            appName?: string;
+            category?: string;
+          }>(
+            `/api/v1/tools/${id}/project`,
+            { requiresAuth: false }
+          );
+          setProjectData(projectRes);
+        } catch (projectErr) {
+          console.error('Error cargando datos del proyecto:', projectErr);
+          // No es error crítico, puede no tener datos específicos aún
+        }
       } catch (err) {
         console.error('Error cargando proyecto:', err);
         setError('No se pudo cargar el proyecto. Puede que no exista o no sea público.');
@@ -157,7 +185,7 @@ const PublicProject: React.FC = () => {
       <div className="max-w-6xl mx-auto px-6 py-8">
         <div className="grid gap-6">
           {/* Deployment URL Card */}
-          {project.deploymentUrl && (
+          {projectData?.deploymentUrl && (
             <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
               <div className="bg-gradient-to-r from-blue-500 to-indigo-600 px-6 py-4">
                 <h2 className="text-lg font-bold text-white flex items-center gap-2">
@@ -170,16 +198,16 @@ const PublicProject: React.FC = () => {
                   <div className="flex-1">
                     <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">URL de despliegue</p>
                     <a
-                      href={project.deploymentUrl}
+                      href={projectData.deploymentUrl}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 font-medium break-all"
                     >
-                      {project.deploymentUrl}
+                      {projectData.deploymentUrl}
                     </a>
                   </div>
                   <a
-                    href={project.deploymentUrl}
+                    href={projectData.deploymentUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex-shrink-0 px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-semibold rounded-xl transition-all shadow-lg shadow-blue-500/30 flex items-center gap-2"
@@ -187,6 +215,48 @@ const PublicProject: React.FC = () => {
                     <ExternalLink size={18} />
                     Visitar
                   </a>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Project Metadata */}
+          {projectData && (projectData.filesUrl || projectData.databaseUrl || projectData.dataBaseName || projectData.appName) && (
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+              <div className="bg-gradient-to-r from-purple-500 to-pink-600 px-6 py-4">
+                <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                  <Database size={20} />
+                  Información del Proyecto
+                </h2>
+              </div>
+              <div className="p-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {projectData.appName && (
+                    <div className="p-4 bg-gray-50 dark:bg-gray-900/30 rounded-lg">
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Nombre de la aplicación</p>
+                      <p className="text-sm font-medium text-gray-900 dark:text-white">{projectData.appName}</p>
+                    </div>
+                  )}
+                  {projectData.category && (
+                    <div className="p-4 bg-gray-50 dark:bg-gray-900/30 rounded-lg">
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Categoría</p>
+                      <p className="text-sm font-medium text-gray-900 dark:text-white">{projectData.category}</p>
+                    </div>
+                  )}
+                  {projectData.filesUrl && (
+                    <div className="p-4 bg-gray-50 dark:bg-gray-900/30 rounded-lg">
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Repositorio de archivos</p>
+                      <a href={projectData.filesUrl} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline break-all">
+                        {projectData.filesUrl}
+                      </a>
+                    </div>
+                  )}
+                  {projectData.dataBaseName && (
+                    <div className="p-4 bg-gray-50 dark:bg-gray-900/30 rounded-lg">
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Base de datos</p>
+                      <p className="text-sm font-medium text-gray-900 dark:text-white">{projectData.dataBaseName}</p>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
