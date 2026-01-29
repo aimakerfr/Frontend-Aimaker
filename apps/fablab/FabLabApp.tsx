@@ -17,7 +17,7 @@ import ImageGeneration from './views/server-tools/ImageGeneration';
 import Administration from './views/server-tools/Administration';
 import PromptView from './views/prompt/PromptView';
 import AssistantView from './views/assistant/AssistantView';
-import { ProjectView } from './views/projects';
+import { ProjectView } from './views/project';
 import PublicNotebook from './views/public/PublicNotebook';
 import PublicPrompt from './views/public/PublicPrompt';
 import PublicAssistant from './views/public/PublicAssistant';
