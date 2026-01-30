@@ -19,6 +19,13 @@ import PublicPrompt from '@apps/fablab/views/public/PublicPrompt';
 import PublicAssistant from '@apps/fablab/views/public/PublicAssistant';
 import PublicProject from '@apps/fablab/views/public/PublicProject';
 
+const publicShareRoutes = [
+  { path: '/public-share/notebook/:id', element: <Notebook isPublicView={true} /> },
+  { path: '/public-share/prompt/:id', element: <PublicPrompt /> },
+  { path: '/public-share/assistant/:id', element: <PublicAssistant /> },
+  { path: '/public-share/project/:id', element: <PublicProject /> },
+];
+
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // Protected Route Component
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -121,7 +128,12 @@ export function AppRouter() {
             </PublicRoute>
           }
         />
-        
+
+          {/* Public Share Routes - No auth required, read-only */}
+          {publicShareRoutes.map((route) => (
+              <Route key={route.path} path={route.path} element={route.element} />
+          ))}
+
         {/* Public Notebook - No auth required, read-only */}
         <Route path="/public/notebook/:id" element={<Notebook isPublicView={true} />} />
         
