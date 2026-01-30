@@ -10,7 +10,7 @@ import MakerPathView from './views/maker-path/MakerPath';
 import ProjectPlanner from './views/projects/ProjectPlanner';
 import ExternalAccess from './views/external-access/ExternalAccess';
 import AIChat from './components/AIChat';
-import Notebook from '@apps/notebook/Notebook';
+import Notebook from '@apps/fablab/views/notebook/Notebook';
 import PerplexityIndex from './views/server-tools/PerplexityIndex';
 import PromptOptimize from './views/server-tools/PromptOptimize';
 import ImageGeneration from './views/server-tools/ImageGeneration';

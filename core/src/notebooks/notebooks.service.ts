@@ -60,6 +60,8 @@ export interface PostNoteBookSourceResponse {
   createdAt: string;
 }
 
+export type NotebookSourceItem = PostNoteBookSourceResponse;
+
 export class NotebookService {
   private baseUrl = '/api/v1/notebooks';
   private publicBaseUrl = '/api/v1/public/notebooks';
@@ -111,6 +113,20 @@ export const updateNotebook = async (notebookId: number, updates: UpdateNotebook
  */
 export const deleteNotebook = async (notebookId: number): Promise<void> => {
   await httpClient.delete<void>(`${ENDPOINT}/${notebookId}`);
+};
+
+/**
+ * Obtener todas las fuentes de un notebook por id (controlador REST)
+ */
+export const getNotebookSources = async (noteBookId: number): Promise<NotebookSourceItem[]> => {
+  return httpClient.get<NotebookSourceItem[]>(`/api/v1/notebook-sources?note_book_id=${noteBookId}`);
+};
+
+/**
+ * Obtener todas las fuentes de un notebook (ruta anidada Api Platform)
+ */
+export const getNotebookSourcesNested = async (noteBookId: number): Promise<NotebookSourceItem[]> => {
+  return httpClient.get<NotebookSourceItem[]>(`/api/note_books/${noteBookId}/sources`);
 };
 
 /**

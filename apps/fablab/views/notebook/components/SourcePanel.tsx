@@ -1,9 +1,9 @@
 
 import React, { useState, useRef } from 'react';
 import { Plus, Trash2, CheckSquare, Square, FileType, Upload, X, Video, Link2, ImageIcon, Eye, FileText, AlignLeft, ClipboardPaste, Globe, ExternalLink, Download } from 'lucide-react';
-import { Source, SourceType, Language } from '../types';
-import { extractUrlContent, transcribeVideo, transcribeVideoUrl, analyzeImage, processPdfVisual } from '../services/geminiService';
-import { UI_TRANSLATIONS } from '../constants/translations';
+import { Source, SourceType, Language } from '../types.ts';
+import { extractUrlContent, transcribeVideo, transcribeVideoUrl, analyzeImage, processPdfVisual } from '../services/geminiService.ts';
+import { UI_TRANSLATIONS } from '../constants/translations.ts';
 
 interface SourcePanelProps {
     sources: Source[];
@@ -26,12 +26,26 @@ const SourcePanel: React.FC<SourcePanelProps> = ({ sources, onAddSource, onToggl
     const [mimeType, setMimeType] = useState('');
     const [localPreviewUrl, setLocalPreviewUrl] = useState<string>('');
     const [selectedFile, setSelectedFile] = useState<File | undefined>(undefined);
+    const [videoPreviewError, setVideoPreviewError] = useState(false);
 
     const fileInputRef = useRef<HTMLInputElement>(null);
     const videoInputRef = useRef<HTMLInputElement>(null);
     const imageInputRef = useRef<HTMLInputElement>(null);
 
     const htmlInputRef = useRef<HTMLInputElement>(null);
+
+    // Use URLs as provided. For backend-loaded sources, `filePath` is already absolute.
+    // For locally added sources without backend `filePath`, `previewUrl` may be a blob: URL.
+
+    const openSourceFilePathUrl = (link?: string) => {
+        if (!link) return;
+        console.log('opening...')
+        console.log(link)
+        window.open(link, '_blank', 'noopener,noreferrer');
+    };
+
+    const getPreviewLink = (source?: Source | null) => source?.previewUrl || source?.url;
+    const getUrlLink = (source?: Source | null) => source?.url;
 
     const fileToBase64 = (file: File): Promise<string> => {
         return new Promise((resolve) => {
@@ -352,6 +366,7 @@ const SourcePanel: React.FC<SourcePanelProps> = ({ sources, onAddSource, onToggl
                                     {previewSource.type === 'image' && <ImageIcon size={22} />}
                                     {previewSource.type === 'video' && <Video size={22} />}
                                     {previewSource.type === 'pdf' && <FileText size={22} />}
+                                    {previewSource.type === 'html' && <Globe size={22} />}
                                     {previewSource.type === 'url' && <Link2 size={22} />}
                                     {previewSource.type === 'text' && <AlignLeft size={22} />}
                                 </div>
@@ -365,35 +380,100 @@ const SourcePanel: React.FC<SourcePanelProps> = ({ sources, onAddSource, onToggl
                             </button>
                         </div>
                         <div className="flex-1 overflow-y-auto bg-gray-50 p-8 md:p-12 no-scrollbar">
-                            <div className="w-full h-full flex items-center justify-center">
-                                {previewSource.type === 'pdf' && (
-                                    <div className="bg-white p-10 rounded-[3rem] shadow-xl border border-gray-100 max-w-md w-full text-center">
-                                        <FileText size={56} className="text-red-500 mx-auto mb-8" />
-                                        <h4 className="text-2xl font-black text-gray-900 mb-2">Documento</h4>
-                                        <p className="text-gray-400 text-[10px] font-bold uppercase tracking-widest mb-10">El contenido ha sido inyectado al motor RAG</p>
-                                        <div className="flex flex-col gap-4">
-                                            {previewSource.previewUrl && (
+                            {(() => {
+                                const previewLink = getPreviewLink(previewSource);
+                                const urlLink = getUrlLink(previewSource);
+
+                                return (
+                                <div className="w-full h-full flex items-center justify-center">
+                                    {(previewSource.type === 'pdf' || previewSource.type === 'html') && (
+                                        <div className="bg-white p-10 rounded-[3rem] shadow-xl border border-gray-100 max-w-md w-full text-center">
+                                            <FileText size={56} className={`mx-auto mb-8 ${previewSource.type === 'html' ? 'text-blue-600' : 'text-red-500'}`} />
+                                            <h4 className="text-2xl font-black text-gray-900 mb-2">{previewSource.type === 'html' ? 'Documento HTML' : 'Documento'}</h4>
+                                            <p className="text-gray-400 text-[10px] font-bold uppercase tracking-widest mb-10">El contenido ha sido inyectado al motor RAG</p>
+                                            <div className="flex flex-col gap-4">
+                                            {previewLink && (
                                                 <>
-                                                    <a href={previewSource.previewUrl} target="_blank" rel="noopener noreferrer" className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black text-xs uppercase tracking-wider shadow-lg flex items-center justify-center gap-2 hover:bg-indigo-700 transition-colors">
+                                                    <button onClick={() => openSourceFilePathUrl(previewLink)} className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black text-xs uppercase tracking-wider shadow-lg flex items-center justify-center gap-2 hover:bg-indigo-700 transition-colors">
                                                         <ExternalLink size={16} /> Abrir en pestaña nueva
-                                                    </a>
-                                                    <a href={previewSource.previewUrl} download={previewSource.title + (previewSource.previewUrl.includes('.pdf') ? ".pdf" : ".txt")} className="w-full py-4 bg-white text-indigo-600 border-2 border-indigo-600 rounded-2xl font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 hover:bg-indigo-50 transition-colors">
+                                                    </button>
+                                                    <a href={previewLink} download={previewSource.title + (previewSource.type === 'html' ? ".html" : ".pdf")} className="w-full py-4 bg-white text-indigo-600 border-2 border-indigo-600 rounded-2xl font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 hover:bg-indigo-50 transition-colors">
                                                         <Download size={16} /> Descargar Archivo
                                                     </a>
                                                 </>
                                             )}
+                                            </div>
                                         </div>
-                                    </div>
-                                )}
-                                {previewSource.type === 'text' && (
-                                    <div className="w-full max-w-3xl bg-white p-10 md:p-14 rounded-[2.5rem] shadow-sm border border-gray-100">
-                                        <pre className="whitespace-pre-wrap font-sans text-gray-700 leading-relaxed text-sm md:text-base">{previewSource.content}</pre>
-                                    </div>
-                                )}
-                                {previewSource.type === 'image' && previewSource.previewUrl && <img src={previewSource.previewUrl} alt={previewSource.title} className="max-w-full max-h-[60vh] object-contain rounded-3xl shadow-2xl border-[12px] border-white" />}
-                                {previewSource.type === 'video' && <div className="w-full max-w-3xl bg-black rounded-[2.5rem] overflow-hidden shadow-2xl ring-8 ring-white">{previewSource.previewUrl?.includes('blob:') ? <video src={previewSource.previewUrl} controls className="w-full aspect-video" /> : <div className="p-20 text-center"><Video size={64} className="text-purple-400 mx-auto mb-8" /><a href={previewSource.url} target="_blank" className="px-10 py-5 bg-indigo-600 text-white rounded-2xl font-black text-xs uppercase tracking-wider">Ver Video en YouTube</a></div>}</div>}
-                                {previewSource.type === 'url' && <div className="bg-white p-14 rounded-[3rem] shadow-xl border border-gray-100 max-w-2xl w-full text-center"><Globe size={56} className="text-blue-600 mx-auto mb-8" /><h4 className="text-2xl font-black text-gray-900 mb-2">Contenido Web</h4><p className="text-gray-400 mb-12 text-sm font-bold break-all px-6">{previewSource.url}</p><a href={previewSource.url} target="_blank" className="w-full max-w-xs mx-auto py-5 bg-indigo-600 text-white rounded-2xl font-black text-xs uppercase tracking-wider shadow-lg">Visitar enlace original</a></div>}
-                            </div>
+                                    )}
+                                    {previewSource.type === 'text' && (
+                                        <div className="w-full max-w-3xl bg-white p-10 md:p-14 rounded-[2.5rem] shadow-sm border border-gray-100">
+                                            <pre className="whitespace-pre-wrap font-sans text-gray-700 leading-relaxed text-sm md:text-base">{previewSource.content}</pre>
+                                        </div>
+                                    )}
+                                    {previewSource.type === 'image' && previewLink && (
+                                        <div className="flex flex-col items-center gap-5">
+                                            <img
+                                                src={previewLink}
+                                                alt={previewSource.title}
+                                                className="max-w-full max-h-[60vh] object-contain rounded-3xl shadow-2xl border-[12px] border-white"
+                                            />
+                                            <button
+                                                onClick={() => openSourceFilePathUrl(previewLink)}
+                                                className="inline-flex items-center gap-2 px-5 py-3 bg-indigo-600 text-white rounded-2xl font-black text-xs uppercase tracking-wider shadow-lg hover:bg-indigo-700 transition-colors"
+                                            >
+                                                <ExternalLink size={16} /> Abrir en pestaña nueva
+                                            </button>
+                                        </div>
+                                    )}
+                                    {previewSource.type === 'video' && (
+                                        <div className="w-full max-w-3xl bg-black rounded-[2.5rem] overflow-hidden shadow-2xl ring-8 ring-white">
+                                            {previewLink && !videoPreviewError ? (
+                                                <div className="w-full">
+                                                    <video
+                                                        src={previewLink}
+                                                        controls
+                                                        className="w-full aspect-video"
+                                                        onError={() => setVideoPreviewError(true)}
+                                                    />
+                                                    <div className="p-4 bg-white flex justify-center">
+                                                        <button
+                                                            onClick={() => openSourceFilePathUrl(urlLink || previewLink)}
+                                                            className="inline-flex items-center gap-2 px-5 py-3 bg-indigo-600 text-white rounded-2xl font-black text-xs uppercase tracking-wider shadow-lg hover:bg-indigo-700 transition-colors"
+                                                        >
+                                                            <ExternalLink size={16} /> Abrir en pestaña nueva
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <div className="p-20 text-center bg-white">
+                                                    <Video size={64} className="text-purple-400 mx-auto mb-8" />
+                                                    {(urlLink || previewLink) && (
+                                                        <button
+                                                            onClick={() => openSourceFilePathUrl(urlLink || previewLink)}
+                                                            className="px-10 py-5 bg-indigo-600 text-white rounded-2xl font-black text-xs uppercase tracking-wider"
+                                                        >
+                                                            Abrir en pestaña nueva
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+                                    {previewSource.type === 'url' && (
+                                        <div className="bg-white p-14 rounded-[3rem] shadow-xl border border-gray-100 max-w-2xl w-full text-center">
+                                            <Globe size={56} className="text-blue-600 mx-auto mb-8" />
+                                            <h4 className="text-2xl font-black text-gray-900 mb-2">Contenido Web</h4>
+                                            <p className="text-gray-400 mb-12 text-sm font-bold break-all px-6">{urlLink || previewSource.url}</p>
+                                            {(urlLink || previewSource.url) && (
+                                                <button onClick={() => openSourceFilePathUrl(urlLink || previewSource.url)} className="w-full max-w-xs mx-auto py-5 bg-indigo-600 text-white rounded-2xl font-black text-xs uppercase tracking-wider shadow-lg">
+                                                    Visitar enlace original
+                                                </button>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                                );
+                            })()}
                         </div>
                     </div>
                 </div>
