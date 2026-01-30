@@ -13,7 +13,7 @@ import { useAuth } from '../auth/useAuth';
 
 import AuthApp from '@apps/auth/AuthApp';
 import FabLabApp from '@apps/fablab/FabLabApp';
-import Notebook from '@apps/notebook/Notebook';
+import Notebook from '@apps/fablab/views/notebook/Notebook';
 import TemplateSelector from '@apps/frontend_template_visualizer/components/TemplateSelector';
 import PublicPrompt from '@apps/fablab/views/public/PublicPrompt';
 import PublicAssistant from '@apps/fablab/views/public/PublicAssistant';

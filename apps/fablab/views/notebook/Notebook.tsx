@@ -1,13 +1,13 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import SourcePanel from './components/SourcePanel';
-import ChatInterface from './components/ChatInterface';
-import { Source, ChatMessage, SourceType, StructuredSummary, Language } from './types';
-import { generateChatResponse, generateSourceSummary } from './services/geminiService';
+import SourcePanel from './components/SourcePanel.tsx';
+import ChatInterface from './components/ChatInterface.tsx';
+import { Source, ChatMessage, SourceType, StructuredSummary, Language } from './types.ts';
+import { generateChatResponse, generateSourceSummary } from './services/geminiService.ts';
 import { Layout, Menu, Globe, ChevronDown, ArrowLeft, Star, ExternalLink, Lock } from 'lucide-react';
-import { postNoteBookSource } from '@core/notebooks';
-import { getTool, updateTool } from '@core/creation-tools/creation-tools.service';
+import { getNotebookSources, postNoteBookSource, type NotebookSourceItem } from '@core/notebooks';
+import { getTool, updateTool } from '@core/creation-tools/creation-tools.service.ts';
 
 enum Visibility {
   PRIVATE = 'private',
@@ -57,6 +57,68 @@ const App: React.FC<NotebookProps> = ({ isPublicView = false }) => {
             loadNotebookData(parseInt(id), titleFromParam);
         }
     }, [id, searchParams]);
+
+    const mapApiSourceType = (type: string): SourceType => {
+        switch (type?.toUpperCase()) {
+            case 'PDF':
+                return 'pdf';
+            case 'IMAGE':
+                return 'image';
+            case 'VIDEO':
+                return 'video';
+            case 'TEXT':
+                return 'text';
+            case 'WEBSITE':
+                return 'url';
+            case 'HTML':
+                return 'html';
+            default:
+                return 'text';
+        }
+    };
+
+    const mapApiSourceToLocal = (apiSource: NotebookSourceItem): Source => {
+        const filePath = apiSource.filePath || undefined;
+
+        return {
+            id: apiSource.id.toString(),
+            title: apiSource.name,
+            type: mapApiSourceType(apiSource.type),
+            content: filePath ?? '',
+            url: filePath,
+            previewUrl: filePath,
+            dateAdded: apiSource.createdAt ? new Date(apiSource.createdAt) : new Date(),
+            selected: false,
+        };
+    };
+
+    const loadNotebookSources = async (notebookId: number) => {
+        try {
+            const apiSources = await getNotebookSources(notebookId);
+            const mappedSources = apiSources.map(mapApiSourceToLocal);
+
+            setSources((prev) => {
+                const existingIds = new Set(prev.map((s) => s.id));
+                const merged = [...prev];
+
+                mappedSources.forEach((source) => {
+                    if (!existingIds.has(source.id)) {
+                        merged.push(source);
+                    }
+                });
+
+                return merged;
+            });
+        } catch (error) {
+            console.error('Error cargando fuentes del notebook:', error);
+        }
+    };
+
+    useEffect(() => {
+        if (!id) return;
+
+        loadNotebookSources(parseInt(id));
+    }, [id]);
 
     const loadNotebookData = async (notebookId: number, fallbackTitle?: string | null) => {
         try {
@@ -187,6 +249,7 @@ const App: React.FC<NotebookProps> = ({ isPublicView = false }) => {
         url?: string,
         previewUrl?: string
     ) => {
+        const absoluteUrl = response?.filePath || previewUrl || url;
         console.log('[Notebook] processSourceLocally - Creating new source:', { 
             title: response.name, 
             type, 
@@ -198,8 +261,8 @@ const App: React.FC<NotebookProps> = ({ isPublicView = false }) => {
             title: response.name,
             type,
             content,
-            url,
-            previewUrl,
+            url: absoluteUrl,
+            previewUrl: absoluteUrl,
             dateAdded: new Date(response.createdAt),
             selected: true,
         };

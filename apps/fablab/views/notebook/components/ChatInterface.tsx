@@ -1,8 +1,8 @@
 
 import React, { useRef, useEffect } from 'react';
 import { Send, Bot, User, Sparkles, BookOpen, ChevronDown, ChevronUp, Target, Layers } from 'lucide-react';
-import { ChatMessage, StructuredSummary, Language } from '../types';
-import { UI_TRANSLATIONS } from '../constants/translations';
+import { ChatMessage, StructuredSummary, Language } from '../types.ts';
+import { UI_TRANSLATIONS } from '../constants/translations.ts';
 
 interface ChatInterfaceProps {
     messages: ChatMessage[];

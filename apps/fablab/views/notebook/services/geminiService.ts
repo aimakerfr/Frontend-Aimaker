@@ -1,5 +1,5 @@
-import { httpClient } from '../../../core/src/api/http.client';
-import { Source, StructuredSummary, Language } from "../types";
+import { httpClient } from '@core/api/http.client.ts';
+import { Source, StructuredSummary, Language } from "../types.ts";
 
 const GEMINI_ENDPOINT = '/api/v1/gemini';
 
