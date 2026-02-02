@@ -223,7 +223,7 @@ const App: React.FC<NotebookProps> = ({ isPublicView = false }) => {
         }
     };
 
-    const uploadSource = async (apiType: string, title: string, file?: File) => {
+    const uploadSource = async (apiType: string, title: string, file?: File, url?: string) => {
         if (!id) throw new Error('Notebook ID is missing');
 
         // WEBSITE, HTML, TEXT, and VIDEO can be sent without a file
@@ -237,6 +237,11 @@ const App: React.FC<NotebookProps> = ({ isPublicView = false }) => {
         // Include file only if provided (optional for WEBSITE, HTML, TEXT, VIDEO from URLs)
         if (file) {
             formData.append('stream_file', file);
+        }
+        
+        // Include URL if provided (for WEBSITE and VIDEO types)
+        if (url) {
+            formData.append('url', url);
         }
         
         return await postNoteBookSource(formData);
@@ -282,7 +287,7 @@ const App: React.FC<NotebookProps> = ({ isPublicView = false }) => {
             if (apiType === 'URL') apiType = 'WEBSITE';
             // Keep HTML, PDF, TEXT, VIDEO, IMAGE as is (already uppercase)
 
-            const response = await uploadSource(apiType, title, file);
+            const response = await uploadSource(apiType, title, file, url);
             processSourceLocally(response, type, content, url, previewUrl);
         } catch (error) {
             console.error('Error adding source to backend:', error);
