@@ -167,16 +167,16 @@ const LibraryView: React.FC<LibraryViewProps> = ({
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-              Library
+              {t.library.title}
             </h1>
-            <p className="text-gray-600 dark:text-gray-400 mt-1">Gérez vos ressources IA en un clin d'œil.</p>
+            <p className="text-gray-600 dark:text-gray-400 mt-1">{t.library.subtitle}</p>
           </div>
           <button
             onClick={() => setShowCreateModal(true)}
             className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold rounded-xl transition-all shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40 hover:scale-[1.02]"
           >
             <Plus size={20} />
-            Créer
+            {t.library.createNew}
           </button>
         </div>
 
@@ -185,7 +185,7 @@ const LibraryView: React.FC<LibraryViewProps> = ({
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
               <input
                 type="text"
-                placeholder="Rechercher..."
+                placeholder={t.library.searchPlaceholder}
                 value={searchQuery}
                 onChange={handleSearchChange}
                 className="pl-12 pr-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none w-full shadow-sm"
@@ -223,23 +223,23 @@ const LibraryView: React.FC<LibraryViewProps> = ({
           <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 overflow-hidden">
             <div className="bg-gradient-to-r from-gray-50 to-blue-50/50 dark:from-gray-900 dark:to-blue-900/20 border-b border-gray-200 dark:border-gray-700">
               <div className="grid grid-cols-12 gap-4 px-6 py-4">
-                <div className="col-span-1 text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider">Type</div>
-                <div className="col-span-3 text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider">Nom & Description</div>
-                <div className="col-span-1 text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider">Language</div>
-                <div className="col-span-2 text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider">Action</div>
-                <div className="col-span-2 text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider">Public/Privé</div>
-                <div className="col-span-2 text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider">Auteur / Date</div>
-                <div className="col-span-1 text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider text-center">Favoris</div>
+                <div className="col-span-1 text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider">{t.library.tableHeaders.type}</div>
+                <div className="col-span-3 text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider">{t.library.tableHeaders.nameDescription}</div>
+                <div className="col-span-1 text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider">{t.library.tableHeaders.language}</div>
+                <div className="col-span-2 text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider">{t.library.tableHeaders.action}</div>
+                <div className="col-span-2 text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider">{t.library.tableHeaders.publicPrivate}</div>
+                <div className="col-span-2 text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider">{t.library.tableHeaders.authorDate}</div>
+                <div className="col-span-1 text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider text-center">{t.library.filters.favorites}</div>
               </div>
             </div>
 
             {isLoading ? (
               <div className="px-6 py-16 text-center text-gray-500">
                 <div className="inline-block w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-                <p className="mt-4">Chargement...</p>
+                <p className="mt-4">{t.common.loading}</p>
               </div>
             ) : filteredItems.length === 0 ? (
-              <div className="px-6 py-16 text-center text-gray-500">Aucun élément trouvé</div>
+              <div className="px-6 py-16 text-center text-gray-500">{t.library.noResults}</div>
             ) : (
               <div>
                 {filteredItems.map((item: LibraryItem, index: number) => {
@@ -370,9 +370,9 @@ const LibraryView: React.FC<LibraryViewProps> = ({
           <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-4xl w-full max-h-[85vh] overflow-auto">
             <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700 sticky top-0 bg-white dark:bg-gray-800 z-10">
               <div>
-                <h3 className="text-2xl font-bold text-gray-900 dark:text-white">Créer une ressource</h3>
+                <h3 className="text-2xl font-bold text-gray-900 dark:text-white">{t.library.modal.createTitle}</h3>
                 <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                  Sélectionnez le type de ressource que vous souhaitez créer
+                  {t.library.modal.createSubtitle}
                 </p>
               </div>
               <button
