@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { ModuleType, Template } from '../types';
 import { Button } from './Button';
 import { X, Save, Sparkles } from 'lucide-react';
+import { useLanguage } from '../../../language/useLanguage';
+import { translations } from '../../../language/translations';
 
 interface CreateTemplateModalProps {
   isOpen: boolean;
@@ -10,6 +12,9 @@ interface CreateTemplateModalProps {
 }
 
 export const CreateTemplateModal: React.FC<CreateTemplateModalProps> = ({ isOpen, onClose, onSave }) => {
+  const { language } = useLanguage();
+  const t = translations[language];
+  
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [type, setType] = useState<ModuleType>('header');
@@ -21,7 +26,7 @@ export const CreateTemplateModal: React.FC<CreateTemplateModalProps> = ({ isOpen
 
   const handleSave = () => {
     if (!name.trim() || !html.trim()) {
-      alert('Por favor completa al menos el nombre y el HTML');
+      alert(t.moduleCreator.createTemplate.alertMessage);
       return;
     }
 
@@ -52,8 +57,8 @@ export const CreateTemplateModal: React.FC<CreateTemplateModalProps> = ({ isOpen
           <div className="flex items-center gap-2">
             <Sparkles className="w-6 h-6 text-yellow-400" />
             <div>
-              <h2 className="text-xl font-bold text-white">Crear Plantilla Personalizada</h2>
-              <p className="text-sm text-slate-400">Guarda tu código como plantilla reutilizable</p>
+              <h2 className="text-xl font-bold text-white">{t.moduleCreator.createTemplate.title}</h2>
+              <p className="text-sm text-slate-400">{t.moduleCreator.createTemplate.subtitle}</p>
             </div>
           </div>
           <button
@@ -70,13 +75,13 @@ export const CreateTemplateModal: React.FC<CreateTemplateModalProps> = ({ isOpen
           {/* Name */}
           <div>
             <label className="block text-sm font-medium text-slate-300 mb-2">
-              Nombre de la Plantilla *
+              {t.moduleCreator.createTemplate.name}
             </label>
             <input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Ej: Mi Header Personalizado"
+              placeholder={t.moduleCreator.createTemplate.namePlaceholder}
               className="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
@@ -84,13 +89,13 @@ export const CreateTemplateModal: React.FC<CreateTemplateModalProps> = ({ isOpen
           {/* Description */}
           <div>
             <label className="block text-sm font-medium text-slate-300 mb-2">
-              Descripción
+              {t.moduleCreator.createTemplate.description}
             </label>
             <input
               type="text"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Describe brevemente tu plantilla"
+              placeholder={t.moduleCreator.createTemplate.descriptionPlaceholder}
               className="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
@@ -98,7 +103,7 @@ export const CreateTemplateModal: React.FC<CreateTemplateModalProps> = ({ isOpen
           {/* Type */}
           <div>
             <label className="block text-sm font-medium text-slate-300 mb-2">
-              Tipo de Módulo
+              {t.moduleCreator.createTemplate.moduleType}
             </label>
             <div className="flex gap-2">
               <button
@@ -144,19 +149,19 @@ export const CreateTemplateModal: React.FC<CreateTemplateModalProps> = ({ isOpen
               className="w-4 h-4 rounded border-slate-600 text-blue-600 focus:ring-blue-500 bg-slate-700"
             />
             <label htmlFor="template-tailwind" className="text-sm cursor-pointer select-none text-slate-200">
-              Esta plantilla usa Tailwind CSS
+              {t.moduleCreator.createTemplate.useTailwindLabel}
             </label>
           </div>
 
           {/* HTML */}
           <div>
             <label className="block text-sm font-medium text-slate-300 mb-2">
-              Código HTML *
+              {t.moduleCreator.createTemplate.htmlCodeLabel}
             </label>
             <textarea
               value={html}
               onChange={(e) => setHtml(e.target.value)}
-              placeholder="<div>Tu código HTML aquí...</div>"
+              placeholder={t.moduleCreator.createTemplate.htmlPlaceholder}
               className="w-full h-48 bg-slate-800 border border-slate-700 rounded-lg p-3 font-mono text-sm text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-y"
             />
           </div>
@@ -164,12 +169,12 @@ export const CreateTemplateModal: React.FC<CreateTemplateModalProps> = ({ isOpen
           {/* CSS */}
           <div>
             <label className="block text-sm font-medium text-slate-300 mb-2">
-              Código CSS (opcional)
+              {t.moduleCreator.createTemplate.cssCodeLabel}
             </label>
             <textarea
               value={css}
               onChange={(e) => setCss(e.target.value)}
-              placeholder=".mi-clase { color: blue; }"
+              placeholder={t.moduleCreator.createTemplate.cssPlaceholder}
               className="w-full h-32 bg-slate-800 border border-slate-700 rounded-lg p-3 font-mono text-sm text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-y"
             />
           </div>
@@ -182,7 +187,7 @@ export const CreateTemplateModal: React.FC<CreateTemplateModalProps> = ({ isOpen
             variant="secondary"
             className="flex-1 h-12"
           >
-            Cancelar
+            {t.moduleCreator.createTemplate.cancel}
           </Button>
           <Button
             onClick={handleSave}
@@ -190,7 +195,7 @@ export const CreateTemplateModal: React.FC<CreateTemplateModalProps> = ({ isOpen
             className="flex-1 h-12"
           >
             <Save className="w-5 h-5 mr-2" />
-            Guardar Plantilla
+            {t.moduleCreator.createTemplate.save}
           </Button>
         </div>
       </div>

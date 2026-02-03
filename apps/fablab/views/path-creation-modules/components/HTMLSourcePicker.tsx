@@ -62,7 +62,7 @@ export const HTMLSourcePicker: React.FC<HTMLSourcePickerProps> = ({ isOpen, onCl
       onClose();
     } catch (error) {
       console.error('Error loading HTML content:', error);
-      alert('Error al cargar el contenido HTML de la fuente');
+      // Silent error - no alert to user
     }
   };
 

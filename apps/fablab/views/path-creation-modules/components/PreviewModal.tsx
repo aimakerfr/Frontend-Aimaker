@@ -4,6 +4,8 @@ import { AppState } from '../types';
 import { PreviewSection } from './PreviewSection';
 import { Button } from './Button';
 import { generateCombinedHtml, downloadFile } from '../utils/exportUtils';
+import { useLanguage } from '../../../language/useLanguage';
+import { translations } from '../../../language/translations';
 
 interface PreviewModalProps {
   isOpen: boolean;
@@ -12,6 +14,9 @@ interface PreviewModalProps {
 }
 
 export const PreviewModal: React.FC<PreviewModalProps> = ({ isOpen, onClose, appState }) => {
+  const { language } = useLanguage();
+  const t = translations[language];
+  
   if (!isOpen) return null;
 
   const handleDownloadPreview = () => {
@@ -25,8 +30,8 @@ export const PreviewModal: React.FC<PreviewModalProps> = ({ isOpen, onClose, app
         {/* Modal Header */}
         <div className="flex items-center justify-between p-4 border-b border-slate-700 bg-slate-800">
           <div>
-            <h2 className="text-xl font-bold text-white">Vista Previa en Vivo</h2>
-            <p className="text-sm text-slate-400">Previsualiza tu página completa</p>
+            <h2 className="text-xl font-bold text-white">{t.moduleCreator.preview.title}</h2>
+            <p className="text-sm text-slate-400">{t.moduleCreator.preview.subtitle}</p>
           </div>
           <div className="flex items-center gap-2">
             <Button
@@ -35,7 +40,7 @@ export const PreviewModal: React.FC<PreviewModalProps> = ({ isOpen, onClose, app
               className="h-10"
             >
               <Download className="w-4 h-4 mr-2" />
-              Descargar Vista Previa
+              {t.moduleCreator.preview.download}
             </Button>
             <button
               onClick={onClose}
