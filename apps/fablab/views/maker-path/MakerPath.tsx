@@ -7,8 +7,9 @@ import {
   deleteMakerPath 
 } from '@core/maker-path';
 import type { MakerPath, MakerPathStatus } from '@core/maker-path';
+import { RouteTypeModal } from './components/RouteTypeModal';
 
-type FilterType = 'all' | 'architect_ai' | 'custom';
+type FilterType = 'all' | 'architect_ai' | 'module_connector' | 'custom';
 type StatusFilter = 'all' | 'draft' | 'in_progress' | 'completed';
 
 const MakerPathView: React.FC = () => {
@@ -19,6 +20,7 @@ const MakerPathView: React.FC = () => {
   const [activeFilter, setActiveFilter] = useState<FilterType>('all');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [showRouteTypeModal, setShowRouteTypeModal] = useState(false);
 
   useEffect(() => {
     loadPaths();
@@ -36,17 +38,28 @@ const MakerPathView: React.FC = () => {
     }
   };
 
-  const handleCreate = async () => {
+  const handleCreate = async (routeType: 'architect_ai' | 'module_connector') => {
     try {
-      // Crear ruta vacía - el usuario completará datos en Fase 1
+      // Mapear el tipo de ruta
+      const pathType = routeType === 'module_connector' ? 'module_connector' : 'architect_ai';
+      const pathTitle = routeType === 'module_connector' ? 'Conector de Módulos' : 'Nueva Ruta';
+      
+      // Crear ruta vacía - el usuario completará datos en la vista correspondiente
       const newPath = await createMakerPath({
-        title: 'Nueva Ruta',
+        title: pathTitle,
         description: '',
-        type: 'architect_ai',
+        type: pathType as any,
         status: 'draft'
       });
-      // Navegar inmediatamente a la vista de fases
-      navigate(`/dashboard/maker-path/${newPath.id}`);
+      
+      // Navegar a la vista correspondiente según el tipo
+      if (routeType === 'module_connector') {
+        navigate(`/dashboard/maker-path/modules/${newPath.id}`);
+      } else {
+        navigate(`/dashboard/maker-path/${newPath.id}`);
+      }
+      
+      setShowRouteTypeModal(false);
     } catch (error) {
       console.error('Error creating maker path:', error);
     }
@@ -63,7 +76,12 @@ const MakerPathView: React.FC = () => {
   };
 
   const handleRedirectToPlanner = (pathId: number) => {
-    navigate(`/dashboard/maker-path/${pathId}`);
+    const path = paths.find(p => p.id === pathId);
+    if (path?.type === 'module_connector') {
+      navigate(`/dashboard/maker-path/modules/${pathId}`);
+    } else {
+      navigate(`/dashboard/maker-path/${pathId}`);
+    }
   };
 
   const getFilteredPaths = () => {
@@ -108,11 +126,20 @@ const MakerPathView: React.FC = () => {
   };
 
   const getTypeLabel = (type: string) => {
-    return type === 'architect_ai' ? 'Ruta Arquitecto AI' : 'Personalizada';
+    if (type === 'architect_ai') return 'Ruta Arquitecto AI';
+    if (type === 'module_connector') return 'Conector de Módulos';
+    return 'Personalizada';
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50/30 dark:from-gray-900 dark:to-blue-900/10 p-6">
+      {/* Modal de selección de tipo de ruta */}
+      <RouteTypeModal
+        isOpen={showRouteTypeModal}
+        onClose={() => setShowRouteTypeModal(false)}
+        onSelect={handleCreate}
+      />
+      
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -123,7 +150,7 @@ const MakerPathView: React.FC = () => {
             <p className="text-gray-600 dark:text-gray-400 mt-1">Gestiona tus rutas de creación de proyectos</p>
           </div>
           <button
-            onClick={handleCreate}
+            onClick={() => setShowRouteTypeModal(true)}
             className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold rounded-xl transition-all shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40 hover:scale-[1.02]"
           >
             <Plus size={20} />
@@ -151,6 +178,7 @@ const MakerPathView: React.FC = () => {
             >
               <option value="all">Todos los tipos</option>
               <option value="architect_ai">Ruta Arquitecto AI</option>
+              <option value="module_connector">Conector de Módulos</option>
               <option value="custom">Personalizada</option>
             </select>
             <select

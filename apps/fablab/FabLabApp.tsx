@@ -8,6 +8,7 @@ import ProfileSection from './components/ProfileSection';
 import AIContext from './components/AIContext';
 import MakerPathView from './views/maker-path/MakerPath';
 import ProjectPlanner from './views/projects/ProjectPlanner';
+import PathCreationModules from './views/path-creation-modules/App';
 import ExternalAccess from './views/external-access/ExternalAccess';
 import AIChat from './components/AIChat';
 import Notebook from '@apps/fablab/views/notebook/Notebook';
@@ -160,6 +161,7 @@ const App: React.FC = () => {
                     <Route path="/context" element={<AIContext />} />
                     <Route path="/maker-path" element={<MakerPathView />} />
                     <Route path="/maker-path/:id" element={<ProjectPlanner />} />
+                    <Route path="/maker-path/modules/:id" element={<PathCreationModules />} />
                     <Route path="/tools" element={<ExternalAccess />} />
                   </Routes>
                 </div>

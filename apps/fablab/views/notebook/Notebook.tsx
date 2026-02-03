@@ -6,7 +6,7 @@ import ChatInterface from './components/ChatInterface.tsx';
 import { Source, ChatMessage, SourceType, StructuredSummary, Language } from './types.ts';
 import { generateChatResponse, generateSourceSummary } from './services/geminiService.ts';
 import { Layout, Menu, Globe, ChevronDown, ArrowLeft, Star, ExternalLink, Lock } from 'lucide-react';
-import { getNotebookSources, postNoteBookSource, type NotebookSourceItem } from '@core/notebooks';
+import { getNotebookSources, postNoteBookSource, deleteNotebookSource, type NotebookSourceItem } from '@core/notebooks';
 import { getTool, updateTool } from '@core/creation-tools/creation-tools.service.ts';
 
 enum Visibility {
@@ -298,14 +298,23 @@ const App: React.FC<NotebookProps> = ({ isPublicView = false }) => {
         setSources(prev => prev.map(s => s.id === id ? { ...s, selected: !s.selected } : s));
     };
 
-    const handleDeleteSource = (id: string) => {
-        setSources(prev => {
-            const source = prev.find(s => id === s.id);
-            if (source?.previewUrl?.startsWith('blob:')) {
-                URL.revokeObjectURL(source.previewUrl);
-            }
-            return prev.filter(s => s.id !== id);
-        });
+    const handleDeleteSource = async (id: string) => {
+        try {
+            // Eliminar del backend primero
+            await deleteNotebookSource(parseInt(id));
+            
+            // Si fue exitoso, eliminar del estado local
+            setSources(prev => {
+                const source = prev.find(s => id === s.id);
+                if (source?.previewUrl?.startsWith('blob:')) {
+                    URL.revokeObjectURL(source.previewUrl);
+                }
+                return prev.filter(s => s.id !== id);
+            });
+        } catch (error) {
+            console.error('Error eliminando fuente:', error);
+            alert('Error al eliminar la fuente. Por favor intente de nuevo.');
+        }
     };
 
     const handleSendMessage = async (content: string) => {
