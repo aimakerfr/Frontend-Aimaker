@@ -6,7 +6,7 @@ import ChatInterface from './components/ChatInterface.tsx';
 import { Source, ChatMessage, SourceType, StructuredSummary, Language } from './types.ts';
 import { generateChatResponse, generateSourceSummary } from './services/geminiService.ts';
 import { Layout, Menu, Globe, ChevronDown, ArrowLeft, Star, ExternalLink, Lock } from 'lucide-react';
-import { getNotebookSources, postNoteBookSource, type NotebookSourceItem } from '@core/notebooks';
+import { getNotebookSources, postNoteBookSource, deleteNotebookSource, type NotebookSourceItem } from '@core/notebooks';
 import { getTool, updateTool } from '@core/creation-tools/creation-tools.service.ts';
 
 enum Visibility {
@@ -223,7 +223,7 @@ const App: React.FC<NotebookProps> = ({ isPublicView = false }) => {
         }
     };
 
-    const uploadSource = async (apiType: string, title: string, file?: File) => {
+    const uploadSource = async (apiType: string, title: string, file?: File, url?: string) => {
         if (!id) throw new Error('Notebook ID is missing');
 
         // WEBSITE, HTML, TEXT, and VIDEO can be sent without a file
@@ -237,6 +237,11 @@ const App: React.FC<NotebookProps> = ({ isPublicView = false }) => {
         // Include file only if provided (optional for WEBSITE, HTML, TEXT, VIDEO from URLs)
         if (file) {
             formData.append('stream_file', file);
+        }
+        
+        // Include URL if provided (for WEBSITE and VIDEO types)
+        if (url) {
+            formData.append('url', url);
         }
         
         return await postNoteBookSource(formData);
@@ -282,7 +287,7 @@ const App: React.FC<NotebookProps> = ({ isPublicView = false }) => {
             if (apiType === 'URL') apiType = 'WEBSITE';
             // Keep HTML, PDF, TEXT, VIDEO, IMAGE as is (already uppercase)
 
-            const response = await uploadSource(apiType, title, file);
+            const response = await uploadSource(apiType, title, file, url);
             processSourceLocally(response, type, content, url, previewUrl);
         } catch (error) {
             console.error('Error adding source to backend:', error);
@@ -293,14 +298,23 @@ const App: React.FC<NotebookProps> = ({ isPublicView = false }) => {
         setSources(prev => prev.map(s => s.id === id ? { ...s, selected: !s.selected } : s));
     };
 
-    const handleDeleteSource = (id: string) => {
-        setSources(prev => {
-            const source = prev.find(s => id === s.id);
-            if (source?.previewUrl?.startsWith('blob:')) {
-                URL.revokeObjectURL(source.previewUrl);
-            }
-            return prev.filter(s => s.id !== id);
-        });
+    const handleDeleteSource = async (id: string) => {
+        try {
+            // Eliminar del backend primero
+            await deleteNotebookSource(parseInt(id));
+            
+            // Si fue exitoso, eliminar del estado local
+            setSources(prev => {
+                const source = prev.find(s => id === s.id);
+                if (source?.previewUrl?.startsWith('blob:')) {
+                    URL.revokeObjectURL(source.previewUrl);
+                }
+                return prev.filter(s => s.id !== id);
+            });
+        } catch (error) {
+            console.error('Error eliminando fuente:', error);
+            alert('Error al eliminar la fuente. Por favor intente de nuevo.');
+        }
     };
 
     const handleSendMessage = async (content: string) => {

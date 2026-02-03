@@ -8,10 +8,14 @@ import {
   toggleServerToolStatus 
 } from '@core/server-tools';
 import type { ServerTool, ServerToolType } from '@core/server-tools';
+import { useLanguage } from '../../language/useLanguage';
+import { translations } from '../../language/translations';
 
 type FilterType = 'all' | ServerToolType;
 
 const ServerView: React.FC = () => {
+  const { language } = useLanguage();
+  const t = translations[language];
   
   const [tools, setTools] = useState<ServerTool[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -80,7 +84,7 @@ const ServerView: React.FC = () => {
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm('¿Está seguro de eliminar esta herramienta?')) return;
+    if (!confirm(t.server.deleteConfirm)) return;
     try {
       await deleteServerTool(id);
       await loadTools();
@@ -211,19 +215,19 @@ const ServerView: React.FC = () => {
         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 overflow-hidden">
           <div className="bg-gradient-to-r from-gray-50 to-blue-50/50 dark:from-gray-900 dark:to-blue-900/20 border-b border-gray-200 dark:border-gray-700">
             <div className="grid grid-cols-12 gap-4 px-6 py-4">
-              <div className="col-span-1 text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider">Tipo</div>
-              <div className="col-span-3 text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider">Nombre & Descripción</div>
-              <div className="col-span-2 text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider">URL</div>
-              <div className="col-span-1 text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider">Estado</div>
-              <div className="col-span-2 text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider">Fecha Creación</div>
-              <div className="col-span-3 text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider">Acciones</div>
+              <div className="col-span-1 text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider">{t.server.tableHeaders.type}</div>
+              <div className="col-span-3 text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider">{t.server.tableHeaders.nameDescription}</div>
+              <div className="col-span-2 text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider">{t.server.tableHeaders.url}</div>
+              <div className="col-span-1 text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider">{t.server.tableHeaders.status}</div>
+              <div className="col-span-2 text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider">{t.server.tableHeaders.creationDate}</div>
+              <div className="col-span-3 text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider">{t.server.tableHeaders.actions}</div>
             </div>
           </div>
 
           {isLoading ? (
             <div className="px-6 py-16 text-center text-gray-500">
               <div className="inline-block w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-              <p className="mt-4">Cargando...</p>
+              <p className="mt-4">{t.common.loading}</p>
             </div>
           ) : filteredTools.length === 0 ? (
             <div className="px-6 py-16 text-center text-gray-500">No se encontraron herramientas</div>
@@ -316,14 +320,14 @@ const ServerView: React.FC = () => {
                       <button
                         onClick={() => handleEdit(tool)}
                         className="p-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg transition-colors"
-                        title="Editar"
+                        title={t.server.tooltips.edit}
                       >
                         <Edit2 size={16} />
                       </button>
                       <button
                         onClick={() => handleDelete(tool.id)}
                         className="p-2 bg-red-100 dark:bg-red-900/30 hover:bg-red-200 dark:hover:bg-red-900/50 text-red-600 dark:text-red-400 rounded-lg transition-colors"
-                        title="Eliminar"
+                        title={t.server.tooltips.delete}
                       >
                         <Trash2 size={16} />
                       </button>
@@ -359,27 +363,27 @@ const ServerView: React.FC = () => {
             <div className="p-6 space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Nombre *
+                  {t.server.form.name}
                 </label>
                 <input
                   type="text"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
-                  placeholder="Nombre de la herramienta"
+                  placeholder={t.server.form.namePlaceholder}
                 />
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Descripción
+                  {t.server.form.description}
                 </label>
                 <textarea
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
                   rows={3}
-                  placeholder="Describe el propósito de esta herramienta"
+                  placeholder={t.server.form.descriptionPlaceholder}
                 />
               </div>
 
@@ -447,14 +451,14 @@ const ServerView: React.FC = () => {
                 }}
                 className="px-6 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg transition-colors font-medium"
               >
-                Cancelar
+                {t.server.form.cancel}
               </button>
               <button
                 onClick={editingTool ? handleUpdate : handleCreate}
                 disabled={!formData.name.trim()}
                 className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {editingTool ? 'Guardar Cambios' : 'Crear Herramienta'}
+                {editingTool ? t.server.form.save : t.server.form.create}
               </button>
             </div>
           </div>

@@ -135,3 +135,17 @@ export const getNotebookSourcesNested = async (noteBookId: number): Promise<Note
 export const postNoteBookSource = async (data: FormData | { note_book_id: number; type: string; name: string }): Promise<PostNoteBookSourceResponse> => {
   return httpClient.post<PostNoteBookSourceResponse>('/api/v1/notebook-sources', data);
 };
+
+/**
+ * Eliminar una fuente del notebook
+ */
+export const deleteNotebookSource = async (sourceId: number): Promise<void> => {
+  return httpClient.delete<void>(`/api/v1/notebook-sources/${sourceId}`);
+};
+
+/**
+ * Obtener el contenido de una fuente del notebook
+ */
+export const getNotebookSourceContent = async (sourceId: number): Promise<{ content: string; isUrl: boolean; type: string; name: string }> => {
+  return httpClient.get<{ content: string; isUrl: boolean; type: string; name: string }>(`/api/v1/notebook-sources/${sourceId}/content`);
+};
