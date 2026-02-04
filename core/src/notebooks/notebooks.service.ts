@@ -117,8 +117,19 @@ export const deleteNotebook = async (notebookId: number): Promise<void> => {
 
 /**
  * Obtener todas las fuentes de un notebook por id (controlador REST)
+ * Si no se pasa noteBookId, devuelve todas las fuentes del usuario
  */
-export const getNotebookSources = async (noteBookId: number): Promise<NotebookSourceItem[]> => {
+export const getNotebookSources = async (noteBookId?: number, type?: string): Promise<NotebookSourceItem[]> => {
+  // Si no se pasa noteBookId, usar el endpoint user-sources
+  if (noteBookId === undefined) {
+    let url = '/api/v1/notebook-sources/user-sources';
+    if (type) {
+      url += '?type=' + type;
+    }
+    return httpClient.get<NotebookSourceItem[]>(url);
+  }
+  
+  // Si se pasa noteBookId, usar el endpoint normal
   return httpClient.get<NotebookSourceItem[]>(`/api/v1/notebook-sources?note_book_id=${noteBookId}`);
 };
 

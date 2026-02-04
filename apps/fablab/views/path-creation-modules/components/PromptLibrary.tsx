@@ -49,7 +49,7 @@ export function PromptLibrary({ isOpen, onClose }: PromptLibraryProps) {
             return {
               id: tool.id,
               title: tool.title,
-              promptBody: details.promptBody || ''
+              promptBody: details.prompt || details.promptBody || ''
             };
           } catch (error) {
             console.error(`Error loading prompt ${tool.id}:`, error);

@@ -29,20 +29,17 @@ export const HTMLSourcePicker: React.FC<HTMLSourcePickerProps> = ({ isOpen, onCl
   const loadHTMLSources = async () => {
     setIsLoading(true);
     try {
-      // Obtener todas las fuentes del notebook ID 1 (o puedes hacerlo dinámico)
-      // Aquí asumimos que hay un notebook genérico para fuentes HTML
-      // En tu caso real, podrías necesitar un endpoint específico para obtener todas las fuentes HTML del usuario
-      const allSources = await getNotebookSources(1); // Cambia el ID según tu lógica
+      // Obtener TODAS las fuentes HTML de TODOS los notebooks del usuario
+      // Al no pasar noteBookId, el backend devuelve todas las fuentes
+      const allSources = await getNotebookSources(undefined, 'HTML');
       
-      // Filtrar solo las de tipo HTML y mapear a HTMLSource
-      const htmlSources: HTMLSource[] = allSources
-        .filter((source: any) => source.type === 'HTML')
-        .map((source: any) => ({
-          id: source.id,
-          name: source.name,
-          filePath: source.filePath || null,
-          createdAt: source.createdAt
-        }));
+      // Mapear a HTMLSource
+      const htmlSources: HTMLSource[] = allSources.map((source: any) => ({
+        id: source.id,
+        name: source.name,
+        filePath: source.filePath || null,
+        createdAt: source.createdAt
+      }));
       setSources(htmlSources);
     } catch (error) {
       console.error('Error loading HTML sources:', error);
