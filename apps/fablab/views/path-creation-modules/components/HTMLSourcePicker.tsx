@@ -29,18 +29,17 @@ export const HTMLSourcePicker: React.FC<HTMLSourcePickerProps> = ({ isOpen, onCl
   const loadHTMLSources = async () => {
     setIsLoading(true);
     try {
-      // Obtener todas las fuentes HTML del usuario (sin especificar notebook_id)
-      // El backend traerá todas las fuentes HTML de todos los notebooks del usuario
+      // Obtener TODAS las fuentes HTML de TODOS los notebooks del usuario
+      // Al no pasar noteBookId, el backend devuelve todas las fuentes
       const allSources = await getNotebookSources(undefined, 'HTML');
       
       // Mapear a HTMLSource
       const htmlSources: HTMLSource[] = allSources.map((source: any) => ({
         id: source.id,
-        name: source.notebookTitle ? `${source.name} (${source.notebookTitle})` : source.name,
+        name: source.name,
         filePath: source.filePath || null,
         createdAt: source.createdAt
       }));
-      
       setSources(htmlSources);
     } catch (error: any) {
       console.error('Error loading HTML sources:', error);
