@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { getNotebookSources, getNotebookSourceContent } from '@core/notebooks';
-import { getTools } from '@core/creation-tools/creation-tools.service';
 import { Database, X, Check } from 'lucide-react';
 
 interface HTMLSource {
@@ -30,42 +29,22 @@ export const HTMLSourcePicker: React.FC<HTMLSourcePickerProps> = ({ isOpen, onCl
   const loadHTMLSources = async () => {
     setIsLoading(true);
     try {
-      // Obtener todos los notebooks del usuario (tipo 'note_books')
-      const allTools = await getTools();
-      const notebooks = allTools.filter((tool: any) => tool.type === 'note_books');
+      // Obtener todas las fuentes HTML del usuario (sin especificar notebook_id)
+      // El backend traerá todas las fuentes HTML de todos los notebooks del usuario
+      const allSources = await getNotebookSources(undefined, 'HTML');
       
-      if (notebooks.length === 0) {
-        console.log('No notebooks found for user');
-        setSources([]);
-        setIsLoading(false);
-        return;
-      }
-
-      // Obtener fuentes HTML de todos los notebooks
-      const allHtmlSources: HTMLSource[] = [];
+      // Mapear a HTMLSource
+      const htmlSources: HTMLSource[] = allSources.map((source: any) => ({
+        id: source.id,
+        name: source.notebookTitle ? `${source.name} (${source.notebookTitle})` : source.name,
+        filePath: source.filePath || null,
+        createdAt: source.createdAt
+      }));
       
-      for (const notebook of notebooks) {
-        try {
-          const sources = await getNotebookSources(notebook.id);
-          const htmlSources = sources
-            .filter((source: any) => source.type === 'HTML')
-            .map((source: any) => ({
-              id: source.id,
-              name: `${source.name} (${notebook.title})`,
-              filePath: source.filePath || null,
-              createdAt: source.createdAt
-            }));
-          allHtmlSources.push(...htmlSources);
-        } catch (error) {
-          console.error(`Error loading sources from notebook ${notebook.id}:`, error);
-          // Continuar con el siguiente notebook si uno falla
-        }
-      }
-      
-      setSources(allHtmlSources);
+      setSources(htmlSources);
     } catch (error: any) {
       console.error('Error loading HTML sources:', error);
-      // Si hay error al cargar tools o cualquier otro error, no mostramos fuentes
+      // Si hay error, no mostramos fuentes pero no crasheamos la app
       setSources([]);
     } finally {
       setIsLoading(false);
