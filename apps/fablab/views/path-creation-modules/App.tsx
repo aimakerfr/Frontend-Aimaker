@@ -7,6 +7,7 @@ import { StepWizard } from './components/StepWizard';
 import { TemplateLibrary } from './components/TemplateLibrary';
 import { PreviewModal } from './components/PreviewModal';
 import { CreateTemplateModal } from './components/CreateTemplateModal';
+import { PromptLibrary } from './components/PromptLibrary';
 import { exportProject } from './utils/exportUtils';
 import { getMakerPath, updateMakerPath } from '@core/maker-path';
 import { Download, LayoutTemplate, ArrowRight, ArrowLeft, Sparkles, Eye, ChevronLeft, Save, CheckCircle } from 'lucide-react';
@@ -30,6 +31,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<ModuleType | null>('header');
   const [showPreview, setShowPreview] = useState(false);
   const [showCreateTemplate, setShowCreateTemplate] = useState(false);
+  const [showPromptLibrary, setShowPromptLibrary] = useState(false);
   const [customTemplates, setCustomTemplates] = useState<Template[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [makerPathTitle, setMakerPathTitle] = useState('');
@@ -104,9 +106,10 @@ export default function App() {
           setCurrentStep('export');
           console.log('✅ Path completed - VIEW MODE on EXPORT phase');
         } else {
-          // Path not completed yet - EDIT MODE
+          // Path not completed yet - EDIT MODE, always start at SELECT phase
           setIsEditMode(true);
-          console.log('🔧 Path in progress - EDIT MODE enabled');
+          setCurrentStep('select');
+          console.log('🔧 Path in progress - EDIT MODE enabled, starting at SELECT phase');
         }
       } catch (error) {
         console.error('Error loading maker path:', error);
@@ -298,6 +301,12 @@ export default function App() {
         onSave={handleSaveCustomTemplate}
       />
 
+      {/* Prompt Library Modal */}
+      <PromptLibrary 
+        isOpen={showPromptLibrary}
+        onClose={() => setShowPromptLibrary(false)}
+      />
+
       {/* Main Content Area - Full Width */}
       <div className="flex-1 overflow-hidden">
         
@@ -483,6 +492,15 @@ export default function App() {
                     <div className="bg-slate-800 border border-slate-700 rounded-xl p-4">
                       <h4 className="text-sm font-semibold text-white mb-3">Acciones Rápidas</h4>
                       <div className="space-y-2">
+                        <Button
+                          onClick={() => setShowPromptLibrary(true)}
+                          variant="secondary"
+                          fullWidth
+                          className="justify-center"
+                        >
+                          <Sparkles className="w-4 h-4 mr-2" />
+                          Prompts
+                        </Button>
                         <Button
                           onClick={() => setShowPreview(true)}
                           variant="primary"

@@ -297,6 +297,17 @@ export interface Translations {
       save: string;
       alertMessage: string;
     };
+    promptLibrary: {
+      title: string;
+      subtitle: string;
+      searchPlaceholder: string;
+      copyButton: string;
+      copiedButton: string;
+      noContent: string;
+      noResults: string;
+      noPrompts: string;
+      tip: string;
+    };
   };
   common: {
     loading: string;
@@ -600,6 +611,17 @@ export const translations: Record<Language, Translations> = {
         cancel: 'Cancel',
         save: 'Save Template',
         alertMessage: 'Please complete at least the name and HTML',
+      },
+      promptLibrary: {
+        title: 'Prompt Library',
+        subtitle: 'Select a prompt to copy',
+        searchPlaceholder: 'Search prompts...',
+        copyButton: 'Copy',
+        copiedButton: 'Copied',
+        noContent: 'No content',
+        noResults: 'No prompts found',
+        noPrompts: 'No prompts available',
+        tip: '💡 Tip: Use copied prompts to generate content with AI',
       },
     },
     common: {
@@ -905,6 +927,17 @@ export const translations: Record<Language, Translations> = {
         save: 'Guardar Plantilla',
         alertMessage: 'Por favor completa al menos el nombre y el HTML',
       },
+      promptLibrary: {
+        title: 'Biblioteca de Prompts',
+        subtitle: 'Selecciona un prompt para copiar',
+        searchPlaceholder: 'Buscar prompts...',
+        copyButton: 'Copiar',
+        copiedButton: 'Copiado',
+        noContent: 'Sin contenido',
+        noResults: 'No se encontraron prompts',
+        noPrompts: 'No hay prompts disponibles',
+        tip: '💡 Tip: Usa los prompts copiados para generar contenido con IA',
+      },
     },
     common: {
       loading: 'Cargando...',
@@ -1207,6 +1240,17 @@ export const translations: Record<Language, Translations> = {
         cancel: 'Annuler',
         save: 'Enregistrer le Modèle',
         alertMessage: 'Veuillez compléter au moins le nom et le HTML',
+      },
+      promptLibrary: {
+        title: 'Bibliothèque de Prompts',
+        subtitle: 'Sélectionnez un prompt à copier',
+        searchPlaceholder: 'Rechercher des prompts...',
+        copyButton: 'Copier',
+        copiedButton: 'Copié',
+        noContent: 'Aucun contenu',
+        noResults: 'Aucun prompt trouvé',
+        noPrompts: 'Aucun prompt disponible',
+        tip: '💡 Astuce: Utilisez les prompts copiés pour générer du contenu avec l\'IA',
       },
     },
     common: {
