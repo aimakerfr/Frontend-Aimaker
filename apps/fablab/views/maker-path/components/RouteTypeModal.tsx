@@ -1,5 +1,7 @@
 import React from 'react';
 import { Route, Link2, X } from 'lucide-react';
+import { useLanguage } from '../../../language/useLanguage';
+import { translations } from '../../../language/translations';
 
 interface RouteTypeModalProps {
   isOpen: boolean;
@@ -8,6 +10,9 @@ interface RouteTypeModalProps {
 }
 
 export const RouteTypeModal: React.FC<RouteTypeModalProps> = ({ isOpen, onClose, onSelect }) => {
+  const { language } = useLanguage();
+  const t = translations[language];
+  
   if (!isOpen) return null;
 
   return (
@@ -17,7 +22,7 @@ export const RouteTypeModal: React.FC<RouteTypeModalProps> = ({ isOpen, onClose,
         <div className="p-6 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-gray-900 dark:to-blue-900/20">
           <div className="flex items-center justify-between">
             <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-              Selecciona el Tipo de Ruta
+              {t.makerPath.modal.title}
             </h2>
             <button
               onClick={onClose}
@@ -27,7 +32,7 @@ export const RouteTypeModal: React.FC<RouteTypeModalProps> = ({ isOpen, onClose,
             </button>
           </div>
           <p className="text-gray-600 dark:text-gray-400 mt-2">
-            Elige qué tipo de ruta deseas crear
+            {t.makerPath.modal.subtitle}
           </p>
         </div>
 
@@ -44,18 +49,18 @@ export const RouteTypeModal: React.FC<RouteTypeModalProps> = ({ isOpen, onClose,
               </div>
               <div>
                 <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
-                  Ruta Arquitecto AI
+                  {t.makerPath.modal.architectAI.title}
                 </h3>
                 <p className="text-sm text-gray-600 dark:text-gray-400">
-                  Crea proyectos paso a paso con asistencia de IA. Ideal para planificación estructurada y optimización de prompts.
+                  {t.makerPath.modal.architectAI.description}
                 </p>
               </div>
               <div className="flex flex-wrap gap-2 justify-center mt-2">
                 <span className="text-xs bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 px-2 py-1 rounded-full">
-                  IA Asistida
+                  {t.makerPath.modal.architectAI.badge1}
                 </span>
                 <span className="text-xs bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 px-2 py-1 rounded-full">
-                  6 Fases
+                  {t.makerPath.modal.architectAI.badge2}
                 </span>
               </div>
             </div>
@@ -72,18 +77,18 @@ export const RouteTypeModal: React.FC<RouteTypeModalProps> = ({ isOpen, onClose,
               </div>
               <div>
                 <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
-                  Conector de Módulos
+                  {t.makerPath.modal.moduleConnector.title}
                 </h3>
                 <p className="text-sm text-gray-600 dark:text-gray-400">
-                  Orquesta módulos HTML/CSS con plantillas. Conecta componentes header, body y footer con estilos integrados.
+                  {t.makerPath.modal.moduleConnector.description}
                 </p>
               </div>
               <div className="flex flex-wrap gap-2 justify-center mt-2">
                 <span className="text-xs bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 px-2 py-1 rounded-full">
-                  Modular
+                  {t.makerPath.modal.moduleConnector.badge1}
                 </span>
                 <span className="text-xs bg-pink-100 dark:bg-pink-900/50 text-pink-700 dark:text-pink-300 px-2 py-1 rounded-full">
-                  HTML/CSS
+                  {t.makerPath.modal.moduleConnector.badge2}
                 </span>
               </div>
             </div>
@@ -96,7 +101,7 @@ export const RouteTypeModal: React.FC<RouteTypeModalProps> = ({ isOpen, onClose,
             onClick={onClose}
             className="px-6 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-800 rounded-lg transition-colors font-medium"
           >
-            Cancelar
+            {t.makerPath.modal.cancel}
           </button>
         </div>
       </div>

@@ -8,12 +8,16 @@ import {
 } from '@core/maker-path';
 import type { MakerPath, MakerPathStatus } from '@core/maker-path';
 import { RouteTypeModal } from './components/RouteTypeModal';
+import { useLanguage } from '../../language/useLanguage';
+import { translations } from '../../language/translations';
 
 type FilterType = 'all' | 'architect_ai' | 'module_connector' | 'custom';
 type StatusFilter = 'all' | 'draft' | 'in_progress' | 'completed';
 
 const MakerPathView: React.FC = () => {
   const navigate = useNavigate();
+  const { language } = useLanguage();
+  const t = translations[language];
   
   const [paths, setPaths] = useState<MakerPath[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -42,7 +46,7 @@ const MakerPathView: React.FC = () => {
     try {
       // Mapear el tipo de ruta
       const pathType = routeType === 'module_connector' ? 'module_connector' : 'architect_ai';
-      const pathTitle = routeType === 'module_connector' ? 'Conector de Módulos' : 'Nueva Ruta';
+      const pathTitle = routeType === 'module_connector' ? t.makerPath.types.moduleConnector : t.makerPath.newRoute;
       
       // Crear ruta vacía - el usuario completará datos en la vista correspondiente
       const newPath = await createMakerPath({
@@ -66,7 +70,7 @@ const MakerPathView: React.FC = () => {
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm('¿Está seguro de eliminar esta ruta?')) return;
+    if (!confirm(t.makerPath.deleteConfirm)) return;
     try {
       await deleteMakerPath(id);
       await loadPaths();
@@ -118,17 +122,17 @@ const MakerPathView: React.FC = () => {
 
   const getStatusLabel = (status: MakerPathStatus) => {
     const labels = {
-      draft: 'Borrador',
-      in_progress: 'En Progreso',
-      completed: 'Completado'
+      draft: t.makerPath.statuses.draft,
+      in_progress: t.makerPath.statuses.inProgress,
+      completed: t.makerPath.statuses.completed
     };
     return labels[status] || status;
   };
 
   const getTypeLabel = (type: string) => {
-    if (type === 'architect_ai') return 'Ruta Arquitecto AI';
-    if (type === 'module_connector') return 'Conector de Módulos';
-    return 'Personalizada';
+    if (type === 'architect_ai') return t.makerPath.types.architectAI;
+    if (type === 'module_connector') return t.makerPath.types.moduleConnector;
+    return t.makerPath.types.custom;
   };
 
   return (
@@ -145,16 +149,16 @@ const MakerPathView: React.FC = () => {
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-              Maker Path
+              {t.makerPath.title}
             </h1>
-            <p className="text-gray-600 dark:text-gray-400 mt-1">Gestiona tus rutas de creación de proyectos</p>
+            <p className="text-gray-600 dark:text-gray-400 mt-1">{t.makerPath.subtitle}</p>
           </div>
           <button
             onClick={() => setShowRouteTypeModal(true)}
             className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold rounded-xl transition-all shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40 hover:scale-[1.02]"
           >
             <Plus size={20} />
-            Nueva Ruta
+            {t.makerPath.newRoute}
           </button>
         </div>
 
@@ -164,7 +168,7 @@ const MakerPathView: React.FC = () => {
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
             <input
               type="text"
-              placeholder="Buscar rutas..."
+              placeholder={t.makerPath.searchPlaceholder}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-12 pr-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none w-full shadow-sm"
@@ -176,20 +180,20 @@ const MakerPathView: React.FC = () => {
               onChange={(e) => setActiveFilter(e.target.value as FilterType)}
               className="px-4 py-2.5 font-medium rounded-xl bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-blue-500 outline-none"
             >
-              <option value="all">Todos los tipos</option>
-              <option value="architect_ai">Ruta Arquitecto AI</option>
-              <option value="module_connector">Conector de Módulos</option>
-              <option value="custom">Personalizada</option>
+              <option value="all">{t.makerPath.allTypes}</option>
+              <option value="architect_ai">{t.makerPath.types.architectAI}</option>
+              <option value="module_connector">{t.makerPath.types.moduleConnector}</option>
+              <option value="custom">{t.makerPath.types.custom}</option>
             </select>
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
               className="px-4 py-2.5 font-medium rounded-xl bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-blue-500 outline-none"
             >
-              <option value="all">Todos los estados</option>
-              <option value="draft">Borrador</option>
-              <option value="in_progress">En Progreso</option>
-              <option value="completed">Completado</option>
+              <option value="all">{t.makerPath.allStatuses}</option>
+              <option value="draft">{t.makerPath.statuses.draft}</option>
+              <option value="in_progress">{t.makerPath.statuses.inProgress}</option>
+              <option value="completed">{t.makerPath.statuses.completed}</option>
             </select>
           </div>
         </div>
@@ -198,21 +202,21 @@ const MakerPathView: React.FC = () => {
         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 overflow-hidden">
           <div className="bg-gradient-to-r from-gray-50 to-blue-50/50 dark:from-gray-900 dark:to-blue-900/20 border-b border-gray-200 dark:border-gray-700">
             <div className="grid grid-cols-12 gap-4 px-6 py-4">
-              <div className="col-span-1 text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider">Tipo</div>
-              <div className="col-span-4 text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider">Título & Descripción</div>
-              <div className="col-span-2 text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider">Estado</div>
-              <div className="col-span-2 text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider">Fecha Creación</div>
-              <div className="col-span-3 text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider">Acciones</div>
+              <div className="col-span-1 text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider">{t.makerPath.tableHeaders.type}</div>
+              <div className="col-span-4 text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider">{t.makerPath.tableHeaders.titleDescription}</div>
+              <div className="col-span-2 text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider">{t.makerPath.tableHeaders.status}</div>
+              <div className="col-span-2 text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider">{t.makerPath.tableHeaders.creationDate}</div>
+              <div className="col-span-3 text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider">{t.makerPath.tableHeaders.actions}</div>
             </div>
           </div>
 
           {isLoading ? (
             <div className="px-6 py-16 text-center text-gray-500">
               <div className="inline-block w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-              <p className="mt-4">Cargando...</p>
+              <p className="mt-4">{t.common.loading}</p>
             </div>
           ) : filteredPaths.length === 0 ? (
-            <div className="px-6 py-16 text-center text-gray-500">No se encontraron rutas</div>
+            <div className="px-6 py-16 text-center text-gray-500">{t.server.noResults}</div>
           ) : (
             <div>
               {filteredPaths.map((path, index) => (
