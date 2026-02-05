@@ -130,14 +130,14 @@ const ProfileSection: React.FC<{ user: UserProfile | null }> = () => {
                      disabled={saving}
                      className="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 px-4 py-2 rounded-lg font-medium hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors flex items-center gap-2"
                    >
-                     <X size={16} /> Cancelar
+                     <X size={16} /> {t.profile.cancel}
                    </button>
                    <button 
                      onClick={handleSave}
                      disabled={saving}
                      className="bg-brand-500 hover:bg-brand-600 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 disabled:opacity-50"
                    >
-                     <Save size={16} /> {saving ? 'Guardando...' : 'Guardar'}
+                     <Save size={16} /> {saving ? t.profile.saving : t.profile.save}
                    </button>
                  </>
                ) : (
@@ -145,7 +145,7 @@ const ProfileSection: React.FC<{ user: UserProfile | null }> = () => {
                    onClick={handleEdit}
                    className="bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-200 px-4 py-2 rounded-lg font-medium hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors flex items-center gap-2"
                  >
-                   <Edit2 size={16} /> Editar Perfil
+                   <Edit2 size={16} /> {t.profile.editProfile}
                  </button>
                )}
              </div>
@@ -158,7 +158,7 @@ const ProfileSection: React.FC<{ user: UserProfile | null }> = () => {
                 value={editForm.firstName}
                 onChange={(e) => setEditForm({ ...editForm, firstName: e.target.value })}
                 className="text-3xl font-bold text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-1 w-full max-w-md"
-                placeholder="Nombre"
+                placeholder={t.profile.firstName}
               />
             ) : (
               <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{displayName}</h1>
@@ -172,7 +172,7 @@ const ProfileSection: React.FC<{ user: UserProfile | null }> = () => {
             <div className="p-4 bg-gray-50 dark:bg-gray-900/50 rounded-xl border border-gray-100 dark:border-gray-700">
               <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400 mb-1">
                 <Phone size={16} />
-                <span className="text-sm font-medium">Teléfono</span>
+                <span className="text-sm font-medium">{t.profile.phone}</span>
               </div>
               {isEditing ? (
                 <input
@@ -180,18 +180,18 @@ const ProfileSection: React.FC<{ user: UserProfile | null }> = () => {
                   value={editForm.phoneNumber}
                   onChange={(e) => setEditForm({ ...editForm, phoneNumber: e.target.value })}
                   className="text-lg font-semibold text-gray-900 dark:text-white bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded px-2 py-1 w-full"
-                  placeholder="Teléfono"
+                  placeholder={t.profile.phone}
                 />
               ) : (
                 <div className="text-lg font-semibold text-gray-900 dark:text-white">
-                  {profileData.phoneNumber || 'No especificado'}
+                  {profileData.phoneNumber || t.profile.phoneNotSpecified}
                 </div>
               )}
             </div>
              <div className="p-4 bg-gray-50 dark:bg-gray-900/50 rounded-xl border border-gray-100 dark:border-gray-700">
               <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400 mb-1">
                 <Globe size={16} />
-                <span className="text-sm font-medium">Idioma</span>
+                <span className="text-sm font-medium">{t.profile.language}</span>
               </div>
               {isEditing ? (
                 <select
@@ -225,7 +225,7 @@ const ProfileSection: React.FC<{ user: UserProfile | null }> = () => {
              <div className="p-4 bg-gray-50 dark:bg-gray-900/50 rounded-xl border border-gray-100 dark:border-gray-700">
               <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400 mb-1">
                 <Calendar size={16} />
-                <span className="text-sm font-medium">Miembro desde</span>
+                <span className="text-sm font-medium">{t.profile.memberSince}</span>
               </div>
               <div className="text-lg font-semibold text-gray-900 dark:text-white">{joinDate}</div>
             </div>
@@ -236,7 +236,7 @@ const ProfileSection: React.FC<{ user: UserProfile | null }> = () => {
             <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-200 dark:border-blue-700">
               <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400 mb-1">
                 <Shield size={16} />
-                <span className="text-sm font-medium">Categoría</span>
+                <span className="text-sm font-medium">{t.profile.category}</span>
               </div>
               {isEditing ? (
                 <select
@@ -244,30 +244,30 @@ const ProfileSection: React.FC<{ user: UserProfile | null }> = () => {
                   onChange={(e) => setEditForm({ ...editForm, category: e.target.value as any })}
                   className="text-lg font-semibold text-gray-900 dark:text-white bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded px-2 py-1 w-full"
                 >
-                  <option value="student">Estudiante</option>
-                  <option value="teacher">Profesor</option>
-                  <option value="developer">Desarrollador</option>
-                  <option value="apprentice">Aprendiz</option>
-                  <option value="professional">Profesional</option>
-                  <option value="researcher">Investigador</option>
-                  <option value="other">Otro</option>
+                  <option value="student">{t.profile.categories.student}</option>
+                  <option value="teacher">{t.profile.categories.teacher}</option>
+                  <option value="developer">{t.profile.categories.developer}</option>
+                  <option value="apprentice">{t.profile.categories.apprentice}</option>
+                  <option value="professional">{t.profile.categories.professional}</option>
+                  <option value="researcher">{t.profile.categories.researcher}</option>
+                  <option value="other">{t.profile.categories.other}</option>
                 </select>
               ) : (
                 <div className="text-lg font-semibold text-gray-900 dark:text-white capitalize">
-                  {profileData.category === 'student' && 'Estudiante'}
-                  {profileData.category === 'teacher' && 'Profesor'}
-                  {profileData.category === 'developer' && 'Desarrollador'}
-                  {profileData.category === 'apprentice' && 'Aprendiz'}
-                  {profileData.category === 'professional' && 'Profesional'}
-                  {profileData.category === 'researcher' && 'Investigador'}
-                  {profileData.category === 'other' && 'Otro'}
+                  {profileData.category === 'student' && t.profile.categories.student}
+                  {profileData.category === 'teacher' && t.profile.categories.teacher}
+                  {profileData.category === 'developer' && t.profile.categories.developer}
+                  {profileData.category === 'apprentice' && t.profile.categories.apprentice}
+                  {profileData.category === 'professional' && t.profile.categories.professional}
+                  {profileData.category === 'researcher' && t.profile.categories.researcher}
+                  {profileData.category === 'other' && t.profile.categories.other}
                 </div>
               )}
             </div>
             <div className="p-4 bg-purple-50 dark:bg-purple-900/20 rounded-xl border border-purple-200 dark:border-purple-700">
               <div className="flex items-center gap-2 text-purple-600 dark:text-purple-400 mb-1">
                 <Code size={16} />
-                <span className="text-sm font-medium">Nivel</span>
+                <span className="text-sm font-medium">{t.profile.level}</span>
               </div>
               <div className="flex items-center gap-3">
                 <div className="text-2xl font-bold text-gray-900 dark:text-white">
@@ -291,7 +291,7 @@ const ProfileSection: React.FC<{ user: UserProfile | null }> = () => {
       </div>
 
       <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-8">
-        <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Estadísticas de Herramientas</h2>
+        <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">{t.profile.statisticsToolsTitle}</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="p-4 bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 rounded-xl border border-purple-200 dark:border-purple-700">
             <Notebook className="text-purple-600 dark:text-purple-400 mb-2" size={24} />
@@ -328,7 +328,7 @@ const ProfileSection: React.FC<{ user: UserProfile | null }> = () => {
           <div className="p-4 bg-gradient-to-br from-indigo-50 to-indigo-100 dark:from-indigo-900/20 dark:to-indigo-800/20 rounded-xl border border-indigo-200 dark:border-indigo-700">
             <Shield className="text-indigo-600 dark:text-indigo-400 mb-2" size={24} />
             <div className="text-2xl font-bold text-indigo-900 dark:text-indigo-100">
-              {profileData.stats.byType?.assistant || 0}
+              {profileData.stats.byType?.agent || 0}
             </div>
             <div className="text-xs text-indigo-700 dark:text-indigo-300 font-medium">Asistentes</div>
           </div>
