@@ -153,14 +153,72 @@ export interface Translations {
     firstName: string;
     email: string;
     phone: string;
+    phoneNotSpecified: string;
     language: string;
     accountInfo: string;
     role: string;
     memberSince: string;
     statistics: string;
+    statisticsToolsTitle: string;
     edit: string;
+    editProfile: string;
     save: string;
+    saving: string;
     cancel: string;
+    category: string;
+    level: string;
+    categories: {
+      student: string;
+      teacher: string;
+      developer: string;
+      apprentice: string;
+      professional: string;
+      researcher: string;
+      other: string;
+    };
+  };
+  makerPath: {
+    title: string;
+    subtitle: string;
+    newRoute: string;
+    searchPlaceholder: string;
+    allTypes: string;
+    allStatuses: string;
+    statuses: {
+      draft: string;
+      inProgress: string;
+      completed: string;
+    };
+    types: {
+      architectAI: string;
+      moduleConnector: string;
+      custom: string;
+    };
+    deleteConfirm: string;
+    tableHeaders: {
+      type: string;
+      titleDescription: string;
+      status: string;
+      creationDate: string;
+      actions: string;
+    };
+    modal: {
+      title: string;
+      subtitle: string;
+      architectAI: {
+        title: string;
+        description: string;
+        badge1: string;
+        badge2: string;
+      };
+      moduleConnector: {
+        title: string;
+        description: string;
+        badge1: string;
+        badge2: string;
+      };
+      cancel: string;
+    };
   };
   moduleCreator: {
     title: string;
@@ -313,6 +371,20 @@ export interface Translations {
     loading: string;
     error: string;
     retry: string;
+    cancel: string;
+    save: string;
+    edit: string;
+    delete: string;
+    create: string;
+    view: string;
+    search: string;
+    name: string;
+    description: string;
+    actions: string;
+    saving: string;
+    creating: string;
+    updating: string;
+    deleting: string;
   };
 }
 
@@ -468,14 +540,72 @@ export const translations: Record<Language, Translations> = {
       firstName: 'First Name',
       email: 'Email',
       phone: 'Phone',
+      phoneNotSpecified: 'Not specified',
       language: 'Language',
       accountInfo: 'Account Information',
       role: 'Role',
       memberSince: 'Member Since',
       statistics: 'Statistics',
+      statisticsToolsTitle: 'Tool Statistics',
       edit: 'Edit',
+      editProfile: 'Edit Profile',
       save: 'Save',
+      saving: 'Saving...',
       cancel: 'Cancel',
+      category: 'Category',
+      level: 'Level',
+      categories: {
+        student: 'Student',
+        teacher: 'Teacher',
+        developer: 'Developer',
+        apprentice: 'Apprentice',
+        professional: 'Professional',
+        researcher: 'Researcher',
+        other: 'Other',
+      },
+    },
+    makerPath: {
+      title: 'Maker Path',
+      subtitle: 'Manage your project creation paths',
+      newRoute: 'New Route',
+      searchPlaceholder: 'Search routes...',
+      allTypes: 'All types',
+      allStatuses: 'All statuses',
+      statuses: {
+        draft: 'Draft',
+        inProgress: 'In Progress',
+        completed: 'Completed',
+      },
+      types: {
+        architectAI: 'Architect AI Route',
+        moduleConnector: 'Module Connector',
+        custom: 'Custom',
+      },
+      deleteConfirm: 'Are you sure you want to delete this route?',
+      tableHeaders: {
+        type: 'Type',
+        titleDescription: 'Title & Description',
+        status: 'Status',
+        creationDate: 'Creation Date',
+        actions: 'Actions',
+      },
+      modal: {
+        title: 'Select Route Type',
+        subtitle: 'Choose which type of route you want to create',
+        architectAI: {
+          title: 'Architect AI Route',
+          description: 'Create projects step by step with AI assistance. Ideal for structured planning and prompt optimization.',
+          badge1: 'AI Assisted',
+          badge2: '6 Phases',
+        },
+        moduleConnector: {
+          title: 'Module Connector',
+          description: 'Orchestrate HTML/CSS modules with templates. Connect header, body and footer components with integrated styles.',
+          badge1: 'Modular',
+          badge2: 'HTML/CSS',
+        },
+        cancel: 'Cancel',
+      },
     },
     moduleCreator: {
       title: 'Module Connector',
@@ -628,6 +758,20 @@ export const translations: Record<Language, Translations> = {
       loading: 'Loading...',
       error: 'Error loading data',
       retry: 'Retry',
+      cancel: 'Cancel',
+      save: 'Save',
+      edit: 'Edit',
+      delete: 'Delete',
+      create: 'Create',
+      view: 'View',
+      search: 'Search',
+      name: 'Name',
+      description: 'Description',
+      actions: 'Actions',
+      saving: 'Saving...',
+      creating: 'Creating...',
+      updating: 'Updating...',
+      deleting: 'Deleting...',
     },
   },
   es: {
@@ -783,14 +927,72 @@ export const translations: Record<Language, Translations> = {
       firstName: 'Nombre',
       email: 'Correo Electrónico',
       phone: 'Teléfono',
+      phoneNotSpecified: 'No especificado',
       language: 'Idioma',
       accountInfo: 'Información de la Cuenta',
       role: 'Rol',
       memberSince: 'Miembro Desde',
       statistics: 'Estadísticas',
+      statisticsToolsTitle: 'Estadísticas de Herramientas',
       edit: 'Editar',
+      editProfile: 'Editar Perfil',
       save: 'Guardar',
+      saving: 'Guardando...',
       cancel: 'Cancelar',
+      category: 'Categoría',
+      level: 'Nivel',
+      categories: {
+        student: 'Estudiante',
+        teacher: 'Profesor',
+        developer: 'Desarrollador',
+        apprentice: 'Aprendiz',
+        professional: 'Profesional',
+        researcher: 'Investigador',
+        other: 'Otro',
+      },
+    },
+    makerPath: {
+      title: 'Maker Path',
+      subtitle: 'Gestiona tus rutas de creación de proyectos',
+      newRoute: 'Nueva Ruta',
+      searchPlaceholder: 'Buscar rutas...',
+      allTypes: 'Todos los tipos',
+      allStatuses: 'Todos los estados',
+      statuses: {
+        draft: 'Borrador',
+        inProgress: 'En Progreso',
+        completed: 'Completado',
+      },
+      types: {
+        architectAI: 'Ruta Arquitecto AI',
+        moduleConnector: 'Conector de Módulos',
+        custom: 'Personalizada',
+      },
+      deleteConfirm: '¿Está seguro de eliminar esta ruta?',
+      tableHeaders: {
+        type: 'Tipo',
+        titleDescription: 'Título y Descripción',
+        status: 'Estado',
+        creationDate: 'Fecha de Creación',
+        actions: 'Acciones',
+      },
+      modal: {
+        title: 'Selecciona el Tipo de Ruta',
+        subtitle: 'Elige qué tipo de ruta deseas crear',
+        architectAI: {
+          title: 'Ruta Arquitecto AI',
+          description: 'Crea proyectos paso a paso con asistencia de IA. Ideal para planificación estructurada y optimización de prompts.',
+          badge1: 'IA Asistida',
+          badge2: '6 Fases',
+        },
+        moduleConnector: {
+          title: 'Conector de Módulos',
+          description: 'Orquesta módulos HTML/CSS con plantillas. Conecta componentes header, body y footer con estilos integrados.',
+          badge1: 'Modular',
+          badge2: 'HTML/CSS',
+        },
+        cancel: 'Cancelar',
+      },
     },
     moduleCreator: {
       title: 'Conector de Módulos',
@@ -943,6 +1145,20 @@ export const translations: Record<Language, Translations> = {
       loading: 'Cargando...',
       error: 'Error al cargar datos',
       retry: 'Reintentar',
+      cancel: 'Cancelar',
+      save: 'Guardar',
+      edit: 'Editar',
+      delete: 'Eliminar',
+      create: 'Crear',
+      view: 'Ver',
+      search: 'Buscar',
+      name: 'Nombre',
+      description: 'Descripción',
+      actions: 'Acciones',
+      saving: 'Guardando...',
+      creating: 'Creando...',
+      updating: 'Actualizando...',
+      deleting: 'Eliminando...',
     },
   },
   fr: {
@@ -1098,14 +1314,72 @@ export const translations: Record<Language, Translations> = {
       firstName: 'Prénom',
       email: 'Email',
       phone: 'Téléphone',
+      phoneNotSpecified: 'Non spécifié',
       language: 'Langue',
       accountInfo: 'Informations du Compte',
       role: 'Rôle',
       memberSince: 'Membre Depuis',
       statistics: 'Statistiques',
+      statisticsToolsTitle: 'Statistiques des Outils',
       edit: 'Éditer',
+      editProfile: 'Éditer le Profil',
       save: 'Sauvegarder',
+      saving: 'Enregistrement...',
       cancel: 'Annuler',
+      category: 'Catégorie',
+      level: 'Niveau',
+      categories: {
+        student: 'Étudiant',
+        teacher: 'Professeur',
+        developer: 'Développeur',
+        apprentice: 'Apprenti',
+        professional: 'Professionnel',
+        researcher: 'Chercheur',
+        other: 'Autre',
+      },
+    },
+    makerPath: {
+      title: 'Chemin du Maker',
+      subtitle: 'Gérez vos chemins de création de projets',
+      newRoute: 'Nouvelle Route',
+      searchPlaceholder: 'Rechercher des routes...',
+      allTypes: 'Tous les types',
+      allStatuses: 'Tous les statuts',
+      statuses: {
+        draft: 'Brouillon',
+        inProgress: 'En Cours',
+        completed: 'Terminé',
+      },
+      types: {
+        architectAI: 'Route Architecte IA',
+        moduleConnector: 'Connecteur de Modules',
+        custom: 'Personnalisée',
+      },
+      deleteConfirm: 'Êtes-vous sûr de vouloir supprimer cette route?',
+      tableHeaders: {
+        type: 'Type',
+        titleDescription: 'Titre et Description',
+        status: 'Statut',
+        creationDate: 'Date de Création',
+        actions: 'Actions',
+      },
+      modal: {
+        title: 'Sélectionnez le Type de Route',
+        subtitle: 'Choisissez le type de route que vous souhaitez créer',
+        architectAI: {
+          title: 'Route Architecte IA',
+          description: 'Créez des projets étape par étape avec l\'assistance de l\'IA. Idéal pour la planification structurée et l\'optimisation des prompts.',
+          badge1: 'Assistée par IA',
+          badge2: '6 Phases',
+        },
+        moduleConnector: {
+          title: 'Connecteur de Modules',
+          description: 'Orchestrez des modules HTML/CSS avec des modèles. Connectez les composants header, body et footer avec des styles intégrés.',
+          badge1: 'Modulaire',
+          badge2: 'HTML/CSS',
+        },
+        cancel: 'Annuler',
+      },
     },
     moduleCreator: {
       title: 'Connecteur de Modules',
@@ -1257,6 +1531,20 @@ export const translations: Record<Language, Translations> = {
       loading: 'Chargement...',
       error: 'Erreur de chargement des données',
       retry: 'Réessayer',
+      cancel: 'Annuler',
+      save: 'Sauvegarder',
+      edit: 'Éditer',
+      delete: 'Supprimer',
+      create: 'Créer',
+      view: 'Voir',
+      search: 'Rechercher',
+      name: 'Nom',
+      description: 'Description',
+      actions: 'Actions',
+      saving: 'Enregistrement...',
+      creating: 'Création...',
+      updating: 'Mise à jour...',
+      deleting: 'Suppression...',
     },
   },
 };
