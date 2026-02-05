@@ -1,6 +1,7 @@
 
 import React, { useState, useRef } from 'react';
-import { Plus, Trash2, CheckSquare, Square, FileType, Upload, X, Video, Link2, ImageIcon, Eye, FileText, AlignLeft, ClipboardPaste, Globe, ExternalLink, Download } from 'lucide-react';
+import { Plus, Trash2, CheckSquare, Square, FileType, Upload, X, Video, Link2, ImageIcon, Eye, FileText, AlignLeft, ClipboardPaste, Globe, ExternalLink, Download, Languages } from 'lucide-react';
+import { translations as staticTranslations } from '../../../language/translations';
 import { Source, SourceType, Language } from '../types.ts';
 import { extractUrlContent, transcribeVideo, transcribeVideoUrl, analyzeImage, processPdfVisual } from '../services/geminiService.ts';
 import { UI_TRANSLATIONS } from '../constants/translations.ts';
@@ -105,7 +106,7 @@ const SourcePanel: React.FC<SourcePanelProps> = ({ sources, onAddSource, onToggl
             try {
                 if (type === 'pdf') {
                     setContent(await processPdfForAI(file));
-                } else if (type === 'html') {
+                } else if (type === 'html' || type === 'translation') {
                     const text = await new Promise<string>((resolve) => {
                         const reader = new FileReader();
                         reader.onload = (e) => resolve(e.target?.result as string);
@@ -171,6 +172,16 @@ const SourcePanel: React.FC<SourcePanelProps> = ({ sources, onAddSource, onToggl
             alert("Error en el análisis de IA. Intenta con un archivo más ligero o revisa la URL.");
         }
         finally { setIsLoading(false); }
+    };
+
+    const downloadTemplate = () => {
+        const blob = new Blob([JSON.stringify(staticTranslations.en, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'translations_template_en.json';
+        a.click();
+        URL.revokeObjectURL(url);
     };
 
     const resetForm = () => { setContent(null); setUrl(''); setFileName(''); setMimeType(''); setLocalPreviewUrl(''); setSelectedFile(undefined); };
@@ -254,6 +265,7 @@ const SourcePanel: React.FC<SourcePanelProps> = ({ sources, onAddSource, onToggl
                                     { id: 'image', icon: ImageIcon, color: 'text-amber-500', bg: 'bg-amber-50' },
                                     { id: 'video', icon: Video, color: 'text-purple-500', bg: 'bg-purple-50' },
                                     { id: 'url', icon: Globe, color: 'text-blue-500', bg: 'bg-blue-50' },
+                                    { id: 'translation', icon: Languages, color: 'text-indigo-600', bg: 'bg-indigo-50' },
                                     { id: 'text', icon: AlignLeft, color: 'text-green-500', bg: 'bg-green-50' }
                                 ].map((tab) => (
                                     <button
@@ -265,7 +277,7 @@ const SourcePanel: React.FC<SourcePanelProps> = ({ sources, onAddSource, onToggl
                                             <tab.icon size={18} />
                                         </div>
                                         <span className={`text-[8px] font-black uppercase tracking-tight ${activeTab === tab.id ? 'text-indigo-600' : 'text-gray-400'}`}>
-                                            {tab.id === 'html' ? 'HTML' : tab.id === 'pdf' ? 'PDF/DOC' : tab.id === 'image' ? 'IMAGEN' : tab.id === 'video' ? 'VIDEO' : tab.id === 'url' ? 'WEBSITE' : 'TEXTO'}
+                                            {tab.id === 'html' ? 'HTML' : tab.id === 'pdf' ? 'PDF/DOC' : tab.id === 'image' ? 'IMAGEN' : tab.id === 'video' ? 'VIDEO' : tab.id === 'url' ? 'WEBSITE' : tab.id === 'translation' ? 'TRADUCCIÓN' : 'TEXTO'}
                                         </span>
                                     </button>
                                 ))}
@@ -336,6 +348,37 @@ const SourcePanel: React.FC<SourcePanelProps> = ({ sources, onAddSource, onToggl
                                         required
                                         disabled={isLoading}
                                     />
+                                </div>
+                            )}
+
+                            {activeTab === 'translation' && (
+                                <div className="space-y-6">
+                                    <div className="bg-indigo-50/50 p-6 rounded-[1.5rem] border border-indigo-100 flex flex-col items-center gap-4">
+                                        <div className="p-3 bg-white rounded-2xl shadow-sm text-indigo-600">
+                                            <FileText size={24} />
+                                        </div>
+                                        <div className="text-center">
+                                            <h4 className="font-black text-gray-800 text-xs uppercase tracking-widest mb-1">Plantilla de Traducciones</h4>
+                                            <p className="text-[10px] text-gray-400 font-medium">Descarga la estructura actual de variables para crear un nuevo idioma.</p>
+                                        </div>
+                                        <button 
+                                            type="button" 
+                                            onClick={downloadTemplate}
+                                            className="w-full py-3 bg-white border border-indigo-200 text-indigo-600 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-indigo-50 transition-all shadow-sm"
+                                        >
+                                            <Download size={14} /> Descargar Plantilla (.json)
+                                        </button>
+                                    </div>
+
+                                    <div onClick={() => !isLoading && fileInputRef.current?.click()} className="border-2 border-dashed rounded-[1.5rem] p-8 flex flex-col items-center justify-center cursor-pointer bg-white border-gray-200 hover:border-indigo-300 hover:bg-indigo-50/10 transition-all group">
+                                        <input type="file" ref={fileInputRef} className="hidden" accept=".json" onChange={(e) => handleFileUpload(e, 'translation')} disabled={isLoading} />
+                                        <Upload className={`mb-3 transition-all ${fileName ? 'text-indigo-600' : 'text-gray-300 group-hover:text-indigo-400'}`} size={36} />
+                                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">{fileName || "Subir Archivo de Traducción (.json)"}</span>
+                                    </div>
+
+                                    <div className="px-1 text-center">
+                                        <p className="text-[9px] text-gray-400 italic">Una vez subido, podrás seleccionar este idioma en la sección de Perfil.</p>
+                                    </div>
                                 </div>
                             )}
                         </div>

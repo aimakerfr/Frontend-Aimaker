@@ -4,7 +4,6 @@ import { Search, Link2, Globe, Code, Eye, Lock, Plus, X, ExternalLink, Trash2 } 
 import FormGeneral from './components/Form-general';
 import DetailsView from './components/DetailsView';
 import { useLanguage } from '../../language/useLanguage';
-import { translations } from '../../language/translations';
 import { 
   getTools, 
   createTool, 
@@ -49,11 +48,9 @@ const ExternalAccessView: React.FC<ExternalAccessViewProps> = ({
   items = mockItems,
   onSave,
   onDelete,
-  onToggleVisibility,
   isLoading = false
 }) => {
-  const { language } = useLanguage();
-  const t = translations[language];
+  const { t } = useLanguage();
   const [activeFilter, setActiveFilter] = useState<FilterType>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState<ItemType | 'all'>('all');
@@ -139,9 +136,7 @@ const ExternalAccessView: React.FC<ExternalAccessViewProps> = ({
     setIsEditMode(false);
   };
 
-  const handleToggleVisibility = (itemId: number, currentIsPublic: boolean) => {
-    onToggleVisibility?.(itemId, !currentIsPublic);
-  };
+  // Removed unused handleToggleVisibility that was just wrapping onToggleVisibility
 
   const handleRedirect = (url: string) => {
     if (url) {
@@ -331,7 +326,7 @@ const ExternalAccessView: React.FC<ExternalAccessViewProps> = ({
                         {item.isPublic ? (
                           <button
                             onClick={() => {
-                              const urlType = item.type === 'note_books' ? 'notebook' : item.type;
+                              const urlType = (item.type as string) === 'note_books' ? 'notebook' : item.type;
                               const publicUrl = item.publicUrl || `/public/${urlType}/${item.id}`;
                               handleRedirect(publicUrl);
                             }}

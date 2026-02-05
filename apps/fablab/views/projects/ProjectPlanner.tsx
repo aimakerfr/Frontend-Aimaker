@@ -5,10 +5,11 @@ import { Phase, ProjectState, Language } from './types';
 import { StepIndicator } from './components/StepIndicator';
 import { dashboardAIService } from '@core/ai/dashboard.service';
 import { getMakerPath, updateMakerPath } from '@core/maker-path';
-import { translations } from './translations';
+
 import { useLanguage } from '../../language/useLanguage';
 import { ArrowLeft } from 'lucide-react';
 import {copyToClipboard} from "@core/ui_utils";
+import { translations } from './translations';
 
 const createInitialState = (): ProjectState => ({
   objective: { title: '', description: '', goal: '', type: '' },
@@ -18,12 +19,12 @@ const createInitialState = (): ProjectState => ({
   optimizedPrompt: ''
 });
 
-const App: React.FC = () => {
+const ProjectPlanner: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const pathId = id ? parseInt(id, 10) : undefined;
   const { language } = useLanguage();
-  const lang = language as Language;
+  const lang = (language?.startsWith('http') ? 'es' : language) as Language;
   
   const [phase, setPhase] = useState<Phase>(() => {
     const saved = localStorage.getItem('ai_architect_phase');
@@ -37,7 +38,7 @@ const App: React.FC = () => {
 
   const [loading, setLoading] = useState(false);
 
-  const t = translations[lang];
+  const t = translations[lang] || translations.es;
 
   // Cargar datos del maker path si existe pathId
   useEffect(() => {
@@ -526,4 +527,4 @@ const App: React.FC = () => {
   );
 };
 
-export default App;
+export default ProjectPlanner;

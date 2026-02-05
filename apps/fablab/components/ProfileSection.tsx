@@ -5,13 +5,12 @@ import { ProfileService } from '@core/profile/profile.service';
 import { httpClient } from '@core/api/http.client';
 import type { UserProfile as ApiUserProfile } from '@core/profile/profile.types';
 import { useLanguage } from '../language/useLanguage';
-import { translations } from '../language/translations';
 
 // ProfileSection Component - Shows user profile information
 const ProfileSection: React.FC<{ user: UserProfile | null }> = () => {
-  const { language } = useLanguage();
-  const t = translations[language];
+  const { t } = useLanguage();
   const [profileData, setProfileData] = useState<ApiUserProfile | null>(null);
+  const [translationSources, setTranslationSources] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState({ 
@@ -26,7 +25,17 @@ const ProfileSection: React.FC<{ user: UserProfile | null }> = () => {
 
   useEffect(() => {
     loadProfileData();
+    loadTranslationSources();
   }, []);
+
+  const loadTranslationSources = async () => {
+    try {
+      const response = await httpClient.get('/api/v1/notebook-sources/user-sources?type=TRANSLATION') as any;
+      setTranslationSources(response.data || []);
+    } catch (error) {
+      console.error('Error cargando fuentes de traducción:', error);
+    }
+  };
 
   const loadProfileData = async () => {
     try {
@@ -188,15 +197,28 @@ const ProfileSection: React.FC<{ user: UserProfile | null }> = () => {
                 <select
                   value={editForm.uiLanguage}
                   onChange={(e) => setEditForm({ ...editForm, uiLanguage: e.target.value })}
-                  className="text-lg font-semibold text-gray-900 dark:text-white bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded px-2 py-1 w-full uppercase"
+                  className="text-lg font-semibold text-gray-900 dark:text-white bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded px-2 py-1 w-full"
                 >
-                  <option value="es">ES</option>
-                  <option value="en">EN</option>
-                  <option value="fr">FR</option>
+                  <optgroup label="Standard">
+                    <option value="es">ES</option>
+                    <option value="en">EN</option>
+                    <option value="fr">FR</option>
+                  </optgroup>
+                  {translationSources.length > 0 && (
+                    <optgroup label="Custom (RAG)">
+                      {translationSources.map(source => (
+                        <option key={source.id} value={source.filePath}>
+                          {source.name.toUpperCase()}
+                        </option>
+                      ))}
+                    </optgroup>
+                  )}
                 </select>
               ) : (
-                <div className="text-lg font-semibold text-gray-900 dark:text-white uppercase">
-                  {profileData.uiLanguage}
+                <div className="text-lg font-semibold text-gray-900 dark:text-white uppercase truncate max-w-[150px]">
+                  {profileData.uiLanguage?.startsWith('http') 
+                    ? translationSources.find(s => s.filePath === profileData.uiLanguage)?.name || 'CUSTOM'
+                    : profileData.uiLanguage}
                 </div>
               )}
             </div>

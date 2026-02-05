@@ -9,13 +9,11 @@ import {
 } from '@core/server-tools';
 import type { ServerTool, ServerToolType } from '@core/server-tools';
 import { useLanguage } from '../../language/useLanguage';
-import { translations } from '../../language/translations';
 
 type FilterType = 'all' | ServerToolType;
 
 const ServerView: React.FC = () => {
-  const { language } = useLanguage();
-  const t = translations[language];
+  const { t } = useLanguage();
   
   const [tools, setTools] = useState<ServerTool[]>([]);
   const [isLoading, setIsLoading] = useState(true);

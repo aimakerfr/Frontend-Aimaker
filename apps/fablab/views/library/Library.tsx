@@ -4,7 +4,6 @@ import { useNavigate } from 'react-router-dom';
 import { BookOpen, Search, FileText, Notebook, FolderKanban, Globe, Eye, Lock, Plus, X, ExternalLink, Trash2, Star } from 'lucide-react';
 import FormGeneral from './components/Form-general';
 import { useLanguage } from '../../language/useLanguage';
-import { translations } from '../../language/translations';
 import { 
   getTools, 
   createTool, 
@@ -56,8 +55,7 @@ const LibraryView: React.FC<LibraryViewProps> = ({
   isLoading = false
 }) => {
   const navigate = useNavigate();
-  const { language } = useLanguage();
-  const t = translations[language];
+  const { t } = useLanguage();
   const [activeFilter, setActiveFilter] = useState<FilterType>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState<ItemType | 'all'>('all');

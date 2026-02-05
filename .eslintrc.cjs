@@ -8,12 +8,21 @@ module.exports = {
   ],
   ignorePatterns: ['dist', '.eslintrc.cjs'],
   parser: '@typescript-eslint/parser',
-  plugins: ['react-refresh'],
+  plugins: ['react-refresh', 'i18next'],
   rules: {
     'react-refresh/only-export-components': [
       'warn',
       { allowConstantExport: true },
     ],
     '@typescript-eslint/no-explicit-any': 'warn',
+
+    'i18next/no-literal-string': [
+      'error', 
+      {
+        'markupOnly': true, 
+        'ignoreAttribute': ['className', 'style', 'type', 'key', 'id'], 
+        'onlyAttributes': ['placeholder', 'alt', 'title', 'label'] 
+      }
+    ],
   },
 };
