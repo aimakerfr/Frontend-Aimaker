@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { BookOpen, Search, FileText, Notebook, FolderKanban, Globe, Eye, Lock, Plus, X, ExternalLink, Trash2, Star } from 'lucide-react';
 import FormGeneral from './components/Form-general';
 import { useLanguage } from '../../language/useLanguage';
-import { translations } from '../../language/translations';
+import { translations } from '../../language';
 import { 
   getTools, 
   createTool, 

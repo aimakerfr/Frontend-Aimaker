@@ -12,7 +12,7 @@ import { exportProject } from './utils/exportUtils';
 import { getMakerPath, updateMakerPath } from '@core/maker-path';
 import { Download, LayoutTemplate, ArrowRight, ArrowLeft, Sparkles, Eye, ChevronLeft, Save, CheckCircle } from 'lucide-react';
 import { useLanguage } from '../../language/useLanguage';
-import { translations } from '../../language/translations';
+import { translations } from '../../language';
 
 const initialModuleState = (id: string, name: string): ModuleData => ({
   id,

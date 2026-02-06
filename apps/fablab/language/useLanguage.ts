@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { ProfileService } from '@core/profile/profile.service';
-import type { Language } from './translations';
+import type { Language } from './types';
 
 const profileService = new ProfileService();
 

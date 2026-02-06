@@ -5,7 +5,7 @@ import { ProfileService } from '@core/profile/profile.service';
 import { httpClient } from '@core/api/http.client';
 import type { UserProfile as ApiUserProfile } from '@core/profile/profile.types';
 import { useLanguage } from '../language/useLanguage';
-import { translations } from '../language/translations';
+import { translations } from '../language';
 
 // ProfileSection Component - Shows user profile information
 const ProfileSection: React.FC<{ user: UserProfile | null }> = () => {
