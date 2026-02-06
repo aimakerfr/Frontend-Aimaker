@@ -2,7 +2,7 @@ import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { LayoutDashboard, User, Server, ExternalLink, LogOut, Library as LibraryIcon, Route } from 'lucide-react';
 import { useLanguage } from '../language/useLanguage';
-import { translations } from '../language/translations';
+import { translations } from '../language';
 
 interface SidebarProps {
   onLogout: () => void;

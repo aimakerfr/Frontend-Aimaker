@@ -9,7 +9,7 @@ import {
 } from '@core/server-tools';
 import type { ServerTool, ServerToolType } from '@core/server-tools';
 import { useLanguage } from '../../language/useLanguage';
-import { translations } from '../../language/translations';
+import { translations } from '../../language';
 
 type FilterType = 'all' | ServerToolType;
 

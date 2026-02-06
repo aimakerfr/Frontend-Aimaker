@@ -9,7 +9,7 @@ import {
 import type { MakerPath, MakerPathStatus } from '@core/maker-path';
 import { RouteTypeModal } from './components/RouteTypeModal';
 import { useLanguage } from '../../language/useLanguage';
-import { translations } from '../../language/translations';
+import { translations } from '../../language';
 
 type FilterType = 'all' | 'architect_ai' | 'module_connector' | 'custom';
 type StatusFilter = 'all' | 'draft' | 'in_progress' | 'completed';

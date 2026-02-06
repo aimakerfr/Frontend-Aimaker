@@ -4,7 +4,7 @@ import { Search, Link2, Globe, Code, Eye, Lock, Plus, X, ExternalLink, Trash2 } 
 import FormGeneral from './components/Form-general';
 import DetailsView from './components/DetailsView';
 import { useLanguage } from '../../language/useLanguage';
-import { translations } from '../../language/translations';
+import { translations } from '../../language';
 import { 
   getTools, 
   createTool, 
