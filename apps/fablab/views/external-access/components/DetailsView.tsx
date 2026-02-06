@@ -3,6 +3,8 @@ import {
   Link2, Notebook, Globe, Code, Lock, ArrowLeft, Edit2, ExternalLink
 } from 'lucide-react';
 
+import { useLanguage } from '../../../language/useLanguage';
+
 type ItemType = 'external_link' | 'vibe_coding';
 
 interface LibraryItem {
@@ -49,11 +51,12 @@ const DetailsView: React.FC<DetailsViewProps> = ({
     hasPublicStatus: item.isPublic,
   });
 
-  const [isSaving, setIsSaving] = useState(false);
+   const [isSaving, setIsSaving] = useState(false);
+  const { t } = useLanguage();
 
   const itemTypes: { type: ItemType; icon: any; label: string }[] = [
-    { type: 'external_link', icon: Link2, label: 'External Link' },
-    { type: 'vibe_coding', icon: Code, label: 'Vibe Coding' }
+    { type: 'external_link', icon: Link2, label: t.externalAccess.types.externalLink },
+    { type: 'vibe_coding', icon: Code, label: t.externalAccess.types.vibeCoding }
   ];
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -84,12 +87,12 @@ const DetailsView: React.FC<DetailsViewProps> = ({
                 <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg">
                   <TypeIcon size={24} className="text-white" />
                 </div>
-                <div>
+                 <div>
                   <h2 className="text-xl font-bold text-gray-900 dark:text-white">
-                    {isEditMode ? 'Modifier la ressource' : 'Détails de la ressource'}
+                    {isEditMode ? t.detailsView.title : t.detailsView.titleView}
                   </h2>
                   <p className="text-sm text-gray-500 dark:text-gray-400">
-                    {isEditMode ? 'Mettez à jour les informations' : 'Consultez les informations'}
+                    {isEditMode ? t.detailsView.subtitle : t.detailsView.subtitleView}
                   </p>
                 </div>
               </div>
@@ -98,9 +101,9 @@ const DetailsView: React.FC<DetailsViewProps> = ({
 
           <form onSubmit={handleSubmit} className="p-6 space-y-6">
             {/* Type Selection */}
-            <div>
+             <div>
               <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
-                TYPE
+                {t.detailsView.type}
               </label>
               {isEditMode ? (
                 <div className="grid grid-cols-2 gap-3">
@@ -134,9 +137,9 @@ const DetailsView: React.FC<DetailsViewProps> = ({
             </div>
 
             {/* Title */}
-            <div>
+             <div>
               <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                TITRE
+                {t.detailsView.name}
               </label>
               {isEditMode ? (
                 <input
@@ -153,9 +156,9 @@ const DetailsView: React.FC<DetailsViewProps> = ({
             </div>
 
             {/* URL */}
-            <div>
+             <div>
               <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                URL (OPTIONNEL)
+                {t.detailsView.urlLabel}
               </label>
               {isEditMode ? (
                 <input
@@ -173,9 +176,9 @@ const DetailsView: React.FC<DetailsViewProps> = ({
             </div>
 
             {/* Language */}
-            <div>
+             <div>
               <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                LANGUE
+                {t.detailsView.language}
               </label>
               {isEditMode ? (
                 <select
@@ -183,9 +186,9 @@ const DetailsView: React.FC<DetailsViewProps> = ({
                   onChange={(e) => setFormData({ ...formData, language: e.target.value })}
                   className="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
                 >
-                  <option value="fr">Français</option>
-                  <option value="en">English</option>
-                  <option value="es">Español</option>
+                   <option value="fr">{t.detailsView.languages.fr}</option>
+                  <option value="en">{t.detailsView.languages.en}</option>
+                  <option value="es">{t.detailsView.languages.es}</option>
                 </select>
               ) : (
                 <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 uppercase">
@@ -195,9 +198,9 @@ const DetailsView: React.FC<DetailsViewProps> = ({
             </div>
 
             {/* Description */}
-            <div>
+             <div>
               <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                DESCRIPTION
+                {t.detailsView.description}
               </label>
               {isEditMode ? (
                 <textarea
@@ -214,9 +217,9 @@ const DetailsView: React.FC<DetailsViewProps> = ({
             </div>
 
             {/* Visibility */}
-            <div>
+             <div>
               <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
-                VISIBILITÉ
+                {t.detailsView.visibility}
               </label>
               {isEditMode ? (
                 <div className="grid grid-cols-2 gap-3">
@@ -231,10 +234,10 @@ const DetailsView: React.FC<DetailsViewProps> = ({
                   >
                     <Lock size={20} className={!formData.hasPublicStatus ? 'text-blue-600' : 'text-gray-400'} />
                     <div className="text-left">
-                      <div className={`font-semibold text-sm ${
+                       <div className={`font-semibold text-sm ${
                         !formData.hasPublicStatus ? 'text-blue-600 dark:text-blue-400' : 'text-gray-900 dark:text-white'
                       }`}>
-                        PRIVÉ
+                        {t.detailsView.private}
                       </div>
                     </div>
                   </button>
@@ -253,7 +256,7 @@ const DetailsView: React.FC<DetailsViewProps> = ({
                       <div className={`font-semibold text-sm ${
                         formData.hasPublicStatus ? 'text-green-600 dark:text-green-400' : 'text-gray-900 dark:text-white'
                       }`}>
-                        PUBLIC
+                        {t.detailsView.public}
                       </div>
                     </div>
                   </button>
@@ -261,14 +264,14 @@ const DetailsView: React.FC<DetailsViewProps> = ({
               ) : (
                 <div>
                   {item.isPublic ? (
-                    <span className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800">
+                     <span className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800">
                       <Globe size={18} className="text-green-600" />
-                      <span className="text-sm font-semibold text-green-600">PUBLIC</span>
+                      <span className="text-sm font-semibold text-green-600">{t.detailsView.public}</span>
                     </span>
                   ) : (
                     <span className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600">
                       <Lock size={18} className="text-gray-600" />
-                      <span className="text-sm font-semibold text-gray-600">PRIVÉ</span>
+                      <span className="text-sm font-semibold text-gray-600">{t.detailsView.private}</span>
                     </span>
                   )}
                 </div>
@@ -279,30 +282,30 @@ const DetailsView: React.FC<DetailsViewProps> = ({
             <div className="flex gap-3 pt-4">
               {isEditMode ? (
                 <>
-                  <button
+                   <button
                     type="button"
                     onClick={onClose}
                     className="flex-1 px-6 py-3 border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-semibold rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-all"
                   >
-                    Annuler
+                    {t.detailsView.cancel}
                   </button>
                   <button
                     type="submit"
                     disabled={isSaving}
                     className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold rounded-xl transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {isSaving ? 'Mise à jour...' : 'Mettre à jour'}
+                    {isSaving ? t.detailsView.updating : t.detailsView.update}
                   </button>
                 </>
               ) : (
                 <>
-                  <button
+                   <button
                     type="button"
                     onClick={onEdit}
                     className="flex-1 px-6 py-3 border-2 border-blue-500 text-blue-600 dark:text-blue-400 font-semibold rounded-xl hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all inline-flex items-center justify-center gap-2"
                   >
                     <Edit2 size={18} />
-                    Modifier
+                    {t.detailsView.edit}
                   </button>
                   {item.isPublic && item.url && (
                     <button
@@ -311,7 +314,7 @@ const DetailsView: React.FC<DetailsViewProps> = ({
                       className="flex-1 px-6 py-3 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-semibold rounded-xl transition-all shadow-lg inline-flex items-center justify-center gap-2"
                     >
                       <ExternalLink size={18} />
-                      Ouvrir
+                      {t.detailsView.open}
                     </button>
                   )}
                 </>

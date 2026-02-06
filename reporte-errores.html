@@ -1,0 +1,4210 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <title>ESLint Report</title>
+        <link rel="icon" type="image/png" sizes="any" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAACXBIWXMAAAHaAAAB2gGFomX7AAAAGXRFWHRTb2Z0d2FyZQB3d3cuaW5rc2NhcGUub3Jnm+48GgAABD1JREFUWMPFl11sk2UUx3/nbYtjxS1MF7MLMTECMgSTtSSyrQkLhAj7UBPnDSEGoxegGzMwojhXVpmTAA5iYpSoMQa8GBhFOrMFk03buei6yRAlcmOM0SEmU9d90b19jxcM1o5+sGnsc/e+z/l6ztf/HFFVMnns6QieeOCHBePGsHM+wrOtvLG2C4WRVDSSygNV7sCjlspxwDnPB44aols/DXk+mbMBmx/6OseITF1CuOtfevkPh2Uu+/jbdX8lujSScRlT5r7/QDlAfsRmfzmpnkQ/H3H13gf6bBrBn1uqK8WylgEnU8eZmk1repbfchJG1TyKyIKEwuBHFd3lD3naY3O1siiwXsVoBV2VgM1ht/QQUJk2ByqKghsQziYQ8ifKgexIXmuyzC4r67Y7R+xPAfuB/Nn3Cpva+0s7khpQVtZtd4bt51BWxtBYAiciprG7c7D4SixzU9PYalDL6110Ifb/w8W9eY7JqFeFHbO8fPGyLHwwFHJNJTSgwtVTB9oaw9BlQ+tO93vOxypoaQnfEYlI43SeCHDC4TDq9+51/h5fxr33q0ZfV9g04wat9Q943rjJgCp3952W2i8Bi6eDvdsfKj0cK/DYMRyXL4/sUJUmIHd2zYMezsvLaamp4WpcWN3BXSiHpuMwbGbZlnZ8tXY4rgosy+G7oRwQ0cAsd28YGgqfU5UjCZQDLALxDg+Hv/P5Rqvj4hwrS8izXzWb4spwc1GgENFnkpWRzxeuB+ssUHgLdb9UVdt8vpGdKQpze7n7y1U3DBChNRUuqOo9c+0+qpKKxyZqtAIYla7gY4JszAAQri93BSsMRZoyBcUC+w3Q3AyOA4sNhAOZ0q7Iq0b2vUNvK5zPgP+/H8+Zetdoa6uOikhdGurxebwvJY8Iz3V1rTMNAH+opEuQj5KTT/qA1yC+wyUjBm12OidaUtCcPNNX2h0Hx2JG69VulANZAJZJwfU7rzd/FHixuXniTdM0m4GtSQT7bTartqEh9yfImUEzkwKZmTwmo5a5JwkYBfcDL01/RkR5y8iWhtPBknB8ZxwtU9UjwOrrKCeizzc25nTGg1F/turEHoU9wMLpDvWKf8DTmNCAKnd/tqUTF4ElMXJ+A5rWDJS+41WsGWzALhJ+ErBWrLj9g+pqojHxlXJX8HGUg0BsR/x1yhxf3jm4cSzpQFLp6tmi6PEE7g1ZhtZ91ufpSZUAFa6gC+UoQslNaSmypT1U8mHKiUgEKS8KfgF4EpYunFI16tsHin+OG0LcgQK7yj7g6cSzpva2D3hKVNG0Y3mVO1BkqfSlmJrHBQ4uvM12gJHc6ETW8HZVfMRmXvyxxNC1Z/o839zyXlDuCr4nsC11J+MXueaVJWn6yPv+/pJtc9oLTNN4AeTvNGByd3rlhE2x9s5pLwDoHCy+grDzWmOZ95lUtLYj5Bma126Y8eX0/zj/ADxGyViSg4BXAAAAAElFTkSuQmCC">
+        <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PScwIDAgMjk0LjgyNSAyNTguOTgyJyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnPg0KPHBhdGggZmlsbD0nIzgwODBGMicgZD0nTTk3LjAyMSw5OS4wMTZsNDguNDMyLTI3Ljk2MmMxLjIxMi0wLjcsMi43MDYtMC43LDMuOTE4LDBsNDguNDMzLDI3Ljk2MiBjMS4yMTEsMC43LDEuOTU5LDEuOTkzLDEuOTU5LDMuMzkzdjU1LjkyNGMwLDEuMzk5LTAuNzQ4LDIuNjkzLTEuOTU5LDMuMzk0bC00OC40MzMsMjcuOTYyYy0xLjIxMiwwLjctMi43MDYsMC43LTMuOTE4LDAgbC00OC40MzItMjcuOTYyYy0xLjIxMi0wLjctMS45NTktMS45OTQtMS45NTktMy4zOTR2LTU1LjkyNEM5NS4wNjMsMTAxLjAwOSw5NS44MSw5OS43MTYsOTcuMDIxLDk5LjAxNicvPg0KPHBhdGggZmlsbD0nIzRCMzJDMycgZD0nTTI3My4zMzYsMTI0LjQ4OEwyMTUuNDY5LDIzLjgxNmMtMi4xMDItMy42NC01Ljk4NS02LjMyNS0xMC4xODgtNi4zMjVIODkuNTQ1IGMtNC4yMDQsMC04LjA4OCwyLjY4NS0xMC4xOSw2LjMyNWwtNTcuODY3LDEwMC40NWMtMi4xMDIsMy42NDEtMi4xMDIsOC4yMzYsMCwxMS44NzdsNTcuODY3LDk5Ljg0NyBjMi4xMDIsMy42NCw1Ljk4Niw1LjUwMSwxMC4xOSw1LjUwMWgxMTUuNzM1YzQuMjAzLDAsOC4wODctMS44MDUsMTAuMTg4LTUuNDQ2bDU3Ljg2Ny0xMDAuMDEgQzI3NS40MzksMTMyLjM5NiwyNzUuNDM5LDEyOC4xMjgsMjczLjMzNiwxMjQuNDg4IE0yMjUuNDE5LDE3Mi44OThjMCwxLjQ4LTAuODkxLDIuODQ5LTIuMTc0LDMuNTlsLTczLjcxLDQyLjUyNyBjLTEuMjgyLDAuNzQtMi44ODgsMC43NC00LjE3LDBsLTczLjc2Ny00Mi41MjdjLTEuMjgyLTAuNzQxLTIuMTc5LTIuMTA5LTIuMTc5LTMuNTlWODcuODQzYzAtMS40ODEsMC44ODQtMi44NDksMi4xNjctMy41OSBsNzMuNzA3LTQyLjUyN2MxLjI4Mi0wLjc0MSwyLjg4Ni0wLjc0MSw0LjE2OCwwbDczLjc3Miw0Mi41MjdjMS4yODMsMC43NDEsMi4xODYsMi4xMDksMi4xODYsMy41OVYxNzIuODk4eicvPg0KPC9zdmc+">
+        <style>
+            body {
+                font-family: Arial, "Helvetica Neue", Helvetica, sans-serif;
+                font-size: 16px;
+                font-weight: normal;
+                margin: 0;
+                padding: 0;
+                color: #333;
+            }
+
+            #overview {
+                padding: 20px 30px;
+            }
+
+            td,
+            th {
+                padding: 5px 10px;
+            }
+
+            h1 {
+                margin: 0;
+            }
+
+            table {
+                margin: 30px;
+                width: calc(100% - 60px);
+                max-width: 1000px;
+                border-radius: 5px;
+                border: 1px solid #ddd;
+                border-spacing: 0;
+            }
+
+            th {
+                font-weight: 400;
+                font-size: medium;
+                text-align: left;
+                cursor: pointer;
+            }
+
+            td.clr-1,
+            td.clr-2,
+            th span {
+                font-weight: 700;
+            }
+
+            th span {
+                float: right;
+                margin-left: 20px;
+            }
+
+            th span::after {
+                content: "";
+                clear: both;
+                display: block;
+            }
+
+            tr:last-child td {
+                border-bottom: none;
+            }
+
+            tr td:first-child,
+            tr td:last-child {
+                color: #9da0a4;
+            }
+
+            #overview.bg-0,
+            tr.bg-0 th {
+                color: #468847;
+                background: #dff0d8;
+                border-bottom: 1px solid #d6e9c6;
+            }
+
+            #overview.bg-1,
+            tr.bg-1 th {
+                color: #f0ad4e;
+                background: #fcf8e3;
+                border-bottom: 1px solid #fbeed5;
+            }
+
+            #overview.bg-2,
+            tr.bg-2 th {
+                color: #b94a48;
+                background: #f2dede;
+                border-bottom: 1px solid #eed3d7;
+            }
+
+            td {
+                border-bottom: 1px solid #ddd;
+            }
+
+            td.clr-1 {
+                color: #f0ad4e;
+            }
+
+            td.clr-2 {
+                color: #b94a48;
+            }
+
+            td a {
+                color: #3a33d1;
+                text-decoration: none;
+            }
+
+            td a:hover {
+                color: #272296;
+                text-decoration: underline;
+            }
+        </style>
+    </head>
+    <body>
+        <div id="overview" class="bg-2">
+            <h1>ESLint Report</h1>
+            <div>
+                <span>337 problems (337 errors, 0 warnings)</span> - Generated on Thu Feb 05 2026 08:12:51 GMT-0500 (Colombia Standard Time)
+            </div>
+        </div>
+        <table>
+            <tbody>
+                <tr class="bg-2" data-group="f-0">
+    <th colspan="4">
+        [+] C:\Users\jacob\OneDrive\Documentos\aimaker\Frontend-Aimaker\apps\auth\views\LoginView.tsx
+        <span>6 problems (6 errors, 0 warnings)</span>
+    </th>
+</tr>
+<tr style="display: none;" class="f-0">
+    <td>32:13</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;h1&#62;Iniciar Sesión&#60;/h1&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-0">
+    <td>33:12</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;p&#62;AI Maker FabLab&#60;/p&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-0">
+    <td>44:34</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;label htmlFor=&#34;email&#34;&#62;Email&#60;/label&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-0">
+    <td>57:37</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;label htmlFor=&#34;password&#34;&#62;Contraseña&#60;/label&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-0">
+    <td>74:36</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;div className=&#34;auth-footer&#34;&#62;
+        ¿No tienes cuenta? &#60;Link to=&#34;/auth/register&#34;&#62;Regístrate aquí&#60;/Link&#62;
+      &#60;/div&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-0">
+    <td>75:54</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;Link to=&#34;/auth/register&#34;&#62;Regístrate aquí&#60;/Link&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr class="bg-2" data-group="f-1">
+    <th colspan="4">
+        [+] C:\Users\jacob\OneDrive\Documentos\aimaker\Frontend-Aimaker\apps\auth\views\RegisterView.tsx
+        <span>7 problems (7 errors, 0 warnings)</span>
+    </th>
+</tr>
+<tr style="display: none;" class="f-1">
+    <td>33:13</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;h1&#62;Crear Cuenta&#60;/h1&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-1">
+    <td>34:12</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;p&#62;AI Maker FabLab&#60;/p&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-1">
+    <td>45:33</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;label htmlFor=&#34;name&#34;&#62;Nombre completo&#60;/label&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-1">
+    <td>59:34</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;label htmlFor=&#34;email&#34;&#62;Email&#60;/label&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-1">
+    <td>72:37</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;label htmlFor=&#34;password&#34;&#62;Contraseña&#60;/label&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-1">
+    <td>90:36</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;div className=&#34;auth-footer&#34;&#62;
+        ¿Ya tienes cuenta? &#60;Link to=&#34;/auth/login&#34;&#62;Inicia sesión aquí&#60;/Link&#62;
+      &#60;/div&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-1">
+    <td>91:51</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;Link to=&#34;/auth/login&#34;&#62;Inicia sesión aquí&#60;/Link&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr class="bg-2" data-group="f-2">
+    <th colspan="4">
+        [+] C:\Users\jacob\OneDrive\Documentos\aimaker\Frontend-Aimaker\apps\fablab\components\AIChat.tsx
+        <span>3 problems (3 errors, 0 warnings)</span>
+    </th>
+</tr>
+<tr style="display: none;" class="f-2">
+    <td>88:43</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;h3 className=&#34;font-semibold&#34;&#62;AiMaker Assistant&#60;/h3&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-2">
+    <td>105:131</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;div className=&#34;text-[10px] opacity-70 mt-1 flex items-center gap-1&#34;&#62;&#60;BrainCircuit size={10} /&#62; Thinking Mode&#60;/div&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-2">
+    <td>133:22</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;span&#62;Deep Thinking&#60;/span&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr class="bg-2" data-group="f-3">
+    <th colspan="4">
+        [+] C:\Users\jacob\OneDrive\Documentos\aimaker\Frontend-Aimaker\apps\fablab\components\AIContext.tsx
+        <span>6 problems (6 errors, 0 warnings)</span>
+    </th>
+</tr>
+<tr style="display: none;" class="f-3">
+    <td>113:72</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;h2 className=&#34;text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-3&#34;&#62;
+          &#60;Settings className=&#34;text-indigo-600 dark:text-indigo-400&#34; /&#62;
+          Server Tools
+        &#60;/h2&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-3">
+    <td>116:62</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;p className=&#34;text-gray-600 dark:text-gray-300 mt-2&#34;&#62;
+          Accede a las herramientas de servidor e integraciones externas.
+        &#60;/p&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-3">
+    <td>167:47</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;button
+                            onClick={() =&#62; handleSaveUrl(tool.id)}
+                            className=&#34;flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors text-sm font-medium&#34;
+                          &#62;
+                            &#60;Save size={14} /&#62;
+                            Guardar
+                          &#60;/button&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-3">
+    <td>174:44</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;button
+                            onClick={handleCancelEdit}
+                            className=&#34;flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-gray-300 dark:bg-gray-600 hover:bg-gray-400 dark:hover:bg-gray-500 text-gray-700 dark:text-gray-200 rounded-lg transition-colors text-sm font-medium&#34;
+                          &#62;
+                            &#60;X size={14} /&#62;
+                            Cancelar
+                          &#60;/button&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-3">
+    <td>203:23</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;&#62;
+                      Abrir
+                      &#60;ExternalLink size={18} /&#62;
+                    &#60;/&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-3">
+    <td>208:23</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;&#62;
+                      Acceder
+                      &#60;svg className=&#34;w-5 h-5&#34; fill=&#34;none&#34; stroke=&#34;currentColor&#34; viewBox=&#34;0 0 24 24&#34;&#62;
+                        &#60;path strokeLinecap=&#34;round&#34; strokeLinejoin=&#34;round&#34; strokeWidth={2} d=&#34;M9 5l7 7-7 7&#34; /&#62;
+                      &#60;/svg&#62;
+                    &#60;/&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr class="bg-2" data-group="f-4">
+    <th colspan="4">
+        [+] C:\Users\jacob\OneDrive\Documentos\aimaker\Frontend-Aimaker\apps\fablab\components\FabLabs.tsx
+        <span>10 problems (10 errors, 0 warnings)</span>
+    </th>
+</tr>
+<tr style="display: none;" class="f-4">
+    <td>3:16</td>
+    <td class="clr-2">Error</td>
+    <td>&#39;Search&#39; is defined but never used.</td>
+    <td>
+        <a href="https://typescript-eslint.io/rules/no-unused-vars" target="_blank" rel="noopener noreferrer">@typescript-eslint/no-unused-vars</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-4">
+    <td>49:76</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;h2 className=&#34;text-2xl font-bold text-gray-900 dark:text-white&#34;&#62;My FabLabs&#60;/h2&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-4">
+    <td>50:64</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;p className=&#34;text-gray-500 dark:text-gray-400 mt-1&#34;&#62;Manage your dedicated AI workspaces.&#60;/p&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-4">
+    <td>56:29</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;button 
+          onClick={() =&#62; setIsModalOpen(true)}
+          className=&#34;bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 rounded-lg font-medium flex items-center gap-2 transition-colors shadow-sm&#34;
+        &#62;
+          &#60;Plus size={20} /&#62;
+          Create FabLab
+        &#60;/button&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-4">
+    <td>78:37</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;span&#62;{lab.docCount} docs&#60;/span&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-4">
+    <td>97:82</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;h3 className=&#34;text-xl font-bold text-gray-900 dark:text-white mb-4&#34;&#62;Create New FabLab&#60;/h3&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-4">
+    <td>100:100</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;label className=&#34;block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1&#34;&#62;FabLab Name&#60;/label&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-4">
+    <td>111:97</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;label className=&#34;block text-sm font-medium text-gray-700 dark:text-gray-300&#34;&#62;Description&#60;/label&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-4">
+    <td>134:16</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;button 
+                onClick={() =&#62; setIsModalOpen(false)}
+                className=&#34;flex-1 px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors&#34;
+              &#62;
+                Cancel
+              &#60;/button&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-4">
+    <td>141:16</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;button 
+                onClick={handleCreate}
+                disabled={!newLabName}
+                className=&#34;flex-1 px-4 py-2 rounded-lg bg-brand-600 text-white hover:bg-brand-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed&#34;
+              &#62;
+                Create FabLab
+              &#60;/button&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr class="bg-2" data-group="f-5">
+    <th colspan="4">
+        [+] C:\Users\jacob\OneDrive\Documentos\aimaker\Frontend-Aimaker\apps\fablab\components\ProfileSection.tsx
+        <span>24 problems (24 errors, 0 warnings)</span>
+    </th>
+</tr>
+<tr style="display: none;" class="f-5">
+    <td>124:37</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;button 
+                     onClick={handleCancel}
+                     disabled={saving}
+                     className=&#34;bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 px-4 py-2 rounded-lg font-medium hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors flex items-center gap-2&#34;
+                   &#62;
+                     &#60;X size={16} /&#62; Cancelar
+                   &#60;/button&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-5">
+    <td>139:39</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;button 
+                   onClick={handleEdit}
+                   className=&#34;bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-200 px-4 py-2 rounded-lg font-medium hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors flex items-center gap-2&#34;
+                 &#62;
+                   &#60;Edit2 size={16} /&#62; Editar Perfil
+                 &#60;/button&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-5">
+    <td>166:55</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;span className=&#34;text-sm font-medium&#34;&#62;Teléfono&#60;/span&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-5">
+    <td>185:55</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;span className=&#34;text-sm font-medium&#34;&#62;Idioma&#60;/span&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-5">
+    <td>206:55</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;span className=&#34;text-sm font-medium&#34;&#62;Miembro desde&#60;/span&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-5">
+    <td>217:55</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;span className=&#34;text-sm font-medium&#34;&#62;Categoría&#60;/span&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-5">
+    <td>225:43</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;option value=&#34;student&#34;&#62;Estudiante&#60;/option&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-5">
+    <td>226:43</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;option value=&#34;teacher&#34;&#62;Profesor&#60;/option&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-5">
+    <td>227:45</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;option value=&#34;developer&#34;&#62;Desarrollador&#60;/option&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-5">
+    <td>228:46</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;option value=&#34;apprentice&#34;&#62;Aprendiz&#60;/option&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-5">
+    <td>229:48</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;option value=&#34;professional&#34;&#62;Profesional&#60;/option&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-5">
+    <td>230:46</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;option value=&#34;researcher&#34;&#62;Investigador&#60;/option&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-5">
+    <td>231:41</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;option value=&#34;other&#34;&#62;Otro&#60;/option&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-5">
+    <td>248:55</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;span className=&#34;text-sm font-medium&#34;&#62;Nivel&#60;/span&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-5">
+    <td>272:78</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;h2 className=&#34;text-xl font-bold text-gray-900 dark:text-white mb-4&#34;&#62;Estadísticas de Herramientas&#60;/h2&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-5">
+    <td>279:87</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;div className=&#34;text-xs text-purple-700 dark:text-purple-300 font-medium&#34;&#62;Notebooks&#60;/div&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-5">
+    <td>287:83</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;div className=&#34;text-xs text-blue-700 dark:text-blue-300 font-medium&#34;&#62;Proyectos&#60;/div&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-5">
+    <td>295:85</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;div className=&#34;text-xs text-green-700 dark:text-green-300 font-medium&#34;&#62;Prompts&#60;/div&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-5">
+    <td>303:87</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;div className=&#34;text-xs text-yellow-700 dark:text-yellow-300 font-medium&#34;&#62;Enlaces&#60;/div&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-5">
+    <td>311:87</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;div className=&#34;text-xs text-indigo-700 dark:text-indigo-300 font-medium&#34;&#62;Asistentes&#60;/div&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-5">
+    <td>319:83</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;div className=&#34;text-xs text-pink-700 dark:text-pink-300 font-medium&#34;&#62;Apps&#60;/div&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-5">
+    <td>327:83</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;div className=&#34;text-xs text-teal-700 dark:text-teal-300 font-medium&#34;&#62;Vibe Coding&#60;/div&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-5">
+    <td>335:87</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;div className=&#34;text-xs text-orange-700 dark:text-orange-300 font-medium&#34;&#62;Total&#60;/div&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-5">
+    <td>342:80</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;h2 className=&#34;text-xl font-bold text-gray-900 dark:text-white mb-4&#34;&#62;Acerca de&#60;/h2&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr class="bg-2" data-group="f-6">
+    <th colspan="4">
+        [+] C:\Users\jacob\OneDrive\Documentos\aimaker\Frontend-Aimaker\apps\fablab\components\Sidebar.tsx
+        <span>2 problems (2 errors, 0 warnings)</span>
+    </th>
+</tr>
+<tr style="display: none;" class="f-6">
+    <td>3:10</td>
+    <td class="clr-2">Error</td>
+    <td>&#39;LayoutDashboard&#39; is defined but never used.</td>
+    <td>
+        <a href="https://typescript-eslint.io/rules/no-unused-vars" target="_blank" rel="noopener noreferrer">@typescript-eslint/no-unused-vars</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-6">
+    <td>38:75</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;span className=&#34;text-xl font-bold text-gray-800 dark:text-white&#34;&#62;AiMaker&#60;/span&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr class="bg-2" data-group="f-7">
+    <th colspan="4">
+        [+] C:\Users\jacob\OneDrive\Documentos\aimaker\Frontend-Aimaker\apps\fablab\components\Tools.tsx
+        <span>4 problems (4 errors, 0 warnings)</span>
+    </th>
+</tr>
+<tr style="display: none;" class="f-7">
+    <td>30:76</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;h2 className=&#34;text-2xl font-bold text-gray-900 dark:text-white&#34;&#62;AI Tools &#38; Capabilities&#60;/h2&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-7">
+    <td>31:64</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;p className=&#34;text-gray-500 dark:text-gray-400 mt-1&#34;&#62;Manage external capabilities accessible by your FabLabs.&#60;/p&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-7">
+    <td>59:26</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;span&#62;Secure Tool&#60;/span&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-7">
+    <td>64:26</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;span&#62;Experimental&#60;/span&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr class="bg-2" data-group="f-8">
+    <th colspan="4">
+        [+] C:\Users\jacob\OneDrive\Documentos\aimaker\Frontend-Aimaker\apps\fablab\views\assistant\AssistantDetails.tsx
+        <span>12 problems (12 errors, 0 warnings)</span>
+    </th>
+</tr>
+<tr style="display: none;" class="f-8">
+    <td>166:56</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;h2 className=&#34;text-lg font-bold text-slate-900&#34;&#62;Configuración del Asistente&#60;/h2&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-8">
+    <td>171:103</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;label className=&#34;block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2&#34;&#62;INSTRUCCIONES DEL SISTEMA&#60;/label&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-8">
+    <td>180:65</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;p className=&#34;text-[10px] text-slate-400 italic mt-1&#34;&#62;Aquí es donde moldeas la inteligencia de tu Asistente.&#60;/p&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-8">
+    <td>185:103</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;label className=&#34;block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2&#34;&#62;INICIADORES DE CONVERSACIÓN&#60;/label&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-8">
+    <td>214:45</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;button 
+            onClick={addStarter}
+            className=&#34;mt-2 text-[11px] text-blue-500 hover:text-blue-600 flex items-center gap-2 font-bold uppercase tracking-wider&#34;
+            disabled={saving}
+          &#62;
+            &#60;Plus className=&#34;w-3.5 h-3.5&#34; /&#62; Añadir opción
+          &#60;/button&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-8">
+    <td>220:103</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;label className=&#34;block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2&#34;&#62;BASE DE CONOCIMIENTOS&#60;/label&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-8">
+    <td>253:63</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;p className=&#34;text-xs font-bold text-slate-600&#34;&#62;Cargar documentos&#60;/p&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-8">
+    <td>254:62</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;p className=&#34;text-[10px] text-slate-400 mt-1&#34;&#62;PDF, DOCX o TXT para enriquecer el contexto&#60;/p&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-8">
+    <td>270:103</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;label className=&#34;block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2&#34;&#62;CAPACIDADES Y HERRAMIENTAS&#60;/label&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-8">
+    <td>276:138</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;span className={`text-sm font-semibold transition-colors ${capabilities.imageGen ? &#39;text-slate-900&#39; : &#39;text-slate-500&#39;}`}&#62;
+                Generación de imágenes
+              &#60;/span&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-8">
+    <td>308:103</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;label className=&#34;block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2&#34;&#62;URL DEL ASISTENTE&#60;/label&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-8">
+    <td>320:103</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;label className=&#34;block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2&#34;&#62;BASE URL&#60;/label&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr class="bg-2" data-group="f-9">
+    <th colspan="4">
+        [+] C:\Users\jacob\OneDrive\Documentos\aimaker\Frontend-Aimaker\apps\fablab\views\assistant\SaveStatusModal.tsx
+        <span>1 problem (1 error, 0 warnings)</span>
+    </th>
+</tr>
+<tr style="display: none;" class="f-9">
+    <td>38:12</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;button
+            onClick={onClose}
+            className=&#34;flex-1 px-6 py-3 bg-slate-900 hover:bg-slate-800 text-white font-semibold rounded-xl transition-all&#34;
+          &#62;
+            Fermer
+          &#60;/button&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr class="bg-2" data-group="f-10">
+    <th colspan="4">
+        [+] C:\Users\jacob\OneDrive\Documentos\aimaker\Frontend-Aimaker\apps\fablab\views\external-access\ExternalAccess.tsx
+        <span>2 problems (2 errors, 0 warnings)</span>
+    </th>
+</tr>
+<tr style="display: none;" class="f-10">
+    <td>142:9</td>
+    <td class="clr-2">Error</td>
+    <td>&#39;handleToggleVisibility&#39; is assigned a value but never used.</td>
+    <td>
+        <a href="https://typescript-eslint.io/rules/no-unused-vars" target="_blank" rel="noopener noreferrer">@typescript-eslint/no-unused-vars</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-10">
+    <td>540:12</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;button
+            onClick={() =&#62; loadCreationTools()}
+            className=&#34;px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700&#34;
+          &#62;
+            Reintentar
+          &#60;/button&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr class="bg-2" data-group="f-11">
+    <th colspan="4">
+        [+] C:\Users\jacob\OneDrive\Documentos\aimaker\Frontend-Aimaker\apps\fablab\views\external-access\components\DetailsView.tsx
+        <span>13 problems (13 errors, 0 warnings)</span>
+    </th>
+</tr>
+<tr style="display: none;" class="f-11">
+    <td>43:35</td>
+    <td class="clr-2">Error</td>
+    <td>React Hook &#34;useState&#34; is called conditionally. React Hooks must be called in the exact same order in every component render.</td>
+    <td>
+        <a href="https://reactjs.org/docs/hooks-rules.html" target="_blank" rel="noopener noreferrer">react-hooks/rules-of-hooks</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-11">
+    <td>52:35</td>
+    <td class="clr-2">Error</td>
+    <td>React Hook &#34;useState&#34; is called conditionally. React Hooks must be called in the exact same order in every component render. Did you accidentally call a React Hook after an early return?</td>
+    <td>
+        <a href="https://reactjs.org/docs/hooks-rules.html" target="_blank" rel="noopener noreferrer">react-hooks/rules-of-hooks</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-11">
+    <td>74:25</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;div className=&#34;bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700&#34;&#62;
+          {/* Header */}Link2
+          &#60;div className=&#34;border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex items-center justify-between&#34;&#62;
+            &#60;div className=&#34;flex items-center gap-3&#34;&#62;
+              &#60;button 
+                onClick={onClose} 
+                className=&#34;p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors&#34;
+              &#62;
+                &#60;ArrowLeft size={20} className=&#34;text-gray-600 dark:text-gray-400&#34; /&#62;
+              &#60;/button&#62;
+              &#60;div className=&#34;flex items-center gap-3&#34;&#62;
+                &#60;div className=&#34;w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg&#34;&#62;
+                  &#60;TypeIcon size={24} className=&#34;text-white&#34; /&#62;
+                &#60;/div&#62;
+                &#60;div&#62;
+                  &#60;h2 className=&#34;text-xl font-bold text-gray-900 dark:text-white&#34;&#62;
+                    {isEditMode ? &#39;Modifier la ressource&#39; : &#39;Détails de la ressource&#39;}
+                  &#60;/h2&#62;
+                  &#60;p className=&#34;text-sm text-gray-500 dark:text-gray-400&#34;&#62;
+                    {isEditMode ? &#39;Mettez à jour les informations&#39; : &#39;Consultez les informations&#39;}
+                  &#60;/p&#62;
+                &#60;/div&#62;
+              &#60;/div&#62;
+            &#60;/div&#62;
+          &#60;/div&#62;
+
+          &#60;form onSubmit={handleSubmit} className=&#34;p-6 space-y-6&#34;&#62;
+            {/* Type Selection */}
+            &#60;div&#62;
+              &#60;label className=&#34;block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3&#34;&#62;
+                TYPE
+              &#60;/label&#62;
+              {isEditMode ? (
+                &#60;div className=&#34;grid grid-cols-2 gap-3&#34;&#62;
+                  {itemTypes.map(type =&#62; {
+                    const Icon = type.icon;
+                    return (
+                      &#60;button
+                        key={type.type}
+                        type=&#34;button&#34;
+                        onClick={() =&#62; setFormData({ ...formData, type: type.type })}
+                        className={`flex flex-col items-center gap-2 p-3 rounded-xl border-2 transition-all ${
+                          formData.type === type.type
+                            ? &#39;border-blue-500 bg-blue-50 dark:bg-blue-900/20&#39;
+                            : &#39;border-gray-200 dark:border-gray-700 hover:border-gray-300&#39;
+                        }`}
+                      &#62;
+                        &#60;Icon size={20} className={formData.type === type.type ? &#39;text-blue-600&#39; : &#39;text-gray-400&#39;} /&#62;
+                        &#60;span className=&#34;text-xs font-semibold&#34;&#62;{type.label}&#60;/span&#62;
+                      &#60;/button&#62;
+                    );
+                  })}
+                &#60;/div&#62;
+              ) : (
+                &#60;div className=&#34;inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800&#34;&#62;
+                  &#60;TypeIcon size={20} className=&#34;text-blue-600&#34; /&#62;
+                  &#60;span className=&#34;text-sm font-semibold text-blue-600&#34;&#62;
+                    {itemTypes.find(t =&#62; t.type === item.type)?.label}
+                  &#60;/span&#62;
+                &#60;/div&#62;
+              )}
+            &#60;/div&#62;
+
+            {/* Title */}
+            &#60;div&#62;
+              &#60;label className=&#34;block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2&#34;&#62;
+                TITRE
+              &#60;/label&#62;
+              {isEditMode ? (
+                &#60;input
+                  type=&#34;text&#34;
+                  value={formData.title}
+                  onChange={(e) =&#62; setFormData({ ...formData, title: e.target.value })}
+                  className=&#34;w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none&#34;
+                /&#62;
+              ) : (
+                &#60;p className=&#34;px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white&#34;&#62;
+                  {item.title}
+                &#60;/p&#62;
+              )}
+            &#60;/div&#62;
+
+            {/* URL */}
+            &#60;div&#62;
+              &#60;label className=&#34;block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2&#34;&#62;
+                URL (OPTIONNEL)
+              &#60;/label&#62;
+              {isEditMode ? (
+                &#60;input
+                  type=&#34;text&#34;
+                  value={formData.url}
+                  onChange={(e) =&#62; setFormData({ ...formData, url: e.target.value })}
+                  placeholder=&#34;https://...&#34;
+                  className=&#34;w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none&#34;
+                /&#62;
+              ) : (
+                &#60;p className=&#34;px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white&#34;&#62;
+                  {item.url || &#39;N/A&#39;}
+                &#60;/p&#62;
+              )}
+            &#60;/div&#62;
+
+            {/* Language */}
+            &#60;div&#62;
+              &#60;label className=&#34;block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2&#34;&#62;
+                LANGUE
+              &#60;/label&#62;
+              {isEditMode ? (
+                &#60;select
+                  value={formData.language}
+                  onChange={(e) =&#62; setFormData({ ...formData, language: e.target.value })}
+                  className=&#34;w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none&#34;
+                &#62;
+                  &#60;option value=&#34;fr&#34;&#62;Français&#60;/option&#62;
+                  &#60;option value=&#34;en&#34;&#62;English&#60;/option&#62;
+                  &#60;option value=&#34;es&#34;&#62;Español&#60;/option&#62;
+                &#60;/select&#62;
+              ) : (
+                &#60;span className=&#34;inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 uppercase&#34;&#62;
+                  {item.language || &#39;N/A&#39;}
+                &#60;/span&#62;
+              )}
+            &#60;/div&#62;
+
+            {/* Description */}
+            &#60;div&#62;
+              &#60;label className=&#34;block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2&#34;&#62;
+                DESCRIPTION
+              &#60;/label&#62;
+              {isEditMode ? (
+                &#60;textarea
+                  value={formData.description}
+                  onChange={(e) =&#62; setFormData({ ...formData, description: e.target.value })}
+                  rows={4}
+                  className=&#34;w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none resize-none&#34;
+                /&#62;
+              ) : (
+                &#60;p className=&#34;px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white min-h-[100px]&#34;&#62;
+                  {item.description}
+                &#60;/p&#62;
+              )}
+            &#60;/div&#62;
+
+            {/* Visibility */}
+            &#60;div&#62;
+              &#60;label className=&#34;block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3&#34;&#62;
+                VISIBILITÉ
+              &#60;/label&#62;
+              {isEditMode ? (
+                &#60;div className=&#34;grid grid-cols-2 gap-3&#34;&#62;
+                  &#60;button
+                    type=&#34;button&#34;
+                    onClick={() =&#62; setFormData({ ...formData, hasPublicStatus: false })}
+                    className={`flex items-center gap-3 p-4 rounded-xl border-2 transition-all ${
+                      !formData.hasPublicStatus
+                        ? &#39;border-blue-500 bg-blue-50 dark:bg-blue-900/20&#39;
+                        : &#39;border-gray-200 dark:border-gray-700 hover:border-gray-300&#39;
+                    }`}
+                  &#62;
+                    &#60;Lock size={20} className={!formData.hasPublicStatus ? &#39;text-blue-600&#39; : &#39;text-gray-400&#39;} /&#62;
+                    &#60;div className=&#34;text-left&#34;&#62;
+                      &#60;div className={`font-semibold text-sm ${
+                        !formData.hasPublicStatus ? &#39;text-blue-600 dark:text-blue-400&#39; : &#39;text-gray-900 dark:text-white&#39;
+                      }`}&#62;
+                        PRIVÉ
+                      &#60;/div&#62;
+                    &#60;/div&#62;
+                  &#60;/button&#62;
+
+                  &#60;button
+                    type=&#34;button&#34;
+                    onClick={() =&#62; setFormData({ ...formData, hasPublicStatus: true })}
+                    className={`flex items-center gap-3 p-4 rounded-xl border-2 transition-all ${
+                      formData.hasPublicStatus
+                        ? &#39;border-green-500 bg-green-50 dark:bg-green-900/20&#39;
+                        : &#39;border-gray-200 dark:border-gray-700 hover:border-gray-300&#39;
+                    }`}
+                  &#62;
+                    &#60;Globe size={20} className={formData.hasPublicStatus ? &#39;text-green-600&#39; : &#39;text-gray-400&#39;} /&#62;
+                    &#60;div className=&#34;text-left&#34;&#62;
+                      &#60;div className={`font-semibold text-sm ${
+                        formData.hasPublicStatus ? &#39;text-green-600 dark:text-green-400&#39; : &#39;text-gray-900 dark:text-white&#39;
+                      }`}&#62;
+                        PUBLIC
+                      &#60;/div&#62;
+                    &#60;/div&#62;
+                  &#60;/button&#62;
+                &#60;/div&#62;
+              ) : (
+                &#60;div&#62;
+                  {item.isPublic ? (
+                    &#60;span className=&#34;inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800&#34;&#62;
+                      &#60;Globe size={18} className=&#34;text-green-600&#34; /&#62;
+                      &#60;span className=&#34;text-sm font-semibold text-green-600&#34;&#62;PUBLIC&#60;/span&#62;
+                    &#60;/span&#62;
+                  ) : (
+                    &#60;span className=&#34;inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600&#34;&#62;
+                      &#60;Lock size={18} className=&#34;text-gray-600&#34; /&#62;
+                      &#60;span className=&#34;text-sm font-semibold text-gray-600&#34;&#62;PRIVÉ&#60;/span&#62;
+                    &#60;/span&#62;
+                  )}
+                &#60;/div&#62;
+              )}
+            &#60;/div&#62;
+
+            {/* Actions */}
+            &#60;div className=&#34;flex gap-3 pt-4&#34;&#62;
+              {isEditMode ? (
+                &#60;&#62;
+                  &#60;button
+                    type=&#34;button&#34;
+                    onClick={onClose}
+                    className=&#34;flex-1 px-6 py-3 border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-semibold rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-all&#34;
+                  &#62;
+                    Annuler
+                  &#60;/button&#62;
+                  &#60;button
+                    type=&#34;submit&#34;
+                    disabled={isSaving}
+                    className=&#34;flex-1 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold rounded-xl transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed&#34;
+                  &#62;
+                    {isSaving ? &#39;Mise à jour...&#39; : &#39;Mettre à jour&#39;}
+                  &#60;/button&#62;
+                &#60;/&#62;
+              ) : (
+                &#60;&#62;
+                  &#60;button
+                    type=&#34;button&#34;
+                    onClick={onEdit}
+                    className=&#34;flex-1 px-6 py-3 border-2 border-blue-500 text-blue-600 dark:text-blue-400 font-semibold rounded-xl hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all inline-flex items-center justify-center gap-2&#34;
+                  &#62;
+                    &#60;Edit2 size={18} /&#62;
+                    Modifier
+                  &#60;/button&#62;
+                  {item.isPublic &#38;&#38; item.url &#38;&#38; (
+                    &#60;button
+                      type=&#34;button&#34;
+                      onClick={() =&#62; onRedirect(item.url)}
+                      className=&#34;flex-1 px-6 py-3 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-semibold rounded-xl transition-all shadow-lg inline-flex items-center justify-center gap-2&#34;
+                    &#62;
+                      &#60;ExternalLink size={18} /&#62;
+                      Ouvrir
+                    &#60;/button&#62;
+                  )}
+                &#60;/&#62;
+              )}
+            &#60;/div&#62;
+          &#60;/form&#62;
+        &#60;/div&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-11">
+    <td>157:100</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;label className=&#34;block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2&#34;&#62;
+                URL (OPTIONNEL)
+              &#60;/label&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-11">
+    <td>186:38</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;option value=&#34;fr&#34;&#62;Français&#60;/option&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-11">
+    <td>187:38</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;option value=&#34;en&#34;&#62;English&#60;/option&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-11">
+    <td>188:38</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;option value=&#34;es&#34;&#62;Español&#60;/option&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-11">
+    <td>218:100</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;label className=&#34;block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3&#34;&#62;
+                VISIBILITÉ
+              &#60;/label&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-11">
+    <td>236:27</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;div className={`font-semibold text-sm ${
+                        !formData.hasPublicStatus ? &#39;text-blue-600 dark:text-blue-400&#39; : &#39;text-gray-900 dark:text-white&#39;
+                      }`}&#62;
+                        PRIVÉ
+                      &#60;/div&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-11">
+    <td>271:77</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;span className=&#34;text-sm font-semibold text-gray-600&#34;&#62;PRIVÉ&#60;/span&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-11">
+    <td>286:20</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;button
+                    type=&#34;button&#34;
+                    onClick={onClose}
+                    className=&#34;flex-1 px-6 py-3 border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-semibold rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-all&#34;
+                  &#62;
+                    Annuler
+                  &#60;/button&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-11">
+    <td>304:40</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;button
+                    type=&#34;button&#34;
+                    onClick={onEdit}
+                    className=&#34;flex-1 px-6 py-3 border-2 border-blue-500 text-blue-600 dark:text-blue-400 font-semibold rounded-xl hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all inline-flex items-center justify-center gap-2&#34;
+                  &#62;
+                    &#60;Edit2 size={18} /&#62;
+                    Modifier
+                  &#60;/button&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-11">
+    <td>313:49</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;button
+                      type=&#34;button&#34;
+                      onClick={() =&#62; onRedirect(item.url)}
+                      className=&#34;flex-1 px-6 py-3 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-semibold rounded-xl transition-all shadow-lg inline-flex items-center justify-center gap-2&#34;
+                    &#62;
+                      &#60;ExternalLink size={18} /&#62;
+                      Ouvrir
+                    &#60;/button&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr class="bg-2" data-group="f-12">
+    <th colspan="4">
+        [+] C:\Users\jacob\OneDrive\Documentos\aimaker\Frontend-Aimaker\apps\fablab\views\external-access\components\Form-general.tsx
+        <span>14 problems (14 errors, 0 warnings)</span>
+    </th>
+</tr>
+<tr style="display: none;" class="f-12">
+    <td>3:3</td>
+    <td class="clr-2">Error</td>
+    <td>&#39;BookOpen&#39; is defined but never used.</td>
+    <td>
+        <a href="https://typescript-eslint.io/rules/no-unused-vars" target="_blank" rel="noopener noreferrer">@typescript-eslint/no-unused-vars</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-12">
+    <td>3:20</td>
+    <td class="clr-2">Error</td>
+    <td>&#39;FileText&#39; is defined but never used.</td>
+    <td>
+        <a href="https://typescript-eslint.io/rules/no-unused-vars" target="_blank" rel="noopener noreferrer">@typescript-eslint/no-unused-vars</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-12">
+    <td>3:30</td>
+    <td class="clr-2">Error</td>
+    <td>&#39;Notebook&#39; is defined but never used.</td>
+    <td>
+        <a href="https://typescript-eslint.io/rules/no-unused-vars" target="_blank" rel="noopener noreferrer">@typescript-eslint/no-unused-vars</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-12">
+    <td>3:40</td>
+    <td class="clr-2">Error</td>
+    <td>&#39;FolderKanban&#39; is defined but never used.</td>
+    <td>
+        <a href="https://typescript-eslint.io/rules/no-unused-vars" target="_blank" rel="noopener noreferrer">@typescript-eslint/no-unused-vars</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-12">
+    <td>4:3</td>
+    <td class="clr-2">Error</td>
+    <td>&#39;Smartphone&#39; is defined but never used.</td>
+    <td>
+        <a href="https://typescript-eslint.io/rules/no-unused-vars" target="_blank" rel="noopener noreferrer">@typescript-eslint/no-unused-vars</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-12">
+    <td>76:73</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;p className=&#34;text-sm text-gray-500 dark:text-gray-400&#34;&#62;
+                  Documentez vos recherches et partages
+                &#60;/p&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-12">
+    <td>85:12</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;button
+            onClick={handleSubmit}
+            className=&#34;flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold rounded-xl transition-all shadow-lg hover:scale-105&#34;
+          &#62;
+            Mettre à jour
+          &#60;/button&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-12">
+    <td>128:98</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;label className=&#34;block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2&#34;&#62;
+              TITRE DU {getCurrentTypeLabel().toUpperCase()}
+            &#60;/label&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-12">
+    <td>142:98</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;label className=&#34;block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2&#34;&#62;
+              URL (OPTIONNEL)
+            &#60;/label&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-12">
+    <td>164:34</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;option value=&#34;fr&#34;&#62;Français&#60;/option&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-12">
+    <td>165:34</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;option value=&#34;en&#34;&#62;English&#60;/option&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-12">
+    <td>166:34</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;option value=&#34;es&#34;&#62;Español&#60;/option&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-12">
+    <td>186:98</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;label className=&#34;block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3&#34;&#62;
+              VISIBILITÉ
+            &#60;/label&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-12">
+    <td>203:23</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;div className={`font-semibold text-sm ${
+                    !formData.hasPublicStatus ? &#39;text-blue-600 dark:text-blue-400&#39; : &#39;text-gray-900 dark:text-white&#39;
+                  }`}&#62;
+                    PRIVÉ
+                  &#60;/div&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr class="bg-2" data-group="f-13">
+    <th colspan="4">
+        [+] C:\Users\jacob\OneDrive\Documentos\aimaker\Frontend-Aimaker\apps\fablab\views\library\Library.tsx
+        <span>9 problems (9 errors, 0 warnings)</span>
+    </th>
+</tr>
+<tr style="display: none;" class="f-13">
+    <td>200:37</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;option value=&#34;all&#34;&#62;Todos los tipos&#60;/option&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-13">
+    <td>201:44</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;option value=&#34;note_books&#34;&#62;Notebooks&#60;/option&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-13">
+    <td>202:41</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;option value=&#34;project&#34;&#62;Proyectos&#60;/option&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-13">
+    <td>203:40</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;option value=&#34;prompt&#34;&#62;Prompts&#60;/option&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-13">
+    <td>204:43</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;option value=&#34;assistant&#34;&#62;Asistentes&#60;/option&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-13">
+    <td>205:51</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;option value=&#34;perplexity_search&#34;&#62;Perplexity&#60;/option&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-13">
+    <td>314:48</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;button
+                            onClick={() =&#62; {
+                              const urlType = item.type === &#39;note_books&#39; ? &#39;notebook&#39; : item.type;
+                              const publicUrl = item.publicUrl || `http://localhost:3001/public/${urlType}/${item.id}`;
+                              window.open(publicUrl, &#39;_blank&#39;);
+                            }}
+                            className=&#34;inline-flex items-center gap-2 px-4 py-2 rounded-xl font-semibold text-sm transition-all bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/30 cursor-pointer hover:scale-105&#34;
+                          &#62;
+                            &#60;Globe size={18} /&#62;
+                            Public
+                            &#60;ExternalLink size={14} /&#62;
+                          &#60;/button&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-13">
+    <td>320:47</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;div className=&#34;inline-flex items-center gap-2 px-4 py-2 rounded-xl font-semibold text-sm bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 opacity-75 cursor-not-allowed&#34;&#62;
+                            &#60;Lock size={18} /&#62;
+                            Privé
+                          &#60;/div&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-13">
+    <td>567:12</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;button
+            onClick={() =&#62; loadCreationTools()}
+            className=&#34;px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700&#34;
+          &#62;
+            Reintentar
+          &#60;/button&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr class="bg-2" data-group="f-14">
+    <th colspan="4">
+        [+] C:\Users\jacob\OneDrive\Documentos\aimaker\Frontend-Aimaker\apps\fablab\views\library\components\DetailsView.tsx
+        <span>11 problems (11 errors, 0 warnings)</span>
+    </th>
+</tr>
+<tr style="display: none;" class="f-14">
+    <td>125:83</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;h2 className=&#34;text-xl font-bold text-gray-900 dark:text-white&#34;&#62;
+                    Modifier la ressource
+                  &#60;/h2&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-14">
+    <td>128:75</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;p className=&#34;text-sm text-gray-500 dark:text-gray-400&#34;&#62;
+                    Mettez à jour les informations
+                  &#60;/p&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-14">
+    <td>173:36</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;option value=&#34;fr&#34;&#62;Français&#60;/option&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-14">
+    <td>174:36</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;option value=&#34;en&#34;&#62;English&#60;/option&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-14">
+    <td>175:36</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;option value=&#34;es&#34;&#62;Español&#60;/option&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-14">
+    <td>194:100</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;label className=&#34;block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3&#34;&#62;
+                VISIBILITÉ
+              &#60;/label&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-14">
+    <td>211:25</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;div className={`font-semibold text-sm ${
+                      !formData.hasPublicStatus ? &#39;text-blue-600 dark:text-blue-400&#39; : &#39;text-gray-900 dark:text-white&#39;
+                    }`}&#62;
+                      PRIVÉ
+                    &#60;/div&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-14">
+    <td>240:112</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;h3 className=&#34;text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4&#34;&#62;
+                Información de Solo Lectura
+              &#60;/h3&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-14">
+    <td>250:104</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;label className=&#34;block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2&#34;&#62;
+                    URL PRIVADA (Requiere login)
+                  &#60;/label&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-14">
+    <td>288:106</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;label className=&#34;block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2&#34;&#62;
+                      URL PÚBLICA (Sin login, solo lectura)
+                    &#60;/label&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-14">
+    <td>332:16</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;button
+                type=&#34;button&#34;
+                onClick={onClose}
+                className=&#34;flex-1 px-6 py-3 border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-semibold rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-all&#34;
+              &#62;
+                Annuler
+              &#60;/button&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr class="bg-2" data-group="f-15">
+    <th colspan="4">
+        [+] C:\Users\jacob\OneDrive\Documentos\aimaker\Frontend-Aimaker\apps\fablab\views\library\components\Form-general.tsx
+        <span>9 problems (9 errors, 0 warnings)</span>
+    </th>
+</tr>
+<tr style="display: none;" class="f-15">
+    <td>111:73</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;p className=&#34;text-sm text-gray-500 dark:text-gray-400&#34;&#62;
+                  Documentez vos recherches et partages
+                &#60;/p&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-15">
+    <td>120:12</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;button
+            onClick={handleSubmit}
+            className=&#34;flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold rounded-xl transition-all shadow-lg hover:scale-105&#34;
+          &#62;
+            Mettre à jour
+          &#60;/button&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-15">
+    <td>137:89</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;span className=&#34;ml-auto text-xs text-gray-500 dark:text-gray-400 italic&#34;&#62;
+                (Sélectionné)
+              &#60;/span&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-15">
+    <td>145:98</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;label className=&#34;block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2&#34;&#62;
+              TITRE DU {getCurrentTypeLabel().toUpperCase()}
+            &#60;/label&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-15">
+    <td>160:98</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;label className=&#34;block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2&#34;&#62;
+              CATÉGORIE
+            &#60;/label&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-15">
+    <td>178:98</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;label className=&#34;block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2&#34;&#62;
+              VISIBILITÉ
+            &#60;/label&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-15">
+    <td>183:86</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;span className=&#34;text-sm font-medium text-gray-700 dark:text-gray-300&#34;&#62;
+                Privé
+              &#60;/span&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-15">
+    <td>186:89</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;span className=&#34;ml-auto text-xs text-gray-500 dark:text-gray-400 italic&#34;&#62;
+                (Non modifiable)
+              &#60;/span&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-15">
+    <td>202:89</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;span className=&#34;ml-auto text-xs text-gray-500 dark:text-gray-400 italic&#34;&#62;
+                (Défini dans le profil)
+              &#60;/span&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr class="bg-2" data-group="f-16">
+    <th colspan="4">
+        [+] C:\Users\jacob\OneDrive\Documentos\aimaker\Frontend-Aimaker\apps\fablab\views\maker-path\MakerPath.tsx
+        <span>18 problems (18 errors, 0 warnings)</span>
+    </th>
+</tr>
+<tr style="display: none;" class="f-16">
+    <td>147:123</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;h1 className=&#34;text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent&#34;&#62;
+              Maker Path
+            &#60;/h1&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-16">
+    <td>150:66</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;p className=&#34;text-gray-600 dark:text-gray-400 mt-1&#34;&#62;Gestiona tus rutas de creación de proyectos&#60;/p&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-16">
+    <td>156:31</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;button
+            onClick={() =&#62; setShowRouteTypeModal(true)}
+            className=&#34;flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold rounded-xl transition-all shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40 hover:scale-[1.02]&#34;
+          &#62;
+            &#60;Plus size={20} /&#62;
+            Nueva Ruta
+          &#60;/button&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-16">
+    <td>179:35</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;option value=&#34;all&#34;&#62;Todos los tipos&#60;/option&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-16">
+    <td>180:44</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;option value=&#34;architect_ai&#34;&#62;Ruta Arquitecto AI&#60;/option&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-16">
+    <td>181:48</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;option value=&#34;module_connector&#34;&#62;Conector de Módulos&#60;/option&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-16">
+    <td>182:38</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;option value=&#34;custom&#34;&#62;Personalizada&#60;/option&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-16">
+    <td>189:35</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;option value=&#34;all&#34;&#62;Todos los estados&#60;/option&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-16">
+    <td>190:37</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;option value=&#34;draft&#34;&#62;Borrador&#60;/option&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-16">
+    <td>191:43</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;option value=&#34;in_progress&#34;&#62;En Progreso&#60;/option&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-16">
+    <td>192:41</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;option value=&#34;completed&#34;&#62;Completado&#60;/option&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-16">
+    <td>201:119</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;div className=&#34;col-span-1 text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider&#34;&#62;Tipo&#60;/div&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-16">
+    <td>202:119</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;div className=&#34;col-span-4 text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider&#34;&#62;Título &#38; Descripción&#60;/div&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-16">
+    <td>203:119</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;div className=&#34;col-span-2 text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider&#34;&#62;Estado&#60;/div&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-16">
+    <td>204:119</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;div className=&#34;col-span-2 text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider&#34;&#62;Fecha Creación&#60;/div&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-16">
+    <td>205:119</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;div className=&#34;col-span-3 text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider&#34;&#62;Acciones&#60;/div&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-16">
+    <td>215:67</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;div className=&#34;px-6 py-16 text-center text-gray-500&#34;&#62;No se encontraron rutas&#60;/div&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-16">
+    <td>271:40</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;button
+                      onClick={() =&#62; handleRedirectToPlanner(path.id)}
+                      className=&#34;flex items-center gap-1 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors text-sm font-medium&#34;
+                      title=&#34;Abrir ruta&#34;
+                    &#62;
+                      &#60;Eye size={16} /&#62;
+                      Ver
+                    &#60;/button&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr class="bg-2" data-group="f-17">
+    <th colspan="4">
+        [+] C:\Users\jacob\OneDrive\Documentos\aimaker\Frontend-Aimaker\apps\fablab\views\maker-path\components\RouteTypeModal.tsx
+        <span>11 problems (11 errors, 0 warnings)</span>
+    </th>
+</tr>
+<tr style="display: none;" class="f-17">
+    <td>19:78</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;h2 className=&#34;text-2xl font-bold text-gray-900 dark:text-white&#34;&#62;
+              Selecciona el Tipo de Ruta
+            &#60;/h2&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-17">
+    <td>29:64</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;p className=&#34;text-gray-600 dark:text-gray-400 mt-2&#34;&#62;
+            Elige qué tipo de ruta deseas crear
+          &#60;/p&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-17">
+    <td>46:86</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;h3 className=&#34;text-xl font-bold text-gray-900 dark:text-white mb-2&#34;&#62;
+                  Ruta Arquitecto AI
+                &#60;/h3&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-17">
+    <td>49:73</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;p className=&#34;text-sm text-gray-600 dark:text-gray-400&#34;&#62;
+                  Crea proyectos paso a paso con asistencia de IA. Ideal para planificación estructurada y optimización de prompts.
+                &#60;/p&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-17">
+    <td>54:131</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;span className=&#34;text-xs bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 px-2 py-1 rounded-full&#34;&#62;
+                  IA Asistida
+                &#60;/span&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-17">
+    <td>57:139</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;span className=&#34;text-xs bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 px-2 py-1 rounded-full&#34;&#62;
+                  6 Fases
+                &#60;/span&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-17">
+    <td>74:86</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;h3 className=&#34;text-xl font-bold text-gray-900 dark:text-white mb-2&#34;&#62;
+                  Conector de Módulos
+                &#60;/h3&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-17">
+    <td>77:73</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;p className=&#34;text-sm text-gray-600 dark:text-gray-400&#34;&#62;
+                  Orquesta módulos HTML/CSS con plantillas. Conecta componentes header, body y footer con estilos integrados.
+                &#60;/p&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-17">
+    <td>82:139</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;span className=&#34;text-xs bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 px-2 py-1 rounded-full&#34;&#62;
+                  Modular
+                &#60;/span&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-17">
+    <td>85:131</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;span className=&#34;text-xs bg-pink-100 dark:bg-pink-900/50 text-pink-700 dark:text-pink-300 px-2 py-1 rounded-full&#34;&#62;
+                  HTML/CSS
+                &#60;/span&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-17">
+    <td>98:12</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;button
+            onClick={onClose}
+            className=&#34;px-6 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-800 rounded-lg transition-colors font-medium&#34;
+          &#62;
+            Cancelar
+          &#60;/button&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr class="bg-2" data-group="f-18">
+    <th colspan="4">
+        [+] C:\Users\jacob\OneDrive\Documentos\aimaker\Frontend-Aimaker\apps\fablab\views\notebook\Notebook.tsx
+        <span>14 problems (14 errors, 0 warnings)</span>
+    </th>
+</tr>
+<tr style="display: none;" class="f-18">
+    <td>344:35</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;span&#62;Volver&#60;/span&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-18">
+    <td>348:79</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;span className=&#34;text-sm font-bold tracking-wide&#34;&#62;RAG MULTIMODAL&#60;/span&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-18">
+    <td>425:47</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;span&#62;Privado&#60;/span&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-18">
+    <td>441:47</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;span&#62;Público&#60;/span&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-18">
+    <td>465:67</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;option value=&#34;Marketing&#34;&#62;📊 Marketing&#60;/option&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-18">
+    <td>466:68</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;option value=&#34;Desarrollo&#34;&#62;💻 Development&#60;/option&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-18">
+    <td>467:71</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;option value=&#34;Investigación&#34;&#62;🔬 Research&#60;/option&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-18">
+    <td>468:66</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;option value=&#34;Análisis&#34;&#62;📈 Analysis&#60;/option&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-18">
+    <td>486:60</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;option value=&#34;es&#34;&#62;🇪🇸 Español&#60;/option&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-18">
+    <td>487:60</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;option value=&#34;en&#34;&#62;🇬🇧 English&#60;/option&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-18">
+    <td>488:60</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;option value=&#34;fr&#34;&#62;🇫🇷 Français&#60;/option&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-18">
+    <td>511:47</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;span&#62;Visible públicamente&#60;/span&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-18">
+    <td>553:34</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;button
+                                    onClick={() =&#62; setShowPublishModal(false)}
+                                    className=&#34;flex-1 h-12 rounded-xl border-2 border-gray-200 text-gray-700 font-bold hover:bg-gray-50 transition-all&#34;
+                                &#62;
+                                    Cancelar
+                                &#60;/button&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-18">
+    <td>559:34</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;button
+                                    onClick={handlePublish}
+                                    className=&#34;flex-1 h-12 rounded-xl bg-indigo-600 text-white font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100&#34;
+                                &#62;
+                                    Confirmar
+                                &#60;/button&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr class="bg-2" data-group="f-19">
+    <th colspan="4">
+        [+] C:\Users\jacob\OneDrive\Documentos\aimaker\Frontend-Aimaker\apps\fablab\views\notebook\components\SourcePanel.tsx
+        <span>15 problems (15 errors, 0 warnings)</span>
+    </th>
+</tr>
+<tr style="display: none;" class="f-19">
+    <td>243:97</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;h3 className=&#34;font-black text-gray-800 text-lg tracking-tight&#34;&#62;Nueva Fuente&#60;/h3&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-19">
+    <td>244:112</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;span className=&#34;text-[9px] font-bold text-gray-400 uppercase tracking-widest&#34;&#62;Contenido para el motor RAG&#60;/span&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-19">
+    <td>318:107</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;span className=&#34;text-[9px] font-black uppercase tracking-widest&#34;&#62;Enlace Web&#60;/span&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-19">
+    <td>321:89</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;p className=&#34;text-[9px] text-gray-400 px-1 italic&#34;&#62;La IA navegará y extraerá el contenido relevante de forma automática.&#60;/p&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-19">
+    <td>328:122</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;span className=&#34;text-[9px] font-black text-green-500 uppercase tracking-widest&#34;&#62;Texto Libre&#60;/span&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-19">
+    <td>329:309</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;button type=&#34;button&#34; onClick={handlePaste} className=&#34;flex items-center gap-1.5 text-[8px] font-black text-indigo-600 bg-indigo-50 px-3 py-1 rounded-lg hover:bg-indigo-100 transition-all uppercase tracking-widest border border-indigo-100&#34;&#62;&#60;ClipboardPaste size={12} /&#62; Pegar&#60;/button&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-19">
+    <td>375:119</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;span className=&#34;text-[9px] font-black text-indigo-400 uppercase tracking-widest&#34;&#62;Fuente de Conocimiento&#60;/span&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-19">
+    <td>393:128</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;p className=&#34;text-gray-400 text-[10px] font-bold uppercase tracking-widest mb-10&#34;&#62;El contenido ha sido inyectado al motor RAG&#60;/p&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-19">
+    <td>398:83</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;button onClick={() =&#62; openSourceFilePathUrl(previewLink)} className=&#34;w-full py-4 bg-indigo-600 text-white rounded-2xl font-black text-xs uppercase tracking-wider shadow-lg flex items-center justify-center gap-2 hover:bg-indigo-700 transition-colors&#34;&#62;
+                                                        &#60;ExternalLink size={16} /&#62; Abrir en pestaña nueva
+                                                    &#60;/button&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-19">
+    <td>401:79</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;a href={previewLink} download={previewSource.title + (previewSource.type === &#39;html&#39; ? &#34;.html&#34; : &#34;.pdf&#34;)} className=&#34;w-full py-4 bg-white text-indigo-600 border-2 border-indigo-600 rounded-2xl font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 hover:bg-indigo-50 transition-colors&#34;&#62;
+                                                        &#60;Download size={16} /&#62; Descargar Archivo
+                                                    &#60;/a&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-19">
+    <td>424:75</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;button
+                                                onClick={() =&#62; openSourceFilePathUrl(previewLink)}
+                                                className=&#34;inline-flex items-center gap-2 px-5 py-3 bg-indigo-600 text-white rounded-2xl font-black text-xs uppercase tracking-wider shadow-lg hover:bg-indigo-700 transition-colors&#34;
+                                            &#62;
+                                                &#60;ExternalLink size={16} /&#62; Abrir en pestaña nueva
+                                            &#60;/button&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-19">
+    <td>443:87</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;button
+                                                            onClick={() =&#62; openSourceFilePathUrl(urlLink || previewLink)}
+                                                            className=&#34;inline-flex items-center gap-2 px-5 py-3 bg-indigo-600 text-white rounded-2xl font-black text-xs uppercase tracking-wider shadow-lg hover:bg-indigo-700 transition-colors&#34;
+                                                        &#62;
+                                                            &#60;ExternalLink size={16} /&#62; Abrir en pestaña nueva
+                                                        &#60;/button&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-19">
+    <td>454:58</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;button
+                                                            onClick={() =&#62; openSourceFilePathUrl(urlLink || previewLink)}
+                                                            className=&#34;px-10 py-5 bg-indigo-600 text-white rounded-2xl font-black text-xs uppercase tracking-wider&#34;
+                                                        &#62;
+                                                            Abrir en pestaña nueva
+                                                        &#60;/button&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-19">
+    <td>465:100</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;h4 className=&#34;text-2xl font-black text-gray-900 mb-2&#34;&#62;Contenido Web&#60;/h4&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-19">
+    <td>468:257</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;button onClick={() =&#62; openSourceFilePathUrl(urlLink || previewSource.url)} className=&#34;w-full max-w-xs mx-auto py-5 bg-indigo-600 text-white rounded-2xl font-black text-xs uppercase tracking-wider shadow-lg&#34;&#62;
+                                                    Visitar enlace original
+                                                &#60;/button&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr class="bg-2" data-group="f-20">
+    <th colspan="4">
+        [+] C:\Users\jacob\OneDrive\Documentos\aimaker\Frontend-Aimaker\apps\fablab\views\path-creation-modules\App.tsx
+        <span>5 problems (5 errors, 0 warnings)</span>
+    </th>
+</tr>
+<tr style="display: none;" class="f-20">
+    <td>249:132</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;span className=&#34;px-3 py-1 text-xs font-medium bg-green-900/50 text-green-300 rounded-full border border-green-500/50&#34;&#62;
+              ✓ {t.moduleCreator.completed}
+            &#60;/span&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-20">
+    <td>323:128</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;h1 className=&#34;text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-cyan-300&#34;&#62;
+                      Module Orchestrator
+                    &#60;/h1&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-20">
+    <td>493:77</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;h4 className=&#34;text-sm font-semibold text-white mb-3&#34;&#62;Acciones Rápidas&#60;/h4&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-20">
+    <td>501:64</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;Button
+                          onClick={() =&#62; setShowPromptLibrary(true)}
+                          variant=&#34;secondary&#34;
+                          fullWidth
+                          className=&#34;justify-center&#34;
+                        &#62;
+                          &#60;Sparkles className=&#34;w-4 h-4 mr-2&#34; /&#62;
+                          Prompts
+                        &#60;/Button&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-20">
+    <td>510:59</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;Button
+                          onClick={() =&#62; setShowPreview(true)}
+                          variant=&#34;primary&#34;
+                          fullWidth
+                          className=&#34;justify-center&#34;
+                        &#62;
+                          &#60;Eye className=&#34;w-4 h-4 mr-2&#34; /&#62;
+                          Vista Previa
+                        &#60;/Button&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr class="bg-2" data-group="f-21">
+    <th colspan="4">
+        [+] C:\Users\jacob\OneDrive\Documentos\aimaker\Frontend-Aimaker\apps\fablab\views\path-creation-modules\components\CreateTemplateModal.tsx
+        <span>3 problems (3 errors, 0 warnings)</span>
+    </th>
+</tr>
+<tr style="display: none;" class="f-21">
+    <td>116:16</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;button
+                onClick={() =&#62; setType(&#39;header&#39;)}
+                className={`flex-1 py-2 px-4 rounded-lg font-medium transition-colors ${
+                  type === &#39;header&#39;
+                    ? &#39;bg-purple-600 text-white&#39;
+                    : &#39;bg-slate-800 text-slate-300 hover:bg-slate-700&#39;
+                }`}
+              &#62;
+                Header
+              &#60;/button&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-21">
+    <td>126:16</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;button
+                onClick={() =&#62; setType(&#39;body&#39;)}
+                className={`flex-1 py-2 px-4 rounded-lg font-medium transition-colors ${
+                  type === &#39;body&#39;
+                    ? &#39;bg-green-600 text-white&#39;
+                    : &#39;bg-slate-800 text-slate-300 hover:bg-slate-700&#39;
+                }`}
+              &#62;
+                Body
+              &#60;/button&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-21">
+    <td>136:16</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;button
+                onClick={() =&#62; setType(&#39;footer&#39;)}
+                className={`flex-1 py-2 px-4 rounded-lg font-medium transition-colors ${
+                  type === &#39;footer&#39;
+                    ? &#39;bg-orange-600 text-white&#39;
+                    : &#39;bg-slate-800 text-slate-300 hover:bg-slate-700&#39;
+                }`}
+              &#62;
+                Footer
+              &#60;/button&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr class="bg-2" data-group="f-22">
+    <th colspan="4">
+        [+] C:\Users\jacob\OneDrive\Documentos\aimaker\Frontend-Aimaker\apps\fablab\views\path-creation-modules\components\HTMLSourcePicker.tsx
+        <span>6 problems (6 errors, 0 warnings)</span>
+    </th>
+</tr>
+<tr style="display: none;" class="f-22">
+    <td>78:62</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;h2 className=&#34;text-xl font-bold text-white&#34;&#62;
+                  Cargar Fuente HTML desde Notebook
+                &#60;/h2&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-22">
+    <td>81:60</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;p className=&#34;text-slate-400 text-sm mt-1&#34;&#62;
+                  Selecciona una fuente HTML previamente guardada
+                &#60;/p&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-22">
+    <td>105:73</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;h3 className=&#34;text-xl font-semibold text-slate-300 mb-2&#34;&#62;
+                No hay fuentes HTML disponibles
+              &#60;/h3&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-22">
+    <td>108:66</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;p className=&#34;text-slate-400 text-center max-w-md&#34;&#62;
+                Ve a un Notebook (RAG Multimodal) y carga fuentes de tipo HTML primero.
+              &#60;/p&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-22">
+    <td>132:61</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;p className=&#34;text-sm text-slate-400&#34;&#62;
+                        Creado: {new Date(source.createdAt).toLocaleDateString(&#39;es-ES&#39;, {
+                          year: &#39;numeric&#39;,
+                          month: &#39;long&#39;,
+                          day: &#39;numeric&#39;
+                        })}
+                      &#60;/p&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-22">
+    <td>160:12</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;button
+            onClick={onClose}
+            className=&#34;px-4 py-2 text-slate-300 hover:bg-slate-800 rounded-lg transition-colors font-medium&#34;
+          &#62;
+            Cancelar
+          &#60;/button&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr class="bg-2" data-group="f-23">
+    <th colspan="4">
+        [+] C:\Users\jacob\OneDrive\Documentos\aimaker\Frontend-Aimaker\apps\fablab\views\path-creation-modules\components\ModuleEditor.tsx
+        <span>2 problems (2 errors, 0 warnings)</span>
+    </th>
+</tr>
+<tr style="display: none;" class="f-23">
+    <td>64:56</td>
+    <td class="clr-2">Error</td>
+    <td>&#39;_sourceName&#39; is defined but never used.</td>
+    <td>
+        <a href="https://typescript-eslint.io/rules/no-unused-vars" target="_blank" rel="noopener noreferrer">@typescript-eslint/no-unused-vars</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-23">
+    <td>96:79</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;h3 className=&#34;font-semibold text-base capitalize&#34;&#62;{moduleData.name} Module&#60;/h3&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr class="bg-2" data-group="f-24">
+    <th colspan="4">
+        [+] C:\Users\jacob\OneDrive\Documentos\aimaker\Frontend-Aimaker\apps\fablab\views\path-creation-modules\components\PreviewSection.tsx
+        <span>2 problems (2 errors, 0 warnings)</span>
+    </th>
+</tr>
+<tr style="display: none;" class="f-24">
+    <td>91:121</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;div className=&#34;w-full border-b border-dashed border-slate-300 bg-white/5 p-4 text-center text-slate-400 text-sm&#34;&#62;
+        Empty {data.name} Container
+      &#60;/div&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-24">
+    <td>92:26</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;div className=&#34;w-full border-b border-dashed border-slate-300 bg-white/5 p-4 text-center text-slate-400 text-sm&#34;&#62;
+        Empty {data.name} Container
+      &#60;/div&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr class="bg-2" data-group="f-25">
+    <th colspan="4">
+        [+] C:\Users\jacob\OneDrive\Documentos\aimaker\Frontend-Aimaker\apps\fablab\views\path-creation-modules\components\TemplateLibrary.tsx
+        <span>2 problems (2 errors, 0 warnings)</span>
+    </th>
+</tr>
+<tr style="display: none;" class="f-25">
+    <td>58:34</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;span className=&#34;text-sm text-slate-400&#34;&#62;
+              ({templates.length} plantillas)
+            &#60;/span&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-25">
+    <td>82:83</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;span className=&#34;text-xs bg-purple-600 px-2 py-0.5 rounded&#34;&#62;
+                        Custom
+                      &#60;/span&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr class="bg-2" data-group="f-26">
+    <th colspan="4">
+        [+] C:\Users\jacob\OneDrive\Documentos\aimaker\Frontend-Aimaker\apps\fablab\views\project\ProjectDetails.tsx
+        <span>7 problems (7 errors, 0 warnings)</span>
+    </th>
+</tr>
+<tr style="display: none;" class="f-26">
+    <td>106:56</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;h2 className=&#34;text-lg font-bold text-slate-900&#34;&#62;Configuración del Proyecto&#60;/h2&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-26">
+    <td>110:103</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;label className=&#34;block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2&#34;&#62;NOMBRE DE LA APLICACIÓN&#60;/label&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-26">
+    <td>122:103</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;label className=&#34;block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2&#34;&#62;CATEGORÍA&#60;/label&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-26">
+    <td>134:103</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;label className=&#34;block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2&#34;&#62;URL DE ARCHIVOS&#60;/label&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-26">
+    <td>146:103</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;label className=&#34;block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2&#34;&#62;URL DE DESPLIEGUE&#60;/label&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-26">
+    <td>158:103</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;label className=&#34;block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2&#34;&#62;URL DE BASE DE DATOS&#60;/label&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-26">
+    <td>170:103</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;label className=&#34;block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2&#34;&#62;NOMBRE DE BASE DE DATOS&#60;/label&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr class="bg-2" data-group="f-27">
+    <th colspan="4">
+        [+] C:\Users\jacob\OneDrive\Documentos\aimaker\Frontend-Aimaker\apps\fablab\views\project\SaveStatusModal.tsx
+        <span>1 problem (1 error, 0 warnings)</span>
+    </th>
+</tr>
+<tr style="display: none;" class="f-27">
+    <td>38:12</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;button
+            onClick={onClose}
+            className=&#34;flex-1 px-6 py-3 bg-slate-900 hover:bg-slate-800 text-white font-semibold rounded-xl transition-all&#34;
+          &#62;
+            Fermer
+          &#60;/button&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr class="bg-2" data-group="f-28">
+    <th colspan="4">
+        [+] C:\Users\jacob\OneDrive\Documentos\aimaker\Frontend-Aimaker\apps\fablab\views\projects\ProjectPlanner.tsx
+        <span>19 problems (19 errors, 0 warnings)</span>
+    </th>
+</tr>
+<tr style="display: none;" class="f-28">
+    <td>154:32</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;button
+        onClick={() =&#62; navigate(&#39;/dashboard/maker-path&#39;)}
+        className=&#34;flex items-center gap-2 mb-6 px-4 py-2 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl border border-gray-200 dark:border-gray-700 transition-colors font-medium shadow-sm&#34;
+      &#62;
+        &#60;ArrowLeft size={20} /&#62;
+        Volver a Rutas
+      &#60;/button&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-28">
+    <td>195:98</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;label className=&#34;block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2&#34;&#62;Título del Proyecto&#60;/label&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-28">
+    <td>205:98</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;label className=&#34;block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2&#34;&#62;Descripción&#60;/label&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-28">
+    <td>216:98</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;label className=&#34;block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2&#34;&#62;Objetivo&#60;/label&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-28">
+    <td>227:98</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;label className=&#34;block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2&#34;&#62;Tipo&#60;/label&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-28">
+    <td>234:45</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;option value=&#34;assistant&#34;&#62;Asistente&#60;/option&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-28">
+    <td>235:43</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;option value=&#34;web-app&#34;&#62;Aplicación Web&#60;/option&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-28">
+    <td>236:48</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;option value=&#34;landing-page&#34;&#62;Landing Page&#60;/option&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-28">
+    <td>254:130</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;a href=&#34;https://perplexity.ai&#34; target=&#34;_blank&#34; className=&#34;underline hover:text-blue-500 dark:hover:text-blue-300&#34;&#62;Perplexity.ai&#60;/a&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-28">
+    <td>296:142</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;a href=&#34;https://notebooklm.google.com&#34; target=&#34;_blank&#34; className=&#34;underline hover:text-indigo-500 dark:hover:text-indigo-300&#34;&#62;Google NotebookLM&#60;/a&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-28">
+    <td>444:136</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;a href=&#34;https://aistudio.google.com&#34; target=&#34;_blank&#34; className=&#34;underline hover:text-cyan-500 dark:hover:text-cyan-300&#34;&#62;Google AI Studio&#60;/a&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-28">
+    <td>451:62</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;span&#62;Model:&#60;/span&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-28">
+    <td>451:124</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;span className=&#34;text-gray-900 dark:text-white&#34;&#62;Gemini 3 Flash&#60;/span&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-28">
+    <td>452:62</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;span&#62;Temperature:&#60;/span&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-28">
+    <td>453:62</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;span&#62;Top-P:&#60;/span&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-28">
+    <td>453:124</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;span className=&#34;text-gray-900 dark:text-white&#34;&#62;Default&#60;/span&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-28">
+    <td>454:62</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;span&#62;Safety:&#60;/span&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-28">
+    <td>454:125</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;span className=&#34;text-gray-900 dark:text-white&#34;&#62;Default&#60;/span&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-28">
+    <td>523:55</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;p&#62;&#38;copy; {new Date().getFullYear()} {t.title} • Built for the Future&#60;/p&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr class="bg-2" data-group="f-29">
+    <th colspan="4">
+        [+] C:\Users\jacob\OneDrive\Documentos\aimaker\Frontend-Aimaker\apps\fablab\views\projects\ProjectView.tsx
+        <span>23 problems (23 errors, 0 warnings)</span>
+    </th>
+</tr>
+<tr style="display: none;" class="f-29">
+    <td>163:65</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;h2 className=&#34;text-2xl font-bold text-gray-900 mb-2&#34;&#62;
+            Proyecto no disponible
+          &#60;/h2&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-29">
+    <td>173:36</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;button
+            onClick={() =&#62; navigate(&#39;/dashboard/library&#39;)}
+            className=&#34;inline-flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-all&#34;
+          &#62;
+            &#60;ArrowLeft size={20} /&#62;
+            Volver a Library
+          &#60;/button&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-29">
+    <td>203:80</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;h1 className=&#34;text-xl font-bold text-slate-900 leading-tight&#34;&#62;Configuración de Proyecto&#60;/h1&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-29">
+    <td>204:55</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;p className=&#34;text-sm text-slate-500&#34;&#62;Gestiona los detalles de tu proyecto&#60;/p&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-29">
+    <td>226:45</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;span className=&#34;text-sm&#34;&#62;Proyecto&#60;/span&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-29">
+    <td>231:110</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;label className=&#34;block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2&#34;&#62;TÍTULO&#60;/label&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-29">
+    <td>260:110</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;label className=&#34;block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2&#34;&#62;DESCRIPCIÓN&#60;/label&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-29">
+    <td>271:110</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;label className=&#34;block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2&#34;&#62;TIPO DE PROYECTO&#60;/label&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-29">
+    <td>277:48</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;option value=&#34;landing page&#34;&#62;Landing Page&#60;/option&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-29">
+    <td>278:39</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;option value=&#34;app&#34;&#62;App&#60;/option&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-29">
+    <td>279:46</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;option value=&#34;automation&#34;&#62;Automation&#60;/option&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-29">
+    <td>304:43</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;option value=&#34;Español&#34;&#62;Español&#60;/option&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-29">
+    <td>305:43</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;option value=&#34;English&#34;&#62;English&#60;/option&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-29">
+    <td>306:44</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;option value=&#34;Français&#34;&#62;Français&#60;/option&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-29">
+    <td>316:107</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;label className=&#34;block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2&#34;&#62;URL DE DESPLIEGUE&#60;/label&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-29">
+    <td>327:107</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;label className=&#34;block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2&#34;&#62;CONTEXTO DEL PROYECTO&#60;/label&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-29">
+    <td>341:93</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;h3 className=&#34;text-sm font-bold text-gray-700 uppercase tracking-wider mb-4&#34;&#62;URLs del Recurso&#60;/h3&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-29">
+    <td>345:83</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;label className=&#34;block text-xs font-semibold text-gray-600 mb-2&#34;&#62;URL PRIVADA (Requiere login)&#60;/label&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-29">
+    <td>373:85</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;label className=&#34;block text-xs font-semibold text-gray-600 mb-2&#34;&#62;URL PÚBLICA (Sin login)&#60;/label&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-29">
+    <td>408:68</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;h2 className=&#34;text-2xl font-bold text-slate-900 mb-4&#34;&#62;Publicar Proyecto&#60;/h2&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-29">
+    <td>409:48</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;p className=&#34;text-slate-600 mb-6&#34;&#62;
+              ¿Estás seguro de que quieres hacer público este proyecto? Cualquier persona con el enlace podrá acceder a él.
+            &#60;/p&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-29">
+    <td>416:16</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;button
+                onClick={() =&#62; setIsModalOpen(false)}
+                className=&#34;flex-1 px-6 py-3 border-2 border-gray-300 text-gray-700 font-semibold rounded-xl hover:bg-gray-50 transition-all&#34;
+              &#62;
+                Cancelar
+              &#60;/button&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-29">
+    <td>422:16</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;button
+                onClick={confirmPublish}
+                className=&#34;flex-1 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-all&#34;
+              &#62;
+                Confirmar
+              &#60;/button&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr class="bg-2" data-group="f-30">
+    <th colspan="4">
+        [+] C:\Users\jacob\OneDrive\Documentos\aimaker\Frontend-Aimaker\apps\fablab\views\prompt\PromptBodySection.tsx
+        <span>1 problem (1 error, 0 warnings)</span>
+    </th>
+</tr>
+<tr style="display: none;" class="f-30">
+    <td>41:99</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;label className=&#34;block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2&#34;&#62;CORPS DU PROMPT&#60;/label&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr class="bg-2" data-group="f-31">
+    <th colspan="4">
+        [+] C:\Users\jacob\OneDrive\Documentos\aimaker\Frontend-Aimaker\apps\fablab\views\prompt\PromptDetails.tsx
+        <span>3 problems (3 errors, 0 warnings)</span>
+    </th>
+</tr>
+<tr style="display: none;" class="f-31">
+    <td>99:56</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;h2 className=&#34;text-lg font-bold text-slate-900&#34;&#62;Détails du prompt&#60;/h2&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-31">
+    <td>134:105</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;label className=&#34;block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2&#34;&#62;CONTEXTE SUPPLÉMENTAIRE&#60;/label&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-31">
+    <td>143:105</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;label className=&#34;block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2&#34;&#62;FORMAT DE SORTIE&#60;/label&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr class="bg-2" data-group="f-32">
+    <th colspan="4">
+        [+] C:\Users\jacob\OneDrive\Documentos\aimaker\Frontend-Aimaker\apps\fablab\views\prompt\SaveStatusModal.tsx
+        <span>1 problem (1 error, 0 warnings)</span>
+    </th>
+</tr>
+<tr style="display: none;" class="f-32">
+    <td>38:12</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;button
+            onClick={onClose}
+            className=&#34;flex-1 px-6 py-3 bg-slate-900 hover:bg-slate-800 text-white font-semibold rounded-xl transition-all&#34;
+          &#62;
+            Fermer
+          &#60;/button&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr class="bg-2" data-group="f-33">
+    <th colspan="4">
+        [+] C:\Users\jacob\OneDrive\Documentos\aimaker\Frontend-Aimaker\apps\fablab\views\public\PublicAssistant.tsx
+        <span>2 problems (2 errors, 0 warnings)</span>
+    </th>
+</tr>
+<tr style="display: none;" class="f-33">
+    <td>175:81</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;h2 className=&#34;text-2xl font-bold text-gray-900 dark:text-white mb-2&#34;&#62;
+            Asistente no disponible
+          &#60;/h2&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-33">
+    <td>200:103</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;span className=&#34;text-gray-500 dark:text-gray-400 font-medium uppercase tracking-wider&#34;&#62;Vista Pública&#60;/span&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr class="bg-2" data-group="f-34">
+    <th colspan="4">
+        [+] C:\Users\jacob\OneDrive\Documentos\aimaker\Frontend-Aimaker\apps\fablab\views\public\PublicProject.tsx
+        <span>21 problems (21 errors, 0 warnings)</span>
+    </th>
+</tr>
+<tr style="display: none;" class="f-34">
+    <td>117:81</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;h2 className=&#34;text-2xl font-bold text-gray-900 dark:text-white mb-2&#34;&#62;
+            Proyecto no disponible
+          &#60;/h2&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-34">
+    <td>127:38</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;button
+            onClick={() =&#62; window.history.back()}
+            className=&#34;inline-flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-all&#34;
+          &#62;
+            &#60;ChevronLeft size={20} /&#62;
+            Volver
+          &#60;/button&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-34">
+    <td>150:38</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;span className=&#34;inline-flex items-center gap-1.5 px-3 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-full text-xs font-semibold&#34;&#62;
+                  &#60;Globe size={14} /&#62;
+                  Público
+                &#60;/span&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-34">
+    <td>155:60</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;span className=&#34;inline-flex items-center gap-1 px-3 py-1 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-full text-xs font-semibold&#34;&#62;
+                    &#60;Heart size={14} fill=&#34;currentColor&#34; /&#62;
+                    Favorito
+                  &#60;/span&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-34">
+    <td>192:45</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;h2 className=&#34;text-lg font-bold text-white flex items-center gap-2&#34;&#62;
+                  &#60;ExternalLink size={20} /&#62;
+                  Proyecto en Vivo
+                &#60;/h2&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-34">
+    <td>199:82</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;p className=&#34;text-sm text-gray-500 dark:text-gray-400 mb-2&#34;&#62;URL de despliegue&#60;/p&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-34">
+    <td>215:47</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;a
+                    href={projectData.deploymentUrl}
+                    target=&#34;_blank&#34;
+                    rel=&#34;noopener noreferrer&#34;
+                    className=&#34;flex-shrink-0 px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-semibold rounded-xl transition-all shadow-lg shadow-blue-500/30 flex items-center gap-2&#34;
+                  &#62;
+                    &#60;ExternalLink size={18} /&#62;
+                    Visitar
+                  &#60;/a&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-34">
+    <td>228:41</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;h2 className=&#34;text-lg font-bold text-white flex items-center gap-2&#34;&#62;
+                  &#60;Database size={20} /&#62;
+                  Información del Proyecto
+                &#60;/h2&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-34">
+    <td>236:84</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;p className=&#34;text-xs text-gray-500 dark:text-gray-400 mb-1&#34;&#62;Nombre de la aplicación&#60;/p&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-34">
+    <td>242:84</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;p className=&#34;text-xs text-gray-500 dark:text-gray-400 mb-1&#34;&#62;Categoría&#60;/p&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-34">
+    <td>248:84</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;p className=&#34;text-xs text-gray-500 dark:text-gray-400 mb-1&#34;&#62;Repositorio de archivos&#60;/p&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-34">
+    <td>256:84</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;p className=&#34;text-xs text-gray-500 dark:text-gray-400 mb-1&#34;&#62;Base de datos&#60;/p&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-34">
+    <td>270:38</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;h2 className=&#34;text-lg font-bold text-white flex items-center gap-2&#34;&#62;
+                  &#60;Code2 size={20} /&#62;
+                  Contexto del Proyecto
+                &#60;/h2&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-34">
+    <td>295:89</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;h3 className=&#34;font-semibold text-blue-900 dark:text-blue-300 mb-2&#34;&#62;
+                      Vista pública de proyecto
+                    &#60;/h3&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-34">
+    <td>298:93</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;p className=&#34;text-sm text-blue-800 dark:text-blue-400 leading-relaxed&#34;&#62;
+                      Esta es una vista de solo lectura del proyecto. Para acceder a todas las funcionalidades, herramientas de edición y gestión del proyecto, inicia sesión en la plataforma AIMaker FabLab.
+                    &#60;/p&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-34">
+    <td>310:60</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;h2 className=&#34;text-lg font-bold text-white&#34;&#62;
+                Información del Proyecto
+              &#60;/h2&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-34">
+    <td>317:96</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;p className=&#34;text-xs font-bold text-gray-400 uppercase tracking-wider mb-2&#34;&#62;Tipo de Proyecto&#60;/p&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-34">
+    <td>327:96</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;p className=&#34;text-xs font-bold text-gray-400 uppercase tracking-wider mb-2&#34;&#62;Idioma&#60;/p&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-34">
+    <td>334:96</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;p className=&#34;text-xs font-bold text-gray-400 uppercase tracking-wider mb-2&#34;&#62;Categoría&#60;/p&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-34">
+    <td>341:96</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;p className=&#34;text-xs font-bold text-gray-400 uppercase tracking-wider mb-2&#34;&#62;Estado&#60;/p&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-34">
+    <td>343:40</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;span className=&#34;inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-lg text-sm font-semibold&#34;&#62;
+                    &#60;Globe size={14} /&#62;
+                    Público
+                  &#60;/span&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr class="bg-2" data-group="f-35">
+    <th colspan="4">
+        [+] C:\Users\jacob\OneDrive\Documentos\aimaker\Frontend-Aimaker\apps\fablab\views\public\PublicPrompt.tsx
+        <span>13 problems (13 errors, 0 warnings)</span>
+    </th>
+</tr>
+<tr style="display: none;" class="f-35">
+    <td>77:81</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;h2 className=&#34;text-2xl font-bold text-gray-900 dark:text-white mb-2&#34;&#62;
+            Prompt no disponible
+          &#60;/h2&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-35">
+    <td>87:38</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;button
+            onClick={() =&#62; window.history.back()}
+            className=&#34;inline-flex items-center gap-2 px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-xl transition-all&#34;
+          &#62;
+            &#60;ChevronLeft size={20} /&#62;
+            Volver
+          &#60;/button&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-35">
+    <td>110:38</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;span className=&#34;inline-flex items-center gap-1 px-3 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-full text-xs font-semibold&#34;&#62;
+                  &#60;Globe size={12} /&#62;
+                  Público
+                &#60;/span&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-35">
+    <td>114:71</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;p className=&#34;text-sm text-gray-500 dark:text-gray-400&#34;&#62;
+                Vista pública - Solo lectura
+              &#60;/p&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-35">
+    <td>130:49</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;span className=&#34;font-semibold&#34;&#62;Autor:&#60;/span&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-35">
+    <td>135:49</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;span className=&#34;font-semibold&#34;&#62;Idioma:&#60;/span&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-35">
+    <td>140:49</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;span className=&#34;font-semibold&#34;&#62;Tipo:&#60;/span&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-35">
+    <td>141:23</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;span&#62;Prompt&#60;/span&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-35">
+    <td>150:84</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;h2 className=&#34;text-lg font-bold text-gray-900 dark:text-white mb-3&#34;&#62;
+                Descripción
+              &#60;/h2&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-35">
+    <td>163:84</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;h2 className=&#34;text-lg font-bold text-gray-900 dark:text-white mb-3&#34;&#62;
+                Contenido del Prompt
+              &#60;/h2&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-35">
+    <td>173:72</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;p className=&#34;text-gray-500 dark:text-gray-400 italic&#34;&#62;
+                  No hay contenido disponible para este prompt.
+                &#60;/p&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-35">
+    <td>191:87</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;h3 className=&#34;font-semibold text-blue-900 dark:text-blue-300 mb-1&#34;&#62;
+                    Vista pública de prompt
+                  &#60;/h3&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-35">
+    <td>194:75</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;p className=&#34;text-sm text-blue-800 dark:text-blue-400&#34;&#62;
+                    Esta es una vista de solo lectura del prompt. Para usarlo o modificarlo, inicia sesión en la plataforma.
+                  &#60;/p&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr class="bg-2" data-group="f-36">
+    <th colspan="4">
+        [+] C:\Users\jacob\OneDrive\Documentos\aimaker\Frontend-Aimaker\apps\fablab\views\server-tools\Administration.tsx
+        <span>3 problems (3 errors, 0 warnings)</span>
+    </th>
+</tr>
+<tr style="display: none;" class="f-36">
+    <td>10:80</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;h1 className=&#34;text-4xl font-bold bg-gradient-to-r from-gray-600 to-slate-600 bg-clip-text text-transparent flex items-center gap-3&#34;&#62;
+            &#60;Settings size={40} className=&#34;text-gray-600 dark:text-gray-400&#34; /&#62;
+            Administration
+          &#60;/h1&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-36">
+    <td>13:64</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;p className=&#34;text-gray-600 dark:text-gray-400 mt-2&#34;&#62;
+            System management and configuration
+          &#60;/p&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-36">
+    <td>21:41</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;p className=&#34;text-sm mt-2&#34;&#62;Esta funcionalidad estará disponible próximamente&#60;/p&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr class="bg-2" data-group="f-37">
+    <th colspan="4">
+        [+] C:\Users\jacob\OneDrive\Documentos\aimaker\Frontend-Aimaker\apps\fablab\views\server-tools\ImageGeneration.tsx
+        <span>3 problems (3 errors, 0 warnings)</span>
+    </th>
+</tr>
+<tr style="display: none;" class="f-37">
+    <td>10:83</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;h1 className=&#34;text-4xl font-bold bg-gradient-to-r from-green-600 to-teal-600 bg-clip-text text-transparent flex items-center gap-3&#34;&#62;
+            &#60;ImageIcon size={40} className=&#34;text-green-600 dark:text-green-400&#34; /&#62;
+            Image Generation
+          &#60;/h1&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-37">
+    <td>13:64</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;p className=&#34;text-gray-600 dark:text-gray-400 mt-2&#34;&#62;
+            AI-powered image creation and editing
+          &#60;/p&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-37">
+    <td>21:41</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;p className=&#34;text-sm mt-2&#34;&#62;Esta funcionalidad estará disponible próximamente&#60;/p&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr class="bg-2" data-group="f-38">
+    <th colspan="4">
+        [+] C:\Users\jacob\OneDrive\Documentos\aimaker\Frontend-Aimaker\apps\fablab\views\server-tools\PerplexityIndex.tsx
+        <span>3 problems (3 errors, 0 warnings)</span>
+    </th>
+</tr>
+<tr style="display: none;" class="f-38">
+    <td>10:80</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;h1 className=&#34;text-4xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent flex items-center gap-3&#34;&#62;
+            &#60;Database size={40} className=&#34;text-blue-600 dark:text-blue-400&#34; /&#62;
+            Perplexity Index
+          &#60;/h1&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-38">
+    <td>13:64</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;p className=&#34;text-gray-600 dark:text-gray-400 mt-2&#34;&#62;
+            Search &#38; Knowledge Base Management
+          &#60;/p&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-38">
+    <td>21:41</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;p className=&#34;text-sm mt-2&#34;&#62;Esta funcionalidad estará disponible próximamente&#60;/p&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr class="bg-2" data-group="f-39">
+    <th colspan="4">
+        [+] C:\Users\jacob\OneDrive\Documentos\aimaker\Frontend-Aimaker\apps\fablab\views\server-tools\PromptOptimize.tsx
+        <span>3 problems (3 errors, 0 warnings)</span>
+    </th>
+</tr>
+<tr style="display: none;" class="f-39">
+    <td>10:79</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;h1 className=&#34;text-4xl font-bold bg-gradient-to-r from-yellow-600 to-orange-600 bg-clip-text text-transparent flex items-center gap-3&#34;&#62;
+            &#60;Zap size={40} className=&#34;text-yellow-600 dark:text-yellow-400&#34; /&#62;
+            API Prompt Optimize
+          &#60;/h1&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-39">
+    <td>13:64</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;p className=&#34;text-gray-600 dark:text-gray-400 mt-2&#34;&#62;
+            Optimize your prompts for better results
+          &#60;/p&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-39">
+    <td>21:41</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;p className=&#34;text-sm mt-2&#34;&#62;Esta funcionalidad estará disponible próximamente&#60;/p&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr class="bg-2" data-group="f-40">
+    <th colspan="4">
+        [+] C:\Users\jacob\OneDrive\Documentos\aimaker\Frontend-Aimaker\apps\fablab\views\server\Server.tsx
+        <span>11 problems (11 errors, 0 warnings)</span>
+    </th>
+</tr>
+<tr style="display: none;" class="f-40">
+    <td>161:123</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;h1 className=&#34;text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent&#34;&#62;
+              Server Tools
+            &#60;/h1&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-40">
+    <td>164:66</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;p className=&#34;text-gray-600 dark:text-gray-400 mt-1&#34;&#62;Gestiona tus herramientas de servidor e integraciones&#60;/p&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-40">
+    <td>170:31</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;button
+            onClick={() =&#62; setShowCreateModal(true)}
+            className=&#34;flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold rounded-xl transition-all shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40 hover:scale-[1.02]&#34;
+          &#62;
+            &#60;Plus size={20} /&#62;
+            Nueva Herramienta
+          &#60;/button&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-40">
+    <td>195:14</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;button
+              onClick={() =&#62; setActiveFilter(&#39;all&#39;)}
+              className={`px-5 py-2.5 font-medium transition-all rounded-xl ${
+                activeFilter === &#39;all&#39;
+                  ? &#39;bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-400 shadow-md border border-blue-200 dark:border-blue-800&#39;
+                  : &#39;text-gray-600 dark:text-gray-400 hover:bg-white dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-200&#39;
+              }`}
+            &#62;
+              Todos
+            &#60;/button&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-40">
+    <td>233:67</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;div className=&#34;px-6 py-16 text-center text-gray-500&#34;&#62;No se encontraron herramientas&#60;/div&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-40">
+    <td>289:46</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;span className=&#34;inline-flex items-center gap-1 px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-full text-xs font-medium&#34;&#62;
+                          &#60;Power size={12} /&#62;
+                          Activo
+                        &#60;/span&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-40">
+    <td>294:49</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;span className=&#34;inline-flex items-center gap-1 px-2 py-1 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded-full text-xs font-medium&#34;&#62;
+                          &#60;PowerOff size={12} /&#62;
+                          Inactivo
+                        &#60;/span&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-40">
+    <td>358:16</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;button
+                onClick={() =&#62; {
+                  setShowCreateModal(false);
+                  setEditingTool(null);
+                  resetForm();
+                }}
+                className=&#34;text-gray-400 hover:text-gray-600 dark:hover:text-gray-200&#34;
+              &#62;
+                ✕
+              &#60;/button&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-40">
+    <td>391:100</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;label className=&#34;block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2&#34;&#62;
+                  Tipo *
+                &#60;/label&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-40">
+    <td>419:100</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;label className=&#34;block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2&#34;&#62;
+                  API Key
+                &#60;/label&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-40">
+    <td>439:108</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;label htmlFor=&#34;isActive&#34; className=&#34;text-sm font-medium text-gray-700 dark:text-gray-300&#34;&#62;
+                  Herramienta activa
+                &#60;/label&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr class="bg-2" data-group="f-41">
+    <th colspan="4">
+        [+] C:\Users\jacob\OneDrive\Documentos\aimaker\Frontend-Aimaker\apps\fablab\views\tool\ToolViewCard.tsx
+        <span>8 problems (8 errors, 0 warnings)</span>
+    </th>
+</tr>
+<tr style="display: none;" class="f-41">
+    <td>123:104</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;label className=&#34;block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2&#34;&#62;CATÉGORIE&#60;/label&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-41">
+    <td>502:85</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;h3 className=&#34;text-sm font-bold text-gray-700 uppercase tracking-wider mb-4&#34;&#62;URLs de la ressource&#60;/h3&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-41">
+    <td>504:75</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;label className=&#34;block text-xs font-semibold text-gray-600 mb-2&#34;&#62;URL PRIVÉE (Connexion requise)&#60;/label&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-41">
+    <td>533:77</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;label className=&#34;block text-xs font-semibold text-gray-600 mb-2&#34;&#62;URL PUBLIQUE (Sans connexion)&#60;/label&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-41">
+    <td>563:85</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;h3 className=&#34;text-sm font-bold text-gray-700 uppercase tracking-wider mb-4&#34;&#62;URLs de la ressource&#60;/h3&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-41">
+    <td>565:75</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;label className=&#34;block text-xs font-semibold text-gray-600 mb-2&#34;&#62;URL PRIVÉE (Connexion requise)&#60;/label&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-41">
+    <td>594:77</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;label className=&#34;block text-xs font-semibold text-gray-600 mb-2&#34;&#62;URL PUBLIQUE (Sans connexion)&#60;/label&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-41">
+    <td>652:32</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;button
+        onClick={() =&#62; navigate(&#39;/dashboard/library&#39;)}
+        className=&#34;inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-all&#34;
+        type=&#34;button&#34;
+      &#62;
+        &#60;ArrowLeft size={18} /&#62;
+        Retour à la bibliothèque
+      &#60;/button&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr class="bg-2" data-group="f-42">
+    <th colspan="4">
+        [+] C:\Users\jacob\OneDrive\Documentos\aimaker\Frontend-Aimaker\apps\frontend_template_visualizer\components\TemplateSelector.tsx
+        <span>4 problems (4 errors, 0 warnings)</span>
+    </th>
+</tr>
+<tr style="display: none;" class="f-42">
+    <td>39:74</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;h1 style={{ margin: 0, fontSize: &#39;1.25rem&#39;, color: &#39;#343a40&#39; }}&#62;Visualiseur de modèles&#60;/h1&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-42">
+    <td>61:12</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;button
+            onClick={() =&#62; setSelectedTemplate(&#39;simple_header.html&#39;)}
+            style={{
+              padding: &#39;8px 16px&#39;,
+              cursor: &#39;pointer&#39;,
+              backgroundColor: selectedTemplate === &#39;simple_header.html&#39; ? &#39;#007bff&#39; : &#39;#f8f9fa&#39;,
+              color: selectedTemplate === &#39;simple_header.html&#39; ? &#39;white&#39; : &#39;black&#39;,
+              border: &#39;1px solid #dee2e6&#39;,
+              borderRadius: &#39;4px&#39;
+            }}
+          &#62;
+            Header
+          &#60;/button&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-42">
+    <td>74:12</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;button
+            onClick={() =&#62; setSelectedTemplate(&#39;simple-footer-bem.html&#39;)}
+            style={{
+              padding: &#39;8px 16px&#39;,
+              cursor: &#39;pointer&#39;,
+              backgroundColor: selectedTemplate === &#39;simple-footer-bem.html&#39; ? &#39;#007bff&#39; : &#39;#f8f9fa&#39;,
+              color: selectedTemplate === &#39;simple-footer-bem.html&#39; ? &#39;white&#39; : &#39;black&#39;,
+              border: &#39;1px solid #dee2e6&#39;,
+              borderRadius: &#39;4px&#39;
+            }}
+          &#62;
+            Footer
+          &#60;/button&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+<tr style="display: none;" class="f-42">
+    <td>90:10</td>
+    <td class="clr-2">Error</td>
+    <td>disallow literal string: &#60;button
+          onClick={handleDownload}
+          style={{
+            padding: &#39;8px 16px&#39;,
+            cursor: &#39;pointer&#39;,
+            backgroundColor: &#39;#28a745&#39;,
+            color: &#39;white&#39;,
+            border: &#39;none&#39;,
+            borderRadius: &#39;4px&#39;,
+            fontWeight: &#39;bold&#39;
+          }}
+        &#62;
+          Download Template
+        &#60;/button&#62;</td>
+    <td>
+        <a href="" target="_blank" rel="noopener noreferrer">i18next/no-literal-string</a>
+    </td>
+</tr>
+
+            </tbody>
+        </table>
+        <script type="text/javascript">
+            var groups = document.querySelectorAll("tr[data-group]");
+            for (i = 0; i < groups.length; i++) {
+                groups[i].addEventListener("click", function() {
+                    var inGroup = document.getElementsByClassName(this.getAttribute("data-group"));
+                    this.innerHTML = (this.innerHTML.indexOf("+") > -1) ? this.innerHTML.replace("+", "-") : this.innerHTML.replace("-", "+");
+                    for (var j = 0; j < inGroup.length; j++) {
+                        inGroup[j].style.display = (inGroup[j].style.display !== "none") ? "none" : "table-row";
+                    }
+                });
+            }
+        </script>
+    </body>
+</html>

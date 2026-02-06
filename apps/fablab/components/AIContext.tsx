@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Bot, Workflow, Database, Zap, Image as ImageIcon, Settings, ExternalLink, Edit2, Save, X } from 'lucide-react';
+import { useLanguage } from '../language/useLanguage';
 
 interface ServerTool {
   id: string;
-  name: string;
-  description: string;
+  nameKey: 'llm' | 'n8n' | 'perplexity' | 'promptOptimize' | 'imageGen' | 'admin';
   icon: any;
   color: string;
   url: string;
@@ -14,6 +14,7 @@ interface ServerTool {
 }
 
 const AIContext: React.FC = () => {
+  const { t } = useLanguage();
   const navigate = useNavigate();
   const [editingTool, setEditingTool] = useState<string | null>(null);
   const [editUrl, setEditUrl] = useState('');
@@ -21,8 +22,7 @@ const AIContext: React.FC = () => {
   const [tools, setTools] = useState<ServerTool[]>([
     {
       id: 'llm',
-      name: 'LLM',
-      description: 'Large Language Models - Ollama',
+      nameKey: 'llm',
       icon: Bot,
       color: 'from-purple-100 to-pink-100 dark:from-purple-900/40 dark:to-pink-900/40',
       url: 'https://ollama.aimaker.fr/auth?redirect=%2F',
@@ -30,8 +30,7 @@ const AIContext: React.FC = () => {
     },
     {
       id: 'n8n_workflow',
-      name: 'n8n Workflow',
-      description: 'Automation & Integration',
+      nameKey: 'n8n',
       icon: Workflow,
       color: 'from-orange-100 to-red-100 dark:from-orange-900/40 dark:to-red-900/40',
       url: 'https://n8n.utopiamaker.com/',
@@ -39,8 +38,7 @@ const AIContext: React.FC = () => {
     },
     {
       id: 'perplexity_index',
-      name: 'Perplexity Index',
-      description: 'Search & Knowledge Base',
+      nameKey: 'perplexity',
       icon: Database,
       color: 'from-blue-100 to-cyan-100 dark:from-blue-900/40 dark:to-cyan-900/40',
       url: '',
@@ -49,8 +47,7 @@ const AIContext: React.FC = () => {
     },
     {
       id: 'api_prompt_optimize',
-      name: 'API Prompt Optimize',
-      description: 'Optimize your prompts',
+      nameKey: 'promptOptimize',
       icon: Zap,
       color: 'from-yellow-100 to-orange-100 dark:from-yellow-900/40 dark:to-orange-900/40',
       url: '',
@@ -59,8 +56,7 @@ const AIContext: React.FC = () => {
     },
     {
       id: 'image_generation',
-      name: 'Image Generation',
-      description: 'AI-powered image creation',
+      nameKey: 'imageGen',
       icon: ImageIcon,
       color: 'from-green-100 to-teal-100 dark:from-green-900/40 dark:to-teal-900/40',
       url: '',
@@ -69,8 +65,7 @@ const AIContext: React.FC = () => {
     },
     {
       id: 'administration',
-      name: 'Administration',
-      description: 'System management',
+      nameKey: 'admin',
       icon: Settings,
       color: 'from-gray-100 to-slate-100 dark:from-gray-800/40 dark:to-slate-800/40',
       url: '',
@@ -111,10 +106,10 @@ const AIContext: React.FC = () => {
       <div className="bg-gradient-to-br from-indigo-50 to-blue-50 dark:from-indigo-900/20 dark:to-blue-900/10 p-6 rounded-xl border border-indigo-100 dark:border-indigo-800/30">
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
           <Settings className="text-indigo-600 dark:text-indigo-400" />
-          Server Tools
+          {t.serverTools.title}
         </h2>
         <p className="text-gray-600 dark:text-gray-300 mt-2">
-          Accede a las herramientas de servidor e integraciones externas.
+          {t.serverTools.subtitle}
         </p>
       </div>
 
@@ -123,6 +118,7 @@ const AIContext: React.FC = () => {
         {tools.map((tool) => {
           const Icon = tool.icon;
           const isEditing = editingTool === tool.id;
+          const toolTranslation = t.serverTools.tools[tool.nameKey];
 
           return (
             <div
@@ -140,10 +136,10 @@ const AIContext: React.FC = () => {
               <div className="p-6 space-y-4">
                 <div>
                   <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
-                    {tool.name}
+                    {toolTranslation.name}
                   </h3>
                   <p className="text-sm text-gray-600 dark:text-gray-400">
-                    {tool.description}
+                    {toolTranslation.description}
                   </p>
                 </div>
 
@@ -165,14 +161,14 @@ const AIContext: React.FC = () => {
                             className="flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors text-sm font-medium"
                           >
                             <Save size={14} />
-                            Guardar
+                            {t.common.save}
                           </button>
                           <button
                             onClick={handleCancelEdit}
                             className="flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-gray-300 dark:bg-gray-600 hover:bg-gray-400 dark:hover:bg-gray-500 text-gray-700 dark:text-gray-200 rounded-lg transition-colors text-sm font-medium"
                           >
                             <X size={14} />
-                            Cancelar
+                            {t.common.cancel}
                           </button>
                         </div>
                       </div>
@@ -184,7 +180,7 @@ const AIContext: React.FC = () => {
                         <button
                           onClick={() => handleEditUrl(tool.id, tool.url)}
                           className="p-1.5 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-400 rounded transition-colors"
-                          title="Editar URL"
+                          title={t.serverTools.editUrl}
                         >
                           <Edit2 size={14} />
                         </button>
@@ -201,12 +197,12 @@ const AIContext: React.FC = () => {
                 >
                   {tool.isExternal ? (
                     <>
-                      Abrir
+                      {t.serverTools.open}
                       <ExternalLink size={18} />
                     </>
                   ) : (
                     <>
-                      Acceder
+                      {t.serverTools.access}
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                       </svg>

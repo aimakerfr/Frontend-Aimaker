@@ -12,7 +12,6 @@ import { exportProject } from './utils/exportUtils';
 import { getMakerPath, updateMakerPath } from '@core/maker-path';
 import { Download, LayoutTemplate, ArrowRight, ArrowLeft, Sparkles, Eye, ChevronLeft, Save, CheckCircle } from 'lucide-react';
 import { useLanguage } from '../../language/useLanguage';
-import { translations } from '../../language';
 
 const initialModuleState = (id: string, name: string): ModuleData => ({
   id,
@@ -25,8 +24,7 @@ const initialModuleState = (id: string, name: string): ModuleData => ({
 export default function App() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { language } = useLanguage();
-  const t = translations[language];
+  const { t } = useLanguage();
   const [currentStep, setCurrentStep] = useState<WizardStep>('select');
   const [activeTab, setActiveTab] = useState<ModuleType | null>('header');
   const [showPreview, setShowPreview] = useState(false);
@@ -204,12 +202,12 @@ export default function App() {
         status: 'completed'
       });
       
-      alert('✅ Ruta guardada y finalizada exitosamente');
+      alert(t.moduleCreator.successFinalize);
       // Navigate back to maker path list
       navigate('/dashboard/maker-path');
     } catch (error) {
       console.error('Error finalizing:', error);
-      alert('❌ Error al finalizar la ruta. Por favor intente de nuevo.');
+      alert(t.moduleCreator.errorFinalize);
     } finally {
       setIsSaving(false);
     }
@@ -321,7 +319,7 @@ export default function App() {
                   <div className="flex items-center gap-2 mb-1">
                     <LayoutTemplate className="text-blue-500 w-5 h-5" />
                     <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-cyan-300">
-                      Module Orchestrator
+                      {t.moduleCreator.moduleOrchestrator}
                     </h1>
                   </div>
                   <p className="text-slate-400 text-sm">
@@ -424,7 +422,7 @@ export default function App() {
                           <div className="flex-1">
                             <h3 className="font-semibold text-white">{t.moduleCreator.phases.edit.modules.header}</h3>
                             <p className="text-xs text-slate-300">
-                              {appState.header.html ? `${appState.header.html.length} caracteres` : 'Vacío'}
+                              {appState.header.html ? `${appState.header.html.length} ${t.common.characters}` : t.common.empty}
                             </p>
                           </div>
                           {activeTab === 'header' && (
@@ -451,7 +449,7 @@ export default function App() {
                           <div className="flex-1">
                             <h3 className="font-semibold text-white">{t.moduleCreator.phases.edit.modules.body}</h3>
                             <p className="text-xs text-slate-300">
-                              {appState.body.html ? `${appState.body.html.length} caracteres` : 'Vacío'}
+                              {appState.body.html ? `${appState.body.html.length} ${t.common.characters}` : t.common.empty}
                             </p>
                           </div>
                           {activeTab === 'body' && (
@@ -478,7 +476,7 @@ export default function App() {
                           <div className="flex-1">
                             <h3 className="font-semibold text-white">{t.moduleCreator.phases.edit.modules.footer}</h3>
                             <p className="text-xs text-slate-300">
-                              {appState.footer.html ? `${appState.footer.html.length} caracteres` : 'Vacío'}
+                              {appState.footer.html ? `${appState.footer.html.length} ${t.common.characters}` : t.common.empty}
                             </p>
                           </div>
                           {activeTab === 'footer' && (
@@ -490,7 +488,7 @@ export default function App() {
 
                     {/* Quick Actions */}
                     <div className="bg-slate-800 border border-slate-700 rounded-xl p-4">
-                      <h4 className="text-sm font-semibold text-white mb-3">Acciones Rápidas</h4>
+                      <h4 className="text-sm font-semibold text-white mb-3">{t.moduleCreator.quickActions}</h4>
                       <div className="space-y-2">
                         <Button
                           onClick={() => setShowPromptLibrary(true)}
@@ -499,7 +497,7 @@ export default function App() {
                           className="justify-center"
                         >
                           <Sparkles className="w-4 h-4 mr-2" />
-                          Prompts
+                          {t.moduleCreator.promptLibrary.title}
                         </Button>
                         <Button
                           onClick={() => setShowPreview(true)}
@@ -508,7 +506,7 @@ export default function App() {
                           className="justify-center"
                         >
                           <Eye className="w-4 h-4 mr-2" />
-                          Vista Previa
+                          {t.moduleCreator.navigation.viewPreview}
                         </Button>
                       </div>
                     </div>

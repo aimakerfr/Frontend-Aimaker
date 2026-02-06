@@ -239,6 +239,7 @@ class HttpClient {
       const response = await fetch(url, fetchOptions);
       console.log('Response status:', response.status);
       console.log('Response ok:', response.ok);
+      console.log('Response:', response);
       const result = await this.handleResponse<T>(response);
       console.log('Result:', result);
       console.log('===========================');

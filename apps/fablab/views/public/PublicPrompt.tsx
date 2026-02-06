@@ -4,8 +4,11 @@ import { FileText, Globe, Calendar, User, ChevronLeft } from 'lucide-react';
 import { getPublicCreationTool } from '@core/creation-tools/creation-tools.service';
 import type { CreationTool } from '@core/creation-tools/creation-tools.types';
 import { httpClient } from '@core/api/http.client';
+import { useLanguage } from '../../language/useLanguage';
 
 const PublicPrompt: React.FC = () => {
+  const { t } = useLanguage();
+  const tp = t.publicPrompt;
   const { id } = useParams<{ id: string }>();
   const [prompt, setPrompt] = useState<CreationTool | null>(null);
   const [promptContent, setPromptContent] = useState<string>('');
@@ -22,13 +25,13 @@ const PublicPrompt: React.FC = () => {
         
         // Verificar que sea público
         if (!data.hasPublicStatus) {
-          setError('Este prompt es privado y no está disponible públicamente.');
+          setError(tp.errorPrivate);
           return;
         }
         
         // Verificar que sea tipo prompt
         if (data.type !== 'prompt') {
-          setError('El recurso solicitado no es un prompt.');
+          setError(tp.errorNotPrompt);
           return;
         }
         
@@ -47,21 +50,21 @@ const PublicPrompt: React.FC = () => {
         }
       } catch (err) {
         console.error('Error cargando prompt:', err);
-        setError('No se pudo cargar el prompt. Puede que no exista o no sea público.');
+        setError(tp.errorLoading);
       } finally {
         setLoading(false);
       }
     };
 
     loadPrompt();
-  }, [id]);
+  }, [id, tp.errorPrivate, tp.errorNotPrompt, tp.errorLoading]);
 
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 dark:from-gray-900 dark:to-purple-900/10 flex items-center justify-center">
         <div className="text-center">
           <div className="inline-block w-12 h-12 border-4 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
-          <p className="mt-4 text-gray-600 dark:text-gray-400">Cargando prompt...</p>
+          <p className="mt-4 text-gray-600 dark:text-gray-400">{tp.loading}</p>
         </div>
       </div>
     );
@@ -75,17 +78,17 @@ const PublicPrompt: React.FC = () => {
             <FileText size={32} className="text-red-600 dark:text-red-400" />
           </div>
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-            Prompt no disponible
+            {tp.infoTitle}
           </h2>
           <p className="text-gray-600 dark:text-gray-400 mb-6">
-            {error || 'No se encontró el prompt solicitado.'}
+            {error || tp.errorNotFound}
           </p>
           <button
             onClick={() => window.history.back()}
             className="inline-flex items-center gap-2 px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-xl transition-all"
           >
             <ChevronLeft size={20} />
-            Volver
+            {tp.back}
           </button>
         </div>
       </div>
@@ -108,11 +111,11 @@ const PublicPrompt: React.FC = () => {
                 </h1>
                 <span className="inline-flex items-center gap-1 px-3 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-full text-xs font-semibold">
                   <Globe size={12} />
-                  Público
+                  {tp.publicView}
                 </span>
               </div>
               <p className="text-sm text-gray-500 dark:text-gray-400">
-                Vista pública - Solo lectura
+                {tp.publicView} - {tp.readOnly}
               </p>
             </div>
           </div>
@@ -127,17 +130,17 @@ const PublicPrompt: React.FC = () => {
             <div className="flex flex-wrap gap-4 text-sm">
               <div className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
                 <User size={16} />
-                <span className="font-semibold">Autor:</span>
+                <span className="font-semibold">{tp.author}:</span>
                 <span>{prompt.authorName || 'Usuario'}</span>
               </div>
               <div className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
                 <Calendar size={16} />
-                <span className="font-semibold">Idioma:</span>
+                <span className="font-semibold">{tp.language}:</span>
                 <span className="uppercase">{prompt.language}</span>
               </div>
               <div className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
                 <FileText size={16} />
-                <span className="font-semibold">Tipo:</span>
+                <span className="font-semibold">{tp.type}:</span>
                 <span>Prompt</span>
               </div>
             </div>
@@ -148,10 +151,10 @@ const PublicPrompt: React.FC = () => {
             {/* Description */}
             <div>
               <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-3">
-                Descripción
+                {tp.descriptionTitle}
               </h2>
               <p className="text-gray-700 dark:text-gray-300 leading-relaxed">
-                {prompt.description || 'Sin descripción disponible.'}
+                {prompt.description || tp.noDescription}
               </p>
             </div>
 
@@ -161,7 +164,7 @@ const PublicPrompt: React.FC = () => {
             {/* Prompt Content */}
             <div>
               <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-3">
-                Contenido del Prompt
+                {tp.contentTitle}
               </h2>
               {promptContent ? (
                 <div className="bg-slate-50 dark:bg-gray-900/50 border border-slate-200 dark:border-gray-700 rounded-xl p-6">
@@ -171,7 +174,7 @@ const PublicPrompt: React.FC = () => {
                 </div>
               ) : (
                 <p className="text-gray-500 dark:text-gray-400 italic">
-                  No hay contenido disponible para este prompt.
+                  {tp.noContent}
                 </p>
               )}
             </div>
@@ -189,10 +192,10 @@ const PublicPrompt: React.FC = () => {
                 </div>
                 <div>
                   <h3 className="font-semibold text-blue-900 dark:text-blue-300 mb-1">
-                    Vista pública de prompt
+                    {tp.infoTitle}
                   </h3>
                   <p className="text-sm text-blue-800 dark:text-blue-400">
-                    Esta es una vista de solo lectura del prompt. Para usarlo o modificarlo, inicia sesión en la plataforma.
+                    {tp.infoDesc}
                   </p>
                 </div>
               </div>

@@ -4,8 +4,13 @@
  */
 
 import { AppRouter } from '../router/router';
+import { LanguageProvider } from '@apps/fablab/language/LanguageContext';
 import './App.css';
 
 export function App() {
-  return <AppRouter />;
+  return (
+    <LanguageProvider>
+      <AppRouter />
+    </LanguageProvider>
+  );
 }

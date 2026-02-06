@@ -4,7 +4,6 @@ import { Button } from './Button';
 import { Upload, Code, FileCode, Check, Download, Database } from 'lucide-react';
 import { HTMLSourcePicker } from './HTMLSourcePicker';
 import { useLanguage } from '../../../language/useLanguage';
-import { translations } from '../../../language/translations';
 
 interface ModuleEditorProps {
   moduleData: ModuleData;
@@ -21,8 +20,7 @@ export const ModuleEditor: React.FC<ModuleEditorProps> = ({
   onToggle,
   readOnly = false // Default to edit mode
 }) => {
-  const { language } = useLanguage();
-  const t = translations[language];
+  const { t } = useLanguage();
   const htmlInputRef = useRef<HTMLInputElement>(null);
   const cssInputRef = useRef<HTMLInputElement>(null);
   const htmlTailwindInputRef = useRef<HTMLInputElement>(null);
@@ -93,7 +91,7 @@ export const ModuleEditor: React.FC<ModuleEditorProps> = ({
       >
         <div className="flex items-center gap-2">
           <Code className="w-4 h-4 text-blue-400" />
-          <h3 className="font-semibold text-base capitalize">{moduleData.name} Module</h3>
+          <h3 className="font-semibold text-base capitalize">{moduleData.name} {t.moduleCreator.moduleEditor.module}</h3>
         </div>
         <span className="text-slate-400 text-xs">{isActive ? t.moduleCreator.moduleEditor.hide : t.moduleCreator.moduleEditor.edit}</span>
       </div>
@@ -181,7 +179,7 @@ export const ModuleEditor: React.FC<ModuleEditorProps> = ({
                     variant="secondary" 
                     className="text-xs py-1 px-2 h-7 bg-purple-900/50 hover:bg-purple-800"
                     onClick={() => setShowHTMLSourcePicker(true)}
-                    title="Cargar desde Notebook"
+                    title={t.moduleCreator.moduleEditor.loadFromNotebook}
                     disabled={readOnly}
                   >
                     <Database className="w-3 h-3 mr-1" /> {t.moduleCreator.moduleEditor.notebook}

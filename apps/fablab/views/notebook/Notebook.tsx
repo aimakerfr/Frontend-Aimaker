@@ -8,6 +8,7 @@ import { generateChatResponse, generateSourceSummary } from './services/geminiSe
 import { Layout, Menu, Globe, ChevronDown, ArrowLeft, Star, ExternalLink, Lock } from 'lucide-react';
 import { getNotebookSources, postNoteBookSource, deleteNotebookSource, type NotebookSourceItem } from '@core/notebooks';
 import { getTool, updateTool } from '@core/creation-tools/creation-tools.service.ts';
+import { useLanguage } from '../../language/useLanguage';
 
 enum Visibility {
   PRIVATE = 'private',
@@ -19,6 +20,7 @@ interface NotebookProps {
 }
 
 const App: React.FC<NotebookProps> = ({ isPublicView = false }) => {
+    const { t, language } = useLanguage();
     const navigate = useNavigate();
     const { id: urlId } = useParams<{ id: string }>();
     const [id, setId] = useState<string | undefined>(urlId);
@@ -29,7 +31,6 @@ const App: React.FC<NotebookProps> = ({ isPublicView = false }) => {
     const [summary, setSummary] = useState<StructuredSummary | null>(null);
     const [summaryLoading, setSummaryLoading] = useState(false);
     const [sidebarOpen, setSidebarOpen] = useState(true);
-    const [language, setLanguage] = useState<Language>('es');
     const [notebookName, setNotebookName] = useState('');
     const [description, setDescription] = useState('');
     const [category, setCategory] = useState('Marketing');
@@ -72,6 +73,8 @@ const App: React.FC<NotebookProps> = ({ isPublicView = false }) => {
                 return 'url';
             case 'HTML':
                 return 'html';
+            case 'TRANSLATION':
+                return 'translation';
             default:
                 return 'text';
         }
@@ -123,17 +126,16 @@ const App: React.FC<NotebookProps> = ({ isPublicView = false }) => {
     const loadNotebookData = async (notebookId: number, fallbackTitle?: string | null) => {
         try {
             const tool = await getTool(notebookId);
-            setNotebookName(tool.title || fallbackTitle || 'Sin título');
+            setNotebookName(tool.title || fallbackTitle || t.notebook.noTitle);
             setDescription(tool.description || '');
             setCategory(tool.category || 'Marketing');
             setIsFavorite(tool.isFavorite || false);
             setVisibility(tool.hasPublicStatus ? Visibility.PUBLIC : Visibility.PRIVATE);
             setToolLanguage((tool.language as 'fr' | 'en' | 'es') || 'es');
-            setLanguage((tool.language as Language) || 'es');
         } catch (error) {
             console.error('Error cargando notebook:', error);
             if (!fallbackTitle) {
-                setNotebookName('Sin título');
+                setNotebookName(t.notebook.noTitle);
             }
         }
     };
@@ -202,7 +204,7 @@ const App: React.FC<NotebookProps> = ({ isPublicView = false }) => {
         console.log('[Notebook] useEffect triggered - selectedSources:', selectedSources.length);
         if (selectedSources.length > 0) {
             console.log('[Notebook] Calling updateSummary with sources:', selectedSources.map(s => ({ title: s.title, hasContent: !!s.content, contentLength: s.content?.length })));
-            updateSummary(selectedSources, language);
+            updateSummary(selectedSources, language as Language);
         } else {
             setSummary(null);
         }
@@ -323,7 +325,7 @@ const App: React.FC<NotebookProps> = ({ isPublicView = false }) => {
         setChatLoading(true);
 
         const historyForApi = messages.map(m => ({ role: m.role, content: m.content }));
-        const responseText = await generateChatResponse(historyForApi, sources.filter(s => s.selected), content, language);
+        const responseText = await generateChatResponse(historyForApi, sources.filter(s => s.selected), content, language as Language);
 
         const botMsg: ChatMessage = { id: (Date.now() + 1).toString(), role: 'model', content: responseText };
         setMessages(prev => [...prev, botMsg]);
@@ -373,7 +375,6 @@ const App: React.FC<NotebookProps> = ({ isPublicView = false }) => {
                             onAddSource={handleAddSource}
                             onToggleSource={handleToggleSource}
                             onDeleteSource={handleDeleteSource}
-                            lang={language}
                         />
                     </div>
                 </aside>
@@ -393,7 +394,7 @@ const App: React.FC<NotebookProps> = ({ isPublicView = false }) => {
                                         onBlur={handleSave}
                                         disabled={isPublicView}
                                         className="w-full text-2xl font-bold text-gray-900 bg-transparent border-none outline-none focus:ring-0 px-0 placeholder:text-gray-300 disabled:cursor-not-allowed"
-                                        placeholder="Título del Notebook..."
+                                        placeholder={t.notebook.settings.titlePlaceholder}
                                     />
                                     <input
                                         type="text"
@@ -402,7 +403,7 @@ const App: React.FC<NotebookProps> = ({ isPublicView = false }) => {
                                         onBlur={handleSave}
                                         disabled={isPublicView}
                                         className="w-full mt-1 text-sm text-gray-600 bg-transparent border-none outline-none focus:ring-0 px-0 placeholder:text-gray-300 disabled:cursor-not-allowed"
-                                        placeholder="Agrega una descripción..."
+                                        placeholder={t.notebook.settings.descriptionPlaceholder}
                                     />
                                 </div>
                                 
@@ -422,7 +423,7 @@ const App: React.FC<NotebookProps> = ({ isPublicView = false }) => {
                                         }`}
                                     >
                                         <Lock size={16} />
-                                        <span>Privado</span>
+                                        <span>{t.notebook.settings.private}</span>
                                     </button>
                                     <button
                                         onClick={() => {
@@ -438,13 +439,13 @@ const App: React.FC<NotebookProps> = ({ isPublicView = false }) => {
                                         }`}
                                     >
                                         <Globe size={16} />
-                                        <span>Público</span>
+                                        <span>{t.notebook.settings.public}</span>
                                     </button>
                                     {visibility === Visibility.PUBLIC && (
                                         <button
                                             onClick={() => window.open(publicUrl, '_blank')}
                                             className="p-2 hover:bg-emerald-50 rounded-lg text-emerald-600 transition-all"
-                                            title="Abrir enlace público"
+                                            title={t.notebook.settings.openPublicLink}
                                         >
                                             <ExternalLink size={16} />
                                         </button>
@@ -462,10 +463,10 @@ const App: React.FC<NotebookProps> = ({ isPublicView = false }) => {
                                         disabled={isPublicView}
                                         className="appearance-none pl-3 pr-8 py-1.5 text-xs font-semibold bg-blue-50 text-blue-700 rounded-full border border-blue-200 cursor-pointer hover:bg-blue-100 transition-all disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-blue-400"
                                     >
-                                        <option value="Marketing">📊 Marketing</option>
-                                        <option value="Desarrollo">💻 Development</option>
-                                        <option value="Investigación">🔬 Research</option>
-                                        <option value="Análisis">📈 Analysis</option>
+                                        <option value="Marketing">{t.notebook.settings.categories.marketing}</option>
+                                        <option value="Desarrollo">{t.notebook.settings.categories.development}</option>
+                                        <option value="Investigación">{t.notebook.settings.categories.research}</option>
+                                        <option value="Análisis">{t.notebook.settings.categories.analysis}</option>
                                     </select>
                                     <ChevronDown size={12} className="absolute right-2 top-1/2 -translate-y-1/2 text-blue-600 pointer-events-none" />
                                 </div>
@@ -477,7 +478,6 @@ const App: React.FC<NotebookProps> = ({ isPublicView = false }) => {
                                         onChange={(e) => { 
                                             const newLang = e.target.value as 'fr' | 'en' | 'es';
                                             setToolLanguage(newLang); 
-                                            setLanguage(newLang as Language);
                                             handleSave(); 
                                         }}
                                         disabled={isPublicView}
@@ -501,14 +501,14 @@ const App: React.FC<NotebookProps> = ({ isPublicView = false }) => {
                                     }`}
                                 >
                                     <Star size={14} fill={isFavorite ? 'currentColor' : 'none'} strokeWidth={2} />
-                                    <span>{isFavorite ? 'Favorito' : 'Agregar a favoritos'}</span>
+                                    <span>{isFavorite ? t.notebook.settings.favorite : t.notebook.settings.addFavorite}</span>
                                 </button>
 
                                 {/* Indicador de estado si es público */}
                                 {visibility === Visibility.PUBLIC && (
                                     <div className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-700 rounded-full text-xs font-semibold border border-emerald-200">
                                         <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
-                                        <span>Visible públicamente</span>
+                                        <span>{t.notebook.settings.visiblePublicly}</span>
                                     </div>
                                 )}
                             </div>
@@ -523,7 +523,6 @@ const App: React.FC<NotebookProps> = ({ isPublicView = false }) => {
                             isLoading={chatLoading}
                             sourceSummary={summary}
                             isSummaryLoading={summaryLoading}
-                            lang={language}
                         />
                     </div>
                 </main>
@@ -539,25 +538,25 @@ const App: React.FC<NotebookProps> = ({ isPublicView = false }) => {
                                 <Globe size={28} />
                             </div>
                             <h3 className="text-xl font-black text-gray-900 mb-2">
-                                {visibility === Visibility.PUBLIC ? '¿Hacer privado?' : '¿Publicar notebook?'}
+                                {visibility === Visibility.PUBLIC ? t.notebook.publishModal.makePrivate : t.notebook.publishModal.publish}
                             </h3>
                             <p className="text-gray-500 text-sm mb-8 font-medium">
                                 {visibility === Visibility.PUBLIC 
-                                    ? 'El notebook ya no será accesible públicamente'
-                                    : 'El notebook será accesible mediante URL pública'}
+                                    ? t.notebook.publishModal.makePrivateDesc
+                                    : t.notebook.publishModal.publishDesc}
                             </p>
                             <div className="flex gap-3">
                                 <button
                                     onClick={() => setShowPublishModal(false)}
                                     className="flex-1 h-12 rounded-xl border-2 border-gray-200 text-gray-700 font-bold hover:bg-gray-50 transition-all"
                                 >
-                                    Cancelar
+                                    {t.common.cancel}
                                 </button>
                                 <button
                                     onClick={handlePublish}
                                     className="flex-1 h-12 rounded-xl bg-indigo-600 text-white font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100"
                                 >
-                                    Confirmar
+                                    {t.notebook.publishModal.confirm}
                                 </button>
                             </div>
                         </div>

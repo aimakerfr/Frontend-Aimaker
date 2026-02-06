@@ -2,16 +2,25 @@ import React, { useState, useRef, useEffect } from 'react';
 import { MessageSquare, X, Send, Sparkles, BrainCircuit } from 'lucide-react';
 import { ChatMessage } from '../types';
 import { generateChatResponse, analyzeComplexData } from '../services/geminiService';
+import { useLanguage } from '../language/useLanguage';
 
 const AIChat: React.FC = () => {
+  const { t } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    { id: '1', role: 'model', text: 'Hello! I am your AiMaker assistant. How can I help you today?' }
-  ]);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isThinkingMode, setIsThinkingMode] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Set initial message once translations are loaded
+  useEffect(() => {
+    if (messages.length === 0 && t.assistant?.welcomeMessage) {
+      setMessages([
+        { id: '1', role: 'model', text: t.assistant.welcomeMessage }
+      ]);
+    }
+  }, [t.assistant?.welcomeMessage, messages.length]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -85,7 +94,7 @@ const AIChat: React.FC = () => {
         <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center bg-brand-600 rounded-t-2xl text-white">
           <div className="flex items-center gap-2">
             <Sparkles size={18} />
-            <h3 className="font-semibold">AiMaker Assistant</h3>
+            <h3 className="font-semibold">{t.assistant.title}</h3>
           </div>
           <button onClick={() => setIsOpen(false)} className="hover:bg-white/20 p-1 rounded transition-colors">
             <X size={18} />
@@ -102,7 +111,7 @@ const AIChat: React.FC = () => {
                   : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-200 rounded-bl-none'
               }`}>
                 {msg.text}
-                {msg.isThinking && <div className="text-[10px] opacity-70 mt-1 flex items-center gap-1"><BrainCircuit size={10} /> Thinking Mode</div>}
+                {msg.isThinking && <div className="text-[10px] opacity-70 mt-1 flex items-center gap-1"><BrainCircuit size={10} /> {t.assistant.thinkingMode}</div>}
               </div>
             </div>
           ))}
@@ -130,7 +139,7 @@ const AIChat: React.FC = () => {
               }`}
              >
                <BrainCircuit size={12} />
-               <span>Deep Thinking</span>
+               <span>{t.assistant.deepThinking}</span>
              </button>
            </div>
            <div className="flex gap-2">
@@ -139,7 +148,7 @@ const AIChat: React.FC = () => {
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Ask anything..."
+              placeholder={t.assistant.placeholder}
               className="flex-1 bg-gray-100 dark:bg-gray-700 border-none rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-500 outline-none dark:text-white"
              />
              <button 

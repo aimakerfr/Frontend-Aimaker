@@ -1,4 +1,5 @@
 import React from 'react';
+import { useLanguage } from '../../language/useLanguage';
 
 type ModalType = 'success' | 'error';
 
@@ -11,6 +12,8 @@ interface SaveStatusModalProps {
 }
 
 const SaveStatusModal: React.FC<SaveStatusModalProps> = ({ open, type, title, message, onClose }) => {
+  const { t } = useLanguage();
+  const tm = t.saveStatusModal;
   if (!open) return null;
 
   const isSuccess = type === 'success';
@@ -24,7 +27,7 @@ const SaveStatusModal: React.FC<SaveStatusModalProps> = ({ open, type, title, me
           <div className={`w-3 h-3 rounded-full bg-${accent}-500`}></div>
         </div>
         <h2 className="text-2xl font-bold text-slate-900 mb-2 text-center">
-          {title || (isSuccess ? 'Enregistré avec succès' : "Erreur lors de l'enregistrement")}
+          {title || (isSuccess ? tm.successTitle : tm.errorTitle)}
         </h2>
         {message && (
           <p className="text-slate-600 mb-6 text-center">
@@ -36,7 +39,7 @@ const SaveStatusModal: React.FC<SaveStatusModalProps> = ({ open, type, title, me
             onClick={onClose}
             className="flex-1 px-6 py-3 bg-slate-900 hover:bg-slate-800 text-white font-semibold rounded-xl transition-all"
           >
-            Fermer
+            {tm.close}
           </button>
         </div>
       </div>

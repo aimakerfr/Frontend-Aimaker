@@ -8,6 +8,7 @@ import PromptPublishModal from '../prompt/PublishConfirmModal';
 import ProjectPublishModal from '../project/PublishConfirmModal';
 import AssistantPublishModal from '../assistant/PublishConfirmModal';
 import SaveStatusModal from '../prompt/SaveStatusModal';
+import { useLanguage } from '../../language/useLanguage';
 
 type ToolViewCardProps = {
   headerLeft?: React.ReactNode;
@@ -76,11 +77,10 @@ const defaultState: ToolViewState = {
   outputFormat: '',
 };
 
-const CATEGORY_OPTIONS = ['Marketing', 'Ventes', 'Développement', 'RH'];
-const LANGUAGE_OPTIONS = ['Espagnol', 'Anglais', 'Français'];
-
 // MetadataSection component - shared across all tool views
 const MetadataSection: React.FC = () => {
+  const { t } = useLanguage();
+  const tv = t.toolView;
   const { tool, state, update } = useToolView();
   const toolType = tool?.type ? tool.type.charAt(0).toUpperCase() + tool.type.slice(1) : 'Tool';
   
@@ -88,7 +88,7 @@ const MetadataSection: React.FC = () => {
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
         <div className="md:col-span-2">
-          <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">TYPE</label>
+          <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">{tv.labels.type}</label>
           <div className="flex items-center justify-center gap-2 px-4 py-2.5 bg-[#eff6ff] border border-[#dbeafe] rounded-xl text-[#2563eb] font-bold shadow-sm h-[46px]">
             <FileText size={16} />
             <span className="text-sm">{toolType}</span>
@@ -96,57 +96,54 @@ const MetadataSection: React.FC = () => {
         </div>
 
         <div className="md:col-span-10">
-          <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">TITRE</label>
+          <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">{tv.labels.title}</label>
           <input
             type="text"
             value={state.title}
             onChange={(e) => update({ title: e.target.value })}
             className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-slate-700 bg-white shadow-sm h-[46px]"
-            placeholder={`Titre du ${toolType.toLowerCase()}`}
+            placeholder={tv.placeholders.title.replace('{type}', toolType.toLowerCase())}
           />
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
         <div className="md:col-span-5">
-          <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">DESCRIPTION</label>
+          <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">{tv.labels.description}</label>
           <input
             type="text"
             value={state.description}
             onChange={(e) => update({ description: e.target.value })}
             className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-slate-700 bg-white shadow-sm h-[46px]"
-            placeholder={`Description du ${toolType.toLowerCase()}`}
+            placeholder={tv.placeholders.description.replace('{type}', toolType.toLowerCase())}
           />
         </div>
 
         <div className="md:col-span-3">
-          <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">CATÉGORIE</label>
+          <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">{tv.labels.category}</label>
           <select
             value={state.category}
             onChange={(e) => update({ category: e.target.value })}
             className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all bg-white appearance-none cursor-pointer text-slate-700 shadow-sm h-[46px]"
           >
-            {CATEGORY_OPTIONS.map((option) => (
-              <option key={option} value={option}>
-                {option}
-              </option>
-            ))}
+            <option value="Marketing">{tv.categories.marketing}</option>
+            <option value="Ventes">{tv.categories.sales}</option>
+            <option value="Développement">{tv.categories.development}</option>
+            <option value="RH">{tv.categories.hr}</option>
           </select>
         </div>
 
         <div className="md:col-span-3">
-          <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">LANGUE</label>
+          <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">{tv.labels.language}</label>
           <select
             value={state.language}
             onChange={(e) => update({ language: e.target.value })}
             className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all bg-white appearance-none cursor-pointer text-slate-700 shadow-sm h-[46px]"
             disabled={true}
           >
-            {LANGUAGE_OPTIONS.map((option) => (
-              <option key={option} value={option}>
-                {option}
-              </option>
-            ))}
+            <option value="Espagnol">{tv.languages.spanish}</option>
+            <option value="Anglais">{tv.languages.english}</option>
+            <option value="Français">{tv.languages.french}</option>
           </select>
         </div>
       </div>
@@ -178,6 +175,8 @@ const ToolViewCard: React.FC<ToolViewCardProps> = ({
   urlsProps,
   toolId,
 }) => {
+  const { t } = useLanguage();
+  const tv = t.toolView;
   const navigate = useNavigate();
   // If toolId is provided, fetch tool data to build URLs section internally
   const [tool, setTool] = useState<CreationTool | null>(null);
@@ -221,7 +220,7 @@ const ToolViewCard: React.FC<ToolViewCardProps> = ({
           setError(null);
         }
       } catch (e) {
-        if (!cancelled) setError("Impossible de charger le prompt.");
+        if (!cancelled) setError(tv.messages.errorLoading.replace('{type}', 'prompt'));
       }
       finally {
         if (!cancelled) setLoading(false);
@@ -231,7 +230,7 @@ const ToolViewCard: React.FC<ToolViewCardProps> = ({
     return () => {
       cancelled = true;
     };
-  }, [toolId, mapToolToState]);
+  }, [toolId, mapToolToState, tv.messages.errorLoading]);
 
   const isPublic = tool?.hasPublicStatus ?? false;
   const privateUrl = tool?.url || '';
@@ -279,12 +278,12 @@ const ToolViewCard: React.FC<ToolViewCardProps> = ({
       setState(mapToolToState(refreshed));
     } catch (e) {
       setSaveModalType('error');
-      setSaveModalMessage(`Une erreur est survenue lors de l'enregistrement du ${tool?.type || 'outil'}.`);
+      setSaveModalMessage(tv.messages.errorSaving.replace('{type}', tool?.type || 'tool'));
       setIsSaveModalOpen(true);
     } finally {
       setIsSaving(false);
     }
-  }, [toolId, tool, state, mapToolToState]);
+  }, [toolId, tool, state, mapToolToState, tv.messages.errorSaving]);
 
   const confirmPublish = useCallback(async () => {
     if (!toolId || !tool) return;
@@ -305,17 +304,17 @@ const ToolViewCard: React.FC<ToolViewCardProps> = ({
       setTool(refreshed);
       setState(mapToolToState(refreshed));
       setSaveModalType('success');
-      setSaveModalMessage(`${tool?.type || 'Outil'} publi\u00e9 et enregistr\u00e9 avec succ\u00e8s.`);
+      setSaveModalMessage(tv.messages.successPublish.replace('{type}', tool?.type || 'Tool'));
       setIsSaveModalOpen(true);
       setIsPublishModalOpen(false);
     } catch (e) {
       setSaveModalType('error');
-      setSaveModalMessage(`Une erreur est survenue lors de la publication du ${tool?.type || 'outil'}.`);
+      setSaveModalMessage(tv.messages.errorPublishing.replace('{type}', tool?.type || 'tool'));
       setIsSaveModalOpen(true);
     } finally {
       setIsPublishing(false);
     }
-  }, [toolId, tool, state, mapToolToState]);
+  }, [toolId, tool, state, mapToolToState, tv.messages.successPublish, tv.messages.errorPublishing]);
 
   const openPublish = useCallback(() => setIsPublishModalOpen(true), []);
 
@@ -343,7 +342,7 @@ const ToolViewCard: React.FC<ToolViewCardProps> = ({
             className={`flex items-center justify-center w-[46px] h-[42px] border rounded-xl transition-all shadow-sm ${
               isFavorite ? 'bg-red-50 border-red-200 text-red-500' : 'bg-white border-slate-200 text-slate-300 hover:text-slate-400'
             } disabled:opacity-50`}
-            title={isFavorite ? 'Retirer des favoris' : 'Ajouter aux favoris'}
+            title={isFavorite ? tv.actions.removeFavorite : tv.actions.addFavorite}
           >
             <Heart size={18} fill={isFavorite ? 'currentColor' : 'none'} />
           </button>
@@ -363,10 +362,10 @@ const ToolViewCard: React.FC<ToolViewCardProps> = ({
                 }}
                 disabled={togglingVisibility}
                 className="flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 rounded-xl hover:border-blue-300 transition-all shadow-sm h-[42px] text-slate-600 disabled:opacity-50"
-                title={isPublic ? 'Publié' : 'Publier'}
+                title={isPublic ? tv.actions.published : tv.actions.publish}
             >
               {isPublic ? <Globe size={16} className="text-blue-500" /> : <Lock size={16} className="text-slate-400" />}
-              <span className="text-sm font-semibold">{isPublic ? 'Publié' : 'Publier'}</span>
+              <span className="text-sm font-semibold">{isPublic ? tv.actions.published : tv.actions.publish}</span>
             </button>
         )}
         {/* GUARDAR CAMBIOS */}
@@ -376,7 +375,7 @@ const ToolViewCard: React.FC<ToolViewCardProps> = ({
           className="bg-[#3b82f6] hover:bg-blue-600 text-white font-bold px-8 py-3 rounded-xl shadow-lg shadow-blue-500/30 transition-all active:scale-[0.98] text-sm disabled:opacity-50 disabled:cursor-not-allowed"
           type="button"
         >
-          {saveProps.isSaving ? 'Enregistrement...' : (saveProps.label || 'Enregistrer les modifications')}
+          {saveProps.isSaving ? tv.actions.saving : (saveProps.label || tv.actions.save)}
         </button>
       </div>
     </div>
@@ -400,7 +399,7 @@ const ToolViewCard: React.FC<ToolViewCardProps> = ({
                 className={`flex items-center justify-center w-[46px] h-[42px] border rounded-xl transition-all shadow-sm ${
                     isFavorite ? 'bg-red-50 border-red-200 text-red-500' : 'bg-white border-slate-200 text-slate-300 hover:text-slate-400'
                 } disabled:opacity-50`}
-                title={isFavorite ? 'Retirer des favoris' : 'Ajouter aux favoris'}
+                title={isFavorite ? tv.actions.removeFavorite : tv.actions.addFavorite}
             >
               <Heart size={18} fill={isFavorite ? 'currentColor' : 'none'} />
             </button>
@@ -411,10 +410,10 @@ const ToolViewCard: React.FC<ToolViewCardProps> = ({
             onClick={() => openPublish()}
             disabled={togglingVisibility || isPublishing}
             className="flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 rounded-xl hover:border-blue-300 transition-all shadow-sm h-[42px] text-slate-600 disabled:opacity-50"
-            title={isPublic ? 'Publié' : 'Publier'}
+            title={isPublic ? tv.actions.published : tv.actions.publish}
           >
             {isPublic ? <Globe size={16} className="text-blue-500" /> : <Lock size={16} className="text-slate-400" />}
-            <span className="text-sm font-semibold">{isPublic ? 'Publié' : 'Publier'}</span>
+            <span className="text-sm font-semibold">{isPublic ? tv.actions.published : tv.actions.publish}</span>
           </button>
         )}
         <button
@@ -423,7 +422,7 @@ const ToolViewCard: React.FC<ToolViewCardProps> = ({
           className="bg-[#3b82f6] hover:bg-blue-600 text-white font-bold px-8 py-3 rounded-xl shadow-lg shadow-blue-500/30 transition-all active:scale-[0.98] text-sm disabled:opacity-50 disabled:cursor-not-allowed"
           type="button"
         >
-          {isSaving ? 'Enregistrement...' : 'Enregistrer les modifications'}
+          {isSaving ? tv.actions.saving : tv.actions.save}
         </button>
       </div>
     </div>
@@ -446,11 +445,11 @@ const ToolViewCard: React.FC<ToolViewCardProps> = ({
     const type = tool?.type || 'prompt';
     switch (type) {
       case 'assistant':
-        return { title: 'Configuration de l\'assistant', subtitle: 'Gérez les détails de votre assistant' };
+        return { title: tv.types.assistant.title, subtitle: tv.types.assistant.subtitle };
       case 'project':
-        return { title: 'Configuration du projet', subtitle: 'Gérez les détails de votre projet' };
+        return { title: tv.types.project.title, subtitle: tv.types.project.subtitle };
       default:
-        return { title: 'Configuration du prompt', subtitle: 'Gérez les détails de votre prompt' };
+        return { title: tv.types.prompt.title, subtitle: tv.types.prompt.subtitle };
     }
   };
 
@@ -459,18 +458,18 @@ const ToolViewCard: React.FC<ToolViewCardProps> = ({
     switch (type) {
       case 'assistant':
         return {
-          successTitle: 'Assistant enregistré',
-          successMessage: 'L\'assistant a été enregistré avec succès.'
+          successTitle: tv.types.assistant.saveSuccess,
+          successMessage: tv.messages.successSave.replace('{type}', 'assistant')
         };
       case 'project':
         return {
-          successTitle: 'Projet enregistré',
-          successMessage: 'Le projet a été enregistré avec succès.'
+          successTitle: tv.types.project.saveSuccess,
+          successMessage: tv.messages.successSave.replace('{type}', 'project')
         };
       default:
         return {
-          successTitle: 'Prompt enregistré',
-          successMessage: 'Le prompt a été enregistré avec succès.'
+          successTitle: tv.types.prompt.saveSuccess,
+          successMessage: tv.messages.successSave.replace('{type}', 'prompt')
         };
     }
   };
@@ -499,9 +498,9 @@ const ToolViewCard: React.FC<ToolViewCardProps> = ({
   // Build urls section if props provided
   const internalUrlsSection = urlsProps ? (
     <div className="space-y-4 bg-gray-50 p-6 rounded-xl border border-gray-200 overflow-hidden">
-      <h3 className="text-sm font-bold text-gray-700 uppercase tracking-wider mb-4">URLs de la ressource</h3>
+      <h3 className="text-sm font-bold text-gray-700 uppercase tracking-wider mb-4">{tv.urls.title}</h3>
       <div>
-        <label className="block text-xs font-semibold text-gray-600 mb-2">URL PRIVÉE (Connexion requise)</label>
+        <label className="block text-xs font-semibold text-gray-600 mb-2">{tv.urls.privateLabel}</label>
         <div className="flex flex-wrap items-stretch gap-2 min-w-0">
           <input
             type="text"
@@ -530,7 +529,7 @@ const ToolViewCard: React.FC<ToolViewCardProps> = ({
 
       {urlsProps.isPublic && (
         <div>
-          <label className="block text-xs font-semibold text-gray-600 mb-2">URL PUBLIQUE (Sans connexion)</label>
+          <label className="block text-xs font-semibold text-gray-600 mb-2">{tv.urls.publicLabel}</label>
           <div className="flex flex-wrap items-stretch gap-2 min-w-0">
             <input
               type="text"
@@ -560,9 +559,9 @@ const ToolViewCard: React.FC<ToolViewCardProps> = ({
     </div>
   ) : tool ? (
     <div className="space-y-4 bg-gray-50 p-6 rounded-xl border border-gray-200 overflow-hidden">
-      <h3 className="text-sm font-bold text-gray-700 uppercase tracking-wider mb-4">URLs de la ressource</h3>
+      <h3 className="text-sm font-bold text-gray-700 uppercase tracking-wider mb-4">{tv.urls.title}</h3>
       <div>
-        <label className="block text-xs font-semibold text-gray-600 mb-2">URL PRIVÉE (Connexion requise)</label>
+        <label className="block text-xs font-semibold text-gray-600 mb-2">{tv.urls.privateLabel}</label>
         <div className="flex flex-wrap items-stretch gap-2 min-w-0">
           <input
             type="text"
@@ -591,7 +590,7 @@ const ToolViewCard: React.FC<ToolViewCardProps> = ({
 
       {isPublic && (
         <div>
-          <label className="block text-xs font-semibold text-gray-600 mb-2">URL PUBLIQUE (Sans connexion)</label>
+          <label className="block text-xs font-semibold text-gray-600 mb-2">{tv.urls.publicLabel}</label>
           <div className="flex flex-wrap items-stretch gap-2 min-w-0">
             <input
               type="text"
@@ -643,14 +642,14 @@ const ToolViewCard: React.FC<ToolViewCardProps> = ({
       <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-3">
         <FileText size={24} className="text-red-600" />
       </div>
-      <p className="text-gray-600 mb-4">{error || 'Le prompt demandé est introuvable.'}</p>
+      <p className="text-gray-600 mb-4">{error || tv.messages.notFound.replace('{type}', 'tool')}</p>
       <button
         onClick={() => navigate('/dashboard/library')}
         className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-all"
         type="button"
       >
         <ArrowLeft size={18} />
-        Retour à la bibliothèque
+        {tv.messages.backToLibrary}
       </button>
     </div>
   );
@@ -720,7 +719,7 @@ const ToolViewCard: React.FC<ToolViewCardProps> = ({
         <SaveStatusModal
           open={isSaveModalOpen}
           type={saveModalType}
-          title={saveModalType === 'success' ? getSaveModalTexts().successTitle : "Erreur lors de l'enregistrement"}
+          title={saveModalType === 'success' ? getSaveModalTexts().successTitle : t.saveStatusModal.errorTitle}
           message={saveModalMessage}
           onClose={() => setIsSaveModalOpen(false)}
         />

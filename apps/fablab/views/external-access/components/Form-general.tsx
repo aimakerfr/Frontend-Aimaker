@@ -3,6 +3,7 @@ import {
   BookOpen, Link2, FileText, Notebook, FolderKanban, 
   Smartphone, Globe, Code, Lock, ArrowLeft 
 } from 'lucide-react';
+import { useLanguage } from '../../../language/useLanguage';
 
 type ItemType = 'external_link' | 'vibe_coding';
 
@@ -17,6 +18,7 @@ const FormGeneral: React.FC<FormGeneralProps> = ({
   onSave, 
   selectedType
 }) => {
+  const { t } = useLanguage();
   const [formData, setFormData] = useState({
     type: selectedType || 'external_link',
     title: '',
@@ -28,21 +30,17 @@ const FormGeneral: React.FC<FormGeneralProps> = ({
   });
 
   const itemTypes: { type: ItemType; icon: any; label: string }[] = [
-    { type: 'external_link', icon: Link2, label: 'External Link' },
-    { type: 'vibe_coding', icon: Code, label: 'Vibe Coding' }
+    { type: 'external_link', icon: Link2, label: t.externalAccess.types.externalLink },
+    { type: 'vibe_coding', icon: Code, label: t.externalAccess.types.vibeCoding }
   ];
 
   const getCurrentTypeLabel = () => {
-    const typeConfig = itemTypes.find(t => t.type === formData.type);
-    return typeConfig?.label || 'External Link';
+    const typeConfig = itemTypes.find(t_item => t_item.type === formData.type);
+    return typeConfig?.label || t.externalAccess.types.externalLink;
   };
 
   const getDetailsLabel = () => {
-    const labels: Record<ItemType, string> = {
-      'external_link': 'Détails External Link',
-      'vibe_coding': 'Détails Vibe Coding'
-    };
-    return labels[formData.type] || 'Détails';
+    return t.formGeneral.details.replace('{type}', getCurrentTypeLabel());
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -74,7 +72,7 @@ const FormGeneral: React.FC<FormGeneralProps> = ({
                   {getDetailsLabel()}
                 </h2>
                 <p className="text-sm text-gray-500 dark:text-gray-400">
-                  Documentez vos recherches et partages
+                  {t.formGeneral.title}
                 </p>
               </div>
             </div>
@@ -83,7 +81,7 @@ const FormGeneral: React.FC<FormGeneralProps> = ({
             onClick={handleSubmit}
             className="flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold rounded-xl transition-all shadow-lg hover:scale-105"
           >
-            Mettre à jour
+            {t.formGeneral.update}
           </button>
         </div>
 
@@ -92,7 +90,7 @@ const FormGeneral: React.FC<FormGeneralProps> = ({
           {/* Type Selection */}
           <div>
             <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
-              TYPE
+              {t.formGeneral.type}
             </label>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               {itemTypes.map(type => {
@@ -108,9 +106,9 @@ const FormGeneral: React.FC<FormGeneralProps> = ({
                         : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
                     }`}
                   >
-                    <Icon 
-                      size={24} 
-                      className={formData.type === type.type ? 'text-blue-600 dark:text-blue-400' : 'text-gray-400'} 
+                    <Icon
+                      size={24}
+                      className={formData.type === type.type ? 'text-blue-600 dark:text-blue-400' : 'text-gray-400'}
                     />
                     <span className={`text-xs font-medium text-center ${
                       formData.type === type.type ? 'text-blue-600 dark:text-blue-400' : 'text-gray-600 dark:text-gray-400'
@@ -126,7 +124,7 @@ const FormGeneral: React.FC<FormGeneralProps> = ({
           {/* Title */}
           <div>
             <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-              TITRE DU {getCurrentTypeLabel().toUpperCase()}
+              {t.formGeneral.titleLabel.replace('{type}', getCurrentTypeLabel().toUpperCase())}
             </label>
             <input
               type="text"
@@ -140,7 +138,7 @@ const FormGeneral: React.FC<FormGeneralProps> = ({
           {/* URL */}
           <div>
             <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-              URL (OPTIONNEL)
+              {t.formGeneral.url}
             </label>
             <input
               type="text"
@@ -154,28 +152,28 @@ const FormGeneral: React.FC<FormGeneralProps> = ({
           {/* Language */}
           <div>
             <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-              LANGUE
+              {t.formGeneral.language}
             </label>
             <select
               value={formData.language}
               onChange={(e) => setFormData({ ...formData, language: e.target.value })}
               className="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
             >
-              <option value="fr">Français</option>
-              <option value="en">English</option>
-              <option value="es">Español</option>
+              <option value="fr">{t.detailsView.languages.fr}</option>
+              <option value="en">{t.detailsView.languages.en}</option>
+              <option value="es">{t.detailsView.languages.es}</option>
             </select>
           </div>
 
           {/* Description */}
           <div>
             <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-              DESCRIPTION
+              {t.formGeneral.description}
             </label>
             <textarea
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              placeholder="Notes sur les tests de latence et coûts."
+              placeholder={t.formGeneral.descriptionPlaceholder}
               rows={4}
               className="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none resize-none"
             />
@@ -184,7 +182,7 @@ const FormGeneral: React.FC<FormGeneralProps> = ({
           {/* Visibility */}
           <div>
             <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
-              VISIBILITÉ
+              {t.formGeneral.visibility}
             </label>
             <div className="grid grid-cols-2 gap-3">
               <button
@@ -201,7 +199,7 @@ const FormGeneral: React.FC<FormGeneralProps> = ({
                   <div className={`font-semibold text-sm ${
                     !formData.hasPublicStatus ? 'text-blue-600 dark:text-blue-400' : 'text-gray-900 dark:text-white'
                   }`}>
-                    PRIVÉ
+                    {t.formGeneral.private}
                   </div>
                 </div>
               </button>
@@ -220,7 +218,7 @@ const FormGeneral: React.FC<FormGeneralProps> = ({
                   <div className={`font-semibold text-sm ${
                     formData.hasPublicStatus ? 'text-green-600 dark:text-green-400' : 'text-gray-900 dark:text-white'
                   }`}>
-                    PUBLIC
+                    {t.formGeneral.public}
                   </div>
                 </div>
               </button>

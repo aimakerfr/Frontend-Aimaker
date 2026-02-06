@@ -4,7 +4,6 @@ import { useNavigate } from 'react-router-dom';
 import { BookOpen, Search, FileText, Notebook, FolderKanban, Globe, Eye, Lock, Plus, X, ExternalLink, Trash2, Star } from 'lucide-react';
 import FormGeneral from './components/Form-general';
 import { useLanguage } from '../../language/useLanguage';
-import { translations } from '../../language';
 import { 
   getTools, 
   createTool, 
@@ -56,8 +55,7 @@ const LibraryView: React.FC<LibraryViewProps> = ({
   isLoading = false
 }) => {
   const navigate = useNavigate();
-  const { language } = useLanguage();
-  const t = translations[language];
+  const { t } = useLanguage();
   const [activeFilter, setActiveFilter] = useState<FilterType>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState<ItemType | 'all'>('all');
@@ -71,7 +69,7 @@ const LibraryView: React.FC<LibraryViewProps> = ({
     { key: 'shared', label: t.library.filters.shared },
     { key: 'public', label: t.library.filters.public },
     { key: 'private', label: t.library.filters.private },
-    { key: 'favorites', label: t.library.filters.favorites || 'Favoris' }
+    { key: 'favorites', label: t.library.filters.favorites }
   ];
 
   const getFilteredTools = () => {
@@ -197,12 +195,12 @@ const LibraryView: React.FC<LibraryViewProps> = ({
                 onChange={(e) => setTypeFilter(e.target.value as ItemType | 'all')}
                 className="px-4 py-2.5 font-medium rounded-xl bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-blue-500 outline-none"
               >
-                <option value="all">Todos los tipos</option>
-                <option value="note_books">Notebooks</option>
-                <option value="project">Proyectos</option>
-                <option value="prompt">Prompts</option>
-                <option value="assistant">Asistentes</option>
-                <option value="perplexity_search">Perplexity</option>
+                <option value="all">{t.library.allTypes}</option>
+                <option value="note_books">{t.library.types.notebook}</option>
+                <option value="project">{t.library.types.project}</option>
+                <option value="prompt">{t.library.types.prompt}</option>
+                <option value="assistant">{t.library.types.assistant}</option>
+                <option value="perplexity_search">{t.library.types.perplexitySearch}</option>
               </select>
               {filters.map(filter => (
                 <button
@@ -289,12 +287,12 @@ const LibraryView: React.FC<LibraryViewProps> = ({
                             className="inline-flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 border-2 border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-xl font-semibold transition-all text-sm hover:scale-105"
                           >
                             <Eye size={16} />
-                            VOIR
+                            {t.library.buttons.view}
                           </button>
                           <button
                             onClick={() => onDelete?.(item.id)}
                             className="inline-flex items-center gap-2 px-3 py-2.5 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 border-2 border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 rounded-xl font-semibold transition-all text-sm hover:scale-105"
-                            title="Supprimer"
+                            title={t.library.buttons.delete}
                           >
                             <Trash2 size={16} />
                           </button>
@@ -312,13 +310,13 @@ const LibraryView: React.FC<LibraryViewProps> = ({
                             className="inline-flex items-center gap-2 px-4 py-2 rounded-xl font-semibold text-sm transition-all bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/30 cursor-pointer hover:scale-105"
                           >
                             <Globe size={18} />
-                            Public
+                            {t.library.buttons.public}
                             <ExternalLink size={14} />
                           </button>
                         ) : (
                           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl font-semibold text-sm bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 opacity-75 cursor-not-allowed">
                             <Lock size={18} />
-                            Privé
+                            {t.library.buttons.private}
                           </div>
                         )}
                       </div>
@@ -347,7 +345,7 @@ const LibraryView: React.FC<LibraryViewProps> = ({
                               ? 'text-yellow-500 hover:text-yellow-600' 
                               : 'text-gray-400 hover:text-yellow-500'
                           }`}
-                          title={(item as any).isFavorite ? 'Retirer des favoris' : 'Ajouter aux favoris'}
+                          title={(item as any).isFavorite ? t.library.tooltips.removeFavorite : t.library.tooltips.addFavorite}
                         >
                           <Star 
                             size={24} 
@@ -422,6 +420,7 @@ const Library = () => {
   const [items, setItems] = useState<LibraryItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { t } = useLanguage();
 
   const loadCreationTools = async () => {
     setIsLoading(true);
@@ -451,8 +450,8 @@ const Library = () => {
         language: tool.language,
         usageCount: tool.usageCount,
         isFavorite: tool.isFavorite ?? false,
-        author: tool.authorName || 'Usuario',
-        authorName: tool.authorName || 'Usuario',
+        author: tool.authorName || t.library.authorFallback,
+        authorName: tool.authorName || t.library.authorFallback,
         createdAt: new Date().toLocaleDateString('fr-FR'),
         category: tool.category || ''
       })) as LibraryItem[];
@@ -462,7 +461,7 @@ const Library = () => {
       setItems(mappedItems);
     } catch (err) {
       console.error('Error cargando creation tools:', err);
-      setError('Error al cargar los datos');
+      setError(t.common.error);
       setItems(mockItems);
     } finally {
       setIsLoading(false);
@@ -518,7 +517,7 @@ const Library = () => {
       return true;
     } catch (err) {
       console.error('Error guardando:', err);
-      setError('Error al guardar');
+      setError(t.common.errorSaving);
       return false;
     } finally {
       setIsLoading(false);
@@ -526,7 +525,7 @@ const Library = () => {
   };
 
   const handleDelete = async (itemId: number) => {
-    if (!confirm('¿Estás seguro de eliminar este elemento?')) return;
+    if (!confirm(t.library.confirmDelete)) return;
     
     try {
       setIsLoading(true);
@@ -534,7 +533,7 @@ const Library = () => {
       setItems(prev => prev.filter((item: LibraryItem) => item.id !== itemId));
     } catch (err) {
       console.error('Error eliminando:', err);
-      setError('Error al eliminar');
+      setError(t.common.errorDeleting);
       await loadCreationTools();
     } finally {
       setIsLoading(false);
@@ -552,7 +551,7 @@ const Library = () => {
       ));
     } catch (err) {
       console.error('Error cambiando favorito:', err);
-      setError('Error al cambiar favorito');
+      setError(t.common.error);
     }
   };
 
@@ -565,7 +564,7 @@ const Library = () => {
             onClick={() => loadCreationTools()}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
           >
-            Reintentar
+            {t.common.retry}
           </button>
         </div>
       </div>

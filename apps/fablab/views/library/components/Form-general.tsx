@@ -20,7 +20,7 @@ const FormGeneral: React.FC<FormGeneralProps> = ({
   selectedType,
   userLanguage = 'fr'
 }) => {
-  const { language } = useLanguage();
+  const { t, language } = useLanguage();
   const effectiveLanguage = language || userLanguage || 'fr';
 
   const [formData, setFormData] = useState({
@@ -34,40 +34,33 @@ const FormGeneral: React.FC<FormGeneralProps> = ({
   });
 
   const itemTypes: { type: ItemType; icon: any; label: string }[] = [
-    { type: 'note_books', icon: Notebook, label: 'Notebook' },
-    { type: 'project', icon: FolderKanban, label: 'Project' },
-    { type: 'assistant', icon: BookOpen, label: 'Assistant' },
-    { type: 'prompt', icon: FileText, label: 'Prompt' },
-    { type: 'perplexity_search', icon: Globe, label: 'Perplexity Search' }
+    { type: 'note_books', icon: Notebook, label: t.library.types.notebook },
+    { type: 'project', icon: FolderKanban, label: t.library.types.project },
+    { type: 'assistant', icon: BookOpen, label: t.library.types.assistant },
+    { type: 'prompt', icon: FileText, label: t.library.types.prompt },
+    { type: 'perplexity_search', icon: Globe, label: t.library.types.perplexitySearch }
   ];
 
   // Opciones de categoría
   const categoryOptions = [
-    { value: '', label: 'Seleccionar categoría...' },
-    { value: 'analysis', label: 'Análisis' },
-    { value: 'development', label: 'Desarrollo' },
-    { value: 'design', label: 'Diseño' },
-    { value: 'education', label: 'Educación' },
-    { value: 'ecommerce', label: 'E-commerce' },
-    { value: 'marketing', label: 'Marketing' },
-    { value: 'research', label: 'Investigación' },
-    { value: 'other', label: 'Otro' }
+    { value: '', label: t.formGeneral.selectCategory },
+    { value: 'analysis', label: t.formGeneral.categoryOptions.analysis },
+    { value: 'development', label: t.formGeneral.categoryOptions.development },
+    { value: 'design', label: t.formGeneral.categoryOptions.design },
+    { value: 'education', label: t.formGeneral.categoryOptions.education },
+    { value: 'ecommerce', label: t.formGeneral.categoryOptions.ecommerce },
+    { value: 'marketing', label: t.formGeneral.categoryOptions.marketing },
+    { value: 'research', label: t.formGeneral.categoryOptions.research },
+    { value: 'other', label: t.formGeneral.categoryOptions.other }
   ];
 
   const getCurrentTypeLabel = () => {
-    const typeConfig = itemTypes.find(t => t.type === formData.type);
-    return typeConfig?.label || 'Notebook';
+    const typeConfig = itemTypes.find(t_item => t_item.type === formData.type);
+    return typeConfig?.label || t.library.types.notebook;
   };
 
   const getDetailsLabel = () => {
-    const labels: Record<ItemType, string> = {
-      'note_books': 'Détails Notebook',
-      'project': 'Détails Project',
-      'assistant': 'Détails Assistant',
-      'prompt': 'Détails Prompt',
-      'perplexity_search': 'Détails Perplexity Search'
-    };
-    return labels[formData.type as ItemType] || 'Détails';
+    return t.formGeneral.details.replace('{type}', getCurrentTypeLabel());
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -81,9 +74,9 @@ const FormGeneral: React.FC<FormGeneralProps> = ({
   // Obtener el label del idioma
   const getLanguageLabel = (lang: string) => {
     const labels: Record<string, string> = {
-      'fr': 'Français',
-      'en': 'English',
-      'es': 'Español'
+      'fr': t.detailsView.languages.fr,
+      'en': t.detailsView.languages.en,
+      'es': t.detailsView.languages.es
     };
     return labels[lang] || lang;
   };
@@ -109,16 +102,16 @@ const FormGeneral: React.FC<FormGeneralProps> = ({
                   {getDetailsLabel()}
                 </h2>
                 <p className="text-sm text-gray-500 dark:text-gray-400">
-                  Documentez vos recherches et partages
+                  {t.formGeneral.title}
                 </p>
               </div>
             </div>
           </div>
-          <button
+           <button
             onClick={handleSubmit}
             className="flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold rounded-xl transition-all shadow-lg hover:scale-105"
           >
-            Mettre à jour
+            {t.formGeneral.update}
           </button>
         </div>
 
@@ -127,7 +120,7 @@ const FormGeneral: React.FC<FormGeneralProps> = ({
           {/* Type Selection - SOLO MOSTRAR, NO EDITABLE */}
           <div>
             <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
-              TYPE
+              {t.formGeneral.type}
             </label>
             <div className="flex items-center gap-3 p-4 rounded-xl border-2 border-blue-500 bg-blue-50 dark:bg-blue-900/20">
               <TypeIcon size={24} className="text-blue-600 dark:text-blue-400" />
@@ -135,7 +128,7 @@ const FormGeneral: React.FC<FormGeneralProps> = ({
                 {getCurrentTypeLabel()}
               </span>
               <span className="ml-auto text-xs text-gray-500 dark:text-gray-400 italic">
-                (Sélectionné)
+                {t.formGeneral.selectedHelper}
               </span>
             </div>
           </div>
@@ -143,7 +136,7 @@ const FormGeneral: React.FC<FormGeneralProps> = ({
           {/* Title */}
           <div>
             <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-              TITRE DU {getCurrentTypeLabel().toUpperCase()}
+              {t.formGeneral.titleLabel.replace('{type}', getCurrentTypeLabel().toUpperCase())}
             </label>
             <input
               type="text"
@@ -158,7 +151,7 @@ const FormGeneral: React.FC<FormGeneralProps> = ({
           {/* Category - NUEVO CAMPO */}
           <div>
             <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-              CATÉGORIE
+              {t.formGeneral.category}
             </label>
             <select
               value={formData.category}
@@ -173,18 +166,18 @@ const FormGeneral: React.FC<FormGeneralProps> = ({
             </select>
           </div>
 
-          {/* Visibility - FIJO, NO EDITABLE */}
+           {/* Visibility - FIJO, NO EDITABLE */}
           <div>
             <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-              VISIBILITÉ
+              {t.formGeneral.visibility}
             </label>
             <div className="flex items-center gap-3 p-4 rounded-xl border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50">
               <Lock size={20} className="text-gray-500 dark:text-gray-400" />
               <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                Privé
+                {t.formGeneral.private}
               </span>
               <span className="ml-auto text-xs text-gray-500 dark:text-gray-400 italic">
-                (Non modifiable)
+                {t.formGeneral.notModifiableHelper}
               </span>
             </div>
           </div>
@@ -192,7 +185,7 @@ const FormGeneral: React.FC<FormGeneralProps> = ({
           {/* Language - NO EDITABLE, VIENE DEL PERFIL */}
           <div>
             <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-              LANGUE
+              {t.formGeneral.language}
             </label>
             <div className="flex items-center gap-3 p-4 rounded-xl border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50">
               <Globe size={20} className="text-gray-500 dark:text-gray-400" />
@@ -200,7 +193,7 @@ const FormGeneral: React.FC<FormGeneralProps> = ({
                 {getLanguageLabel(formData.language)}
               </span>
               <span className="ml-auto text-xs text-gray-500 dark:text-gray-400 italic">
-                (Défini dans le profil)
+                {t.formGeneral.definedInProfileHelper}
               </span>
             </div>
           </div>
@@ -208,12 +201,12 @@ const FormGeneral: React.FC<FormGeneralProps> = ({
           {/* Description */}
           <div>
             <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-              DESCRIPTION
+              {t.formGeneral.description}
             </label>
             <textarea
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              placeholder="Notes sur les tests de latence et coûts."
+              placeholder={t.formGeneral.descriptionPlaceholder}
               rows={4}
               className="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none resize-none"
             />

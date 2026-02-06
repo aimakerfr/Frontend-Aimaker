@@ -1,8 +1,7 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { LayoutDashboard, User, Server, ExternalLink, LogOut, Library as LibraryIcon, Route } from 'lucide-react';
+import { User, Server, ExternalLink, LogOut, Library as LibraryIcon, Route } from 'lucide-react';
 import { useLanguage } from '../language/useLanguage';
-import { translations } from '../language';
 
 interface SidebarProps {
   onLogout: () => void;
@@ -11,8 +10,7 @@ interface SidebarProps {
 const Sidebar: React.FC<SidebarProps> = ({ onLogout }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { language } = useLanguage();
-  const t = translations[language];
+  const { t } = useLanguage();
 
   const menuItems: { path: string; label: string; icon: React.ReactNode }[] = [
     { path: '/dashboard/profile', label: t.sidebar.profile, icon: <User size={20} /> },

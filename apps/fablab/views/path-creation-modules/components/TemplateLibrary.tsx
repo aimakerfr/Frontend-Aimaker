@@ -4,7 +4,6 @@ import { predefinedTemplates } from '../data/templates';
 import { Copy, Plus, ChevronDown, ChevronRight } from 'lucide-react';
 import { Button } from './Button';
 import { useLanguage } from '../../../language/useLanguage';
-import { translations } from '../../../language/translations';
 
 interface TemplateLibraryProps {
   onSelectTemplate: (template: Template) => void;
@@ -17,8 +16,7 @@ export const TemplateLibrary: React.FC<TemplateLibraryProps> = ({
   onCreateNew,
   customTemplates = [] 
 }) => {
-  const { language } = useLanguage();
-  const t = translations[language];
+  const { t } = useLanguage();
   
   const [expandedSections, setExpandedSections] = React.useState<Record<string, boolean>>({
     header: false,
@@ -55,7 +53,7 @@ export const TemplateLibrary: React.FC<TemplateLibraryProps> = ({
               {title}
             </h3>
             <span className="text-sm text-slate-400">
-              ({templates.length} plantillas)
+              ({templates.length} {t.moduleCreator.templateLibrary.templates})
             </span>
           </div>
         </button>
@@ -80,7 +78,7 @@ export const TemplateLibrary: React.FC<TemplateLibraryProps> = ({
                     </h3>
                     {isCustom && (
                       <span className="text-xs bg-purple-600 px-2 py-0.5 rounded">
-                        Custom
+                        {t.moduleCreator.templateLibrary.custom}
                       </span>
                     )}
                   </div>
