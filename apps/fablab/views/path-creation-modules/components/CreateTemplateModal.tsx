@@ -3,7 +3,6 @@ import { ModuleType, Template } from '../types';
 import { Button } from './Button';
 import { X, Save, Sparkles } from 'lucide-react';
 import { useLanguage } from '../../../language/useLanguage';
-import { translations } from '../../../language/translations';
 
 interface CreateTemplateModalProps {
   isOpen: boolean;
@@ -12,8 +11,7 @@ interface CreateTemplateModalProps {
 }
 
 export const CreateTemplateModal: React.FC<CreateTemplateModalProps> = ({ isOpen, onClose, onSave }) => {
-  const { language } = useLanguage();
-  const t = translations[language];
+  const { t } = useLanguage();
   
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
@@ -32,7 +30,7 @@ export const CreateTemplateModal: React.FC<CreateTemplateModalProps> = ({ isOpen
 
     onSave({
       name: name.trim(),
-      description: description.trim() || 'Plantilla personalizada',
+      description: description.trim() || t.moduleCreator.templateLibrary.custom,
       type,
       html: html.trim(),
       css: css.trim(),
@@ -114,7 +112,7 @@ export const CreateTemplateModal: React.FC<CreateTemplateModalProps> = ({ isOpen
                     : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
                 }`}
               >
-                Header
+                {t.moduleCreator.phases.edit.modules.header}
               </button>
               <button
                 onClick={() => setType('body')}
@@ -124,7 +122,7 @@ export const CreateTemplateModal: React.FC<CreateTemplateModalProps> = ({ isOpen
                     : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
                 }`}
               >
-                Body
+                {t.moduleCreator.phases.edit.modules.body}
               </button>
               <button
                 onClick={() => setType('footer')}
@@ -134,7 +132,7 @@ export const CreateTemplateModal: React.FC<CreateTemplateModalProps> = ({ isOpen
                     : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
                 }`}
               >
-                Footer
+                {t.moduleCreator.phases.edit.modules.footer}
               </button>
             </div>
           </div>

@@ -4,10 +4,11 @@ import { FolderKanban, ArrowLeft, Globe, Lock, Copy, CheckCircle, ExternalLink, 
 import { getTool, updateTool } from '@core/creation-tools/creation-tools.service';
 import { copyToClipboard } from '@core/ui_utils/navigator_utilies';
 import type { CreationTool } from '@core/creation-tools/creation-tools.types';
+import { useLanguage } from '../../language/useLanguage';
 
 enum Visibility {
-  PRIVATE = 'PRIVADO',
-  PUBLIC = 'PÚBLICO'
+  PRIVATE = 'PRIVATE',
+  PUBLIC = 'PUBLIC'
 }
 
 type ProjectType = 'landing page' | 'app' | 'automation';
@@ -25,6 +26,9 @@ interface ProjectState {
 }
 
 const ProjectView: React.FC = () => {
+  const { t } = useLanguage();
+  const tv = t.projectView;
+  const tg = t.formGeneral;
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [project, setProject] = useState<CreationTool | null>(null);
@@ -41,7 +45,7 @@ const ProjectView: React.FC = () => {
     visibility: Visibility.PRIVATE,
     category: 'Marketing',
     isFavorite: false,
-    language: 'Español',
+    language: 'es',
     projectType: 'landing page',
     deploymentUrl: '',
     context: ''
@@ -56,7 +60,7 @@ const ProjectView: React.FC = () => {
         const data = await getTool(parseInt(id));
         
         if (data.type !== 'project') {
-          setError('El recurso solicitado no es un proyecto.');
+          setError(tv.notProject);
           return;
         }
         
@@ -69,21 +73,21 @@ const ProjectView: React.FC = () => {
           visibility: data.hasPublicStatus ? Visibility.PUBLIC : Visibility.PRIVATE,
           category: data.category || 'Marketing',
           isFavorite: data.isFavorite || false,
-          language: data.language || 'Español',
+          language: data.language || 'es',
           projectType: (data.projectType as ProjectType) || 'landing page',
           deploymentUrl: data.deploymentUrl || '',
           context: data.context || ''
         });
       } catch (err) {
         console.error('Error cargando proyecto:', err);
-        setError('No se pudo cargar el proyecto.');
+        setError(tv.errorLoading);
       } finally {
         setLoading(false);
       }
     };
 
     loadProject();
-  }, [id]);
+  }, [id, tv.notProject, tv.errorLoading]);
 
   const handleUpdate = (updates: Partial<ProjectState>) => {
     setState(prev => ({ ...prev, ...updates }));
@@ -107,14 +111,14 @@ const ProjectView: React.FC = () => {
         hasPublicStatus: state.visibility === Visibility.PUBLIC,
       });
       
-      alert('Proyecto guardado con éxito!');
+      alert(tv.saveSuccess);
       
       // Recargar datos
       const updatedData = await getTool(parseInt(id));
       setProject(updatedData);
     } catch (err) {
       console.error('Error guardando proyecto:', err);
-      alert('Error al guardar el proyecto');
+      alert(tv.saveError);
     } finally {
       setIsSaving(false);
     }
@@ -147,7 +151,7 @@ const ProjectView: React.FC = () => {
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50/30 flex items-center justify-center">
         <div className="text-center">
           <div className="inline-block w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-          <p className="mt-4 text-gray-600">Cargando proyecto...</p>
+          <p className="mt-4 text-gray-600">{tv.loading}</p>
         </div>
       </div>
     );
@@ -161,17 +165,17 @@ const ProjectView: React.FC = () => {
             <FolderKanban size={32} className="text-red-600" />
           </div>
           <h2 className="text-2xl font-bold text-gray-900 mb-2">
-            Proyecto no disponible
+            {tv.errorNotAvailable}
           </h2>
           <p className="text-gray-600 mb-6">
-            {error || 'No se encontró el proyecto solicitado.'}
+            {error || tv.notProject}
           </p>
           <button
             onClick={() => navigate('/dashboard/library')}
             className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-all"
           >
             <ArrowLeft size={20} />
-            Volver a Library
+            {tv.backToLibrary}
           </button>
         </div>
       </div>
@@ -193,6 +197,7 @@ const ProjectView: React.FC = () => {
               <button 
                 onClick={() => navigate('/dashboard/library')}
                 className="text-slate-400 hover:text-slate-600 transition-colors"
+                aria-label={tv.backToLibrary}
               >
                 <ArrowLeft size={20} />
               </button>
@@ -200,15 +205,15 @@ const ProjectView: React.FC = () => {
                 <FolderKanban size={20} />
               </div>
               <div>
-                <h1 className="text-xl font-bold text-slate-900 leading-tight">Configuración de Proyecto</h1>
-                <p className="text-sm text-slate-500">Gestiona los detalles de tu proyecto</p>
+                <h1 className="text-xl font-bold text-slate-900 leading-tight">{tv.configTitle}</h1>
+                <p className="text-sm text-slate-500">{tv.configSubtitle}</p>
               </div>
             </div>
             <button
               onClick={handleSave}
               disabled={isSaving}
-              title="Save"
-              aria-label="Save"
+              title={t.formGeneral.update}
+              aria-label={t.formGeneral.update}
               className="bg-[#3b82f6] hover:bg-blue-600 text-white px-4 py-3 rounded-xl shadow-lg shadow-blue-500/30 transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isSaving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
@@ -220,26 +225,26 @@ const ProjectView: React.FC = () => {
             {/* Row 1: TYPE | TITLE | PUBLISH */}
             <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
               <div className="md:col-span-2">
-                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">TIPO</label>
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">{tv.type}</label>
                 <div className="flex items-center justify-center gap-2 px-4 py-2.5 bg-[#eff6ff] border border-[#dbeafe] rounded-xl text-[#2563eb] font-bold shadow-sm h-[46px]">
                   <FolderKanban size={16} />
-                  <span className="text-sm">Proyecto</span>
+                  <span className="text-sm">{tv.project}</span>
                 </div>
               </div>
 
               <div className="md:col-span-7">
-                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">TÍTULO</label>
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">{tg.titleLabel}</label>
                 <input
                   type="text"
                   value={state.title}
                   onChange={(e) => handleUpdate({ title: e.target.value })}
                   className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-slate-700 bg-white shadow-sm h-[46px]"
-                  placeholder="Título del Proyecto"
+                  placeholder={tg.titleLabel}
                 />
               </div>
 
               <div className="md:col-span-3">
-                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">PUBLICAR</label>
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">{tv.publish}</label>
                 <button
                   onClick={handlePublish}
                   className="w-full flex items-center justify-between px-4 py-2.5 bg-white border border-slate-200 rounded-xl hover:border-blue-300 transition-all group shadow-sm h-[46px]"
@@ -247,7 +252,7 @@ const ProjectView: React.FC = () => {
                   <div className="flex items-center gap-3">
                     {state.visibility === Visibility.PUBLIC ? <Globe size={16} className="text-blue-500" /> : <Lock size={16} className="text-slate-400" />}
                     <span className="text-sm font-semibold text-slate-600">
-                      {state.visibility === Visibility.PUBLIC ? 'Publicado' : 'Publicar'}
+                      {state.visibility === Visibility.PUBLIC ? tv.published : tv.publish}
                     </span>
                   </div>
                 </button>
@@ -257,31 +262,31 @@ const ProjectView: React.FC = () => {
             {/* Row 2: DESCRIPTION | PROJECT TYPE | FAVORITE | LANGUAGE */}
             <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
               <div className="md:col-span-5">
-                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">DESCRIPCIÓN</label>
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">{tg.description}</label>
                 <input
                   type="text"
                   value={state.description}
                   onChange={(e) => handleUpdate({ description: e.target.value })}
                   className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-slate-700 bg-white shadow-sm h-[46px]"
-                  placeholder="Descripción del Proyecto"
+                  placeholder={tg.descriptionPlaceholder}
                 />
               </div>
 
               <div className="md:col-span-3">
-                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">TIPO DE PROYECTO</label>
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">{tv.projectType}</label>
                 <select
                   value={state.projectType}
                   onChange={(e) => handleUpdate({ projectType: e.target.value as ProjectType })}
                   className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all bg-white appearance-none cursor-pointer text-slate-700 shadow-sm h-[46px]"
                 >
-                  <option value="landing page">Landing Page</option>
-                  <option value="app">App</option>
-                  <option value="automation">Automation</option>
+                  <option value="landing page">{tv.types.landingPage}</option>
+                  <option value="app">{tv.types.app}</option>
+                  <option value="automation">{tv.types.automation}</option>
                 </select>
               </div>
 
               <div className="md:col-span-1">
-                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 text-center">FAV</label>
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 text-center">{tv.fav}</label>
                 <button
                   onClick={() => handleUpdate({ isFavorite: !state.isFavorite })}
                   className={`w-full flex items-center justify-center border rounded-xl transition-all shadow-sm h-[46px] ${
@@ -295,15 +300,15 @@ const ProjectView: React.FC = () => {
               </div>
 
               <div className="md:col-span-3">
-                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">IDIOMA</label>
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">{tg.language}</label>
                 <select
                   value={state.language}
                   onChange={(e) => handleUpdate({ language: e.target.value })}
                   className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all bg-white appearance-none cursor-pointer text-slate-700 shadow-sm h-[46px]"
                 >
-                  <option value="Español">Español</option>
-                  <option value="English">English</option>
-                  <option value="Français">Français</option>
+                  <option value="es">Español</option>
+                  <option value="en">English</option>
+                  <option value="fr">Français</option>
                 </select>
               </div>
             </div>
@@ -313,23 +318,23 @@ const ProjectView: React.FC = () => {
           {/* Body Section - Project Details */}
           <div className="space-y-6">
             <div>
-              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">URL DE DESPLIEGUE</label>
+              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">{t.projectDetails.deploymentUrl}</label>
               <input
                 type="url"
                 value={state.deploymentUrl}
                 onChange={(e) => handleUpdate({ deploymentUrl: e.target.value })}
                 className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-slate-700 bg-white"
-                placeholder="https://mi-proyecto.vercel.app"
+                placeholder="https://..."
               />
             </div>
 
             <div>
-              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">CONTEXTO DEL PROYECTO</label>
+              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">{tv.context}</label>
               <textarea
                 value={state.context}
                 onChange={(e) => handleUpdate({ context: e.target.value })}
                 className="w-full h-48 px-6 py-6 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all text-sm leading-relaxed text-slate-700 bg-slate-50/30"
-                placeholder="Describe el contexto y detalles del proyecto..."
+                placeholder={tv.contextPlaceholder}
               ></textarea>
             </div>
           </div>
@@ -338,11 +343,11 @@ const ProjectView: React.FC = () => {
           <div className="space-y-10">
             {/* URLs Section */}
             <div className="space-y-4 bg-gray-50 p-6 rounded-xl border border-gray-200">
-              <h3 className="text-sm font-bold text-gray-700 uppercase tracking-wider mb-4">URLs del Recurso</h3>
+              <h3 className="text-sm font-bold text-gray-700 uppercase tracking-wider mb-4">{tv.resourceUrls}</h3>
               
               {/* Private URL */}
               <div>
-                <label className="block text-xs font-semibold text-gray-600 mb-2">URL PRIVADA (Requiere login)</label>
+                <label className="block text-[10px] font-semibold text-gray-600 mb-2 uppercase tracking-wider">{tv.privateUrlLabel}</label>
                 <div className="flex gap-2">
                   <input
                     type="text"
@@ -354,6 +359,7 @@ const ProjectView: React.FC = () => {
                     type="button"
                     onClick={() => handleCopyToClipboard(privateUrl, 'private')}
                     className="px-4 py-2 bg-blue-50 hover:bg-blue-100 border-2 border-blue-200 text-blue-700 rounded-lg font-semibold transition-all"
+                    aria-label="Copy"
                   >
                     {copiedPrivate ? <CheckCircle size={18} /> : <Copy size={18} />}
                   </button>
@@ -361,6 +367,7 @@ const ProjectView: React.FC = () => {
                     type="button"
                     onClick={() => window.open(privateUrl, '_blank')}
                     className="px-4 py-2 bg-purple-50 hover:bg-purple-100 border-2 border-purple-200 text-purple-700 rounded-lg font-semibold transition-all"
+                    aria-label="Open"
                   >
                     <ExternalLink size={18} />
                   </button>
@@ -370,7 +377,7 @@ const ProjectView: React.FC = () => {
               {/* Public URL - only if public */}
               {state.visibility === Visibility.PUBLIC && (
                 <div>
-                  <label className="block text-xs font-semibold text-gray-600 mb-2">URL PÚBLICA (Sin login)</label>
+                  <label className="block text-[10px] font-semibold text-gray-600 mb-2 uppercase tracking-wider">{tv.publicUrlLabel}</label>
                   <div className="flex gap-2">
                     <input
                       type="text"
@@ -382,6 +389,7 @@ const ProjectView: React.FC = () => {
                       type="button"
                       onClick={() => handleCopyToClipboard(publicUrl, 'public')}
                       className="px-4 py-2 bg-green-100 hover:bg-green-200 border-2 border-green-300 text-green-700 rounded-lg font-semibold transition-all"
+                      aria-label="Copy"
                     >
                       {copiedPublic ? <CheckCircle size={18} /> : <Copy size={18} />}
                     </button>
@@ -389,6 +397,7 @@ const ProjectView: React.FC = () => {
                       type="button"
                       onClick={() => window.open(publicUrl, '_blank')}
                       className="px-4 py-2 bg-green-100 hover:bg-green-200 border-2 border-green-300 text-green-700 rounded-lg font-semibold transition-all"
+                      aria-label="Open"
                     >
                       <ExternalLink size={18} />
                     </button>
@@ -405,22 +414,22 @@ const ProjectView: React.FC = () => {
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl p-8 max-w-md w-full shadow-2xl">
-            <h2 className="text-2xl font-bold text-slate-900 mb-4">Publicar Proyecto</h2>
+            <h2 className="text-2xl font-bold text-slate-900 mb-4">{tv.publishModalTitle}</h2>
             <p className="text-slate-600 mb-6">
-              ¿Estás seguro de que quieres hacer público este proyecto? Cualquier persona con el enlace podrá acceder a él.
+              {tv.publishModalDesc}
             </p>
             <div className="flex gap-3">
               <button
                 onClick={() => setIsModalOpen(false)}
                 className="flex-1 px-6 py-3 border-2 border-gray-300 text-gray-700 font-semibold rounded-xl hover:bg-gray-50 transition-all"
               >
-                Cancelar
+                {t.common.cancel}
               </button>
               <button
                 onClick={confirmPublish}
                 className="flex-1 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-all"
               >
-                Confirmar
+                {tv.confirm}
               </button>
             </div>
           </div>

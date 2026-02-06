@@ -9,15 +9,13 @@ import {
 import type { MakerPath, MakerPathStatus } from '@core/maker-path';
 import { RouteTypeModal } from './components/RouteTypeModal';
 import { useLanguage } from '../../language/useLanguage';
-import { translations } from '../../language/translations';
 
 type FilterType = 'all' | 'architect_ai' | 'module_connector' | 'custom';
 type StatusFilter = 'all' | 'draft' | 'in_progress' | 'completed';
 
 const MakerPathView: React.FC = () => {
   const navigate = useNavigate();
-  const { language } = useLanguage();
-  const t = translations[language];
+  const { t } = useLanguage();
   
   const [paths, setPaths] = useState<MakerPath[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -81,7 +79,7 @@ const MakerPathView: React.FC = () => {
 
   const handleRedirectToPlanner = (pathId: number) => {
     const path = paths.find(p => p.id === pathId);
-    if (path?.type === 'module_connector') {
+    if ((path?.type as string) === 'module_connector') {
       navigate(`/dashboard/maker-path/modules/${pathId}`);
     } else {
       navigate(`/dashboard/maker-path/${pathId}`);
@@ -244,7 +242,7 @@ const MakerPathView: React.FC = () => {
                       {path.title}
                     </h3>
                     <p className="text-gray-600 dark:text-gray-400 text-sm line-clamp-2">
-                      {path.description || 'Sin descripción'}
+                      {path.description || t.makerPath.noDescription}
                     </p>
                   </div>
 
@@ -270,15 +268,15 @@ const MakerPathView: React.FC = () => {
                     <button
                       onClick={() => handleRedirectToPlanner(path.id)}
                       className="flex items-center gap-1 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors text-sm font-medium"
-                      title="Abrir ruta"
+                      title={t.makerPath.tooltips.open}
                     >
                       <Eye size={16} />
-                      Ver
+                      {t.common.view}
                     </button>
                     <button
                       onClick={() => handleDelete(path.id)}
                       className="p-2 bg-red-100 dark:bg-red-900/30 hover:bg-red-200 dark:hover:bg-red-900/50 text-red-600 dark:text-red-400 rounded-lg transition-colors"
-                      title="Eliminar"
+                      title={t.common.delete}
                     >
                       <Trash2 size={16} />
                     </button>

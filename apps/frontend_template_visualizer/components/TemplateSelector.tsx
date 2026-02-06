@@ -1,9 +1,16 @@
 import React, { useState } from 'react';
 import FrontendTemplateVisualizer from './FrontendTemplateVisualizer';
 import { downloadHtmlFile } from '../utils/download_file';
+// Try to import from the main language system if possible, otherwise we provide a fallback
+// For the visualizer which might be independent, we'll use a local fallback if needed
+import { en } from '../../fablab/language/locales/en';
 
 const TemplateSelector: React.FC = () => {
   const [selectedTemplate, setSelectedTemplate] = useState<string>('simple_header.html');
+  
+  // Fallback translation hook for this specific micro-app
+  const t = en; 
+  const tv = t.templateVisualizer;
 
   const handleDownload = async () => {
     const baseUrl = import.meta.env.VITE_API_URL || '';
@@ -36,7 +43,7 @@ const TemplateSelector: React.FC = () => {
         backgroundColor: '#f1f3f5',
         borderBottom: '1px solid #dee2e6'
       }}>
-        <h1 style={{ margin: 0, fontSize: '1.25rem', color: '#343a40' }}>Visualiseur de modèles</h1>
+        <h1 style={{ margin: 0, fontSize: '1.25rem', color: '#343a40' }}>{tv.title}</h1>
       </div>
       <div style={{ 
         padding: '10px 20px', 
@@ -59,7 +66,7 @@ const TemplateSelector: React.FC = () => {
               borderRadius: '4px'
             }}
           >
-            Header
+            {tv.header}
           </button>
           <button
             onClick={() => setSelectedTemplate('simple-footer-bem.html')}
@@ -72,7 +79,7 @@ const TemplateSelector: React.FC = () => {
               borderRadius: '4px'
             }}
           >
-            Footer
+            {tv.footer}
           </button>
         </div>
 
@@ -88,7 +95,7 @@ const TemplateSelector: React.FC = () => {
             fontWeight: 'bold'
           }}
         >
-          Download Template
+          {tv.download}
         </button>
       </div>
 

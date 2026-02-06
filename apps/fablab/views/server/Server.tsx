@@ -283,16 +283,16 @@ const ServerView: React.FC = () => {
                     {/* Status */}
                     <div className="col-span-1">
                       {tool.isActive ? (
-                        <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-full text-xs font-medium">
-                          <Power size={12} />
-                          Activo
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 px-2 py-1 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded-full text-xs font-medium">
-                          <PowerOff size={12} />
-                          Inactivo
-                        </span>
-                      )}
+                         <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-full text-xs font-medium">
+                           <Power size={12} />
+                           {t.server.active}
+                         </span>
+                       ) : (
+                         <span className="inline-flex items-center gap-1 px-2 py-1 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded-full text-xs font-medium">
+                           <PowerOff size={12} />
+                           {t.server.inactive}
+                         </span>
+                       )}
                     </div>
 
                     {/* Created At */}
@@ -304,17 +304,17 @@ const ServerView: React.FC = () => {
 
                     {/* Actions */}
                     <div className="col-span-3 flex gap-2">
-                      <button
-                        onClick={() => handleToggleStatus(tool.id, tool.isActive)}
-                        className={`p-2 rounded-lg transition-colors ${
-                          tool.isActive
-                            ? 'bg-yellow-100 dark:bg-yellow-900/30 hover:bg-yellow-200 dark:hover:bg-yellow-900/50 text-yellow-700 dark:text-yellow-400'
-                            : 'bg-green-100 dark:bg-green-900/30 hover:bg-green-200 dark:hover:bg-green-900/50 text-green-700 dark:text-green-400'
-                        }`}
-                        title={tool.isActive ? 'Desactivar' : 'Activar'}
-                      >
-                        {tool.isActive ? <PowerOff size={16} /> : <Power size={16} />}
-                      </button>
+                       <button
+                         onClick={() => handleToggleStatus(tool.id, tool.isActive)}
+                         className={`p-2 rounded-lg transition-colors ${
+                           tool.isActive
+                             ? 'bg-yellow-100 dark:bg-yellow-900/30 hover:bg-yellow-200 dark:hover:bg-yellow-900/50 text-yellow-700 dark:text-yellow-400'
+                             : 'bg-green-100 dark:bg-green-900/30 hover:bg-green-200 dark:hover:bg-green-900/50 text-green-700 dark:text-green-400'
+                         }`}
+                         title={tool.isActive ? t.server.tooltips.deactivate : t.server.tooltips.activate}
+                       >
+                         {tool.isActive ? <PowerOff size={16} /> : <Power size={16} />}
+                       </button>
                       <button
                         onClick={() => handleEdit(tool)}
                         className="p-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg transition-colors"
@@ -344,7 +344,7 @@ const ServerView: React.FC = () => {
           <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex items-center justify-between">
               <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-                {editingTool ? 'Editar Herramienta' : 'Nueva Herramienta'}
+                {editingTool ? t.server.form.titleEdit : t.server.form.titleCreate}
               </h2>
               <button
                 onClick={() => {
@@ -387,7 +387,7 @@ const ServerView: React.FC = () => {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Tipo *
+                  {t.server.form.type} *
                 </label>
                 <select
                   value={formData.type}
@@ -402,7 +402,7 @@ const ServerView: React.FC = () => {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  URL
+                  {t.server.form.url}
                 </label>
                 <input
                   type="url"
@@ -415,14 +415,14 @@ const ServerView: React.FC = () => {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  API Key
+                  {t.server.form.apiKey}
                 </label>
                 <input
                   type="password"
                   value={formData.apiKey}
                   onChange={(e) => setFormData({ ...formData, apiKey: e.target.value })}
                   className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
-                  placeholder="API Key (opcional)"
+                  placeholder={t.server.form.apiKeyPlaceholder}
                 />
               </div>
 
@@ -435,7 +435,7 @@ const ServerView: React.FC = () => {
                   className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
                 />
                 <label htmlFor="isActive" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Herramienta activa
+                  {t.server.form.isActive}
                 </label>
               </div>
             </div>

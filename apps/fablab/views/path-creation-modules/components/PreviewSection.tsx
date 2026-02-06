@@ -1,11 +1,13 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { ModuleData } from '../types';
+import { useLanguage } from '../../../language/useLanguage';
 
 interface PreviewSectionProps {
   data: ModuleData;
 }
 
 export const PreviewSection: React.FC<PreviewSectionProps> = ({ data }) => {
+  const { t } = useLanguage();
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [height, setHeight] = useState(0);
 
@@ -89,7 +91,7 @@ export const PreviewSection: React.FC<PreviewSectionProps> = ({ data }) => {
   if (!data.html && !data.css) {
     return (
       <div className="w-full border-b border-dashed border-slate-300 bg-white/5 p-4 text-center text-slate-400 text-sm">
-        Empty {data.name} Container
+        {t.moduleCreator.preview.emptyContainer.replace('{name}', data.name)}
       </div>
     );
   }

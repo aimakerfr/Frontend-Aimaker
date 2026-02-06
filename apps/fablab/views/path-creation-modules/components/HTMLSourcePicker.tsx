@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { getNotebookSources, getNotebookSourceContent } from '@core/notebooks';
 import { Database, X, Check } from 'lucide-react';
+import { useLanguage } from '../../../language/useLanguage';
 
 interface HTMLSource {
   id: number;
@@ -16,6 +17,8 @@ interface HTMLSourcePickerProps {
 }
 
 export const HTMLSourcePicker: React.FC<HTMLSourcePickerProps> = ({ isOpen, onClose, onSelect }) => {
+  const { t, language } = useLanguage();
+  const ts = t.moduleCreator.sourcePicker;
   const [sources, setSources] = useState<HTMLSource[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedSource, setSelectedSource] = useState<HTMLSource | null>(null);
@@ -76,10 +79,10 @@ export const HTMLSourcePicker: React.FC<HTMLSourcePickerProps> = ({ isOpen, onCl
               <Database className="w-6 h-6 text-blue-400" />
               <div>
                 <h2 className="text-xl font-bold text-white">
-                  Cargar Fuente HTML desde Notebook
+                  {ts.title}
                 </h2>
                 <p className="text-slate-400 text-sm mt-1">
-                  Selecciona una fuente HTML previamente guardada
+                  {ts.subtitle}
                 </p>
               </div>
             </div>
@@ -97,16 +100,16 @@ export const HTMLSourcePicker: React.FC<HTMLSourcePickerProps> = ({ isOpen, onCl
           {isLoading ? (
             <div className="flex flex-col items-center justify-center py-16">
               <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-              <p className="text-slate-400 mt-4">Cargando fuentes...</p>
+              <p className="text-slate-400 mt-4">{ts.loading}</p>
             </div>
           ) : sources.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16">
               <Database size={48} className="text-slate-600 mb-4" />
               <h3 className="text-xl font-semibold text-slate-300 mb-2">
-                No hay fuentes HTML disponibles
+                {ts.noSources}
               </h3>
               <p className="text-slate-400 text-center max-w-md">
-                Ve a un Notebook (RAG Multimodal) y carga fuentes de tipo HTML primero.
+                {ts.noSourcesDescription}
               </p>
             </div>
           ) : (
@@ -130,7 +133,7 @@ export const HTMLSourcePicker: React.FC<HTMLSourcePickerProps> = ({ isOpen, onCl
                         )}
                       </h3>
                       <p className="text-sm text-slate-400">
-                        Creado: {new Date(source.createdAt).toLocaleDateString('es-ES', {
+                        {ts.created}: {new Date(source.createdAt).toLocaleDateString(language, {
                           year: 'numeric',
                           month: 'long',
                           day: 'numeric'
@@ -152,13 +155,13 @@ export const HTMLSourcePicker: React.FC<HTMLSourcePickerProps> = ({ isOpen, onCl
         {/* Footer */}
         <div className="p-4 bg-slate-900 border-t border-slate-700 flex justify-between items-center">
           <p className="text-sm text-slate-400">
-            {sources.length} {sources.length === 1 ? 'fuente disponible' : 'fuentes disponibles'}
+            {sources.length} {sources.length === 1 ? ts.availableSource : ts.availableSources}
           </p>
           <button
             onClick={onClose}
             className="px-4 py-2 text-slate-300 hover:bg-slate-800 rounded-lg transition-colors font-medium"
           >
-            Cancelar
+            {t.common.cancel}
           </button>
         </div>
       </div>

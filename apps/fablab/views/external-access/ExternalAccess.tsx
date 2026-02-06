@@ -423,6 +423,7 @@ const ExternalAccessView: React.FC<ExternalAccessViewProps> = ({
 
 // Componente contenedor que maneja la carga de datos desde la API
 const ExternalAccess = () => {
+  const { t } = useLanguage();
   const [items, setItems] = useState<ExternalAccessItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -448,7 +449,7 @@ const ExternalAccess = () => {
         publicUrl: tool.publicUrl || undefined,
         language: tool.language,
         usageCount: tool.usageCount,
-        author: 'USER',
+        author: t.library.authorFallback,
         createdAt: new Date().toLocaleDateString('fr-FR'),
         category: ''
       })) as ExternalAccessItem[];
@@ -456,7 +457,7 @@ const ExternalAccess = () => {
       setItems(mappedItems);
     } catch (err) {
       console.error('Error cargando creation tools:', err);
-      setError('Error al cargar los datos');
+      setError(t.common.error);
       setItems(mockItems);
     } finally {
       setIsLoading(false);
@@ -491,7 +492,7 @@ const ExternalAccess = () => {
       return true;
     } catch (err) {
       console.error('Error guardando:', err);
-      setError('Error al guardar');
+      setError(t.common.errorSaving);
       return false;
     } finally {
       setIsLoading(false);
@@ -499,7 +500,7 @@ const ExternalAccess = () => {
   };
 
   const handleDelete = async (itemId: number) => {
-    if (!confirm('¿Estás seguro de eliminar este elemento?')) return;
+    if (!confirm(t.externalAccess.deleteConfirm)) return;
     
     try {
       setIsLoading(true);
@@ -507,7 +508,7 @@ const ExternalAccess = () => {
       setItems(prev => prev.filter((item: ExternalAccessItem) => item.id !== itemId));
     } catch (err) {
       console.error('Error eliminando:', err);
-      setError('Error al eliminar');
+      setError(t.common.errorDeleting);
       await loadCreationTools();
     } finally {
       setIsLoading(false);
@@ -520,7 +521,7 @@ const ExternalAccess = () => {
       await loadCreationTools();
     } catch (err) {
       console.error('Error cambiando visibilidad:', err);
-      setError('Error al cambiar visibilidad');
+      setError(t.common.error);
     }
   };
 
@@ -533,7 +534,7 @@ const ExternalAccess = () => {
             onClick={() => loadCreationTools()}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
           >
-            Reintentar
+            {t.externalAccess.retry}
           </button>
         </div>
       </div>

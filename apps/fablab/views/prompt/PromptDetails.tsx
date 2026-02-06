@@ -3,12 +3,15 @@ import { getTool } from '@core/creation-tools/creation-tools.service';
 import { getPromptByToolId, updatePromptBody } from '@core/prompts/prompts.service';
 import PromptBodySection from './PromptBodySection';
 import { useToolView } from '../tool/ToolViewCard';
+import { useLanguage } from '../../language/useLanguage';
 
 type Props = {
   toolId: number;
 };
 
 const PromptDetails: React.FC<Props> = ({ toolId }) => {
+  const { t } = useLanguage();
+  const tp = t.promptEditor;
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [context, setContext] = useState('');
@@ -42,7 +45,7 @@ const PromptDetails: React.FC<Props> = ({ toolId }) => {
       const data = await getTool(currentToolId);
       if (cancelledRef()) return;
       if (data.type !== 'prompt') {
-        setError("La ressource demandée n'est pas un prompt.");
+        setError(tp.errorNotPrompt);
         return;
       }
       setContext(data.context || '');
@@ -55,11 +58,11 @@ const PromptDetails: React.FC<Props> = ({ toolId }) => {
       setPromptBody(bodyFromService || contextInitialBody || '');
       setError(null);
     } catch (e) {
-      if (!cancelledRef()) setError("Impossible de charger les détails du prompt.");
+      if (!cancelledRef()) setError(tp.errorLoading);
     } finally {
       if (!cancelledRef()) setLoading(false);
     }
-  }, [contextInitialBody]);
+  }, [contextInitialBody, tp.errorNotPrompt, tp.errorLoading]);
 
   useEffect(() => {
     let cancelled = false;
@@ -86,17 +89,17 @@ const PromptDetails: React.FC<Props> = ({ toolId }) => {
     } catch (e) {
       setBodyStatus('error');
       // Also set a human readable error for below-box rendering
-      setError("Une erreur est survenue lors de l'enregistrement du corps du prompt.");
+      setError(tp.errorSavingBody);
     } finally {
       setBodySaving(false);
       setTimeout(() => setBodyStatus('idle'), 1500);
     }
-  }, [toolId, toolView]);
+  }, [toolId, toolView, tp.errorSavingBody]);
 
   return (
     <div className="flex flex-col w-full space-y-10">
       {/* Heading */}
-      <h2 className="text-lg font-bold text-slate-900">Détails du prompt</h2>
+      <h2 className="text-lg font-bold text-slate-900">{tp.title}</h2>
       {/* Box that always renders */}
       <div className="w-full border border-slate-200 rounded-xl bg-white p-4 shadow-sm">
         {loading ? (
@@ -124,28 +127,28 @@ const PromptDetails: React.FC<Props> = ({ toolId }) => {
           onClick={() => setShowAdvanced((v) => !v)}
           className="text-sm font-medium text-blue-600 hover:text-blue-700"
         >
-          {showAdvanced ? 'Masquer la configuration avancée' : 'Afficher la configuration avancée'}
+          {showAdvanced ? tp.hideAdvanced : tp.showAdvanced}
         </button>
       </div>
 
       {showAdvanced && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-6 border-t border-slate-100">
           <div>
-            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">CONTEXTE SUPPLÉMENTAIRE</label>
+            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">{tp.extraContext}</label>
             <textarea
               value={context}
               onChange={(e) => setContext(e.target.value)}
               className="w-full h-24 px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm text-slate-600 bg-white"
-              placeholder="Fournissez un contexte supplémentaire..."
+              placeholder={tp.extraContextPlaceholder}
             ></textarea>
           </div>
           <div>
-            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">FORMAT DE SORTIE</label>
+            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">{tp.outputFormat}</label>
             <textarea
               value={outputFormat}
               onChange={(e) => setOutputFormat(e.target.value)}
               className="w-full h-24 px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm text-slate-600 bg-white"
-              placeholder="Précisez le format de sortie souhaité..."
+              placeholder={tp.outputFormatPlaceholder}
             ></textarea>
           </div>
         </div>

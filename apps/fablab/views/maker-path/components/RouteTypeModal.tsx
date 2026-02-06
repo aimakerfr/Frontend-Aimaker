@@ -1,7 +1,6 @@
 import React from 'react';
 import { Route, Link2, X } from 'lucide-react';
 import { useLanguage } from '../../../language/useLanguage';
-import { translations } from '../../../language/translations';
 
 interface RouteTypeModalProps {
   isOpen: boolean;
@@ -10,8 +9,7 @@ interface RouteTypeModalProps {
 }
 
 export const RouteTypeModal: React.FC<RouteTypeModalProps> = ({ isOpen, onClose, onSelect }) => {
-  const { language } = useLanguage();
-  const t = translations[language];
+  const { t } = useLanguage();
   
   if (!isOpen) return null;
 

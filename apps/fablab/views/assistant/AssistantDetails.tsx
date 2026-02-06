@@ -3,12 +3,14 @@ import { getTool } from '@core/creation-tools/creation-tools.service';
 import { getAssistantByToolId, updateAssistant } from '@core/assistants/assistants.service';
 import { Check, Loader2, XCircle, Plus, X, Upload, FileText, Trash2, Image as ImageIcon } from 'lucide-react';
 import type { KnowledgeFile } from '../public/assistant/types';
+import { useLanguage } from '../../language/useLanguage';
 
 type Props = {
   toolId: number;
 };
 
 const AssistantDetails: React.FC<Props> = ({ toolId }) => {
+  const { t } = useLanguage();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   // Assistant-specific fields from assistants table
@@ -35,7 +37,7 @@ const AssistantDetails: React.FC<Props> = ({ toolId }) => {
         const data = await getTool(toolId);
         if (cancelled) return;
         if (data.type !== 'assistant') {
-          setError("El recurso solicitado no es un asistente.");
+          setError(t.assistantDetails.errorNotAssistant);
           return;
         }
 
@@ -52,7 +54,7 @@ const AssistantDetails: React.FC<Props> = ({ toolId }) => {
         setKnowledgeFiles((assistantRes as any).knowledgeFiles || []);
         setError(null);
       } catch (e) {
-        if (!cancelled) setError("No se pudieron cargar los detalles del asistente.");
+        if (!cancelled) setError(t.assistantDetails.errorLoadingDetails);
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -128,7 +130,7 @@ const AssistantDetails: React.FC<Props> = ({ toolId }) => {
       setSaveStatus('success');
     } catch (e) {
       setSaveStatus('error');
-      setError("Ocurrió un error al guardar la configuración del asistente.");
+      setError(t.assistantDetails.errorSaving);
     } finally {
       setSaving(false);
       setTimeout(() => setSaveStatus('idle'), 2000);
@@ -163,26 +165,26 @@ const AssistantDetails: React.FC<Props> = ({ toolId }) => {
 
   return (
     <div className="flex flex-col w-full space-y-6">
-      <h2 className="text-lg font-bold text-slate-900">Configuración del Asistente</h2>
+      <h2 className="text-lg font-bold text-slate-900">{t.assistantDetails.title}</h2>
       
       <div className="grid grid-cols-1 gap-6">
         {/* Instructions */}
         <div>
-          <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">INSTRUCCIONES DEL SISTEMA</label>
+          <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">{t.assistantDetails.systemInstructions}</label>
           <textarea
             value={instructions}
             onChange={(e) => setInstructions(e.target.value)}
-            placeholder="Define el comportamiento, tono y límites..."
+            placeholder={t.assistantDetails.instructionsPlaceholder}
             rows={8}
             className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm text-slate-600 bg-white resize-none font-mono"
             disabled={saving}
           />
-          <p className="text-[10px] text-slate-400 italic mt-1">Aquí es donde moldeas la inteligencia de tu Asistente.</p>
+          <p className="text-[10px] text-slate-400 italic mt-1">{t.assistantDetails.instructionsHint}</p>
         </div>
 
         {/* Conversation Starters */}
         <div>
-          <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">INICIADORES DE CONVERSACIÓN</label>
+          <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">{t.assistantDetails.conversationStarters}</label>
           <div className="space-y-2">
             {starters.map((starter, idx) => (
               <div key={idx} className="flex gap-2">
@@ -190,7 +192,7 @@ const AssistantDetails: React.FC<Props> = ({ toolId }) => {
                   type="text"
                   value={starter}
                   onChange={(e) => handleStarterChange(idx, e.target.value)}
-                  placeholder={`Opción ${idx + 1}`}
+                  placeholder={`${t.assistantDetails.optionPlaceholder} ${idx + 1}`}
                   className="flex-1 px-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm text-slate-600 bg-white"
                   disabled={saving}
                 />
@@ -211,13 +213,13 @@ const AssistantDetails: React.FC<Props> = ({ toolId }) => {
             className="mt-2 text-[11px] text-blue-500 hover:text-blue-600 flex items-center gap-2 font-bold uppercase tracking-wider"
             disabled={saving}
           >
-            <Plus className="w-3.5 h-3.5" /> Añadir opción
+            <Plus className="w-3.5 h-3.5" /> {t.assistantDetails.addOption}
           </button>
         </div>
 
         {/* Knowledge Base */}
         <div>
-          <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">BASE DE CONOCIMIENTOS</label>
+          <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">{t.assistantDetails.knowledgeBase}</label>
           {knowledgeFiles.length > 0 && (
             <div className="space-y-2 mb-4">
               {knowledgeFiles.map((file, idx) => (
@@ -250,8 +252,8 @@ const AssistantDetails: React.FC<Props> = ({ toolId }) => {
               <Upload className="w-6 h-6" />
             </div>
             <div className="text-center">
-              <p className="text-xs font-bold text-slate-600">Cargar documentos</p>
-              <p className="text-[10px] text-slate-400 mt-1">PDF, DOCX o TXT para enriquecer el contexto</p>
+              <p className="text-xs font-bold text-slate-600">{t.assistantDetails.uploadDocuments}</p>
+              <p className="text-[10px] text-slate-400 mt-1">{t.assistantDetails.uploadHint}</p>
             </div>
             <input 
               type="file" 
@@ -267,14 +269,14 @@ const AssistantDetails: React.FC<Props> = ({ toolId }) => {
 
         {/* Capabilities */}
         <div>
-          <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">CAPACIDADES Y HERRAMIENTAS</label>
+          <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">{t.assistantDetails.capabilities}</label>
           <label className="flex items-center justify-between p-4 border border-slate-100 rounded-lg cursor-pointer hover:bg-slate-50 transition-all">
             <div className="flex items-center gap-3">
               <div className={`p-2 rounded-lg transition-colors ${capabilities.imageGen ? 'bg-blue-50 text-blue-500' : 'bg-slate-50 text-slate-400'}`}>
                 <ImageIcon className="w-4 h-4" />
               </div>
               <span className={`text-sm font-semibold transition-colors ${capabilities.imageGen ? 'text-slate-900' : 'text-slate-500'}`}>
-                Generación de imágenes
+                {t.assistantDetails.imageGeneration}
               </span>
             </div>
             <div 
@@ -293,19 +295,19 @@ const AssistantDetails: React.FC<Props> = ({ toolId }) => {
 
         {/* Original fields */}
         <div>
-          <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">PLATAFORMA</label>
+          <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">{t.assistantDetails.platform}</label>
           <input
             type="text"
             value={platform}
             onChange={(e) => setPlatform(e.target.value)}
             className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm text-slate-600 bg-white"
-            placeholder="OpenAI, Claude, Gemini..."
+            placeholder={t.assistantDetails.platformPlaceholder}
             disabled={saving}
           />
         </div>
         
         <div>
-          <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">URL DEL ASISTENTE</label>
+          <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">{t.assistantDetails.assistantUrl}</label>
           <input
             type="url"
             value={url}
@@ -317,7 +319,7 @@ const AssistantDetails: React.FC<Props> = ({ toolId }) => {
         </div>
         
         <div>
-          <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">BASE URL</label>
+          <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">{t.assistantDetails.baseUrl}</label>
           <input
             type="url"
             value={baseUrl}

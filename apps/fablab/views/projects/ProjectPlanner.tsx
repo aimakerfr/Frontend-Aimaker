@@ -153,7 +153,7 @@ const ProjectPlanner: React.FC = () => {
         className="flex items-center gap-2 mb-6 px-4 py-2 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl border border-gray-200 dark:border-gray-700 transition-colors font-medium shadow-sm"
       >
         <ArrowLeft size={20} />
-        Volver a Rutas
+        {t.common.backToPaths || 'Volver a Rutas'}
       </button>
       
       <header className="text-center mb-12">
@@ -193,47 +193,47 @@ const ProjectPlanner: React.FC = () => {
             
             <div className="space-y-6">
               <div>
-                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Título del Proyecto</label>
+                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">{t.phase0.serves}</label>
                 <input 
                   className="w-full bg-gray-50 dark:bg-slate-800 border border-gray-300 dark:border-slate-700 rounded-lg p-3 text-gray-900 dark:text-slate-200 focus:ring-2 focus:ring-blue-500 outline-none"
                   value={state.objective.title}
                   onChange={(e) => updateObjective('title', e.target.value)}
-                  placeholder="Ej: Asistente de Atención al Cliente"
+                  placeholder={t.phase0.placeholders.serves}
                 />
               </div>
               
               <div>
-                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Descripción</label>
+                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">{lang === 'es' ? 'Descripción' : lang === 'fr' ? 'Description' : 'Description'}</label>
                 <textarea 
                   className="w-full bg-gray-50 dark:bg-slate-800 border border-gray-300 dark:border-slate-700 rounded-lg p-3 text-gray-900 dark:text-slate-200 focus:ring-2 focus:ring-blue-500 outline-none resize-none"
                   value={state.objective.description}
                   onChange={(e) => updateObjective('description', e.target.value)}
-                  placeholder="Breve descripción de tu proyecto..."
+                  placeholder={lang === 'es' ? 'Breve descripción de tu proyecto...' : lang === 'fr' ? 'Brève description de votre projet...' : 'Short description of your project...'}
                   rows={3}
                 />
               </div>
               
               <div>
-                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Objetivo</label>
+                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">{t.phase0.result}</label>
                 <textarea 
                   className="w-full bg-gray-50 dark:bg-slate-800 border border-gray-300 dark:border-slate-700 rounded-lg p-3 text-gray-900 dark:text-slate-200 focus:ring-2 focus:ring-blue-500 outline-none resize-none"
                   value={state.objective.goal}
                   onChange={(e) => updateObjective('goal', e.target.value)}
-                  placeholder="Describe el objetivo principal de tu proyecto..."
+                  placeholder={t.phase0.placeholders.result}
                   rows={4}
                 />
               </div>
               
               <div>
-                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Tipo</label>
+                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">{lang === 'es' ? 'Tipo' : lang === 'fr' ? 'Type' : 'Type'}</label>
                 <select
                   className="w-full bg-gray-50 dark:bg-slate-800 border border-gray-300 dark:border-slate-700 rounded-lg p-3 text-gray-900 dark:text-slate-200 focus:ring-2 focus:ring-blue-500 outline-none"
                   value={state.objective.type}
                   onChange={(e) => updateObjective('type', e.target.value as any)}
                 >
-                  <option value="">Selecciona un tipo...</option>
-                  <option value="assistant">Asistente</option>
-                  <option value="web-app">Aplicación Web</option>
+                  <option value="">{lang === 'es' ? 'Selecciona un tipo...' : lang === 'fr' ? 'Sélectionnez un type...' : 'Select a type...'}</option>
+                  <option value="assistant">{lang === 'es' ? 'Asistente' : lang === 'fr' ? 'Assistant' : 'Assistant'}</option>
+                  <option value="web-app">{lang === 'es' ? 'Aplicación Web' : lang === 'fr' ? 'Application Web' : 'Web Application'}</option>
                   <option value="landing-page">Landing Page</option>
                   <option value="pdf">PDF</option>
                 </select>

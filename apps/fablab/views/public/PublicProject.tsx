@@ -4,8 +4,11 @@ import { FolderKanban, Globe, Calendar, User, ChevronLeft, ExternalLink, Heart, 
 import { getPublicCreationTool } from '@core/creation-tools/creation-tools.service';
 import type { CreationTool } from '@core/creation-tools/creation-tools.types';
 import { httpClient } from '@core/api/http.client';
+import { useLanguage } from '../../language/useLanguage';
 
 const PublicProject: React.FC = () => {
+  const { t } = useLanguage();
+  const tp = t.publicProject;
   const { id } = useParams<{ id: string }>();
   const [project, setProject] = useState<CreationTool | null>(null);
   const [projectData, setProjectData] = useState<{
@@ -29,13 +32,13 @@ const PublicProject: React.FC = () => {
         
         // Verificar que sea público
         if (!data.hasPublicStatus) {
-          setError('Este proyecto es privado y no está disponible públicamente.');
+          setError(tp.errorPrivate);
           return;
         }
         
         // Verificar que sea tipo project
         if (data.type !== 'project') {
-          setError('El recurso solicitado no es un proyecto.');
+          setError(tp.errorNotProject);
           return;
         }
         
@@ -61,14 +64,14 @@ const PublicProject: React.FC = () => {
         }
       } catch (err) {
         console.error('Error cargando proyecto:', err);
-        setError('No se pudo cargar el proyecto. Puede que no exista o no sea público.');
+        setError(tp.errorLoading);
       } finally {
         setLoading(false);
       }
     };
 
     loadProject();
-  }, [id]);
+  }, [id, tp.errorPrivate, tp.errorNotProject, tp.errorLoading]);
 
   const getProjectTypeIcon = (type: string) => {
     switch (type) {
@@ -86,13 +89,13 @@ const PublicProject: React.FC = () => {
   const getProjectTypeLabel = (type: string) => {
     switch (type) {
       case 'landing page':
-        return 'Landing Page';
+        return tp.types.landingPage;
       case 'app':
-        return 'Aplicación';
+        return tp.types.app;
       case 'automation':
-        return 'Automatización';
+        return tp.types.automation;
       default:
-        return 'Proyecto';
+        return tp.types.project;
     }
   };
 
@@ -101,7 +104,7 @@ const PublicProject: React.FC = () => {
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-gray-900 dark:to-indigo-900/10 flex items-center justify-center">
         <div className="text-center">
           <div className="inline-block w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-          <p className="mt-4 text-gray-600 dark:text-gray-400">Cargando proyecto...</p>
+          <p className="mt-4 text-gray-600 dark:text-gray-400">{tp.loading}</p>
         </div>
       </div>
     );
@@ -115,17 +118,17 @@ const PublicProject: React.FC = () => {
             <FolderKanban size={32} className="text-red-600 dark:text-red-400" />
           </div>
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-            Proyecto no disponible
+            {tp.projectInfo}
           </h2>
           <p className="text-gray-600 dark:text-gray-400 mb-6">
-            {error || 'No se encontró el proyecto solicitado.'}
+            {error || tp.errorNotFound}
           </p>
           <button
             onClick={() => window.history.back()}
             className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-all"
           >
             <ChevronLeft size={20} />
-            Volver
+            {tp.back}
           </button>
         </div>
       </div>
@@ -148,17 +151,17 @@ const PublicProject: React.FC = () => {
                 </h1>
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-full text-xs font-semibold">
                   <Globe size={14} />
-                  Público
+                  {tp.public}
                 </span>
                 {project.isFavorite && (
                   <span className="inline-flex items-center gap-1 px-3 py-1 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-full text-xs font-semibold">
                     <Heart size={14} fill="currentColor" />
-                    Favorito
+                    {tp.favorite}
                   </span>
                 )}
               </div>
               <p className="text-gray-500 dark:text-gray-400 mb-3">
-                {project.description || 'Sin descripción'}
+                {project.description || tp.noDescription}
               </p>
               <div className="flex flex-wrap gap-3 text-sm">
                 <div className="flex items-center gap-1.5 text-gray-600 dark:text-gray-400">
@@ -168,7 +171,7 @@ const PublicProject: React.FC = () => {
                 <span className="text-gray-300 dark:text-gray-600">•</span>
                 <div className="flex items-center gap-1.5 text-gray-600 dark:text-gray-400">
                   <User size={16} />
-                  <span>{project.authorName || 'Autor desconocido'}</span>
+                  <span>{project.authorName || tp.unknownAuthor}</span>
                 </div>
                 <span className="text-gray-300 dark:text-gray-600">•</span>
                 <div className="flex items-center gap-1.5 text-gray-600 dark:text-gray-400">
@@ -190,13 +193,13 @@ const PublicProject: React.FC = () => {
               <div className="bg-gradient-to-r from-blue-500 to-indigo-600 px-6 py-4">
                 <h2 className="text-lg font-bold text-white flex items-center gap-2">
                   <ExternalLink size={20} />
-                  Proyecto en Vivo
+                  {tp.liveProject}
                 </h2>
               </div>
               <div className="p-6">
                 <div className="flex items-center gap-3">
                   <div className="flex-1">
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">URL de despliegue</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">{tp.deploymentUrl}</p>
                     <a
                       href={projectData.deploymentUrl}
                       target="_blank"
@@ -213,7 +216,7 @@ const PublicProject: React.FC = () => {
                     className="flex-shrink-0 px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-semibold rounded-xl transition-all shadow-lg shadow-blue-500/30 flex items-center gap-2"
                   >
                     <ExternalLink size={18} />
-                    Visitar
+                    {tp.visit}
                   </a>
                 </div>
               </div>
@@ -226,26 +229,26 @@ const PublicProject: React.FC = () => {
               <div className="bg-gradient-to-r from-purple-500 to-pink-600 px-6 py-4">
                 <h2 className="text-lg font-bold text-white flex items-center gap-2">
                   <Database size={20} />
-                  Información del Proyecto
+                  {tp.projectInfo}
                 </h2>
               </div>
               <div className="p-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {projectData.appName && (
                     <div className="p-4 bg-gray-50 dark:bg-gray-900/30 rounded-lg">
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Nombre de la aplicación</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">{tp.appName}</p>
                       <p className="text-sm font-medium text-gray-900 dark:text-white">{projectData.appName}</p>
                     </div>
                   )}
                   {projectData.category && (
                     <div className="p-4 bg-gray-50 dark:bg-gray-900/30 rounded-lg">
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Categoría</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">{tp.category}</p>
                       <p className="text-sm font-medium text-gray-900 dark:text-white">{projectData.category}</p>
                     </div>
                   )}
                   {projectData.filesUrl && (
                     <div className="p-4 bg-gray-50 dark:bg-gray-900/30 rounded-lg">
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Repositorio de archivos</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">{tp.filesRepo}</p>
                       <a href={projectData.filesUrl} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline break-all">
                         {projectData.filesUrl}
                       </a>
@@ -253,7 +256,7 @@ const PublicProject: React.FC = () => {
                   )}
                   {projectData.dataBaseName && (
                     <div className="p-4 bg-gray-50 dark:bg-gray-900/30 rounded-lg">
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Base de datos</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">{tp.database}</p>
                       <p className="text-sm font-medium text-gray-900 dark:text-white">{projectData.dataBaseName}</p>
                     </div>
                   )}
@@ -268,7 +271,7 @@ const PublicProject: React.FC = () => {
               <div className="bg-gradient-to-r from-indigo-500 to-purple-600 px-6 py-4">
                 <h2 className="text-lg font-bold text-white flex items-center gap-2">
                   <Code2 size={20} />
-                  Contexto del Proyecto
+                  {tp.projectContext}
                 </h2>
               </div>
               <div className="p-6">
@@ -293,10 +296,10 @@ const PublicProject: React.FC = () => {
                   </div>
                   <div>
                     <h3 className="font-semibold text-blue-900 dark:text-blue-300 mb-2">
-                      Vista pública de proyecto
+                      {tp.viewModeTitle}
                     </h3>
                     <p className="text-sm text-blue-800 dark:text-blue-400 leading-relaxed">
-                      Esta es una vista de solo lectura del proyecto. Para acceder a todas las funcionalidades, herramientas de edición y gestión del proyecto, inicia sesión en la plataforma AIMaker FabLab.
+                      {tp.viewModeDesc}
                     </p>
                   </div>
                 </div>
@@ -308,13 +311,13 @@ const PublicProject: React.FC = () => {
           <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
             <div className="bg-gradient-to-r from-purple-500 to-pink-600 px-6 py-4">
               <h2 className="text-lg font-bold text-white">
-                Información del Proyecto
+                {tp.projectInfo}
               </h2>
             </div>
             <div className="p-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Tipo de Proyecto</p>
+                  <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">{tp.type}</p>
                   <div className="flex items-center gap-2">
                     <span className="text-2xl">{getProjectTypeIcon(project.projectType || 'project')}</span>
                     <p className="text-gray-900 dark:text-white font-semibold">
@@ -324,24 +327,24 @@ const PublicProject: React.FC = () => {
                 </div>
                 
                 <div>
-                  <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Idioma</p>
+                  <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">{tp.language}</p>
                   <p className="text-gray-900 dark:text-white font-semibold uppercase">
                     {project.language || 'Español'}
                   </p>
                 </div>
 
                 <div>
-                  <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Categoría</p>
+                  <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">{tp.category}</p>
                   <p className="text-gray-900 dark:text-white font-semibold">
-                    {project.category || 'Sin categoría'}
+                    {project.category || tp.noCategory}
                   </p>
                 </div>
 
                 <div>
-                  <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Estado</p>
+                  <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">{tp.status}</p>
                   <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-lg text-sm font-semibold">
                     <Globe size={14} />
-                    Público
+                    {tp.public}
                   </span>
                 </div>
               </div>

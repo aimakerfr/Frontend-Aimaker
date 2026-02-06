@@ -4,6 +4,7 @@ import {
   Globe, Lock, ArrowLeft, ExternalLink, Copy, CheckCircle
 } from 'lucide-react';
 import { copyToClipboard } from '@core/ui_utils/navigator_utilies';
+import { useLanguage } from '../../../language/useLanguage';
 
 type ItemType = 'assistant' | 'prompt' | 'note_books' | 'project' | 'perplexity_search';
 
@@ -33,6 +34,7 @@ const DetailsView: React.FC<DetailsViewProps> = ({
   onClose, 
   onSave
 }) => {
+  const { t } = useLanguage();
   const [formData, setFormData] = useState(() => ({
     type: item?.type ?? 'assistant',
     title: item?.title ?? '',
@@ -77,11 +79,11 @@ const DetailsView: React.FC<DetailsViewProps> = ({
   };
 
   const itemTypes: { type: ItemType; icon: any; label: string }[] = [
-    { type: 'note_books', icon: Notebook, label: 'Notebook' },
-    { type: 'project', icon: FolderKanban, label: 'Project' },
-    { type: 'assistant', icon: BookOpen, label: 'Assistant' },
-    { type: 'prompt', icon: FileText, label: 'Prompt' },
-    { type: 'perplexity_search', icon: Globe, label: 'Perplexity Search' }
+    { type: 'note_books', icon: Notebook, label: t.library.types.notebook },
+    { type: 'project', icon: FolderKanban, label: t.library.types.project },
+    { type: 'assistant', icon: BookOpen, label: t.library.types.assistant },
+    { type: 'prompt', icon: FileText, label: t.library.types.prompt },
+    { type: 'perplexity_search', icon: Globe, label: t.library.types.perplexitySearch }
   ];
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -123,10 +125,10 @@ const DetailsView: React.FC<DetailsViewProps> = ({
                 </div>
                 <div>
                   <h2 className="text-xl font-bold text-gray-900 dark:text-white">
-                    Modifier la ressource
+                    {t.detailsView.title}
                   </h2>
                   <p className="text-sm text-gray-500 dark:text-gray-400">
-                    Mettez à jour les informations
+                    {t.detailsView.subtitle}
                   </p>
                 </div>
               </div>
@@ -137,7 +139,7 @@ const DetailsView: React.FC<DetailsViewProps> = ({
             {/* Type - Solo lectura */}
             <div>
               <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
-                TYPE
+                {t.detailsView.type}
               </label>
               <div className="inline-flex items-center gap-2 px-4 py-3 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
                 <TypeIcon size={20} className="text-blue-600 dark:text-blue-400" />
@@ -150,7 +152,7 @@ const DetailsView: React.FC<DetailsViewProps> = ({
             {/* Title - Editable */}
             <div>
               <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                TITRE
+                {t.detailsView.name}
               </label>
               <input
                 type="text"
@@ -163,23 +165,23 @@ const DetailsView: React.FC<DetailsViewProps> = ({
             {/* Language - Editable */}
             <div>
               <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                LANGUE
+                {t.detailsView.language}
               </label>
               <select
                 value={formData.language}
                 onChange={(e) => setFormData({ ...formData, language: e.target.value })}
                 className="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
               >
-                <option value="fr">Français</option>
-                <option value="en">English</option>
-                <option value="es">Español</option>
+                <option value="fr">{t.detailsView.languages.fr}</option>
+                <option value="en">{t.detailsView.languages.en}</option>
+                <option value="es">{t.detailsView.languages.es}</option>
               </select>
             </div>
 
             {/* Description - Editable */}
             <div>
               <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                DESCRIPTION
+                {t.detailsView.description}
               </label>
               <textarea
                 value={formData.description}
@@ -192,7 +194,7 @@ const DetailsView: React.FC<DetailsViewProps> = ({
             {/* Visibility - Editable */}
             <div>
               <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
-                VISIBILITÉ
+                {t.detailsView.visibility}
               </label>
               <div className="grid grid-cols-2 gap-3">
                 <button
@@ -209,7 +211,7 @@ const DetailsView: React.FC<DetailsViewProps> = ({
                     <div className={`font-semibold text-sm ${
                       !formData.hasPublicStatus ? 'text-blue-600 dark:text-blue-400' : 'text-gray-900 dark:text-white'
                     }`}>
-                      PRIVÉ
+                      {t.detailsView.private}
                     </div>
                   </div>
                 </button>
@@ -228,7 +230,7 @@ const DetailsView: React.FC<DetailsViewProps> = ({
                     <div className={`font-semibold text-sm ${
                       formData.hasPublicStatus ? 'text-green-600 dark:text-green-400' : 'text-gray-900 dark:text-white'
                     }`}>
-                      PUBLIC
+                      {t.detailsView.public}
                     </div>
                   </div>
                 </button>
@@ -238,7 +240,7 @@ const DetailsView: React.FC<DetailsViewProps> = ({
             {/* Divider */}
             <div className="border-t-2 border-gray-200 dark:border-gray-700 pt-6 mt-2">
               <h3 className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4">
-                Información de Solo Lectura
+                {t.detailsView.readOnlyInfo}
               </h3>
             </div>
 
@@ -248,7 +250,7 @@ const DetailsView: React.FC<DetailsViewProps> = ({
                 {/* URL Privada */}
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                    URL PRIVADA (Requiere login)
+                    {t.detailsView.privateUrl}
                   </label>
                   <div className="flex gap-2">
                     <input
@@ -264,7 +266,7 @@ const DetailsView: React.FC<DetailsViewProps> = ({
                         handleCopyToClipboard(privateUrl, 'private');
                       }}
                       className="px-4 py-3 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 border-2 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-400 rounded-xl font-semibold transition-all"
-                      title="Copiar URL"
+                      title={t.detailsView.copyUrl}
                     >
                       {copiedPrivate ? <CheckCircle size={20} /> : <Copy size={20} />}
                     </button>
@@ -275,7 +277,7 @@ const DetailsView: React.FC<DetailsViewProps> = ({
                         window.open(privateUrl, '_blank');
                       }}
                       className="px-4 py-3 bg-purple-50 dark:bg-purple-900/20 hover:bg-purple-100 dark:hover:bg-purple-900/30 border-2 border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-400 rounded-xl font-semibold transition-all"
-                      title="Abrir en nueva pestaña"
+                      title={t.detailsView.openTab}
                     >
                       <ExternalLink size={20} />
                     </button>
@@ -286,7 +288,7 @@ const DetailsView: React.FC<DetailsViewProps> = ({
                 {formData.hasPublicStatus && (
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                      URL PÚBLICA (Sin login, solo lectura)
+                      {t.detailsView.publicUrl}
                     </label>
                     <div className="flex gap-2">
                       <input
@@ -302,7 +304,7 @@ const DetailsView: React.FC<DetailsViewProps> = ({
                           handleCopyToClipboard(publicUrl, 'public');
                         }}
                         className="px-4 py-3 bg-green-100 dark:bg-green-900/30 hover:bg-green-200 dark:hover:bg-green-900/40 border-2 border-green-300 dark:border-green-700 text-green-700 dark:text-green-400 rounded-xl font-semibold transition-all"
-                        title="Copiar URL"
+                        title={t.detailsView.copyUrl}
                       >
                         {copiedPublic ? <CheckCircle size={20} /> : <Copy size={20} />}
                       </button>
@@ -313,7 +315,7 @@ const DetailsView: React.FC<DetailsViewProps> = ({
                           window.open(publicUrl, '_blank');
                         }}
                         className="px-4 py-3 bg-green-100 dark:bg-green-900/30 hover:bg-green-200 dark:hover:bg-green-900/40 border-2 border-green-300 dark:border-green-700 text-green-700 dark:text-green-400 rounded-xl font-semibold transition-all"
-                        title="Abrir en nueva pestaña"
+                        title={t.detailsView.openTab}
                       >
                         <ExternalLink size={20} />
                       </button>
@@ -330,14 +332,14 @@ const DetailsView: React.FC<DetailsViewProps> = ({
                 onClick={onClose}
                 className="flex-1 px-6 py-3 border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-semibold rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-all"
               >
-                Annuler
+                {t.detailsView.cancel}
               </button>
               <button
                 type="submit"
                 disabled={isSaving}
                 className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold rounded-xl transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isSaving ? 'Mise à jour...' : 'Mettre à jour'}
+                {isSaving ? t.detailsView.updating : t.detailsView.update}
               </button>
             </div>
           </form>

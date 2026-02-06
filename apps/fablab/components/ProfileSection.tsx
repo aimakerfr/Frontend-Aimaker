@@ -199,13 +199,13 @@ const ProfileSection: React.FC<{ user: UserProfile | null }> = () => {
                   onChange={(e) => setEditForm({ ...editForm, uiLanguage: e.target.value })}
                   className="text-lg font-semibold text-gray-900 dark:text-white bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded px-2 py-1 w-full"
                 >
-                  <optgroup label="Standard">
+                  <optgroup label={t.profile.standardLanguages}>
                     <option value="es">ES</option>
                     <option value="en">EN</option>
                     <option value="fr">FR</option>
                   </optgroup>
                   {translationSources.length > 0 && (
-                    <optgroup label="Custom (RAG)">
+                    <optgroup label={t.profile.customLanguages}>
                       {translationSources.map(source => (
                         <option key={source.id} value={`rag:${source.id}`}>
                           {source.name.toUpperCase()}
@@ -298,7 +298,7 @@ const ProfileSection: React.FC<{ user: UserProfile | null }> = () => {
             <div className="text-2xl font-bold text-purple-900 dark:text-purple-100">
               {profileData.stats.byType?.note_books || 0}
             </div>
-            <div className="text-xs text-purple-700 dark:text-purple-300 font-medium">Notebooks</div>
+            <div className="text-xs text-purple-700 dark:text-purple-300 font-medium">{t.profile.stats.notebooks}</div>
           </div>
           
           <div className="p-4 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 rounded-xl border border-blue-200 dark:border-blue-700">
@@ -306,7 +306,7 @@ const ProfileSection: React.FC<{ user: UserProfile | null }> = () => {
             <div className="text-2xl font-bold text-blue-900 dark:text-blue-100">
               {profileData.stats.byType?.project || 0}
             </div>
-            <div className="text-xs text-blue-700 dark:text-blue-300 font-medium">Proyectos</div>
+            <div className="text-xs text-blue-700 dark:text-blue-300 font-medium">{t.profile.stats.projects}</div>
           </div>
           
           <div className="p-4 bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 rounded-xl border border-green-200 dark:border-green-700">
@@ -314,7 +314,7 @@ const ProfileSection: React.FC<{ user: UserProfile | null }> = () => {
             <div className="text-2xl font-bold text-green-900 dark:text-green-100">
               {profileData.stats.byType?.prompt || 0}
             </div>
-            <div className="text-xs text-green-700 dark:text-green-300 font-medium">Prompts</div>
+            <div className="text-xs text-green-700 dark:text-green-300 font-medium">{t.profile.stats.prompts}</div>
           </div>
           
           <div className="p-4 bg-gradient-to-br from-yellow-50 to-yellow-100 dark:from-yellow-900/20 dark:to-yellow-800/20 rounded-xl border border-yellow-200 dark:border-yellow-700">
@@ -322,7 +322,7 @@ const ProfileSection: React.FC<{ user: UserProfile | null }> = () => {
             <div className="text-2xl font-bold text-yellow-900 dark:text-yellow-100">
               {profileData.stats.byType?.external_link || 0}
             </div>
-            <div className="text-xs text-yellow-700 dark:text-yellow-300 font-medium">Enlaces</div>
+            <div className="text-xs text-yellow-700 dark:text-yellow-300 font-medium">{t.profile.stats.links}</div>
           </div>
 
           <div className="p-4 bg-gradient-to-br from-indigo-50 to-indigo-100 dark:from-indigo-900/20 dark:to-indigo-800/20 rounded-xl border border-indigo-200 dark:border-indigo-700">
@@ -330,7 +330,7 @@ const ProfileSection: React.FC<{ user: UserProfile | null }> = () => {
             <div className="text-2xl font-bold text-indigo-900 dark:text-indigo-100">
               {profileData.stats.byType?.agent || 0}
             </div>
-            <div className="text-xs text-indigo-700 dark:text-indigo-300 font-medium">Asistentes</div>
+            <div className="text-xs text-indigo-700 dark:text-indigo-300 font-medium">{t.profile.stats.assistants}</div>
           </div>
 
           <div className="p-4 bg-gradient-to-br from-pink-50 to-pink-100 dark:from-pink-900/20 dark:to-pink-800/20 rounded-xl border border-pink-200 dark:border-pink-700">
@@ -338,7 +338,7 @@ const ProfileSection: React.FC<{ user: UserProfile | null }> = () => {
             <div className="text-2xl font-bold text-pink-900 dark:text-pink-100">
               {profileData.stats.byType?.app || 0}
             </div>
-            <div className="text-xs text-pink-700 dark:text-pink-300 font-medium">Apps</div>
+            <div className="text-xs text-pink-700 dark:text-pink-300 font-medium">{t.profile.stats.apps}</div>
           </div>
 
           <div className="p-4 bg-gradient-to-br from-teal-50 to-teal-100 dark:from-teal-900/20 dark:to-teal-800/20 rounded-xl border border-teal-200 dark:border-teal-700">
@@ -346,7 +346,7 @@ const ProfileSection: React.FC<{ user: UserProfile | null }> = () => {
             <div className="text-2xl font-bold text-teal-900 dark:text-teal-100">
               {profileData.stats.byType?.vibe_coding || 0}
             </div>
-            <div className="text-xs text-teal-700 dark:text-teal-300 font-medium">Vibe Coding</div>
+            <div className="text-xs text-teal-700 dark:text-teal-300 font-medium">{t.profile.stats.vibeCoding}</div>
           </div>
           
           <div className="p-4 bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 rounded-xl border border-orange-200 dark:border-orange-700">
@@ -354,14 +354,14 @@ const ProfileSection: React.FC<{ user: UserProfile | null }> = () => {
             <div className="text-2xl font-bold text-orange-900 dark:text-orange-100">
               {profileData.stats.totalTools}
             </div>
-            <div className="text-xs text-orange-700 dark:text-orange-300 font-medium">Total</div>
+            <div className="text-xs text-orange-700 dark:text-orange-300 font-medium">{t.profile.stats.total}</div>
           </div>
         </div>
       </div>
 
       {profileData.bio && (
         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-8">
-          <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Acerca de</h2>
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">{t.profile.about}</h2>
           <p className="text-gray-600 dark:text-gray-300">{profileData.bio}</p>
         </div>
       )}

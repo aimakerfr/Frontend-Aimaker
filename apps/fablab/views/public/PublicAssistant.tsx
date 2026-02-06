@@ -7,8 +7,11 @@ import { httpClient } from '@core/api/http.client';
 import { geminiService, type AssistantConfig, type Message } from '@core/gemini/gemini.service';
 import type { Attachment } from './assistant/types';
 import { getTranslation, type Language } from './assistant/i18n';
+import { useLanguage } from '../../language/useLanguage';
 
 const PublicAssistant: React.FC = () => {
+  const { t: tg } = useLanguage();
+  const tpa = tg.publicAssistant;
   const { id } = useParams<{ id: string }>();
   const [assistant, setAssistant] = useState<CreationTool | null>(null);
   const [assistantData, setAssistantData] = useState<AssistantConfig | null>(null);
@@ -38,13 +41,13 @@ const PublicAssistant: React.FC = () => {
         
         // Verificar que sea público
         if (!data.hasPublicStatus) {
-          setError('Este asistente es privado y no está disponible públicamente.');
+          setError(tpa.errorPrivate);
           return;
         }
         
         // Verificar que sea tipo assistant
         if (data.type !== 'assistant') {
-          setError('El recurso solicitado no es un asistente.');
+          setError(tpa.errorNotAssistant);
           return;
         }
         
@@ -63,14 +66,14 @@ const PublicAssistant: React.FC = () => {
         }
       } catch (err) {
         console.error('Error cargando asistente:', err);
-        setError('No se pudo cargar el asistente. Puede que no exista o no sea público.');
+        setError(tpa.errorLoading);
       } finally {
         setLoading(false);
       }
     };
 
     loadAssistant();
-  }, [id]);
+  }, [id, tpa.errorPrivate, tpa.errorNotAssistant, tpa.errorLoading]);
 
   // Auto-scroll cuando cambian los mensajes
   useEffect(() => {
@@ -119,7 +122,7 @@ const PublicAssistant: React.FC = () => {
       console.error('Error al obtener respuesta:', error);
       setMessages(prev => [...prev, {
         role: 'assistant',
-        content: 'Lo siento, ocurrió un error al procesar tu mensaje.'
+        content: tpa.errorProcessing
       }]);
     } finally {
       setIsLoadingResponse(false);
@@ -159,7 +162,7 @@ const PublicAssistant: React.FC = () => {
       <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-blue-50 dark:from-gray-900 dark:to-indigo-900/10 flex items-center justify-center">
         <div className="text-center">
           <div className="inline-block w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
-          <p className="mt-4 text-gray-600 dark:text-gray-400">Cargando asistente...</p>
+          <p className="mt-4 text-gray-600 dark:text-gray-400">{tpa.loading}</p>
         </div>
       </div>
     );
@@ -173,10 +176,10 @@ const PublicAssistant: React.FC = () => {
             <BookOpen size={32} className="text-red-600 dark:text-red-400" />
           </div>
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-            Asistente no disponible
+            {tpa.errorNotAvailable}
           </h2>
           <p className="text-gray-600 dark:text-gray-400 mb-6">
-            {error || 'No se encontró el asistente solicitado.'}
+            {error || tpa.errorLoading}
           </p>
         </div>
       </div>
@@ -197,7 +200,7 @@ const PublicAssistant: React.FC = () => {
             <h1 className="text-sm font-bold text-gray-900 dark:text-white">{assistant.title}</h1>
             <div className="flex items-center gap-2 text-[10px]">
               <Globe size={10} className="text-green-500" />
-              <span className="text-gray-500 dark:text-gray-400 font-medium uppercase tracking-wider">Vista Pública</span>
+              <span className="text-gray-500 dark:text-gray-400 font-medium uppercase tracking-wider">{tpa.publicView}</span>
             </div>
           </div>
         </div>
@@ -241,8 +244,8 @@ const PublicAssistant: React.FC = () => {
             {messages.map((msg, idx) => (
               <div key={idx} className={`flex gap-4 animate-in slide-in-from-bottom-2 duration-300 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                 {msg.role !== 'user' && (
-                  <div className="w-9 h-9 rounded-2xl bg-gradient-to-br from-indigo-500 to-blue-600 flex items-center justify-center shrink-0 shadow-md">
-                    <Bot className="w-5 h-5 text-white" />
+                  <div className="w-9 h-9 rounded-2xl bg-gradient-to-br from-indigo-50 to-blue-100 flex items-center justify-center shrink-0 shadow-md">
+                    <Bot className="w-5 h-5 text-indigo-600" />
                   </div>
                 )}
                 <div className={`max-w-[85%] text-[13px] leading-relaxed font-medium ${
@@ -270,8 +273,8 @@ const PublicAssistant: React.FC = () => {
             ))}
             {isLoadingResponse && (
               <div className="flex justify-start gap-4 animate-pulse">
-                <div className="w-9 h-9 rounded-2xl bg-gradient-to-br from-indigo-500 to-blue-600 flex items-center justify-center shrink-0">
-                  <Bot className="w-5 h-5 text-white" />
+                <div className="w-9 h-9 rounded-2xl bg-gradient-to-br from-indigo-50 to-blue-100 flex items-center justify-center shrink-0">
+                  <Bot className="w-5 h-5 text-indigo-600" />
                 </div>
                 <div className="text-slate-400 dark:text-gray-500 text-[11px] font-bold uppercase tracking-widest py-3 italic">
                   {t('preview.thinking')}

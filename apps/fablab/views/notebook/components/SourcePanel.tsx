@@ -1,21 +1,21 @@
 
 import React, { useState, useRef } from 'react';
 import { Plus, Trash2, CheckSquare, Square, FileType, Upload, X, Video, Link2, ImageIcon, Eye, FileText, AlignLeft, ClipboardPaste, Globe, ExternalLink, Download, Languages } from 'lucide-react';
-import { translations as staticTranslations } from '../../../language/translations';
-import { Source, SourceType, Language } from '../types.ts';
+import { Source, SourceType } from '../types.ts';
 import { extractUrlContent, transcribeVideo, transcribeVideoUrl, analyzeImage, processPdfVisual } from '../services/geminiService.ts';
-import { UI_TRANSLATIONS } from '../constants/translations.ts';
+import { useLanguage } from '../../../language/useLanguage';
+import { translations as staticTranslations } from '../../../language/translations';
 
 interface SourcePanelProps {
     sources: Source[];
     onAddSource: (type: SourceType, content: string, title: string, url?: string, previewUrl?: string, file?: File) => void;
     onToggleSource: (id: string) => void;
     onDeleteSource: (id: string) => void;
-    lang: Language;
 }
 
-const SourcePanel: React.FC<SourcePanelProps> = ({ sources, onAddSource, onToggleSource, onDeleteSource, lang }) => {
-    const t = UI_TRANSLATIONS[lang].sourcePanel;
+const SourcePanel: React.FC<SourcePanelProps> = ({ sources, onAddSource, onToggleSource, onDeleteSource }) => {
+    const { t } = useLanguage();
+    const tp = t.notebook.sourcePanel;
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isPreviewOpen, setIsPreviewOpen] = useState(false);
     const [previewSource, setPreviewSource] = useState<Source | null>(null);
@@ -118,7 +118,7 @@ const SourcePanel: React.FC<SourcePanelProps> = ({ sources, onAddSource, onToggl
                 }
             } catch (err) {
                 console.error(err);
-                alert("Error al procesar el archivo.");
+                alert(t.common.error);
             }
             setIsLoading(false);
         }
@@ -129,7 +129,7 @@ const SourcePanel: React.FC<SourcePanelProps> = ({ sources, onAddSource, onToggl
             const text = await navigator.clipboard.readText();
             setContent(text);
         } catch (err) {
-            alert("Por favor, pega el texto manualmente en el recuadro.");
+            alert(tp.modal.placeholders.paste);
         }
     };
 
@@ -139,7 +139,7 @@ const SourcePanel: React.FC<SourcePanelProps> = ({ sources, onAddSource, onToggl
         setIsLoading(true);
         try {
             let finalContent = content;
-            let finalTitle = fileName.split('.')[0] || "Nueva Fuente";
+            let finalTitle = fileName.split('.')[0] || tp.modal.placeholders.newSource;
             let finalPreviewUrl = localPreviewUrl;
 
             if (activeTab === 'url') {
@@ -161,7 +161,7 @@ const SourcePanel: React.FC<SourcePanelProps> = ({ sources, onAddSource, onToggl
                 finalContent = result.content;
                 finalTitle = result.title;
             } else if (activeTab === 'text') {
-                finalTitle = (content || "").split('\n')[0].substring(0, 30) || "Texto Libre";
+                finalTitle = (content || "").split('\n')[0].substring(0, 30) || tp.modal.placeholders.textLabel;
             }
 
             onAddSource(activeTab, finalContent, finalTitle, url, finalPreviewUrl, selectedFile);
@@ -169,7 +169,7 @@ const SourcePanel: React.FC<SourcePanelProps> = ({ sources, onAddSource, onToggl
             resetForm();
         } catch (err) {
             console.error(err);
-            alert("Error en el análisis de IA. Intenta con un archivo más ligero o revisa la URL.");
+            alert(t.common.error);
         }
         finally { setIsLoading(false); }
     };
@@ -197,10 +197,10 @@ const SourcePanel: React.FC<SourcePanelProps> = ({ sources, onAddSource, onToggl
             <div className="p-5 border-b border-gray-100 flex justify-between items-center bg-white shrink-0">
                 <h2 className="font-black text-gray-800 flex items-center gap-2 tracking-tight text-base">
                     <FileType className="w-5 h-5 text-indigo-600" />
-                    {t.title}
+                    {tp.title}
                 </h2>
                 <span className="text-[9px] font-black bg-indigo-50 px-2 py-1 rounded-full text-indigo-600 border border-indigo-100 tracking-widest uppercase">
-                    {sources.length} {t.total}
+                    {sources.length} {tp.total}
                 </span>
             </div>
 
@@ -209,7 +209,7 @@ const SourcePanel: React.FC<SourcePanelProps> = ({ sources, onAddSource, onToggl
                 {sources.length === 0 && (
                     <div className="flex flex-col items-center justify-center py-20 text-center opacity-20">
                         <FileType size={40} className="mb-4 text-gray-400" />
-                        <p className="text-xs font-bold uppercase tracking-widest">{t.empty}</p>
+                        <p className="text-xs font-bold uppercase tracking-widest">{tp.empty}</p>
                     </div>
                 )}
                 {sources.map(source => (
@@ -230,7 +230,7 @@ const SourcePanel: React.FC<SourcePanelProps> = ({ sources, onAddSource, onToggl
                                         source.type === 'html' ? 'bg-blue-600 text-white' :
                                             source.type === 'image' ? 'bg-amber-50 text-amber-500' :
                                                 source.type === 'video' ? 'bg-purple-50 text-purple-500' :
-                                                    'bg-green-50 text-green-500'}`}>{source.type === 'pdf' ? 'DOCUMENTO' : source.type === 'url' ? 'WEBSITE' : source.type.toUpperCase()}</span>
+                                                    'bg-green-50 text-green-500'}`}>{source.type === 'pdf' ? t.detailsView.readOnlyInfo : source.type === 'url' ? tp.modal.placeholders.webLink : source.type.toUpperCase()}</span>
                             </div>
                         </div>
                         <button onClick={(e) => { e.stopPropagation(); onDeleteSource(source.id); }} className="absolute -top-1 -right-1 opacity-0 group-hover:opacity-100 p-1.5 bg-white border border-gray-200 rounded-full text-gray-400 hover:text-red-500 transition-all shadow-md z-10"><Trash2 size={10} /></button>
@@ -241,7 +241,7 @@ const SourcePanel: React.FC<SourcePanelProps> = ({ sources, onAddSource, onToggl
             {/* Botón Añadir Fuente */}
             <div className="p-5 border-t border-gray-100 bg-white shrink-0">
                 <button onClick={() => setIsModalOpen(true)} className="w-full py-4 px-4 bg-indigo-600 text-white rounded-2xl shadow-xl shadow-indigo-100 text-[11px] font-black hover:bg-indigo-700 active:scale-95 flex items-center justify-center gap-3 transition-all tracking-widest uppercase">
-                    <Plus size={18} /> {t.add}
+                    <Plus size={18} /> {tp.add}
                 </button>
             </div>
 
@@ -251,8 +251,8 @@ const SourcePanel: React.FC<SourcePanelProps> = ({ sources, onAddSource, onToggl
                     <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-xl overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200">
                         <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-white shrink-0">
                             <div className="flex flex-col">
-                                <h3 className="font-black text-gray-800 text-lg tracking-tight">Nueva Fuente</h3>
-                                <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Contenido para el motor RAG</span>
+                                <h3 className="font-black text-gray-800 text-lg tracking-tight">{tp.modal.title}</h3>
+                                <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">{tp.modal.subtitle}</span>
                             </div>
                             <button onClick={() => !isLoading && setIsModalOpen(false)} className="p-2 hover:bg-gray-100 rounded-xl text-gray-400 transition-colors" disabled={isLoading}><X size={20} /></button>
                         </div>
@@ -277,7 +277,7 @@ const SourcePanel: React.FC<SourcePanelProps> = ({ sources, onAddSource, onToggl
                                             <tab.icon size={18} />
                                         </div>
                                         <span className={`text-[8px] font-black uppercase tracking-tight ${activeTab === tab.id ? 'text-indigo-600' : 'text-gray-400'}`}>
-                                            {tab.id === 'html' ? 'HTML' : tab.id === 'pdf' ? 'PDF/DOC' : tab.id === 'image' ? 'IMAGEN' : tab.id === 'video' ? 'VIDEO' : tab.id === 'url' ? 'WEBSITE' : tab.id === 'translation' ? 'TRADUCCIÓN' : 'TEXTO'}
+                                            {tab.id === 'html' ? tp.modal.tabs.html : tab.id === 'pdf' ? tp.modal.tabs.pdf : tab.id === 'image' ? tp.modal.tabs.image : tab.id === 'video' ? tp.modal.tabs.video : tab.id === 'url' ? tp.modal.tabs.url : tab.id === 'translation' ? tp.modal.tabs.translation : tp.modal.tabs.text}
                                         </span>
                                     </button>
                                 ))}
@@ -289,7 +289,7 @@ const SourcePanel: React.FC<SourcePanelProps> = ({ sources, onAddSource, onToggl
                                 <div onClick={() => !isLoading && fileInputRef.current?.click()} className="border-2 border-dashed rounded-[1.5rem] p-8 flex flex-col items-center justify-center cursor-pointer bg-gray-50/30 border-gray-200 hover:border-red-300 hover:bg-red-50/10 transition-all group">
                                     <input type="file" ref={fileInputRef} className="hidden" accept=".pdf,.txt,.csv" onChange={(e) => handleFileUpload(e, 'pdf')} disabled={isLoading} />
                                     <FileText className="mb-3 text-gray-300 group-hover:text-red-400 transition-all" size={36} />
-                                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">{fileName || "Seleccionar archivo"}</span>
+                                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">{fileName || tp.modal.placeholders.selectFile}</span>
                                 </div>
                             )}
 
@@ -297,7 +297,7 @@ const SourcePanel: React.FC<SourcePanelProps> = ({ sources, onAddSource, onToggl
                                 <div onClick={() => !isLoading && htmlInputRef.current?.click()} className="border-2 border-dashed rounded-[1.5rem] p-8 flex flex-col items-center justify-center cursor-pointer bg-blue-50/5 border-blue-50 hover:border-blue-200 hover:bg-blue-50/20 transition-all group">
                                     <input type="file" ref={htmlInputRef} className="hidden" accept=".html" onChange={(e) => handleFileUpload(e, 'html')} disabled={isLoading} />
                                     <Globe className="mb-3 text-blue-200 group-hover:text-blue-500 transition-all" size={36} />
-                                    <span className="text-[10px] font-black text-blue-400 uppercase tracking-widest text-center">{fileName || "Subir Archivo HTML"}</span>
+                                    <span className="text-[10px] font-black text-blue-400 uppercase tracking-widest text-center">{fileName || tp.modal.placeholders.uploadHtml}</span>
                                 </div>
                             )}
 
@@ -305,7 +305,7 @@ const SourcePanel: React.FC<SourcePanelProps> = ({ sources, onAddSource, onToggl
                                 <div onClick={() => !isLoading && imageInputRef.current?.click()} className="border-2 border-dashed rounded-[1.5rem] p-8 flex flex-col items-center justify-center cursor-pointer bg-amber-50/5 border-amber-50 hover:border-amber-200 hover:bg-amber-50/20 transition-all group">
                                     <input type="file" ref={imageInputRef} className="hidden" accept="image/*" onChange={(e) => handleFileUpload(e, 'image')} disabled={isLoading} />
                                     <ImageIcon className="mb-3 text-amber-200 group-hover:text-amber-500 transition-all" size={36} />
-                                    <span className="text-[10px] font-black text-amber-400 uppercase tracking-widest text-center">{fileName || "Subir Imagen"}</span>
+                                    <span className="text-[10px] font-black text-amber-400 uppercase tracking-widest text-center">{fileName || tp.modal.placeholders.uploadImage}</span>
                                 </div>
                             )}
 
@@ -314,11 +314,11 @@ const SourcePanel: React.FC<SourcePanelProps> = ({ sources, onAddSource, onToggl
                                     <div onClick={() => !isLoading && videoInputRef.current?.click()} className="border-2 border-dashed rounded-[1.5rem] p-8 flex flex-col items-center justify-center cursor-pointer bg-purple-50/5 border-purple-50 hover:border-purple-200 hover:bg-purple-50/20 transition-all group">
                                         <input type="file" ref={videoInputRef} className="hidden" accept="video/*" onChange={(e) => handleFileUpload(e, 'video')} disabled={isLoading} />
                                         <Video className="mb-3 text-purple-200 group-hover:text-purple-500 transition-all" size={36} />
-                                        <span className="text-[10px] font-black text-purple-400 uppercase tracking-widest text-center">{fileName || "Subir Video Local"}</span>
+                                        <span className="text-[10px] font-black text-purple-400 uppercase tracking-widest text-center">{fileName || tp.modal.placeholders.uploadVideo}</span>
                                     </div>
                                     <div className="relative">
                                         <div className="absolute inset-y-0 left-3 flex items-center text-gray-300"><Link2 size={16} /></div>
-                                        <input type="url" placeholder="URL de YouTube" className="w-full text-xs pl-10 pr-4 py-3 bg-gray-50 border border-gray-100 rounded-xl outline-none font-bold text-gray-700" value={url} onChange={e => setUrl(e.target.value)} disabled={isLoading} />
+                                        <input type="url" placeholder={tp.modal.placeholders.youtubeUrl} className="w-full text-xs pl-10 pr-4 py-3 bg-gray-50 border border-gray-100 rounded-xl outline-none font-bold text-gray-700" value={url} onChange={e => setUrl(e.target.value)} disabled={isLoading} />
                                     </div>
                                 </div>
                             )}
@@ -327,21 +327,21 @@ const SourcePanel: React.FC<SourcePanelProps> = ({ sources, onAddSource, onToggl
                                 <div className="space-y-3">
                                     <div className="flex items-center gap-2 text-blue-500 px-1">
                                         <Globe size={16} />
-                                        <span className="text-[9px] font-black uppercase tracking-widest">Enlace Web</span>
+                                        <span className="text-[9px] font-black uppercase tracking-widest">{tp.modal.placeholders.webLink}</span>
                                     </div>
                                     <input type="url" placeholder="https://ejemplo.com/articulo" className="w-full text-xs p-4 bg-gray-50 border border-gray-100 focus:border-blue-300 rounded-xl outline-none font-bold text-gray-700 transition-all" value={url} onChange={e => setUrl(e.target.value)} required disabled={isLoading} />
-                                    <p className="text-[9px] text-gray-400 px-1 italic">La IA navegará y extraerá el contenido relevante de forma automática.</p>
+                                    <p className="text-[9px] text-gray-400 px-1 italic">{tp.modal.placeholders.webLinkHint}</p>
                                 </div>
                             )}
 
                             {activeTab === 'text' && (
                                 <div className="space-y-3 h-full flex flex-col">
                                     <div className="flex justify-between items-center mb-1 shrink-0 px-1">
-                                        <span className="text-[9px] font-black text-green-500 uppercase tracking-widest">Texto Libre</span>
-                                        <button type="button" onClick={handlePaste} className="flex items-center gap-1.5 text-[8px] font-black text-indigo-600 bg-indigo-50 px-3 py-1 rounded-lg hover:bg-indigo-100 transition-all uppercase tracking-widest border border-indigo-100"><ClipboardPaste size={12} /> Pegar</button>
+                                        <span className="text-[9px] font-black text-green-500 uppercase tracking-widest">{tp.modal.placeholders.textLabel}</span>
+                                        <button type="button" onClick={handlePaste} className="flex items-center gap-1.5 text-[8px] font-black text-indigo-600 bg-indigo-50 px-3 py-1 rounded-lg hover:bg-indigo-100 transition-all uppercase tracking-widest border border-indigo-100"><ClipboardPaste size={12} /> {tp.modal.placeholders.paste}</button>
                                     </div>
                                     <textarea
-                                        placeholder="Pega el contenido para análisis RAG..."
+                                        placeholder={tp.modal.placeholders.textPlaceholder}
                                         className="flex-1 w-full text-xs p-5 bg-gray-50 border border-gray-100 focus:border-green-200 rounded-[1.5rem] min-h-[160px] resize-none outline-none font-medium text-gray-700 shadow-inner leading-relaxed"
                                         value={content || ''}
                                         onChange={e => setContent(e.target.value)}
@@ -358,26 +358,26 @@ const SourcePanel: React.FC<SourcePanelProps> = ({ sources, onAddSource, onToggl
                                             <FileText size={24} />
                                         </div>
                                         <div className="text-center">
-                                            <h4 className="font-black text-gray-800 text-xs uppercase tracking-widest mb-1">Plantilla de Traducciones</h4>
-                                            <p className="text-[10px] text-gray-400 font-medium">Descarga la estructura actual de variables para crear un nuevo idioma.</p>
+                                            <h4 className="font-black text-gray-800 text-xs uppercase tracking-widest mb-1">{tp.modal.placeholders.translationTitle}</h4>
+                                            <p className="text-[10px] text-gray-400 font-medium">{tp.modal.placeholders.translationDesc}</p>
                                         </div>
                                         <button 
                                             type="button" 
                                             onClick={downloadTemplate}
                                             className="w-full py-3 bg-white border border-indigo-200 text-indigo-600 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-indigo-50 transition-all shadow-sm"
                                         >
-                                            <Download size={14} /> Descargar Plantilla (.json)
+                                            <Download size={14} /> {tp.modal.placeholders.downloadTemplate}
                                         </button>
                                     </div>
 
                                     <div onClick={() => !isLoading && fileInputRef.current?.click()} className="border-2 border-dashed rounded-[1.5rem] p-8 flex flex-col items-center justify-center cursor-pointer bg-white border-gray-200 hover:border-indigo-300 hover:bg-indigo-50/10 transition-all group">
                                         <input type="file" ref={fileInputRef} className="hidden" accept=".json" onChange={(e) => handleFileUpload(e, 'translation')} disabled={isLoading} />
                                         <Upload className={`mb-3 transition-all ${fileName ? 'text-indigo-600' : 'text-gray-300 group-hover:text-indigo-400'}`} size={36} />
-                                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">{fileName || "Subir Archivo de Traducción (.json)"}</span>
+                                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">{fileName || tp.modal.placeholders.uploadTranslation}</span>
                                     </div>
 
                                     <div className="px-1 text-center">
-                                        <p className="text-[9px] text-gray-400 italic">Una vez subido, podrás seleccionar este idioma en la sección de Perfil.</p>
+                                        <p className="text-[9px] text-gray-400 italic">{tp.modal.placeholders.translationHint}</p>
                                     </div>
                                 </div>
                             )}
@@ -385,12 +385,12 @@ const SourcePanel: React.FC<SourcePanelProps> = ({ sources, onAddSource, onToggl
 
                         <div className="px-6 py-4 border-t border-gray-100 bg-white shrink-0">
                             <form onSubmit={handleSubmit} className="flex gap-3">
-                                <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 py-3 text-[10px] font-black text-gray-400 hover:text-gray-600 uppercase tracking-widest" disabled={isLoading}>{t.cancel}</button>
+                                <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 py-3 text-[10px] font-black text-gray-400 hover:text-gray-600 uppercase tracking-widest" disabled={isLoading}>{t.common.cancel}</button>
                                 <button type="submit" disabled={isLoading || (!content && !url)} className="flex-[2] py-3 min-h-[48px] text-[10px] font-black bg-indigo-600 text-white rounded-xl shadow-lg shadow-indigo-100 flex items-center justify-center gap-2 active:scale-95 transition-all uppercase tracking-widest disabled:bg-indigo-200">
                                     {isLoading ? (
-                                        <><div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin"></div><span className="animate-pulse">SINTETIZANDO...</span></>
+                                        <><div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin"></div><span className="animate-pulse">{tp.modal.footer.synthesizing}</span></>
                                     ) : (
-                                        <><Upload size={14} /> {t.save}</>
+                                        <><Upload size={14} /> {t.common.save}</>
                                     )}
                                 </button>
                             </form>
@@ -415,7 +415,7 @@ const SourcePanel: React.FC<SourcePanelProps> = ({ sources, onAddSource, onToggl
                                 </div>
                                 <div className="min-w-0">
                                     <h3 className="font-black text-gray-900 text-lg leading-none mb-1 truncate">{previewSource.title}</h3>
-                                    <span className="text-[9px] font-black text-indigo-400 uppercase tracking-widest">Fuente de Conocimiento</span>
+                                    <span className="text-[9px] font-black text-indigo-400 uppercase tracking-widest">{tp.preview.title}</span>
                                 </div>
                             </div>
                             <button onClick={() => setIsPreviewOpen(false)} className="p-3 bg-gray-50 hover:bg-red-50 hover:text-red-500 rounded-2xl text-gray-400 transition-all border border-gray-100 shrink-0">
@@ -432,16 +432,16 @@ const SourcePanel: React.FC<SourcePanelProps> = ({ sources, onAddSource, onToggl
                                     {(previewSource.type === 'pdf' || previewSource.type === 'html') && (
                                         <div className="bg-white p-10 rounded-[3rem] shadow-xl border border-gray-100 max-w-md w-full text-center">
                                             <FileText size={56} className={`mx-auto mb-8 ${previewSource.type === 'html' ? 'text-blue-600' : 'text-red-500'}`} />
-                                            <h4 className="text-2xl font-black text-gray-900 mb-2">{previewSource.type === 'html' ? 'Documento HTML' : 'Documento'}</h4>
-                                            <p className="text-gray-400 text-[10px] font-bold uppercase tracking-widest mb-10">El contenido ha sido inyectado al motor RAG</p>
+                                            <h4 className="text-2xl font-black text-gray-900 mb-2">{previewSource.type === 'html' ? tp.preview.htmlDocument : tp.preview.document}</h4>
+                                            <p className="text-gray-400 text-[10px] font-bold uppercase tracking-widest mb-10">{tp.preview.ragHint}</p>
                                             <div className="flex flex-col gap-4">
                                             {previewLink && (
                                                 <>
                                                     <button onClick={() => openSourceFilePathUrl(previewLink)} className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black text-xs uppercase tracking-wider shadow-lg flex items-center justify-center gap-2 hover:bg-indigo-700 transition-colors">
-                                                        <ExternalLink size={16} /> Abrir en pestaña nueva
+                                                        <ExternalLink size={16} /> {tp.preview.openNewTab}
                                                     </button>
                                                     <a href={previewLink} download={previewSource.title + (previewSource.type === 'html' ? ".html" : ".pdf")} className="w-full py-4 bg-white text-indigo-600 border-2 border-indigo-600 rounded-2xl font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 hover:bg-indigo-50 transition-colors">
-                                                        <Download size={16} /> Descargar Archivo
+                                                        <Download size={16} /> {tp.preview.downloadFile}
                                                     </a>
                                                 </>
                                             )}
@@ -464,7 +464,7 @@ const SourcePanel: React.FC<SourcePanelProps> = ({ sources, onAddSource, onToggl
                                                 onClick={() => openSourceFilePathUrl(previewLink)}
                                                 className="inline-flex items-center gap-2 px-5 py-3 bg-indigo-600 text-white rounded-2xl font-black text-xs uppercase tracking-wider shadow-lg hover:bg-indigo-700 transition-colors"
                                             >
-                                                <ExternalLink size={16} /> Abrir en pestaña nueva
+                                                <ExternalLink size={16} /> {tp.preview.openNewTab}
                                             </button>
                                         </div>
                                     )}
@@ -483,7 +483,7 @@ const SourcePanel: React.FC<SourcePanelProps> = ({ sources, onAddSource, onToggl
                                                             onClick={() => openSourceFilePathUrl(urlLink || previewLink)}
                                                             className="inline-flex items-center gap-2 px-5 py-3 bg-indigo-600 text-white rounded-2xl font-black text-xs uppercase tracking-wider shadow-lg hover:bg-indigo-700 transition-colors"
                                                         >
-                                                            <ExternalLink size={16} /> Abrir en pestaña nueva
+                                                            <ExternalLink size={16} /> {tp.preview.openNewTab}
                                                         </button>
                                                     </div>
                                                 </div>
@@ -495,7 +495,7 @@ const SourcePanel: React.FC<SourcePanelProps> = ({ sources, onAddSource, onToggl
                                                             onClick={() => openSourceFilePathUrl(urlLink || previewLink)}
                                                             className="px-10 py-5 bg-indigo-600 text-white rounded-2xl font-black text-xs uppercase tracking-wider"
                                                         >
-                                                            Abrir en pestaña nueva
+                                                            {tp.preview.openNewTab}
                                                         </button>
                                                     )}
                                                 </div>
@@ -505,11 +505,23 @@ const SourcePanel: React.FC<SourcePanelProps> = ({ sources, onAddSource, onToggl
                                     {previewSource.type === 'url' && (
                                         <div className="bg-white p-14 rounded-[3rem] shadow-xl border border-gray-100 max-w-2xl w-full text-center">
                                             <Globe size={56} className="text-blue-600 mx-auto mb-8" />
-                                            <h4 className="text-2xl font-black text-gray-900 mb-2">Contenido Web</h4>
-                                            <p className="text-gray-400 mb-12 text-sm font-bold break-all px-6">{urlLink || previewSource.url}</p>
+                                            <h4 className="text-2xl font-black text-gray-900 mb-2">{tp.preview.htmlDocument}</h4>
+                                            <p className="text-gray-400 mb-12 text-[10px] font-bold uppercase tracking-widest">{tp.preview.ragHint}</p>
                                             {(urlLink || previewSource.url) && (
-                                                <button onClick={() => openSourceFilePathUrl(urlLink || previewSource.url)} className="w-full max-w-xs mx-auto py-5 bg-indigo-600 text-white rounded-2xl font-black text-xs uppercase tracking-wider shadow-lg">
-                                                    Visitar enlace original
+                                                <button onClick={() => openSourceFilePathUrl(urlLink || previewSource.url)} className="w-full max-w-xs mx-auto py-5 bg-indigo-600 text-white rounded-2xl font-black text-xs uppercase tracking-wider shadow-lg flex items-center justify-center gap-2 hover:bg-indigo-700 transition-colors">
+                                                    <ExternalLink size={16} /> {tp.preview.visitLink}
+                                                </button>
+                                            )}
+                                        </div>
+                                    )}
+                                    {previewSource.type === 'translation' && (
+                                        <div className="bg-white p-14 rounded-[3rem] shadow-xl border border-gray-100 max-w-2xl w-full text-center">
+                                            <Languages size={56} className="text-indigo-600 mx-auto mb-8" />
+                                            <h4 className="text-2xl font-black text-gray-900 mb-2">{tp.modal.tabs.translation}</h4>
+                                            <p className="text-gray-400 mb-12 text-[10px] font-bold uppercase tracking-widest">{tp.modal.placeholders.translationDesc}</p>
+                                            {previewLink && (
+                                                <button onClick={() => openSourceFilePathUrl(previewLink)} className="w-full max-w-xs mx-auto py-5 bg-indigo-600 text-white rounded-2xl font-black text-xs uppercase tracking-wider shadow-lg flex items-center justify-center gap-2 hover:bg-indigo-700 transition-colors">
+                                                    <ExternalLink size={16} /> {tp.preview.openNewTab}
                                                 </button>
                                             )}
                                         </div>
