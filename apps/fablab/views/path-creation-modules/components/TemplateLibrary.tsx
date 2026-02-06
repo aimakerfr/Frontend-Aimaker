@@ -4,7 +4,7 @@ import { predefinedTemplates } from '../data/templates';
 import { Copy, Plus, ChevronDown, ChevronRight } from 'lucide-react';
 import { Button } from './Button';
 import { useLanguage } from '../../../language/useLanguage';
-import { translations } from '../../../language/translations';
+import { translations } from '../../../language';
 
 interface TemplateLibraryProps {
   onSelectTemplate: (template: Template) => void;

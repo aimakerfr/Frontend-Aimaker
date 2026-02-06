@@ -4,7 +4,7 @@ import { getTools } from '@core/creation-tools/creation-tools.service';
 import { getPromptByToolId } from '@core/prompts/prompts.service';
 import type { Tool } from '@core/creation-tools/creation-tools.types';
 import { useLanguage } from '../../../language/useLanguage';
-import { translations } from '../../../language/translations';
+import { translations } from '../../../language';
 
 interface PromptLibraryProps {
   isOpen: boolean;

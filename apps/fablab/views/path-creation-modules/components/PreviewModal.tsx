@@ -5,7 +5,7 @@ import { PreviewSection } from './PreviewSection';
 import { Button } from './Button';
 import { generateCombinedHtml, downloadFile } from '../utils/exportUtils';
 import { useLanguage } from '../../../language/useLanguage';
-import { translations } from '../../../language/translations';
+import { translations } from '../../../language';
 
 interface PreviewModalProps {
   isOpen: boolean;

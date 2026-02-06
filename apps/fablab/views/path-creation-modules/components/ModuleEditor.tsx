@@ -4,7 +4,7 @@ import { Button } from './Button';
 import { Upload, Code, FileCode, Check, Download, Database } from 'lucide-react';
 import { HTMLSourcePicker } from './HTMLSourcePicker';
 import { useLanguage } from '../../../language/useLanguage';
-import { translations } from '../../../language/translations';
+import { translations } from '../../../language';
 
 interface ModuleEditorProps {
   moduleData: ModuleData;

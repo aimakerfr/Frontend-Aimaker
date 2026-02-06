@@ -2,7 +2,7 @@ import React from 'react';
 import { WizardStep } from '../types';
 import { Check } from 'lucide-react';
 import { useLanguage } from '../../../language/useLanguage';
-import { translations } from '../../../language/translations';
+import { translations } from '../../../language';
 
 interface StepWizardProps {
   currentStep: WizardStep;

@@ -1,7 +1,7 @@
 import React from 'react';
 import { Route, Link2, X } from 'lucide-react';
 import { useLanguage } from '../../../language/useLanguage';
-import { translations } from '../../../language/translations';
+import { translations } from '../../../language';
 
 interface RouteTypeModalProps {
   isOpen: boolean;

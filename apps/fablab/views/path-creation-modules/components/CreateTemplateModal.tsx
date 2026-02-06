@@ -3,7 +3,7 @@ import { ModuleType, Template } from '../types';
 import { Button } from './Button';
 import { X, Save, Sparkles } from 'lucide-react';
 import { useLanguage } from '../../../language/useLanguage';
-import { translations } from '../../../language/translations';
+import { translations } from '../../../language';
 
 interface CreateTemplateModalProps {
   isOpen: boolean;
