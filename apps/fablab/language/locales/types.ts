@@ -153,14 +153,72 @@ export interface Translations {
     firstName: string;
     email: string;
     phone: string;
+    phoneNotSpecified: string;
     language: string;
     accountInfo: string;
     role: string;
     memberSince: string;
     statistics: string;
+    statisticsToolsTitle: string;
     edit: string;
+    editProfile: string;
     save: string;
+    saving: string;
     cancel: string;
+    category: string;
+    level: string;
+    categories: {
+      student: string;
+      teacher: string;
+      developer: string;
+      apprentice: string;
+      professional: string;
+      researcher: string;
+      other: string;
+    };
+  };
+  makerPath: {
+    title: string;
+    subtitle: string;
+    newRoute: string;
+    searchPlaceholder: string;
+    allTypes: string;
+    allStatuses: string;
+    statuses: {
+      draft: string;
+      inProgress: string;
+      completed: string;
+    };
+    types: {
+      architectAI: string;
+      moduleConnector: string;
+      custom: string;
+    };
+    deleteConfirm: string;
+    tableHeaders: {
+      type: string;
+      titleDescription: string;
+      status: string;
+      creationDate: string;
+      actions: string;
+    };
+    modal: {
+      title: string;
+      subtitle: string;
+      architectAI: {
+        title: string;
+        description: string;
+        badge1: string;
+        badge2: string;
+      };
+      moduleConnector: {
+        title: string;
+        description: string;
+        badge1: string;
+        badge2: string;
+      };
+      cancel: string;
+    };
   };
   moduleCreator: {
     title: string;
@@ -313,5 +371,41 @@ export interface Translations {
     loading: string;
     error: string;
     retry: string;
+    cancel: string;
+    save: string;
+    edit: string;
+    delete: string;
+    create: string;
+    view: string;
+    search: string;
+    name: string;
+    description: string;
+    actions: string;
+    saving: string;
+    creating: string;
+    updating: string;
+    deleting: string;
+  };
+  assistant: {
+    title: string;
+    thinkingMode: string;
+    deepThinking: string;
+    placeholder: string;
+    welcomeMessage: string;
+  };
+  serverTools: {
+    title: string;
+    subtitle: string;
+    editUrl: string;
+    open: string;
+    access: string;
+    tools: {
+      llm: { name: string; description: string };
+      n8n: { name: string; description: string };
+      perplexity: { name: string; description: string };
+      promptOptimize: { name: string; description: string };
+      imageGen: { name: string; description: string };
+      admin: { name: string; description: string };
+    };
   };
 }

@@ -30,8 +30,8 @@ const ProfileSection: React.FC<{ user: UserProfile | null }> = () => {
 
   const loadTranslationSources = async () => {
     try {
-      const response = await httpClient.get('/api/v1/notebook-sources/user-sources?type=TRANSLATION') as any;
-      setTranslationSources(response.data || []);
+      const response = await httpClient.get<any[]>('/api/v1/notebook-sources/user-sources?type=TRANSLATION');
+      setTranslationSources(response || []);
     } catch (error) {
       console.error('Error cargando fuentes de traducción:', error);
     }
@@ -207,7 +207,7 @@ const ProfileSection: React.FC<{ user: UserProfile | null }> = () => {
                   {translationSources.length > 0 && (
                     <optgroup label="Custom (RAG)">
                       {translationSources.map(source => (
-                        <option key={source.id} value={source.filePath}>
+                        <option key={source.id} value={`rag:${source.id}`}>
                           {source.name.toUpperCase()}
                         </option>
                       ))}
@@ -216,8 +216,8 @@ const ProfileSection: React.FC<{ user: UserProfile | null }> = () => {
                 </select>
               ) : (
                 <div className="text-lg font-semibold text-gray-900 dark:text-white uppercase truncate max-w-[150px]">
-                  {profileData.uiLanguage?.startsWith('http') 
-                    ? translationSources.find(s => s.filePath === profileData.uiLanguage)?.name || 'CUSTOM'
+                  {profileData.uiLanguage?.startsWith('rag:') 
+                    ? translationSources.find(s => `rag:${s.id}` === profileData.uiLanguage)?.name || 'CUSTOM'
                     : profileData.uiLanguage}
                 </div>
               )}
