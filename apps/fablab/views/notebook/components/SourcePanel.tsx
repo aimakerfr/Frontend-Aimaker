@@ -5,6 +5,7 @@ import { Source, SourceType } from '../types.ts';
 import { extractUrlContent, transcribeVideo, transcribeVideoUrl, analyzeImage, processPdfVisual } from '../services/geminiService.ts';
 import { useLanguage } from '../../../language/useLanguage';
 import { translations as staticTranslations } from '../../../language/translations';
+import { useAuth } from '@core/auth/useAuth';
 
 interface SourcePanelProps {
     sources: Source[];
@@ -16,6 +17,9 @@ interface SourcePanelProps {
 const SourcePanel: React.FC<SourcePanelProps> = ({ sources, onAddSource, onToggleSource, onDeleteSource }) => {
     const { t } = useLanguage();
     const tp = t.notebook.sourcePanel;
+    const { user } = useAuth();
+    
+    const isAdmin = user?.roles?.includes('ROLE_ADMIN') || false;
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isPreviewOpen, setIsPreviewOpen] = useState(false);
     const [previewSource, setPreviewSource] = useState<Source | null>(null);
@@ -267,7 +271,7 @@ const SourcePanel: React.FC<SourcePanelProps> = ({ sources, onAddSource, onToggl
                                     { id: 'url', icon: Globe, color: 'text-blue-500', bg: 'bg-blue-50' },
                                     { id: 'translation', icon: Languages, color: 'text-indigo-600', bg: 'bg-indigo-50' },
                                     { id: 'text', icon: AlignLeft, color: 'text-green-500', bg: 'bg-green-50' }
-                                ].map((tab) => (
+                                ].filter(tab => tab.id !== 'translation' || isAdmin).map((tab) => (
                                     <button
                                         key={tab.id}
                                         onClick={() => { setActiveTab(tab.id as SourceType); resetForm(); }}

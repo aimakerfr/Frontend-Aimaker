@@ -25,7 +25,7 @@ export interface UserProfile {
   gender?: string;
   birthday?: string;
   avatarFilename?: string;
-  uiLanguage: 'fr' | 'en' | 'es';
+  uiLanguage: string; 
   type?: string;
   category?: 'student' | 'teacher' | 'developer' | 'apprentice' | 'professional' | 'researcher' | 'other';
   level?: number;
