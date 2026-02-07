@@ -1,9 +1,10 @@
 import React, { useCallback, useEffect, useState, useRef } from 'react';
 import { getTool } from '@core/creation-tools/creation-tools.service';
 import { getAssistantByToolId, updateAssistant } from '@core/assistants/assistants.service';
-import { Check, Loader2, XCircle, Plus, X, Upload, FileText, Trash2, Image as ImageIcon } from 'lucide-react';
+import { Plus, X, Upload, FileText, Trash2, Image as ImageIcon } from 'lucide-react';
 import type { KnowledgeFile } from '../public/assistant/types';
 import { useLanguage } from '../../language/useLanguage';
+import { useToolView } from '../tool/ToolViewCard';
 
 type Props = {
   toolId: number;
@@ -11,6 +12,15 @@ type Props = {
 
 const AssistantDetails: React.FC<Props> = ({ toolId }) => {
   const { t } = useLanguage();
+  
+  // Access ToolView context
+  let toolView: ReturnType<typeof useToolView> | undefined;
+  try {
+    toolView = useToolView();
+  } catch (_) {
+    toolView = undefined;
+  }
+  
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   // Assistant-specific fields from assistants table
@@ -25,7 +35,6 @@ const AssistantDetails: React.FC<Props> = ({ toolId }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   // Save status
   const [saving, setSaving] = useState(false);
-  const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle');
 
   // Load assistant data
   useEffect(() => {
@@ -116,7 +125,6 @@ const AssistantDetails: React.FC<Props> = ({ toolId }) => {
   const handleSave = useCallback(async () => {
     try {
       setSaving(true);
-      setSaveStatus('idle');
       // Update assistant via PATCH /tools/{id}/assistant with all assistant fields
       await updateAssistant(toolId, { 
         platform, 
@@ -127,28 +135,19 @@ const AssistantDetails: React.FC<Props> = ({ toolId }) => {
         capabilities,
         knowledgeFiles
       });
-      setSaveStatus('success');
     } catch (e) {
-      setSaveStatus('error');
       setError(t.assistantDetails.errorSaving);
     } finally {
       setSaving(false);
-      setTimeout(() => setSaveStatus('idle'), 2000);
     }
-  }, [toolId, platform, url, baseUrl, instructions, starters, capabilities, knowledgeFiles]);
+  }, [toolId, platform, url, baseUrl, instructions, starters, capabilities, knowledgeFiles, t.assistantDetails.errorSaving]);
 
-  const getIcon = () => {
-    if (saving) return <Loader2 size={18} className="animate-spin" />;
-    if (saveStatus === 'success') return <Check size={18} />;
-    if (saveStatus === 'error') return <XCircle size={18} />;
-    return <Check size={18} />;
-  };
-
-  const getButtonClasses = () => {
-    if (saveStatus === 'success') return 'bg-green-50 border-green-200 text-green-600 hover:bg-green-100';
-    if (saveStatus === 'error') return 'bg-red-50 border-red-200 text-red-600 hover:bg-red-100';
-    return 'bg-white border-blue-200 text-blue-600 hover:bg-blue-50';
-  };
+  // Register the save handler with ToolViewCard so main "Save Changes" button can trigger it
+  useEffect(() => {
+    if (toolView?.registerDetailSave) {
+      toolView.registerDetailSave(handleSave);
+    }
+  }, [toolView, handleSave]);
 
   if (loading) {
     return (
@@ -335,16 +334,7 @@ const AssistantDetails: React.FC<Props> = ({ toolId }) => {
         <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg p-3">{error}</div>
       )}
 
-      <div className="flex justify-end pt-4">
-        <button
-          type="button"
-          onClick={handleSave}
-          disabled={saving}
-          className={`w-11 h-11 rounded-full border-2 flex items-center justify-center font-semibold shadow-md transition-all disabled:opacity-60 disabled:cursor-not-allowed ${getButtonClasses()}`}
-        >
-          {getIcon()}
-        </button>
-      </div>
+      {/* Checkmark save button removed - Save functionality moved to main "Save Changes" button */}
     </div>
   );
 };

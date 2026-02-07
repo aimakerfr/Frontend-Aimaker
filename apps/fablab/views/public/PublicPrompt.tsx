@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { FileText, Globe, Calendar, User, ChevronLeft } from 'lucide-react';
+import { FileText, Globe, Calendar, User, ChevronLeft, Copy, Check } from 'lucide-react';
 import { getPublicCreationTool } from '@core/creation-tools/creation-tools.service';
 import type { CreationTool } from '@core/creation-tools/creation-tools.types';
 import { httpClient } from '@core/api/http.client';
@@ -12,8 +12,21 @@ const PublicPrompt: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const [prompt, setPrompt] = useState<CreationTool | null>(null);
   const [promptContent, setPromptContent] = useState<string>('');
+  const [promptContext, setPromptContext] = useState<string>('');
+  const [promptOutputFormat, setPromptOutputFormat] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [copiedField, setCopiedField] = useState<string | null>(null);
+
+  const copyToClipboard = async (text: string, fieldName: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedField(fieldName);
+      setTimeout(() => setCopiedField(null), 2000);
+    } catch (err) {
+      console.error('Error al copiar:', err);
+    }
+  };
 
   useEffect(() => {
     const loadPrompt = async () => {
@@ -39,11 +52,13 @@ const PublicPrompt: React.FC = () => {
         
         // Cargar el contenido del prompt desde la tabla prompts
         try {
-          const promptData = await httpClient.get<{ prompt: string }>(
+          const promptData = await httpClient.get<{ prompt: string; context?: string; outputFormat?: string }>(
             `/api/v1/tools/${id}/prompt`,
             { requiresAuth: false }
           );
           setPromptContent(promptData.prompt || '');
+          setPromptContext(promptData.context || '');
+          setPromptOutputFormat(promptData.outputFormat || '');
         } catch (promptErr) {
           console.error('Error cargando contenido del prompt:', promptErr);
           // No es error crítico, puede no tener contenido aún
@@ -163,9 +178,29 @@ const PublicPrompt: React.FC = () => {
 
             {/* Prompt Content */}
             <div>
-              <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-3">
-                {tp.contentTitle}
-              </h2>
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-lg font-bold text-gray-900 dark:text-white">
+                  {tp.contentTitle}
+                </h2>
+                {promptContent && (
+                  <button
+                    onClick={() => copyToClipboard(promptContent, 'prompt')}
+                    className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-gray-700 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                  >
+                    {copiedField === 'prompt' ? (
+                      <>
+                        <Check className="w-4 h-4 text-green-600" />
+                        <span>Copiado</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-4 h-4" />
+                        <span>Copiar</span>
+                      </>
+                    )}
+                  </button>
+                )}
+              </div>
               {promptContent ? (
                 <div className="bg-slate-50 dark:bg-gray-900/50 border border-slate-200 dark:border-gray-700 rounded-xl p-6">
                   <pre className="whitespace-pre-wrap break-words text-gray-700 dark:text-gray-300 leading-relaxed font-mono text-sm overflow-x-auto">
@@ -178,6 +213,76 @@ const PublicPrompt: React.FC = () => {
                 </p>
               )}
             </div>
+
+            {/* Optional Context Field */}
+            {promptContext && (
+              <>
+                <div className="border-t border-gray-200 dark:border-gray-700"></div>
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <h2 className="text-lg font-bold text-gray-900 dark:text-white">
+                      Contexto Adicional
+                    </h2>
+                    <button
+                      onClick={() => copyToClipboard(promptContext, 'context')}
+                      className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-gray-700 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                    >
+                      {copiedField === 'context' ? (
+                        <>
+                          <Check className="w-4 h-4 text-green-600" />
+                          <span>Copiado</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="w-4 h-4" />
+                          <span>Copiar</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                  <div className="bg-slate-50 dark:bg-gray-900/50 border border-slate-200 dark:border-gray-700 rounded-xl p-6">
+                    <pre className="whitespace-pre-wrap break-words text-gray-700 dark:text-gray-300 leading-relaxed font-mono text-sm overflow-x-auto">
+{promptContext}
+                    </pre>
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* Optional Output Format Field */}
+            {promptOutputFormat && (
+              <>
+                <div className="border-t border-gray-200 dark:border-gray-700"></div>
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <h2 className="text-lg font-bold text-gray-900 dark:text-white">
+                      Formato de Salida
+                    </h2>
+                    <button
+                      onClick={() => copyToClipboard(promptOutputFormat, 'outputFormat')}
+                      className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-gray-700 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                    >
+                      {copiedField === 'outputFormat' ? (
+                        <>
+                          <Check className="w-4 h-4 text-green-600" />
+                          <span>Copiado</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="w-4 h-4" />
+                          <span>Copiar</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                  <div className="bg-slate-50 dark:bg-gray-900/50 border border-slate-200 dark:border-gray-700 rounded-xl p-6">
+                    <pre className="whitespace-pre-wrap break-words text-gray-700 dark:text-gray-300 leading-relaxed font-mono text-sm overflow-x-auto">
+{promptOutputFormat}
+                    </pre>
+                  </div>
+                </div>
+              </>
+            )}
 
             {/* Divider */}
             <div className="border-t border-gray-200 dark:border-gray-700"></div>

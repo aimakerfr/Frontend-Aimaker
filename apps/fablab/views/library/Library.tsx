@@ -2,12 +2,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BookOpen, Search, FileText, Notebook, FolderKanban, Globe, Eye, Lock, Plus, X, ExternalLink, Trash2, Star } from 'lucide-react';
-import FormGeneral from './components/Form-general';
 import { useLanguage } from '../../language/useLanguage';
 import { 
   getTools, 
   createTool, 
-  updateTool, 
   deleteTool, 
   toggleToolFavorite
 } from '@core/creation-tools/creation-tools.service';
@@ -41,7 +39,6 @@ interface LibraryItem {
 
 interface LibraryViewProps {
   items?: LibraryItem[];
-  onSave?: (data: any, itemId?: number) => Promise<boolean>;
   onDelete?: (itemId: number) => void;
   onToggleFavorite?: (itemId: number) => Promise<void>;
   isLoading?: boolean;
@@ -49,7 +46,6 @@ interface LibraryViewProps {
 
 const LibraryView: React.FC<LibraryViewProps> = ({
   items = mockItems,
-  onSave,
   onDelete,
   onToggleFavorite,
   isLoading = false
@@ -60,8 +56,9 @@ const LibraryView: React.FC<LibraryViewProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState<ItemType | 'all'>('all');
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [showCreateForm, setShowCreateForm] = useState(false);
-  const [selectedType, setSelectedType] = useState<ItemType>('note_books');
+  // Removed showCreateForm and selectedType as we're creating directly now
+  // const [showCreateForm, setShowCreateForm] = useState(false);
+  // const [selectedType, setSelectedType] = useState<ItemType>('note_books');
 
   const filters: { key: FilterType; label: string }[] = [
     { key: 'all', label: t.library.filters.all },
@@ -132,10 +129,28 @@ const LibraryView: React.FC<LibraryViewProps> = ({
     setSearchQuery(e.target.value);
   };
 
-  const handleCreateClick = (type: ItemType) => {
-    setSelectedType(type);
+  const handleCreateClick = async (type: ItemType) => {
+    // Create tool directly and redirect to detail view
     setShowCreateModal(false);
-    setShowCreateForm(true);
+    try {
+      const payload: any = {
+        type: type,
+        title: '',
+        description: '',
+        hasPublicStatus: false,
+        isTemplate: false
+      };
+      
+      const newTool = await createTool(payload);
+      if (newTool && newTool.id) {
+        // Redirect to detail view
+        const urlType = type === 'note_books' ? 'notebook' : type;
+        navigate(`/dashboard/${urlType}/${newTool.id}`);
+      }
+    } catch (err) {
+      console.error('Error creating tool:', err);
+      // Error is logged, user can try again
+    }
   };
 
   const handleToggleFavorite = async (itemId: number, e: React.MouseEvent) => {
@@ -145,18 +160,19 @@ const LibraryView: React.FC<LibraryViewProps> = ({
     }
   };
 
-  const handleFormSave = async (data: any) => {
-    if (onSave) {
-      const success = await onSave(data, undefined);
-      if (success) {
-        setShowCreateForm(false);
-      }
-    }
-  };
+  // Remove form handlers as we're not using the form anymore
+  // const handleFormSave = async (data: any) => {
+  //   if (onSave) {
+  //     const success = await onSave(data, undefined);
+  //     if (success) {
+  //       setShowCreateForm(false);
+  //     }
+  //   }
+  // };
 
-  const handleFormClose = () => {
-    setShowCreateForm(false);
-  };
+  // const handleFormClose = () => {
+  //   setShowCreateForm(false);
+  // };
 
   return (
     <>
@@ -404,13 +420,14 @@ const LibraryView: React.FC<LibraryViewProps> = ({
         </div>
       )}
 
-      {showCreateForm && (
+      {/* Form removed - we create directly and redirect to detail view */}
+      {/* {showCreateForm && (
         <FormGeneral
           onClose={handleFormClose}
           onSave={handleFormSave}
           selectedType={selectedType}
         />
-      )}
+      )} */}
     </>
   );
 };
@@ -472,58 +489,6 @@ const Library = () => {
     loadCreationTools();
   }, []);
 
-  const handleSave = async (data: any, itemId?: number): Promise<boolean> => {
-    try {
-      setIsLoading(true);
-      const payload: any = {};
-      
-      if (data.title) payload.title = data.title;
-      if (data.description) payload.description = data.description;
-      if (data.type) payload.type = data.type;
-      if (data.language) payload.language = data.language;
-      if (data.url) payload.url = data.url;
-      
-      payload.hasPublicStatus = data.hasPublicStatus ?? false;
-      payload.isTemplate = data.isTemplate ?? false;
-
-      if (itemId) {
-        const updatedTool = await updateTool(itemId, payload);
-        console.log('=== TOOL UPDATE RESPONSE ===');
-        console.log('Updated Tool:', updatedTool);
-        console.log('publicUrl:', updatedTool.publicUrl);
-        console.log('url:', updatedTool.url);
-        console.log('hasPublicStatus:', updatedTool.hasPublicStatus);
-        console.log('============================');
-        
-        // Actualizar el item en el estado con la respuesta del servidor
-        setItems(prev => prev.map((item: LibraryItem) => 
-          item.id === itemId ? {
-            ...item,
-            title: updatedTool.title,
-            description: updatedTool.description,
-            type: updatedTool.type as ItemType,
-            language: updatedTool.language,
-            url: updatedTool.url || '',
-            publicUrl: updatedTool.publicUrl || undefined,
-            isPublic: updatedTool.hasPublicStatus ?? false,
-            isFavorite: updatedTool.isFavorite ?? item.isFavorite
-          } : item
-        ));
-      } else {
-        await createTool(payload);
-        await loadCreationTools();
-      }
-
-      return true;
-    } catch (err) {
-      console.error('Error guardando:', err);
-      setError(t.common.errorSaving);
-      return false;
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   const handleDelete = async (itemId: number) => {
     if (!confirm(t.library.confirmDelete)) return;
     
@@ -575,7 +540,6 @@ const Library = () => {
     <LibraryView 
       items={items} 
       isLoading={isLoading}
-      onSave={handleSave}
       onDelete={handleDelete}
       onToggleFavorite={handleToggleFavorite}
     />

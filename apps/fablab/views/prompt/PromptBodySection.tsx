@@ -1,5 +1,5 @@
 import React from 'react';
-import { Check, Copy, Loader2, XCircle } from 'lucide-react';
+import { Copy } from 'lucide-react';
 import { useLanguage } from '../../language/useLanguage';
 
 type Props = {
@@ -14,7 +14,7 @@ type Props = {
   status?: 'idle' | 'saving' | 'success' | 'error';
 };
 
-const PromptBodySectionComponent: React.FC<Props> = ({ initialValue, onSave, onBodyChange, saving = false, disabled = false, status = 'idle' }) => {
+const PromptBodySectionComponent: React.FC<Props> = ({ initialValue, onBodyChange, disabled = false }) => {
   const { t } = useLanguage();
   const tp = t.promptEditor;
   const [bodyValue, setBodyValue] = React.useState<string>(initialValue ?? '');
@@ -23,21 +23,6 @@ const PromptBodySectionComponent: React.FC<Props> = ({ initialValue, onSave, onB
   React.useEffect(() => {
     setBodyValue(initialValue ?? '');
   }, [initialValue]);
-
-  const isWorking = saving || status === 'saving';
-
-  const getIcon = () => {
-    if (status === 'saving') return <Loader2 size={18} className="animate-spin" />;
-    if (status === 'success') return <Check size={18} />;
-    if (status === 'error') return <XCircle size={18} />;
-    return <Check size={18} />;
-  };
-
-  const getButtonClasses = () => {
-    if (status === 'success') return 'bg-green-50 border-green-200 text-green-600 hover:bg-green-100';
-    if (status === 'error') return 'bg-red-50 border-red-200 text-red-600 hover:bg-red-100';
-    return 'bg-white border-blue-200 text-blue-600 hover:bg-blue-50';
-  };
 
   return (
     <div className="relative group w-full flex flex-col">
@@ -49,7 +34,7 @@ const PromptBodySectionComponent: React.FC<Props> = ({ initialValue, onSave, onB
             setBodyValue(e.target.value);
             onBodyChange?.(e.target.value);
           }}
-          disabled={disabled || saving}
+          disabled={disabled}
           className="w-full h-80 px-6 py-6 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-mono text-sm leading-relaxed text-slate-700 bg-slate-50/30 disabled:opacity-60"
           placeholder={tp.bodyPlaceholder}
         ></textarea>
@@ -64,16 +49,7 @@ const PromptBodySectionComponent: React.FC<Props> = ({ initialValue, onSave, onB
           </button>
         </div>
       </div>
-      <div className="mt-3 flex justify-end">
-        <button
-          type="button"
-          onClick={() => onSave?.(bodyValue)}
-          disabled={isWorking || disabled}
-          className={`w-11 h-11 rounded-full border-2 flex items-center justify-center font-semibold shadow-md transition-all disabled:opacity-60 disabled:cursor-not-allowed ${getButtonClasses()}`}
-        >
-          {getIcon()}
-        </button>
-      </div>
+      {/* Checkmark save button removed - Save functionality moved to main "Save Changes" button */}
     </div>
   );
 };

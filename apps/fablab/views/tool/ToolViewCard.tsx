@@ -63,6 +63,8 @@ type ToolViewContextType = {
   isSaving: boolean;
   openPublish: () => void;
   isPublishing: boolean;
+  // Detail section save handler registration
+  registerDetailSave: (handler: () => Promise<void>) => void;
 };
 
 const defaultState: ToolViewState = {
@@ -133,19 +135,7 @@ const MetadataSection: React.FC = () => {
           </select>
         </div>
 
-        <div className="md:col-span-3">
-          <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">{tv.labels.language}</label>
-          <select
-            value={state.language}
-            onChange={(e) => update({ language: e.target.value })}
-            className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all bg-white appearance-none cursor-pointer text-slate-700 shadow-sm h-[46px]"
-            disabled={true}
-          >
-            <option value="Espagnol">{tv.languages.spanish}</option>
-            <option value="Anglais">{tv.languages.english}</option>
-            <option value="Français">{tv.languages.french}</option>
-          </select>
-        </div>
+        {/* Language field removed - automatically set from user profile */}
       </div>
       <div className="border-b border-slate-100 pt-2"></div>
     </div>
@@ -194,6 +184,13 @@ const ToolViewCard: React.FC<ToolViewCardProps> = ({
   const [isPublishModalOpen, setIsPublishModalOpen] = useState(false);
 
   const [state, setState] = useState<ToolViewState>(defaultState);
+
+  // Ref to store detail save handler
+  const detailSaveHandlerRef = React.useRef<(() => Promise<void>) | null>(null);
+
+  const registerDetailSave = useCallback((handler: () => Promise<void>) => {
+    detailSaveHandlerRef.current = handler;
+  }, []);
 
   const mapToolToState = useCallback((data: CreationTool): ToolViewState => ({
     title: data.title || '',
@@ -257,6 +254,7 @@ const ToolViewCard: React.FC<ToolViewCardProps> = ({
     if (!toolId || !tool) return;
     try {
       setIsSaving(true);
+      // Save metadata
       await updateTool(Number(toolId), {
         type: tool.type,
         title: state.title,
@@ -268,6 +266,12 @@ const ToolViewCard: React.FC<ToolViewCardProps> = ({
         language: (state as any).language,
         hasPublicStatus: state.visibility === 'PUBLIC',
       });
+      
+      // Also save detail section data if handler is registered
+      if (detailSaveHandlerRef.current) {
+        await detailSaveHandlerRef.current();
+      }
+
       setSaveModalType('success');
       const saveTexts = getSaveModalTexts();
       setSaveModalMessage(saveTexts.successMessage);
@@ -629,7 +633,8 @@ const ToolViewCard: React.FC<ToolViewCardProps> = ({
     isSaving,
     openPublish,
     isPublishing,
-  }), [tool, loading, error, state, update, save, isSaving, openPublish, isPublishing]);
+    registerDetailSave,
+  }), [tool, loading, error, state, update, save, isSaving, openPublish, isPublishing, registerDetailSave]);
 
   const loadingContent = (
     <div className="min-h-[200px] w-full flex items-center justify-center">

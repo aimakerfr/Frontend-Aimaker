@@ -1,8 +1,8 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { getTool } from '@core/creation-tools/creation-tools.service';
 import { getProjectByToolId, updateProject } from '@core/projects/projects.service';
-import { Check, Loader2, XCircle } from 'lucide-react';
 import { useLanguage } from '../../language/useLanguage';
+import { useToolView } from '../tool/ToolViewCard';
 
 type Props = {
   toolId: number;
@@ -11,6 +11,15 @@ type Props = {
 const ProjectDetails: React.FC<Props> = ({ toolId }) => {
   const { t } = useLanguage();
   const tp = t.projectDetails;
+  
+  // Access ToolView context
+  let toolView: ReturnType<typeof useToolView> | undefined;
+  try {
+    toolView = useToolView();
+  } catch (_) {
+    toolView = undefined;
+  }
+  
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   // Project-specific fields from projects table
@@ -22,7 +31,6 @@ const ProjectDetails: React.FC<Props> = ({ toolId }) => {
   const [category, setCategory] = useState('');
   // Save status
   const [saving, setSaving] = useState(false);
-  const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle');
 
   // Load project data
   useEffect(() => {
@@ -65,31 +73,21 @@ const ProjectDetails: React.FC<Props> = ({ toolId }) => {
   const handleSave = useCallback(async () => {
     try {
       setSaving(true);
-      setSaveStatus('idle');
       // Update project via PATCH /tools/{id}/project with all project fields
       await updateProject(toolId, { filesUrl, deploymentUrl, databaseUrl, dataBaseName, appName, category });
-      setSaveStatus('success');
     } catch (e) {
-      setSaveStatus('error');
       setError(tp.errorSaving);
     } finally {
       setSaving(false);
-      setTimeout(() => setSaveStatus('idle'), 2000);
     }
-  }, [toolId, filesUrl, deploymentUrl, databaseUrl, dataBaseName, appName, category]);
+  }, [toolId, filesUrl, deploymentUrl, databaseUrl, dataBaseName, appName, category, tp.errorSaving]);
 
-  const getIcon = () => {
-    if (saving) return <Loader2 size={18} className="animate-spin" />;
-    if (saveStatus === 'success') return <Check size={18} />;
-    if (saveStatus === 'error') return <XCircle size={18} />;
-    return <Check size={18} />;
-  };
-
-  const getButtonClasses = () => {
-    if (saveStatus === 'success') return 'bg-green-50 border-green-200 text-green-600 hover:bg-green-100';
-    if (saveStatus === 'error') return 'bg-red-50 border-red-200 text-red-600 hover:bg-red-100';
-    return 'bg-white border-blue-200 text-blue-600 hover:bg-blue-50';
-  };
+  // Register the save handler with ToolViewCard so main "Save Changes" button can trigger it
+  useEffect(() => {
+    if (toolView?.registerDetailSave) {
+      toolView.registerDetailSave(handleSave);
+    }
+  }, [toolView, handleSave]);
 
   if (loading) {
     return (
@@ -186,16 +184,7 @@ const ProjectDetails: React.FC<Props> = ({ toolId }) => {
         <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg p-3">{error}</div>
       )}
 
-      <div className="flex justify-end pt-4">
-        <button
-          type="button"
-          onClick={handleSave}
-          disabled={saving}
-          className={`w-11 h-11 rounded-full border-2 flex items-center justify-center font-semibold shadow-md transition-all disabled:opacity-60 disabled:cursor-not-allowed ${getButtonClasses()}`}
-        >
-          {getIcon()}
-        </button>
-      </div>
+      {/* Checkmark save button removed - Save functionality moved to main "Save Changes" button */}
     </div>
   );
 };

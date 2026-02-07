@@ -1,6 +1,6 @@
 import React, { createContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { ProfileService } from '@core/profile/profile.service';
-import { httpClient } from '@core/api/http.client';
+import { httpClient, tokenStorage } from '@core/api/http.client';
 import { translations, Language, Translations } from './translations';
 
 const profileService = new ProfileService();
@@ -71,6 +71,16 @@ export const LanguageProvider: React.FC<LanguageProviderProps> = ({ children }) 
   const [isLoading, setIsLoading] = useState(true);
 
   const loadUserLanguage = useCallback(async () => {
+    // Only load user language if user is authenticated
+    const token = tokenStorage.get();
+    if (!token) {
+      // User not authenticated, use default language
+      setT(translations.en);
+      setLanguage('en');
+      setIsLoading(false);
+      return;
+    }
+
     try {
       const profile = await profileService.getProfile();
       const userLang = profile.uiLanguage || 'en';
