@@ -143,7 +143,9 @@ export const getNotebookSourcesNested = async (noteBookId: number): Promise<Note
 /**
  * Añadir una fuente al notebook
  */
-export const postNoteBookSource = async (data: FormData | { note_book_id: number; type: string; name: string }): Promise<PostNoteBookSourceResponse> => {
+export const postNoteBookSource = async (
+  data: FormData | { note_book_id: number; type: string; name: string; text?: string; url?: string }
+): Promise<PostNoteBookSourceResponse> => {
   return httpClient.post<PostNoteBookSourceResponse>('/api/v1/notebook-sources', data);
 };
 
