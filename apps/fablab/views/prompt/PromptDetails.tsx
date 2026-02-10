@@ -17,18 +17,9 @@ const PromptDetails: React.FC<Props> = ({ toolId }) => {
   const [context, setContext] = useState('');
   const [outputFormat, setOutputFormat] = useState('');
   const [promptBody, setPromptBody] = useState<string>('');
-
+  
   // Try to access ToolView context if this component is rendered inside ToolViewCard
-  // Keep it optional to preserve standalone capability
-  let toolView: ReturnType<typeof useToolView> | undefined;
-  try {
-    // calling hook inside try/catch is fine at runtime but must respect Rules of Hooks:
-    // To avoid violating hooks rules, we read it via a helper that memoizes undefined when not in provider.
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    toolView = useToolView();
-  } catch (_) {
-    toolView = undefined;
-  }
+  const toolView = useToolView();
 
   const contextInitialBody = useMemo(() => toolView?.state.promptBody ?? '', [toolView?.state.promptBody]);
 
@@ -90,7 +81,8 @@ const PromptDetails: React.FC<Props> = ({ toolId }) => {
         });
       }
     } catch (e) {
-      setError(tp.errorSavingBody);
+      setError((e as Error).message || tp.errorSavingBody);
+      throw e; // Re-throw para que ToolViewCard también maneje el error
     }
   }, [toolId, promptBody, context, outputFormat, toolView, tp.errorSavingBody]);
 

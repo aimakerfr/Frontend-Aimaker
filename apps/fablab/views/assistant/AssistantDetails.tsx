@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState, useRef } from 'react';
 import { getTool } from '@core/creation-tools/creation-tools.service';
 import { getAssistantByToolId, updateAssistant } from '@core/assistants/assistants.service';
-import { Plus, X, Upload, FileText, Trash2, Image as ImageIcon } from 'lucide-react';
+import { Plus, X, Upload, FileText, Trash2, Image as ImageIcon, AlertCircle } from 'lucide-react';
 import type { KnowledgeFile } from '../public/assistant/types';
 import { useLanguage } from '../../language/useLanguage';
 import { useToolView } from '../tool/ToolViewCard';
@@ -62,6 +62,11 @@ const AssistantDetails: React.FC<Props> = ({ toolId }) => {
         setCapabilities((assistantRes as any).capabilities || { imageGen: false });
         setKnowledgeFiles((assistantRes as any).knowledgeFiles || []);
         setError(null);
+        
+        // Sincronizar instrucciones con toolView context
+        if (toolView) {
+          toolView.update({ assistantInstructions: (assistantRes as any).instructions || '' });
+        }
       } catch (e) {
         if (!cancelled) setError(t.assistantDetails.errorLoadingDetails);
       } finally {
@@ -135,12 +140,20 @@ const AssistantDetails: React.FC<Props> = ({ toolId }) => {
         capabilities,
         knowledgeFiles
       });
+      
+      // Actualizar toolView context después de guardar exitosamente
+      if (toolView) {
+        toolView.update({ 
+          assistantInstructions: instructions
+        });
+      }
     } catch (e) {
-      setError(t.assistantDetails.errorSaving);
+      setError((e as Error).message || t.assistantDetails.errorSaving);
+      throw e; // Re-throw para que ToolViewCard también maneje el error
     } finally {
       setSaving(false);
     }
-  }, [toolId, platform, url, baseUrl, instructions, starters, capabilities, knowledgeFiles, t.assistantDetails.errorSaving]);
+  }, [toolId, platform, url, baseUrl, instructions, starters, capabilities, knowledgeFiles, toolView, t.assistantDetails.errorSaving]);
 
   // Register the save handler with ToolViewCard so main "Save Changes" button can trigger it
   useEffect(() => {
@@ -169,13 +182,31 @@ const AssistantDetails: React.FC<Props> = ({ toolId }) => {
       <div className="grid grid-cols-1 gap-6">
         {/* Instructions */}
         <div>
-          <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">{t.assistantDetails.systemInstructions}</label>
+          <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+            {t.assistantDetails.systemInstructions}
+            {(!instructions || instructions.trim() === '') && (
+              <span title="Required field">
+                <AlertCircle size={12} className="text-amber-500" />
+              </span>
+            )}
+          </label>
           <textarea
             value={instructions}
-            onChange={(e) => setInstructions(e.target.value)}
+            onChange={(e) => {
+              setInstructions(e.target.value);
+              // Actualizar toolView y limpiar error de validación
+              if (toolView) {
+                toolView.update({ 
+                  assistantInstructions: e.target.value,
+                  validationErrors: { ...toolView.state.validationErrors, assistantInstructions: false }
+                });
+              }
+            }}
             placeholder={t.assistantDetails.instructionsPlaceholder}
             rows={8}
-            className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm text-slate-600 bg-white resize-none font-mono"
+            className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm text-slate-600 bg-white resize-none font-mono ${
+              toolView?.state.validationErrors?.assistantInstructions ? 'border-red-500 border-2' : 'border-slate-200'
+            }`}
             disabled={saving}
           />
           <p className="text-[10px] text-slate-400 italic mt-1">{t.assistantDetails.instructionsHint}</p>

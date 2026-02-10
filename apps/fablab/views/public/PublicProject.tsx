@@ -136,12 +136,12 @@ const PublicProject: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-gray-900 dark:to-indigo-900/10">
-      {/* Header */}
-      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm">
-        <div className="max-w-6xl mx-auto px-6 py-6">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      {/* Header simplificado con contenedor */}
+      <div className="bg-white dark:bg-gray-800 border-b-2 border-gray-900 dark:border-gray-700 shadow-sm">
+        <div className="max-w-5xl mx-auto px-8 py-6">
           <div className="flex items-start gap-4">
-            <div className="w-16 h-16 bg-gradient-to-br from-blue-500 via-indigo-600 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg flex-shrink-0">
+            <div className="w-16 h-16 bg-gray-900 dark:bg-gray-700 rounded-lg flex items-center justify-center flex-shrink-0 border-2 border-gray-900 dark:border-gray-600">
               <FolderKanban size={32} className="text-white" />
             </div>
             <div className="flex-1 min-w-0">
@@ -149,34 +149,32 @@ const PublicProject: React.FC = () => {
                 <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
                   {project.title}
                 </h1>
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-full text-xs font-semibold">
-                  <Globe size={14} />
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-600 text-white rounded-md text-xs font-semibold border-2 border-green-700">
+                  <Globe size={12} />
                   {tp.public}
                 </span>
                 {project.isFavorite && (
-                  <span className="inline-flex items-center gap-1 px-3 py-1 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-full text-xs font-semibold">
-                    <Heart size={14} fill="currentColor" />
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-600 text-white rounded-md text-xs font-semibold border-2 border-red-700">
+                    <Heart size={12} fill="currentColor" />
                     {tp.favorite}
                   </span>
                 )}
               </div>
-              <p className="text-gray-500 dark:text-gray-400 mb-3">
+              <p className="text-gray-700 dark:text-gray-300 mb-3 text-base">
                 {project.description || tp.noDescription}
               </p>
               <div className="flex flex-wrap gap-3 text-sm">
-                <div className="flex items-center gap-1.5 text-gray-600 dark:text-gray-400">
-                  <span className="text-lg">{getProjectTypeIcon(project.projectType || 'project')}</span>
-                  <span className="font-medium">{getProjectTypeLabel(project.projectType || 'project')}</span>
+                <div className="flex items-center gap-2 bg-gray-100 dark:bg-gray-700 px-3 py-1.5 rounded-md border border-gray-300 dark:border-gray-600">
+                  <span className="text-xl">{getProjectTypeIcon(project.projectType || 'project')}</span>
+                  <span className="font-medium text-gray-900 dark:text-gray-100">{getProjectTypeLabel(project.projectType || 'project')}</span>
                 </div>
-                <span className="text-gray-300 dark:text-gray-600">•</span>
-                <div className="flex items-center gap-1.5 text-gray-600 dark:text-gray-400">
-                  <User size={16} />
-                  <span>{project.authorName || tp.unknownAuthor}</span>
+                <div className="flex items-center gap-2 bg-gray-100 dark:bg-gray-700 px-3 py-1.5 rounded-md border border-gray-300 dark:border-gray-600">
+                  <User size={16} className="text-gray-700 dark:text-gray-300" />
+                  <span className="text-gray-900 dark:text-gray-100">{project.authorName || tp.unknownAuthor}</span>
                 </div>
-                <span className="text-gray-300 dark:text-gray-600">•</span>
-                <div className="flex items-center gap-1.5 text-gray-600 dark:text-gray-400">
-                  <Calendar size={16} />
-                  <span className="uppercase">{project.language || 'ES'}</span>
+                <div className="flex items-center gap-2 bg-gray-100 dark:bg-gray-700 px-3 py-1.5 rounded-md border border-gray-300 dark:border-gray-600">
+                  <Calendar size={16} className="text-gray-700 dark:text-gray-300" />
+                  <span className="font-medium uppercase text-gray-900 dark:text-gray-100">{project.language || 'ES'}</span>
                 </div>
               </div>
             </div>
@@ -184,79 +182,76 @@ const PublicProject: React.FC = () => {
         </div>
       </div>
 
-      {/* Content */}
-      <div className="max-w-6xl mx-auto px-6 py-8">
-        <div className="grid gap-6">
-          {/* Deployment URL Card */}
+      {/* Content con márgenes y contenedores bien definidos */}
+      <div className="max-w-5xl mx-auto px-8 py-8">
+        <div className="space-y-6">{/* Deployment URL Card */}
           {projectData?.deploymentUrl && (
-            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
-              <div className="bg-gradient-to-r from-blue-500 to-indigo-600 px-6 py-4">
-                <h2 className="text-lg font-bold text-white flex items-center gap-2">
+            <div className="bg-white dark:bg-gray-800 rounded-lg border-2 border-blue-200 dark:border-blue-900 shadow-md overflow-hidden">
+              <div className="bg-blue-50 dark:bg-blue-950 px-6 py-4 border-b-2 border-blue-200 dark:border-blue-900">
+                <h2 className="text-lg font-bold text-blue-900 dark:text-blue-100 flex items-center gap-2">
                   <ExternalLink size={20} />
                   {tp.liveProject}
                 </h2>
               </div>
-              <div className="p-6">
-                <div className="flex items-center gap-3">
-                  <div className="flex-1">
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">{tp.deploymentUrl}</p>
-                    <a
-                      href={projectData.deploymentUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 font-medium break-all"
-                    >
-                      {projectData.deploymentUrl}
-                    </a>
-                  </div>
+              <div className="p-8 bg-white dark:bg-gray-800">
+                <div className="mb-4">
+                  <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">{tp.deploymentUrl}</p>
                   <a
                     href={projectData.deploymentUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex-shrink-0 px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-semibold rounded-xl transition-all shadow-lg shadow-blue-500/30 flex items-center gap-2"
+                    className="text-base font-medium text-blue-600 dark:text-blue-400 hover:underline break-all"
                   >
-                    <ExternalLink size={18} />
-                    {tp.visit}
+                    {projectData.deploymentUrl}
                   </a>
                 </div>
+                <a
+                  href={projectData.deploymentUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-600 text-white font-semibold rounded-lg border-2 border-blue-700 dark:border-blue-600 transition-colors"
+                >
+                  <ExternalLink size={18} />
+                  {tp.visit}
+                </a>
               </div>
             </div>
           )}
 
           {/* Project Metadata */}
           {projectData && (projectData.filesUrl || projectData.databaseUrl || projectData.dataBaseName || projectData.appName) && (
-            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
-              <div className="bg-gradient-to-r from-purple-500 to-pink-600 px-6 py-4">
-                <h2 className="text-lg font-bold text-white flex items-center gap-2">
+            <div className="bg-white dark:bg-gray-800 rounded-lg border-2 border-green-200 dark:border-green-900 shadow-md overflow-hidden">
+              <div className="bg-green-50 dark:bg-green-950 px-6 py-4 border-b-2 border-green-200 dark:border-green-900">
+                <h2 className="text-lg font-bold text-green-900 dark:text-green-100 flex items-center gap-2">
                   <Database size={20} />
                   {tp.projectInfo}
                 </h2>
               </div>
-              <div className="p-6">
+              <div className="p-8 bg-white dark:bg-gray-800">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {projectData.appName && (
-                    <div className="p-4 bg-gray-50 dark:bg-gray-900/30 rounded-lg">
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">{tp.appName}</p>
+                    <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-md border border-gray-300 dark:border-gray-600">
+                      <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1">{tp.appName}</p>
                       <p className="text-sm font-medium text-gray-900 dark:text-white">{projectData.appName}</p>
                     </div>
                   )}
                   {projectData.category && (
-                    <div className="p-4 bg-gray-50 dark:bg-gray-900/30 rounded-lg">
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">{tp.category}</p>
+                    <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-md border border-gray-300 dark:border-gray-600">
+                      <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1">{tp.category}</p>
                       <p className="text-sm font-medium text-gray-900 dark:text-white">{projectData.category}</p>
                     </div>
                   )}
                   {projectData.filesUrl && (
-                    <div className="p-4 bg-gray-50 dark:bg-gray-900/30 rounded-lg">
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">{tp.filesRepo}</p>
+                    <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-md border border-gray-300 dark:border-gray-600">
+                      <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1">{tp.filesRepo}</p>
                       <a href={projectData.filesUrl} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline break-all">
                         {projectData.filesUrl}
                       </a>
                     </div>
                   )}
                   {projectData.dataBaseName && (
-                    <div className="p-4 bg-gray-50 dark:bg-gray-900/30 rounded-lg">
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">{tp.database}</p>
+                    <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-md border border-gray-300 dark:border-gray-600">
+                      <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1">{tp.database}</p>
                       <p className="text-sm font-medium text-gray-900 dark:text-white">{projectData.dataBaseName}</p>
                     </div>
                   )}
@@ -267,82 +262,57 @@ const PublicProject: React.FC = () => {
 
           {/* Context Card */}
           {project.context && (
-            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
-              <div className="bg-gradient-to-r from-indigo-500 to-purple-600 px-6 py-4">
-                <h2 className="text-lg font-bold text-white flex items-center gap-2">
+            <div className="bg-white dark:bg-gray-800 rounded-lg border-2 border-purple-200 dark:border-purple-900 shadow-md overflow-hidden">
+              <div className="bg-purple-50 dark:bg-purple-950 px-6 py-4 border-b-2 border-purple-200 dark:border-purple-900">
+                <h2 className="text-lg font-bold text-purple-900 dark:text-purple-100 flex items-center gap-2">
                   <Code2 size={20} />
                   {tp.projectContext}
                 </h2>
               </div>
-              <div className="p-6">
-                <div className="prose prose-slate dark:prose-invert max-w-none">
-                  <pre className="bg-gray-50 dark:bg-gray-900 rounded-xl p-6 text-sm leading-relaxed text-gray-700 dark:text-gray-300 overflow-x-auto whitespace-pre-wrap">
+              <div className="p-8 bg-white dark:bg-gray-800">
+                <pre className="bg-gray-50 dark:bg-gray-900 rounded-md border border-gray-300 dark:border-gray-700 p-4 text-sm text-gray-800 dark:text-gray-200 overflow-x-auto whitespace-pre-wrap">
 {project.context}
-                  </pre>
-                </div>
+                </pre>
               </div>
             </div>
           )}
 
-          {/* Info Card */}
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
-            <div className="p-6">
-              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-5">
-                <div className="flex gap-4">
-                  <div className="flex-shrink-0">
-                    <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
-                      <FolderKanban size={24} className="text-blue-600 dark:text-blue-400" />
-                    </div>
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-blue-900 dark:text-blue-300 mb-2">
-                      {tp.viewModeTitle}
-                    </h3>
-                    <p className="text-sm text-blue-800 dark:text-blue-400 leading-relaxed">
-                      {tp.viewModeDesc}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Metadata Card */}
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
-            <div className="bg-gradient-to-r from-purple-500 to-pink-600 px-6 py-4">
-              <h2 className="text-lg font-bold text-white">
+          {/* Additional Information Card */}
+          <div className="bg-white dark:bg-gray-800 rounded-lg border-2 border-amber-200 dark:border-amber-900 shadow-md overflow-hidden">
+            <div className="bg-amber-50 dark:bg-amber-950 px-6 py-4 border-b-2 border-amber-200 dark:border-amber-900">
+              <h2 className="text-lg font-bold text-amber-900 dark:text-amber-100">
                 {tp.projectInfo}
               </h2>
             </div>
-            <div className="p-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">{tp.type}</p>
+            <div className="p-8 bg-white dark:bg-gray-800">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-md border border-gray-300 dark:border-gray-600">
+                  <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">{tp.type}</p>
                   <div className="flex items-center gap-2">
-                    <span className="text-2xl">{getProjectTypeIcon(project.projectType || 'project')}</span>
+                    <span className="text-xl">{getProjectTypeIcon(project.projectType || 'project')}</span>
                     <p className="text-gray-900 dark:text-white font-semibold">
                       {getProjectTypeLabel(project.projectType || 'project')}
                     </p>
                   </div>
                 </div>
                 
-                <div>
-                  <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">{tp.language}</p>
+                <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-md border border-gray-300 dark:border-gray-600">
+                  <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">{tp.language}</p>
                   <p className="text-gray-900 dark:text-white font-semibold uppercase">
                     {project.language || 'Español'}
                   </p>
                 </div>
 
-                <div>
-                  <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">{tp.category}</p>
+                <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-md border border-gray-300 dark:border-gray-600">
+                  <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">{tp.category}</p>
                   <p className="text-gray-900 dark:text-white font-semibold">
                     {project.category || tp.noCategory}
                   </p>
                 </div>
 
-                <div>
-                  <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">{tp.status}</p>
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-lg text-sm font-semibold">
+                <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-md border border-gray-300 dark:border-gray-600">
+                  <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">{tp.status}</p>
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-600 text-white rounded-md text-sm font-semibold border-2 border-green-700">
                     <Globe size={14} />
                     {tp.public}
                   </span>

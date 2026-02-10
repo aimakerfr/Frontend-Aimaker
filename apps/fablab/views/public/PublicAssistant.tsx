@@ -189,9 +189,9 @@ const PublicAssistant: React.FC = () => {
   const starters = assistantData.starters || [];
 
   return (
-    <div className="flex flex-col h-screen bg-white dark:bg-gray-900 relative overflow-hidden">
+    <div className="flex flex-col h-screen bg-gray-50 dark:bg-gray-900 relative overflow-hidden">
       {/* Header */}
-      <div className="h-14 border-b border-slate-200 dark:border-gray-700 flex items-center justify-between px-8 bg-white dark:bg-gray-800 shrink-0 shadow-sm">
+      <div className="h-14 border-b-2 border-blue-200 dark:border-blue-900 flex items-center justify-between px-8 bg-blue-50 dark:bg-blue-950 shrink-0 shadow-sm">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-blue-600 rounded-xl flex items-center justify-center shadow-md">
             <Bot size={20} className="text-white" />

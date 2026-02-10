@@ -5,13 +5,12 @@ import FormGeneral from './components/Form-general';
 import DetailsView from './components/DetailsView';
 import { useLanguage } from '../../language/useLanguage';
 import { 
-  getTools, 
-  createTool, 
-  updateTool, 
-  deleteTool, 
-  toggleToolVisibility 
-} from '@core/creation-tools/creation-tools.service';
-import type { Tool } from '@core/creation-tools/creation-tools.types';
+  getExternalLinks, 
+  createExternalLink, 
+  updateExternalLink, 
+  deleteExternalLink 
+} from '@core/external-links/external-links.service';
+import type { ExternalLink as ExternalLinkType } from '@core/external-links/external-links.service';
 
 // MOCK DATA - Solo se usa si falla la API
 const mockItems: ExternalAccessItem[] = [
@@ -432,31 +431,27 @@ const ExternalAccess = () => {
     setIsLoading(true);
     setError(null);
     try {
-      const tools = await getTools();
-      // Filtrar solo external_link y vibe_coding
-      const filteredTools = tools.filter((tool: Tool) => 
-        (tool.type as string) === 'external_link' || (tool.type as string) === 'vibe_coding'
-      );
-      const sortedTools = filteredTools.sort((a, b) => b.id - a.id);
+      const externalLinks = await getExternalLinks();
+      const sortedLinks = externalLinks.sort((a, b) => b.id - a.id);
       
-      const mappedItems: ExternalAccessItem[] = sortedTools.map((tool: Tool) => ({
-        id: tool.id,
-        type: tool.type as ItemType,
-        title: tool.title,
-        description: tool.description,
-        isPublic: tool.hasPublicStatus ?? false,
-        url: tool.url || '',
-        publicUrl: tool.publicUrl || undefined,
-        language: tool.language,
-        usageCount: tool.usageCount,
-        author: t.library.authorFallback,
-        createdAt: new Date().toLocaleDateString('fr-FR'),
-        category: ''
+      const mappedItems: ExternalAccessItem[] = sortedLinks.map((link: ExternalLinkType) => ({
+        id: link.id,
+        type: link.type as ItemType,
+        title: link.title,
+        description: link.description,
+        isPublic: link.hasPublicStatus ?? false,
+        url: link.url || '',
+        publicUrl: link.publicUrl || undefined,
+        language: link.language,
+        usageCount: 0,
+        author: link.authorName || t.library.authorFallback,
+        createdAt: new Date(link.createdAt).toLocaleDateString('fr-FR'),
+        category: link.category || ''
       })) as ExternalAccessItem[];
       
       setItems(mappedItems);
     } catch (err) {
-      console.error('Error cargando creation tools:', err);
+      console.error('Error cargando external links:', err);
       setError(t.common.error);
       setItems(mockItems);
     } finally {
@@ -471,21 +466,20 @@ const ExternalAccess = () => {
   const handleSave = async (data: any, itemId?: number): Promise<boolean> => {
     try {
       setIsLoading(true);
-      const payload: any = {};
-      
-      if (data.title) payload.title = data.title;
-      if (data.description) payload.description = data.description;
-      if (data.type) payload.type = data.type;
-      if (data.language) payload.language = data.language;
-      if (data.url) payload.url = data.url;
-      
-      payload.hasPublicStatus = data.hasPublicStatus ?? false;
-      payload.isTemplate = data.isTemplate ?? false;
+      const payload: any = {
+        title: data.title || '',
+        description: data.description || '',
+        type: data.type || 'external_link',
+        language: data.language || 'fr',
+        url: data.url || '',
+        hasPublicStatus: data.hasPublicStatus ?? false,
+        category: data.category || ''
+      };
 
       if (itemId) {
-        await updateTool(itemId, payload);
+        await updateExternalLink(itemId, payload);
       } else {
-        await createTool(payload);
+        await createExternalLink(payload);
       }
 
       await loadCreationTools();
@@ -504,7 +498,7 @@ const ExternalAccess = () => {
     
     try {
       setIsLoading(true);
-      await deleteTool(itemId);
+      await deleteExternalLink(itemId);
       setItems(prev => prev.filter((item: ExternalAccessItem) => item.id !== itemId));
     } catch (err) {
       console.error('Error eliminando:', err);
@@ -517,7 +511,7 @@ const ExternalAccess = () => {
 
   const handleToggleVisibility = async (itemId: number, currentIsPublic: boolean) => {
     try {
-      await toggleToolVisibility(itemId, !currentIsPublic);
+      await updateExternalLink(itemId, { hasPublicStatus: !currentIsPublic });
       await loadCreationTools();
     } catch (err) {
       console.error('Error cambiando visibilidad:', err);
@@ -553,3 +547,4 @@ const ExternalAccess = () => {
 };
 
 export default ExternalAccess;
+
