@@ -113,7 +113,6 @@ const LibraryView: React.FC<LibraryViewProps> = ({
   const itemTypes: { type: ItemType; icon: any; label: string }[] = [
     { type: 'note_books', icon: Notebook, label: t.library.types.notebook },
     { type: 'prompt', icon: FileText, label: t.library.types.prompt },
-    { type: 'assistant', icon: BookOpen, label: t.library.types.assistant },
     { type: 'project', icon: FolderKanban, label: t.library.types.project }
   ];
 

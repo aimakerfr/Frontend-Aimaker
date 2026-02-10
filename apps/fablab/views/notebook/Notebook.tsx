@@ -193,7 +193,6 @@ const App: React.FC<NotebookProps> = ({ isPublicView = false }) => {
         navigate('/dashboard', { state: { view: 'library' } });
     };
 
-    // Memoizar las fuentes seleccionadas para evitar recalcular en cada render
     const selectedSources = useMemo(() => {
         const selected = sources.filter(s => s.selected);
         console.log('[Notebook] Selected sources:', selected.length, selected);
@@ -208,7 +207,7 @@ const App: React.FC<NotebookProps> = ({ isPublicView = false }) => {
         } else {
             setSummary(null);
         }
-    }, [selectedSources.length, language]);
+    }, [selectedSources.length, language, selectedSources]);
 
     const updateSummary = async (activeSources: Source[], lang: Language) => {
         console.log('[Notebook] updateSummary called with', activeSources.length, 'sources');
@@ -225,7 +224,7 @@ const App: React.FC<NotebookProps> = ({ isPublicView = false }) => {
         }
     };
 
-    const uploadSource = async (apiType: string, title: string, file?: File, url?: string) => {
+    const uploadSource = async (apiType: string, title: string, file?: File, url?: string, text?: string) => {
         if (!id) throw new Error('Notebook ID is missing');
 
         // WEBSITE, HTML, TEXT, and VIDEO can be sent without a file
@@ -244,6 +243,11 @@ const App: React.FC<NotebookProps> = ({ isPublicView = false }) => {
         // Include URL if provided (for WEBSITE and VIDEO types)
         if (url) {
             formData.append('url', url);
+        }
+
+        // Include plain text content if provided (allowed in combination with file/url)
+        if (text) {
+            formData.append('text', text);
         }
         
         return await postNoteBookSource(formData);
@@ -289,7 +293,7 @@ const App: React.FC<NotebookProps> = ({ isPublicView = false }) => {
             if (apiType === 'URL') apiType = 'WEBSITE';
             // Keep HTML, PDF, TEXT, VIDEO, IMAGE as is (already uppercase)
 
-            const response = await uploadSource(apiType, title, file, url);
+            const response = await uploadSource(apiType, title, file, url, content);
             processSourceLocally(response, type, content, url, previewUrl);
         } catch (error) {
             console.error('Error adding source to backend:', error);

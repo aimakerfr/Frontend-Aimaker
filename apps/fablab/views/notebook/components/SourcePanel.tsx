@@ -1,12 +1,37 @@
 
-import React, { useState, useRef } from 'react';
-import { Plus, Trash2, CheckSquare, Square, FileType, Upload, X, Video, Link2, ImageIcon, Eye, FileText, AlignLeft, ClipboardPaste, Globe, ExternalLink, Download, Languages } from 'lucide-react';
+import React, { useRef, useState } from 'react';
+
+// Icons
+import {
+    AlignLeft,
+    CheckSquare,
+    ClipboardPaste,
+    Download,
+    ExternalLink,
+    Eye,
+    FileText,
+    FileType,
+    Globe,
+    ImageIcon,
+    Languages,
+    Link2,
+    Plus,
+    Square,
+    Trash2,
+    Upload,
+    Video, X
+} from 'lucide-react';
+
+// Domain types & services
 import { Source, SourceType } from '../types.ts';
-import { extractUrlContent, transcribeVideo, transcribeVideoUrl, analyzeImage, processPdfVisual } from '../services/geminiService.ts';
+import { analyzeImage, extractUrlContent, processPdfVisual, transcribeVideo, transcribeVideoUrl } from '../services/geminiService.ts';
+
+// App hooks & i18n
+import { useAuth } from '@core/auth/useAuth';
 import { useLanguage } from '../../../language/useLanguage';
 import { translations as staticTranslations } from '../../../language/translations';
-import { useAuth } from '@core/auth/useAuth';
 
+// ========= Types =========
 interface SourcePanelProps {
     sources: Source[];
     onAddSource: (type: SourceType, content: string, title: string, url?: string, previewUrl?: string, file?: File) => void;
@@ -14,12 +39,105 @@ interface SourcePanelProps {
     onDeleteSource: (id: string) => void;
 }
 
+type Maybe<T> = T | null | undefined;
+
+// ========= Stateless helpers (no React state) =========
+const openSourceFilePathUrl = (link?: string) => {
+    if (!link) return;
+    window.open(link, '_blank', 'noopener,noreferrer');
+};
+
+const getPreviewLink = (source?: Maybe<Source>) => source?.previewUrl || source?.url;
+const getUrlLink = (source?: Maybe<Source>) => source?.url;
+
+// Generic helpers for blob-based downloads/opens
+const createObjectUrl = (blob: Blob) => URL.createObjectURL(blob);
+
+const revokeObjectUrlLater = (url: string, delayMs = 30_000) => {
+    // Give the browser/tab time to consume the URL before revoking
+    setTimeout(() => {
+        try { URL.revokeObjectURL(url); } catch { /* noop */ }
+    }, delayMs);
+};
+
+const downloadBlob = (filename: string, blob: Blob) => {
+    const url = createObjectUrl(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    // Revoke quickly for download links
+    revokeObjectUrlLater(url, 500);
+};
+
+const openBlobInNewTab = (blob: Blob) => {
+    const url = createObjectUrl(blob);
+    window.open(url, '_blank', 'noopener,noreferrer');
+    // Revoke with a delay to allow the new tab to read the blob
+    revokeObjectUrlLater(url);
+};
+
+// Specific helpers for text files (parity with PDF UX)
+const downloadTextFile = (filename: string, content: string) => {
+    const blob = new Blob([content ?? ''], { type: 'text/plain;charset=utf-8' });
+    downloadBlob(filename, blob);
+};
+
+const openTextFileInNewTab = (content: string) => {
+    const blob = new Blob([content ?? ''], { type: 'text/plain;charset=utf-8' });
+    openBlobInNewTab(blob);
+};
+
+const fileToBase64 = (file: File): Promise<string> =>
+    new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => resolve((reader.result as string).split(',')[1]);
+    });
+
+const processPdfForAI = async (file: File): Promise<string> => {
+    // Treat .txt and .csv as plain text
+    if (file.type === 'text/plain' || file.type === 'text/csv' || file.name.toLowerCase().endsWith('.csv')) {
+        return new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onload = (e) => resolve(e.target?.result as string);
+            reader.readAsText(file);
+        });
+    }
+
+    const pdfjsLib = (window as any).pdfjsLib;
+    if (!pdfjsLib || !pdfjsLib.getDocument) {
+        throw new Error('PDF.js no está cargado. Por favor, recarga la página.');
+    }
+
+    const arrayBuffer = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    const pagesBase64: { data: string; mimeType: string }[] = [];
+
+    for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        const viewport = page.getViewport({ scale: 1.0 });
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.height = viewport.height;
+        canvas.width = viewport.width;
+        await page.render({ canvasContext: ctx!, viewport }).promise;
+        const base64 = canvas.toDataURL('image/jpeg', 0.6).split(',')[1];
+        pagesBase64.push({ data: base64, mimeType: 'image/jpeg' });
+    }
+    return await processPdfVisual(pagesBase64);
+};
+
 const SourcePanel: React.FC<SourcePanelProps> = ({ sources, onAddSource, onToggleSource, onDeleteSource }) => {
+    // ========= Hooks & derived values =========
     const { t } = useLanguage();
     const tp = t.notebook.sourcePanel;
     const { user } = useAuth();
-    
     const isAdmin = user?.roles?.includes('ROLE_ADMIN') || false;
+
+    // ========= Local state =========
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isPreviewOpen, setIsPreviewOpen] = useState(false);
     const [previewSource, setPreviewSource] = useState<Source | null>(null);
@@ -33,69 +151,14 @@ const SourcePanel: React.FC<SourcePanelProps> = ({ sources, onAddSource, onToggl
     const [selectedFile, setSelectedFile] = useState<File | undefined>(undefined);
     const [videoPreviewError, setVideoPreviewError] = useState(false);
 
+    // ========= Refs =========
     const fileInputRef = useRef<HTMLInputElement>(null);
     const videoInputRef = useRef<HTMLInputElement>(null);
     const imageInputRef = useRef<HTMLInputElement>(null);
     const htmlInputRef = useRef<HTMLInputElement>(null);
     const jsxInputRef = useRef<HTMLInputElement>(null);
 
-    // Use URLs as provided. For backend-loaded sources, `filePath` is already absolute.
-    // For locally added sources without backend `filePath`, `previewUrl` may be a blob: URL.
-
-    const openSourceFilePathUrl = (link?: string) => {
-        if (!link) return;
-        console.log('opening...')
-        console.log(link)
-        window.open(link, '_blank', 'noopener,noreferrer');
-    };
-
-    const getPreviewLink = (source?: Source | null) => source?.previewUrl || source?.url;
-    const getUrlLink = (source?: Source | null) => source?.url;
-
-    const fileToBase64 = (file: File): Promise<string> => {
-        return new Promise((resolve) => {
-            const reader = new FileReader();
-            reader.readAsDataURL(file);
-            reader.onload = () => resolve((reader.result as string).split(',')[1]);
-        });
-    };
-
-    const processPdfForAI = async (file: File): Promise<string> => {
-        // Tratamos .txt y .csv como texto plano
-        if (file.type === 'text/plain' || file.type === 'text/csv' || file.name.toLowerCase().endsWith('.csv')) {
-            return new Promise((resolve) => {
-                const reader = new FileReader();
-                reader.onload = (e) => resolve(e.target?.result as string);
-                reader.readAsText(file);
-            });
-        }
-
-        const pdfjsLib = (window as any).pdfjsLib;
-        
-        // Verificar que PDF.js esté cargado
-        if (!pdfjsLib || !pdfjsLib.getDocument) {
-            throw new Error('PDF.js no está cargado. Por favor, recarga la página.');
-        }
-        
-        const arrayBuffer = await file.arrayBuffer();
-        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-        const pagesBase64: { data: string, mimeType: string }[] = [];
-
-        const numPages = pdf.numPages;
-        for (let i = 1; i <= numPages; i++) {
-            const page = await pdf.getPage(i);
-            const viewport = page.getViewport({ scale: 1.0 });
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
-            canvas.height = viewport.height;
-            canvas.width = viewport.width;
-            await page.render({ canvasContext: ctx!, viewport }).promise;
-            const base64 = canvas.toDataURL('image/jpeg', 0.6).split(',')[1];
-            pagesBase64.push({ data: base64, mimeType: 'image/jpeg' });
-        }
-        return await processPdfVisual(pagesBase64);
-    };
-
+    // ========= Handlers =========
     const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: SourceType) => {
         const file = e.target.files?.[0];
         if (file) {
@@ -188,12 +251,120 @@ const SourcePanel: React.FC<SourcePanelProps> = ({ sources, onAddSource, onToggl
         URL.revokeObjectURL(url);
     };
 
-    const resetForm = () => { setContent(null); setUrl(''); setFileName(''); setMimeType(''); setLocalPreviewUrl(''); setSelectedFile(undefined); };
+    const resetForm = () => {
+        setContent(null);
+        setUrl('');
+        setFileName('');
+        setMimeType('');
+        setLocalPreviewUrl('');
+        setSelectedFile(undefined);
+    };
 
     const handleOpenPreview = (source: Source) => {
         setPreviewSource(source);
         setIsPreviewOpen(true);
     };
+
+    // ========= Render helpers =========
+    // Extract the tabs config into a separate constant to improve readability and reuse
+    const TAB_CONFIG: ReadonlyArray<{
+        id: 'pdf' | 'html' | 'code' | 'image' | 'video' | 'url' | 'translation' | 'text';
+        icon: React.ComponentType<{ size?: number }>;
+        color: string;
+        bg: string;
+    }> = [
+        { id: 'pdf', icon: FileText, color: 'text-red-500', bg: 'bg-red-50' },
+        { id: 'html', icon: Globe, color: 'text-blue-600', bg: 'bg-blue-50' },
+        { id: 'code', icon: FileText, color: 'text-teal-600', bg: 'bg-teal-50' },
+        { id: 'image', icon: ImageIcon, color: 'text-amber-500', bg: 'bg-amber-50' },
+        { id: 'video', icon: Video, color: 'text-purple-500', bg: 'bg-purple-50' },
+        { id: 'url', icon: Globe, color: 'text-blue-500', bg: 'bg-blue-50' },
+        { id: 'text', icon: AlignLeft, color: 'text-green-500', bg: 'bg-green-50' },
+        { id: 'translation', icon: Languages, color: 'text-indigo-600', bg: 'bg-indigo-50' },
+    ];
+
+    const renderTabButtons = () => (
+        <div className="grid grid-cols-6 gap-2 md:gap-3">
+            {TAB_CONFIG
+                .filter((tab) => tab.id !== 'translation' || isAdmin)
+                .map((tab) => (
+                    <button
+                        key={tab.id}
+                        onClick={() => {
+                            setActiveTab(tab.id as SourceType);
+                            resetForm();
+                        }}
+                        className={`flex flex-col items-center justify-center p-3 rounded-2xl border transition-all gap-1.5 group ${
+                            activeTab === (tab.id as SourceType)
+                                ? 'bg-white border-indigo-600 shadow-md ring-2 ring-indigo-50'
+                                : 'bg-white/40 border-gray-100 hover:border-gray-200 hover:bg-white'
+                        }`}
+                    >
+                        <div
+                            className={`p-1.5 rounded-lg transition-colors ${
+                                activeTab === (tab.id as SourceType)
+                                    ? tab.bg + ' ' + tab.color
+                                    : 'text-gray-300 group-hover:' + tab.color
+                            }`}
+                        >
+                            <tab.icon size={18} />
+                        </div>
+                        <span
+                            className={`text-[8px] font-black uppercase tracking-tight ${
+                                activeTab === (tab.id as SourceType) ? 'text-indigo-600' : 'text-gray-400'
+                            }`}
+                        >
+                            {tab.id === 'html'
+                                ? 'HTML'
+                                : tab.id === 'code'
+                                ? 'JSX/TSX'
+                                : tab.id === 'pdf'
+                                ? tp.modal.tabs.pdf
+                                : tab.id === 'image'
+                                ? tp.modal.tabs.image
+                                : tab.id === 'video'
+                                ? tp.modal.tabs.video
+                                : tab.id === 'url'
+                                ? tp.modal.tabs.url
+                                : tab.id === 'translation'
+                                ? tp.modal.tabs.translation
+                                : tp.modal.tabs.text}
+                        </span>
+                    </button>
+                ))}
+        </div>
+    );
+
+    const renderModalFooter = () => (
+        <div className="px-6 py-4 border-t border-gray-100 bg-white shrink-0">
+            <form onSubmit={handleSubmit} className="flex gap-3">
+                <button
+                    type="button"
+                    onClick={() => setIsModalOpen(false)}
+                    className="flex-1 py-3 text-[10px] font-black text-gray-400 hover:text-gray-600 uppercase tracking-widest"
+                    disabled={isLoading}
+                >
+                    {t.common.cancel}
+                </button>
+                <button
+                    type="submit"
+                    disabled={isLoading || (!content && !url)}
+                    className="flex-[2] py-3 min-h-[48px] text-[10px] font-black bg-indigo-600 text-white rounded-xl shadow-lg shadow-indigo-100 flex items-center justify-center gap-2 active:scale-95 transition-all uppercase tracking-widest disabled:bg-indigo-200"
+                >
+                    {isLoading ? (
+                        <>
+                            <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                            <span className="animate-pulse">{tp.modal.footer.synthesizing}</span>
+                        </>
+                    ) : (
+                        <>
+                            <Upload size={14} /> {t.common.save}
+                        </>
+                    )}
+                </button>
+            </form>
+        </div>
+    );
 
     return (
         <div className="h-full flex flex-col bg-white border-r border-gray-100 relative overflow-hidden">
@@ -263,33 +434,7 @@ const SourcePanel: React.FC<SourcePanelProps> = ({ sources, onAddSource, onToggl
                             <button onClick={() => !isLoading && setIsModalOpen(false)} className="p-2 hover:bg-gray-100 rounded-xl text-gray-400 transition-colors" disabled={isLoading}><X size={20} /></button>
                         </div>
 
-                        <div className="bg-gray-50/50 p-4 shrink-0">
-                            <div className="grid grid-cols-6 gap-2 md:gap-3">
-                                {[
-                                    { id: 'pdf', icon: FileText, color: 'text-red-500', bg: 'bg-red-50' },
-                                    { id: 'html', icon: Globe, color: 'text-blue-600', bg: 'bg-blue-50' },
-                                    { id: 'code', icon: FileText, color: 'text-teal-600', bg: 'bg-teal-50' },
-                                    { id: 'image', icon: ImageIcon, color: 'text-amber-500', bg: 'bg-amber-50' },
-                                    { id: 'video', icon: Video, color: 'text-purple-500', bg: 'bg-purple-50' },
-                                    { id: 'url', icon: Globe, color: 'text-blue-500', bg: 'bg-blue-50' },
-                                    { id: 'translation', icon: Languages, color: 'text-indigo-600', bg: 'bg-indigo-50' },
-                                    { id: 'text', icon: AlignLeft, color: 'text-green-500', bg: 'bg-green-50' }
-                                ].filter(tab => tab.id !== 'translation' || isAdmin).map((tab) => (
-                                    <button
-                                        key={tab.id}
-                                        onClick={() => { setActiveTab(tab.id as SourceType); resetForm(); }}
-                                        className={`flex flex-col items-center justify-center p-3 rounded-2xl border transition-all gap-1.5 group ${activeTab === tab.id ? 'bg-white border-indigo-600 shadow-md ring-2 ring-indigo-50' : 'bg-white/40 border-gray-100 hover:border-gray-200 hover:bg-white'}`}
-                                    >
-                                        <div className={`p-1.5 rounded-lg transition-colors ${activeTab === tab.id ? tab.bg + ' ' + tab.color : 'text-gray-300 group-hover:' + tab.color}`}>
-                                            <tab.icon size={18} />
-                                        </div>
-                                        <span className={`text-[8px] font-black uppercase tracking-tight ${activeTab === tab.id ? 'text-indigo-600' : 'text-gray-400'}`}>
-                                            {tab.id === 'html' ? 'HTML' : tab.id === 'code' ? 'JSX/TSX' : tab.id === 'pdf' ? tp.modal.tabs.pdf : tab.id === 'image' ? tp.modal.tabs.image : tab.id === 'video' ? tp.modal.tabs.video : tab.id === 'url' ? tp.modal.tabs.url : tab.id === 'translation' ? tp.modal.tabs.translation : tp.modal.tabs.text}
-                                        </span>
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
+                        <div className="bg-gray-50/50 p-4 shrink-0">{renderTabButtons()}</div>
 
                         <div className="flex-1 overflow-y-auto p-6 md:p-8 space-y-5 no-scrollbar min-h-[240px]">
                             {activeTab === 'pdf' && (
@@ -331,10 +476,10 @@ const SourcePanel: React.FC<SourcePanelProps> = ({ sources, onAddSource, onToggl
                                         <Video className="mb-3 text-purple-200 group-hover:text-purple-500 transition-all" size={36} />
                                         <span className="text-[10px] font-black text-purple-400 uppercase tracking-widest text-center">{fileName || tp.modal.placeholders.uploadVideo}</span>
                                     </div>
-                                    <div className="relative">
-                                        <div className="absolute inset-y-0 left-3 flex items-center text-gray-300"><Link2 size={16} /></div>
-                                        <input type="url" placeholder={tp.modal.placeholders.youtubeUrl} className="w-full text-xs pl-10 pr-4 py-3 bg-gray-50 border border-gray-100 rounded-xl outline-none font-bold text-gray-700" value={url} onChange={e => setUrl(e.target.value)} disabled={isLoading} />
-                                    </div>
+                                    {/*<div className="relative">*/}
+                                    {/*    <div className="absolute inset-y-0 left-3 flex items-center text-gray-300"><Link2 size={16} /></div>*/}
+                                    {/*    <input type="url" placeholder={tp.modal.placeholders.youtubeUrl} className="w-full text-xs pl-10 pr-4 py-3 bg-gray-50 border border-gray-100 rounded-xl outline-none font-bold text-gray-700" value={url} onChange={e => setUrl(e.target.value)} disabled={isLoading} />*/}
+                                    {/*</div>*/}
                                 </div>
                             )}
 
@@ -398,18 +543,7 @@ const SourcePanel: React.FC<SourcePanelProps> = ({ sources, onAddSource, onToggl
                             )}
                         </div>
 
-                        <div className="px-6 py-4 border-t border-gray-100 bg-white shrink-0">
-                            <form onSubmit={handleSubmit} className="flex gap-3">
-                                <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 py-3 text-[10px] font-black text-gray-400 hover:text-gray-600 uppercase tracking-widest" disabled={isLoading}>{t.common.cancel}</button>
-                                <button type="submit" disabled={isLoading || (!content && !url)} className="flex-[2] py-3 min-h-[48px] text-[10px] font-black bg-indigo-600 text-white rounded-xl shadow-lg shadow-indigo-100 flex items-center justify-center gap-2 active:scale-95 transition-all uppercase tracking-widest disabled:bg-indigo-200">
-                                    {isLoading ? (
-                                        <><div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin"></div><span className="animate-pulse">{tp.modal.footer.synthesizing}</span></>
-                                    ) : (
-                                        <><Upload size={14} /> {t.common.save}</>
-                                    )}
-                                </button>
-                            </form>
-                        </div>
+                        {renderModalFooter()}
                     </div>
                 </div>
             )}
@@ -465,7 +599,21 @@ const SourcePanel: React.FC<SourcePanelProps> = ({ sources, onAddSource, onToggl
                                     )}
                                     {previewSource.type === 'text' && (
                                         <div className="w-full max-w-3xl bg-white p-10 md:p-14 rounded-[2.5rem] shadow-sm border border-gray-100">
-                                            <pre className="whitespace-pre-wrap font-sans text-gray-700 leading-relaxed text-sm md:text-base">{previewSource.content}</pre>
+                                            <pre className="whitespace-pre-wrap font-sans text-gray-700 leading-relaxed text-sm md:text-base mb-6">{previewSource.content}</pre>
+                                            <div className="flex flex-col sm:flex-row gap-3">
+                                                <button
+                                                    onClick={() => openTextFileInNewTab(previewSource.content)}
+                                                    className="flex-1 inline-flex items-center justify-center gap-2 px-5 py-3 bg-indigo-600 text-white rounded-2xl font-black text-xs uppercase tracking-wider shadow-lg hover:bg-indigo-700 transition-colors"
+                                                >
+                                                    <ExternalLink size={16} /> {tp.preview.openNewTab}
+                                                </button>
+                                                <button
+                                                    onClick={() => downloadTextFile(`${previewSource.title || 'text'}.txt`, previewSource.content)}
+                                                    className="flex-1 inline-flex items-center justify-center gap-2 px-5 py-3 bg-white text-indigo-600 border-2 border-indigo-600 rounded-2xl font-black text-xs uppercase tracking-wider hover:bg-indigo-50 transition-colors"
+                                                >
+                                                    <Download size={16} /> {tp.preview.downloadFile}
+                                                </button>
+                                            </div>
                                         </div>
                                     )}
                                     {previewSource.type === 'image' && previewLink && (
