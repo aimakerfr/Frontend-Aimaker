@@ -366,6 +366,35 @@ const SourcePanel: React.FC<SourcePanelProps> = ({ sources, onAddSource, onToggl
         </div>
     );
 
+    // Lightweight text content previsualizer for uploaded text files (txt/csv/html/code/translation)
+    const shouldShowTextPreview = (): boolean => {
+        if (!content || typeof content !== 'string') return false;
+        // When uploading via PDF tab but the file is actually text/csv, we already read it as text
+        const isTextMime = mimeType?.startsWith('text/') || fileName.toLowerCase().endsWith('.csv') || fileName.toLowerCase().endsWith('.txt');
+        if (activeTab === 'pdf' && isTextMime) return true;
+        // Tabs that inherently hold text content
+        if (activeTab === 'html' || activeTab === 'code' || activeTab === 'translation' || activeTab === 'text') return true;
+        return false;
+    };
+
+    const renderContentPreview = () => {
+        if (!shouldShowTextPreview()) return null;
+        return (
+            <div className="bg-white border border-gray-100 rounded-[1.5rem] shadow-sm overflow-hidden">
+                <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
+                    {/* Reuse existing visual language, avoid new literals */}
+                    <div className="flex items-center gap-2 text-gray-400">
+                        <FileText size={16} />
+                        <span className="text-[9px] font-black uppercase tracking-widest text-gray-400">{tp.modal.placeholders.textLabel}</span>
+                    </div>
+                </div>
+                <div className="p-5 max-h-[320px] overflow-auto">
+                    <pre className="whitespace-pre-wrap font-sans text-gray-700 text-xs leading-relaxed">{content}</pre>
+                </div>
+            </div>
+        );
+    };
+
     return (
         <div className="h-full flex flex-col bg-white border-r border-gray-100 relative overflow-hidden">
             {/* Cabecera Lateral */}
@@ -541,6 +570,8 @@ const SourcePanel: React.FC<SourcePanelProps> = ({ sources, onAddSource, onToggl
                                     </div>
                                 </div>
                             )}
+
+                            {renderContentPreview()}
                         </div>
 
                         {renderModalFooter()}
