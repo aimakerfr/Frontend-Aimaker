@@ -1,6 +1,7 @@
 import React from 'react';
-import { Copy } from 'lucide-react';
+import { Copy, AlertCircle } from 'lucide-react';
 import { useLanguage } from '../../language/useLanguage';
+import { useToolView } from '../tool/ToolViewCard';
 
 type Props = {
   // Initial value for the textarea. Component holds its own state to avoid re-rendering the parent on each keystroke
@@ -17,6 +18,15 @@ type Props = {
 const PromptBodySectionComponent: React.FC<Props> = ({ initialValue, onBodyChange, disabled = false }) => {
   const { t } = useLanguage();
   const tp = t.promptEditor;
+  
+  // Try to access ToolView context if available (optional)
+  let toolView: ReturnType<typeof useToolView> | undefined;
+  try {
+    toolView = useToolView();
+  } catch {
+    toolView = undefined;
+  }
+  
   const [bodyValue, setBodyValue] = React.useState<string>(initialValue ?? '');
 
   // Keep internal value in sync if initialValue changes from outside (e.g., after load)
@@ -24,18 +34,36 @@ const PromptBodySectionComponent: React.FC<Props> = ({ initialValue, onBodyChang
     setBodyValue(initialValue ?? '');
   }, [initialValue]);
 
+  const hasError = toolView?.state.validationErrors?.promptBody;
+
   return (
     <div className="relative group w-full flex flex-col">
-      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">{tp.bodyLabel}</label>
+      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+        {tp.bodyLabel}
+        {(!bodyValue || bodyValue.trim() === '') && (
+          <span title="Required field">
+            <AlertCircle size={12} className="text-amber-500" />
+          </span>
+        )}
+      </label>
       <div className="relative w-full">
         <textarea
           value={bodyValue}
           onChange={(e) => {
-            setBodyValue(e.target.value);
-            onBodyChange?.(e.target.value);
+            const newValue = e.target.value;
+            setBodyValue(newValue);
+            onBodyChange?.(newValue);
+          }}
+          onBlur={(e) => {
+            // Update context only on blur to avoid re-renders on every keystroke
+            if (toolView) {
+              toolView.update({ promptBody: e.target.value });
+            }
           }}
           disabled={disabled}
-          className="w-full h-80 px-6 py-6 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-mono text-sm leading-relaxed text-slate-700 bg-slate-50/30 disabled:opacity-60"
+          className={`w-full h-80 px-6 py-6 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-mono text-sm leading-relaxed text-slate-700 bg-slate-50/30 disabled:opacity-60 ${
+            hasError ? 'border-red-500 border-2' : 'border-slate-200'
+          }`}
           placeholder={tp.bodyPlaceholder}
         ></textarea>
         <div className="absolute top-4 right-4 flex gap-2">

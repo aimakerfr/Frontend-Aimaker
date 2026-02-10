@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
+import { Routes, Route, useNavigate, useLocation, useParams } from 'react-router-dom';
 import { useAuth } from '@core/auth/useAuth';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
@@ -20,10 +20,26 @@ import PromptView from './views/prompt/PromptView';
 import AssistantView from './views/assistant/AssistantView';
 import { ProjectView } from './views/project';
 import PublicNotebook from './views/public/PublicNotebook';
-import PublicPrompt from './views/public/PublicPrompt';
-import PublicAssistant from './views/public/PublicAssistant';
-import PublicProject from './views/public/PublicProject';
+import PublicPromptDetails from './views/public/prompt/PublicPromptDetails';
+import PublicAssistantDetails from './views/public/assistant/PublicAssistantDetails';
+import PublicProjectDetails from './views/public/project/PublicProjectDetails';
 import { UserProfile } from './types';
+
+// Wrapper components para extraer el id de la URL y pasarlo como toolId
+const PublicPromptWrapper = () => {
+  const { id } = useParams<{ id: string }>();
+  return <PublicPromptDetails toolId={parseInt(id || '0')} />;
+};
+
+const PublicAssistantWrapper = () => {
+  const { id } = useParams<{ id: string }>();
+  return <PublicAssistantDetails toolId={parseInt(id || '0')} />;
+};
+
+const PublicProjectWrapper = () => {
+  const { id } = useParams<{ id: string }>();
+  return <PublicProjectDetails toolId={parseInt(id || '0')} />;
+};
 
 const App: React.FC = () => {
   const navigate = useNavigate();
@@ -106,11 +122,11 @@ const App: React.FC = () => {
         <Route path="/assistant/:id" element={<AssistantView />} />
         <Route path="/project/:id" element={<ProjectView />} />
         
-        {/* Rutas públicas - Sin autenticación requerida */}
+        {/* Rutas públicas - Sin autenticación requerida (vistas de configuración) */}
         <Route path="/public/notebook/:id" element={<PublicNotebook />} />
-        <Route path="/public/prompt/:id" element={<PublicPrompt />} />
-        <Route path="/public/assistant/:id" element={<PublicAssistant />} />
-        <Route path="/public/project/:id" element={<PublicProject />} />
+        <Route path="/public/prompt/:id" element={<PublicPromptWrapper />} />
+        <Route path="/public/assistant/:id" element={<PublicAssistantWrapper />} />
+        <Route path="/public/project/:id" element={<PublicProjectWrapper />} />
         
         {/* Server Tools Routes - Sin Sidebar */}
         <Route path="/perplexity-index" element={<PerplexityIndex />} />

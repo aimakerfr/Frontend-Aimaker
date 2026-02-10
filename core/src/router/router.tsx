@@ -4,7 +4,7 @@
  * Apps are completely decoupled from each other
  */
 
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useParams } from 'react-router-dom';
 import { useAuth } from '../auth/useAuth';
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -15,15 +15,30 @@ import AuthApp from '@apps/auth/AuthApp';
 import FabLabApp from '@apps/fablab/FabLabApp';
 import Notebook from '@apps/fablab/views/notebook/Notebook';
 import TemplateSelector from '@apps/frontend_template_visualizer/components/TemplateSelector';
-import PublicPrompt from '@apps/fablab/views/public/PublicPrompt';
-import PublicAssistant from '@apps/fablab/views/public/PublicAssistant';
-import PublicProject from '@apps/fablab/views/public/PublicProject';
+import PublicPromptDetails from '@apps/fablab/views/public/prompt/PublicPromptDetails';
+import PublicAssistantDetails from '@apps/fablab/views/public/assistant/PublicAssistantDetails';
+import PublicProjectDetails from '@apps/fablab/views/public/project/PublicProjectDetails';
+
+const PublicPromptWrapper = () => {
+  const { id } = useParams<{ id: string }>();
+  return <PublicPromptDetails toolId={parseInt(id || '0')} />;
+};
+
+const PublicAssistantWrapper = () => {
+  const { id } = useParams<{ id: string }>();
+  return <PublicAssistantDetails toolId={parseInt(id || '0')} />;
+};
+
+const PublicProjectWrapper = () => {
+  const { id } = useParams<{ id: string }>();
+  return <PublicProjectDetails toolId={parseInt(id || '0')} />;
+};
 
 const publicShareRoutes = [
   { path: '/public-share/notebook/:id', element: <Notebook isPublicView={true} /> },
-  { path: '/public-share/prompt/:id', element: <PublicPrompt /> },
-  { path: '/public-share/assistant/:id', element: <PublicAssistant /> },
-  { path: '/public-share/project/:id', element: <PublicProject /> },
+  { path: '/public-share/prompt/:id', element: <PublicPromptWrapper /> },
+  { path: '/public-share/assistant/:id', element: <PublicAssistantWrapper /> },
+  { path: '/public-share/project/:id', element: <PublicProjectWrapper /> },
 ];
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -137,14 +152,14 @@ export function AppRouter() {
         {/* Public Notebook - No auth required, read-only */}
         <Route path="/public/notebook/:id" element={<Notebook isPublicView={true} />} />
         
-        {/* Public Prompt - No auth required, read-only */}
-        <Route path="/public/prompt/:id" element={<PublicPrompt />} />
+        {/* Public Prompt - No auth required, read-only (config view) */}
+        <Route path="/public/prompt/:id" element={<PublicPromptWrapper />} />
         
-        {/* Public Assistant - No auth required, read-only */}
-        <Route path="/public/assistant/:id" element={<PublicAssistant />} />
+        {/* Public Assistant - No auth required, read-only (config view) */}
+        <Route path="/public/assistant/:id" element={<PublicAssistantWrapper />} />
         
-        {/* Public Project - No auth required, read-only */}
-        <Route path="/public/project/:id" element={<PublicProject />} />
+        {/* Public Project - No auth required, read-only (config view) */}
+        <Route path="/public/project/:id" element={<PublicProjectWrapper />} />
 
         {/* Templates Visualizer */}
         <Route path="/templates_visualizer" element={<TemplateSelector />} />

@@ -5,7 +5,7 @@ import SourcePanel from './components/SourcePanel.tsx';
 import ChatInterface from './components/ChatInterface.tsx';
 import { Source, ChatMessage, SourceType, StructuredSummary, Language } from './types.ts';
 import { generateChatResponse, generateSourceSummary } from './services/geminiService.ts';
-import { Layout, Menu, Globe, ChevronDown, ArrowLeft, Star, ExternalLink, Lock } from 'lucide-react';
+import { Layout, Menu, Globe, ChevronDown, ArrowLeft, Star, ExternalLink, Lock, AlertCircle } from 'lucide-react';
 import { getNotebookSources, postNoteBookSource, deleteNotebookSource, type NotebookSourceItem } from '@core/notebooks';
 import { getTool, updateTool } from '@core/creation-tools/creation-tools.service.ts';
 import { useLanguage } from '../../language/useLanguage';
@@ -38,6 +38,12 @@ const App: React.FC<NotebookProps> = ({ isPublicView = false }) => {
     const [visibility, setVisibility] = useState<Visibility>(Visibility.PRIVATE);
     const [showPublishModal, setShowPublishModal] = useState(false);
     const [toolLanguage, setToolLanguage] = useState<'fr' | 'en' | 'es'>('es');
+    const [isValidationModalOpen, setIsValidationModalOpen] = useState(false);
+    const [validationErrors, setValidationErrors] = useState<{
+        title?: boolean;
+        description?: boolean;
+        category?: boolean;
+    }>({});
     
     const publicUrl = id ? `${window.location.origin}/public/notebook/${id}` : '';
 
@@ -126,7 +132,7 @@ const App: React.FC<NotebookProps> = ({ isPublicView = false }) => {
     const loadNotebookData = async (notebookId: number, fallbackTitle?: string | null) => {
         try {
             const tool = await getTool(notebookId);
-            setNotebookName(tool.title || fallbackTitle || t.notebook.noTitle);
+            setNotebookName(tool.title || fallbackTitle || '');
             setDescription(tool.description || '');
             setCategory(tool.category || 'Marketing');
             setIsFavorite(tool.isFavorite || false);
@@ -135,7 +141,7 @@ const App: React.FC<NotebookProps> = ({ isPublicView = false }) => {
         } catch (error) {
             console.error('Error cargando notebook:', error);
             if (!fallbackTitle) {
-                setNotebookName(t.notebook.noTitle);
+                setNotebookName('');
             }
         }
     };
@@ -190,6 +196,32 @@ const App: React.FC<NotebookProps> = ({ isPublicView = false }) => {
     };
 
     const handleBackToLibrary = () => {
+        // Validar campos obligatorios
+        const errors: typeof validationErrors = {};
+        if (!notebookName || notebookName.trim() === '') errors.title = true;
+        if (!description || description.trim() === '') errors.description = true;
+        if (!category || category.trim() === '') errors.category = true;
+        
+        setValidationErrors(errors);
+        
+        if (Object.keys(errors).length === 0) {
+            // Sin errores, navegar
+            navigate('/dashboard', { state: { view: 'library' } });
+        } else {
+            // Con errores, mostrar modal
+            setIsValidationModalOpen(true);
+        }
+    };
+    
+    const handleDeleteAndExit = async () => {
+        if (id) {
+            try {
+                // Aquí podrías agregar lógica para eliminar el notebook si lo deseas
+                // await deleteTool(parseInt(id));
+            } catch (error) {
+                console.error('Error eliminando notebook:', error);
+            }
+        }
         navigate('/dashboard', { state: { view: 'library' } });
     };
 
@@ -387,24 +419,48 @@ const App: React.FC<NotebookProps> = ({ isPublicView = false }) => {
                             {/* Header de la tarjeta con título y estado */}
                             <div className="flex items-start justify-between mb-4">
                                 <div className="flex-1 mr-4">
-                                    <input
-                                        type="text"
-                                        value={notebookName}
-                                        onChange={(e) => setNotebookName(e.target.value)}
-                                        onBlur={handleSave}
-                                        disabled={isPublicView}
-                                        className="w-full text-2xl font-bold text-gray-900 bg-transparent border-none outline-none focus:ring-0 px-0 placeholder:text-gray-300 disabled:cursor-not-allowed"
-                                        placeholder={t.notebook.settings.titlePlaceholder}
-                                    />
-                                    <input
-                                        type="text"
-                                        value={description}
-                                        onChange={(e) => setDescription(e.target.value)}
-                                        onBlur={handleSave}
-                                        disabled={isPublicView}
-                                        className="w-full mt-1 text-sm text-gray-600 bg-transparent border-none outline-none focus:ring-0 px-0 placeholder:text-gray-300 disabled:cursor-not-allowed"
-                                        placeholder={t.notebook.settings.descriptionPlaceholder}
-                                    />
+                                    <div className="flex items-center gap-2">
+                                        <input
+                                            type="text"
+                                            value={notebookName}
+                                            onChange={(e) => {
+                                                setNotebookName(e.target.value);
+                                                setValidationErrors({ ...validationErrors, title: false });
+                                            }}
+                                            onBlur={handleSave}
+                                            disabled={isPublicView}
+                                            className={`flex-1 text-2xl font-bold text-gray-900 bg-transparent border-b-2 outline-none focus:ring-0 px-0 placeholder:text-gray-300 disabled:cursor-not-allowed transition-all ${
+                                                validationErrors.title ? 'border-red-500' : 'border-transparent focus:border-blue-500'
+                                            }`}
+                                            placeholder={t.notebook.settings.titlePlaceholder}
+                                        />
+                                        {(!notebookName || notebookName.trim() === '') && (
+                                            <span title="Required field">
+                                                <AlertCircle size={16} className="text-amber-500" />
+                                            </span>
+                                        )}
+                                    </div>
+                                    <div className="flex items-center gap-2 mt-1">
+                                        <input
+                                            type="text"
+                                            value={description}
+                                            onChange={(e) => {
+                                                setDescription(e.target.value);
+                                                setValidationErrors({ ...validationErrors, description: false });
+                                            }}
+                                            onBlur={handleSave}
+                                            disabled={isPublicView}
+                                            className={`flex-1 text-sm text-gray-600 bg-transparent border-b outline-none focus:ring-0 px-0 placeholder:text-gray-300 disabled:cursor-not-allowed transition-all ${
+                                                validationErrors.description ? 'border-red-500' : 'border-transparent focus:border-blue-400'
+                                            }`}
+                                            placeholder={t.notebook.settings.descriptionPlaceholder}
+                                        />
+                                        {(!description || description.trim() === '') && (
+                                            <span title="Required field">
+                                                <AlertCircle size={14} className="text-amber-500" />
+                                            </span>
+                                        )}
+                                    </div>
                                 </div>
                                 
                                 {/* Toggle de visibilidad visual y claro */}
@@ -456,12 +512,18 @@ const App: React.FC<NotebookProps> = ({ isPublicView = false }) => {
                             {/* Badges de metadatos */}
                             <div className="flex items-center gap-2 flex-wrap">
                                 {/* Categoría */}
-                                <div className="relative group">
+                                <div className="relative group flex items-center gap-1">
                                     <select
                                         value={category}
-                                        onChange={(e) => { setCategory(e.target.value); handleSave(); }}
+                                        onChange={(e) => { 
+                                            setCategory(e.target.value);
+                                            setValidationErrors({ ...validationErrors, category: false });
+                                            handleSave();
+                                        }}
                                         disabled={isPublicView}
-                                        className="appearance-none pl-3 pr-8 py-1.5 text-xs font-semibold bg-blue-50 text-blue-700 rounded-full border border-blue-200 cursor-pointer hover:bg-blue-100 transition-all disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-blue-400"
+                                        className={`appearance-none pl-3 pr-8 py-1.5 text-xs font-semibold rounded-full border cursor-pointer transition-all disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-blue-400 ${
+                                            validationErrors.category ? 'bg-red-50 text-red-700 border-red-500' : 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100'
+                                        }`}
                                     >
                                         <option value="Marketing">{t.notebook.settings.categories.marketing}</option>
                                         <option value="Desarrollo">{t.notebook.settings.categories.development}</option>
@@ -470,6 +532,11 @@ const App: React.FC<NotebookProps> = ({ isPublicView = false }) => {
                                     </select>
                                     <ChevronDown size={12} className="absolute right-2 top-1/2 -translate-y-1/2 text-blue-600 pointer-events-none" />
                                 </div>
+                                {(!category || category.trim() === '') && (
+                                    <span title="Required field">
+                                        <AlertCircle size={12} className="text-amber-500" />
+                                    </span>
+                                )}
 
                                 {/* Idioma */}
                                 <div className="relative group">
@@ -557,6 +624,39 @@ const App: React.FC<NotebookProps> = ({ isPublicView = false }) => {
                                     className="flex-1 h-12 rounded-xl bg-indigo-600 text-white font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100"
                                 >
                                     {t.notebook.publishModal.confirm}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+            
+            {/* Modal de Validación */}
+            {isValidationModalOpen && (
+                <div className="fixed inset-0 bg-black/30 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-8 animate-in zoom-in-95 duration-200">
+                        <div className="flex flex-col items-center text-center">
+                            <div className="w-16 h-16 bg-amber-100 dark:bg-amber-900/30 rounded-full flex items-center justify-center mb-4">
+                                <AlertCircle size={32} className="text-amber-600 dark:text-amber-400" />
+                            </div>
+                            <h3 className="text-xl font-black text-gray-900 dark:text-white mb-2">
+                                Campos incompletos
+                            </h3>
+                            <p className="text-gray-500 dark:text-gray-400 text-sm mb-8 font-medium">
+                                No has completado todos los campos obligatorios. ¿Qué deseas hacer?
+                            </p>
+                            <div className="flex flex-col gap-3 w-full">
+                                <button
+                                    onClick={() => setIsValidationModalOpen(false)}
+                                    className="w-full h-12 rounded-xl bg-blue-600 text-white font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-100"
+                                >
+                                    Seguir editando
+                                </button>
+                                <button
+                                    onClick={handleDeleteAndExit}
+                                    className="w-full h-12 rounded-xl border-2 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 font-bold hover:bg-gray-50 dark:hover:bg-gray-700 transition-all"
+                                >
+                                    Anular y salir
                                 </button>
                             </div>
                         </div>

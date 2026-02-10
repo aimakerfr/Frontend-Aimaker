@@ -111,26 +111,26 @@ const PublicPrompt: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 dark:from-gray-900 dark:to-purple-900/10">
-      {/* Header */}
-      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm">
-        <div className="max-w-5xl mx-auto px-6 py-4">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-600 rounded-xl flex items-center justify-center shadow-lg">
-              <FileText size={24} className="text-white" />
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      {/* Header with clean design */}
+      <div className="bg-white dark:bg-gray-800 border-b-2 border-blue-200 dark:border-blue-900 shadow-sm">
+        <div className="max-w-6xl mx-auto px-8 py-6">
+          <div className="flex items-center gap-4">
+            <div className="w-16 h-16 bg-blue-600 dark:bg-blue-700 rounded-lg flex items-center justify-center shadow-md border-2 border-blue-700 dark:border-blue-600">
+              <FileText size={28} className="text-white" />
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+            <div className="flex-1">
+              <div className="flex items-center gap-3 flex-wrap mb-1">
+                <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
                   {prompt.title}
                 </h1>
-                <span className="inline-flex items-center gap-1 px-3 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-full text-xs font-semibold">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-600 text-white rounded-md text-xs font-semibold border-2 border-green-700">
                   <Globe size={12} />
                   {tp.publicView}
                 </span>
               </div>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                {tp.publicView} - {tp.readOnly}
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                {tp.readOnly}
               </p>
             </div>
           </div>
@@ -138,59 +138,67 @@ const PublicPrompt: React.FC = () => {
       </div>
 
       {/* Content */}
-      <div className="max-w-5xl mx-auto px-6 py-8">
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
-          {/* Meta información */}
-          <div className="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/10 border-b border-gray-200 dark:border-gray-700 px-6 py-4">
-            <div className="flex flex-wrap gap-4 text-sm">
-              <div className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
-                <User size={16} />
+      <div className="max-w-6xl mx-auto px-8 py-10">
+        {/* Meta Card */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md border-2 border-blue-200 dark:border-blue-900 overflow-hidden mb-8">
+          <div className="bg-blue-50 dark:bg-blue-950 border-b-2 border-blue-200 dark:border-blue-900 px-8 py-5">
+            <div className="flex flex-wrap gap-6 text-sm">
+              <div className="flex items-center gap-2.5 text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600">
+                <User size={18} className="text-blue-600 dark:text-blue-400" />
                 <span className="font-semibold">{tp.author}:</span>
-                <span>{prompt.authorName || 'Usuario'}</span>
+                <span className="font-medium">{prompt.authorName || 'Usuario'}</span>
               </div>
-              <div className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
-                <Calendar size={16} />
+              <div className="flex items-center gap-2.5 text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600">
+                <Calendar size={18} className="text-blue-600 dark:text-blue-400" />
                 <span className="font-semibold">{tp.language}:</span>
-                <span className="uppercase">{prompt.language}</span>
+                <span className="font-medium uppercase">{prompt.language}</span>
               </div>
-              <div className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
-                <FileText size={16} />
+              <div className="flex items-center gap-2.5 text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600">
+                <FileText size={18} className="text-blue-600 dark:text-blue-400" />
                 <span className="font-semibold">{tp.type}:</span>
-                <span>Prompt</span>
+                <span className="font-medium">Prompt</span>
               </div>
             </div>
           </div>
 
-          {/* Content */}
-          <div className="p-6 space-y-6">
+          <div className="p-8 space-y-8">
             {/* Description */}
             <div>
-              <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-3">
-                {tp.descriptionTitle}
-              </h2>
-              <p className="text-gray-700 dark:text-gray-300 leading-relaxed">
+              <div className="flex items-center gap-2 mb-4">
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+                  {tp.descriptionTitle}
+                </h2>
+              </div>
+              <p className="text-gray-700 dark:text-gray-300 leading-relaxed text-base bg-blue-50 dark:bg-blue-950 p-6 rounded-lg border-l-4 border-blue-500 dark:border-blue-600">
                 {prompt.description || tp.noDescription}
               </p>
             </div>
 
-            {/* Divider */}
-            <div className="border-t border-gray-200 dark:border-gray-700"></div>
+            {/* Divider with gradient */}
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-200 dark:border-gray-700"></div>
+              </div>
+              <div className="relative flex justify-center">
+                <span className="bg-white dark:bg-gray-800 px-4 text-xs text-gray-500 uppercase tracking-wider">Content</span>
+              </div>
+            </div>
 
             {/* Prompt Content */}
             <div>
-              <div className="flex items-center justify-between mb-3">
-                <h2 className="text-lg font-bold text-gray-900 dark:text-white">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white">
                   {tp.contentTitle}
                 </h2>
                 {promptContent && (
                   <button
                     onClick={() => copyToClipboard(promptContent, 'prompt')}
-                    className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-gray-700 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                    className="flex items-center gap-2.5 px-4 py-2.5 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-all"
                   >
                     {copiedField === 'prompt' ? (
                       <>
-                        <Check className="w-4 h-4 text-green-600" />
-                        <span>Copiado</span>
+                        <Check className="w-4 h-4" />
+                        <span>¡Copiado!</span>
                       </>
                     ) : (
                       <>
@@ -202,106 +210,103 @@ const PublicPrompt: React.FC = () => {
                 )}
               </div>
               {promptContent ? (
-                <div className="bg-slate-50 dark:bg-gray-900/50 border border-slate-200 dark:border-gray-700 rounded-xl p-6">
-                  <pre className="whitespace-pre-wrap break-words text-gray-700 dark:text-gray-300 leading-relaxed font-mono text-sm overflow-x-auto">
+                <div className="bg-blue-50 dark:bg-blue-950 border-2 border-blue-200 dark:border-blue-900 rounded-lg p-8">
+                  <pre className="whitespace-pre-wrap break-words text-gray-800 dark:text-gray-200 leading-relaxed font-mono text-sm overflow-x-auto">
 {promptContent}
                   </pre>
                 </div>
               ) : (
-                <p className="text-gray-500 dark:text-gray-400 italic">
-                  {tp.noContent}
-                </p>
+                <div className="text-center py-12 bg-gray-50 dark:bg-gray-800 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-700">
+                  <FileText size={48} className="mx-auto text-gray-400 dark:text-gray-600 mb-3" />
+                  <p className="text-gray-500 dark:text-gray-400 italic text-sm">
+                    {tp.noContent}
+                  </p>
+                </div>
               )}
             </div>
 
             {/* Optional Context Field */}
             {promptContext && (
-              <>
-                <div className="border-t border-gray-200 dark:border-gray-700"></div>
-                <div>
-                  <div className="flex items-center justify-between mb-3">
-                    <h2 className="text-lg font-bold text-gray-900 dark:text-white">
-                      Contexto Adicional
-                    </h2>
-                    <button
-                      onClick={() => copyToClipboard(promptContext, 'context')}
-                      className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-gray-700 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-                    >
-                      {copiedField === 'context' ? (
-                        <>
-                          <Check className="w-4 h-4 text-green-600" />
-                          <span>Copiado</span>
-                        </>
-                      ) : (
-                        <>
-                          <Copy className="w-4 h-4" />
-                          <span>Copiar</span>
-                        </>
-                      )}
-                    </button>
-                  </div>
-                  <div className="bg-slate-50 dark:bg-gray-900/50 border border-slate-200 dark:border-gray-700 rounded-xl p-6">
-                    <pre className="whitespace-pre-wrap break-words text-gray-700 dark:text-gray-300 leading-relaxed font-mono text-sm overflow-x-auto">
-{promptContext}
-                    </pre>
-                  </div>
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+                    Contexto Adicional
+                  </h2>
+                  <button
+                    onClick={() => copyToClipboard(promptContext, 'context')}
+                    className="flex items-center gap-2.5 px-4 py-2.5 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-all"
+                  >
+                    {copiedField === 'context' ? (
+                      <>
+                        <Check className="w-4 h-4" />
+                        <span>¡Copiado!</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-4 h-4" />
+                        <span>Copiar</span>
+                      </>
+                    )}
+                  </button>
                 </div>
-              </>
+                <div className="bg-green-50 dark:bg-green-950 border-2 border-green-200 dark:border-green-900 rounded-lg p-8">
+                  <pre className="whitespace-pre-wrap break-words text-gray-800 dark:text-gray-200 leading-relaxed font-mono text-sm overflow-x-auto">
+{promptContext}
+                  </pre>
+                </div>
+              </div>
             )}
 
             {/* Optional Output Format Field */}
             {promptOutputFormat && (
-              <>
-                <div className="border-t border-gray-200 dark:border-gray-700"></div>
-                <div>
-                  <div className="flex items-center justify-between mb-3">
-                    <h2 className="text-lg font-bold text-gray-900 dark:text-white">
-                      Formato de Salida
-                    </h2>
-                    <button
-                      onClick={() => copyToClipboard(promptOutputFormat, 'outputFormat')}
-                      className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-gray-700 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-                    >
-                      {copiedField === 'outputFormat' ? (
-                        <>
-                          <Check className="w-4 h-4 text-green-600" />
-                          <span>Copiado</span>
-                        </>
-                      ) : (
-                        <>
-                          <Copy className="w-4 h-4" />
-                          <span>Copiar</span>
-                        </>
-                      )}
-                    </button>
-                  </div>
-                  <div className="bg-slate-50 dark:bg-gray-900/50 border border-slate-200 dark:border-gray-700 rounded-xl p-6">
-                    <pre className="whitespace-pre-wrap break-words text-gray-700 dark:text-gray-300 leading-relaxed font-mono text-sm overflow-x-auto">
-{promptOutputFormat}
-                    </pre>
-                  </div>
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+                    Formato de Salida
+                  </h2>
+                  <button
+                    onClick={() => copyToClipboard(promptOutputFormat, 'outputFormat')}
+                    className="flex items-center gap-2.5 px-4 py-2.5 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-all"
+                  >
+                    {copiedField === 'outputFormat' ? (
+                      <>
+                        <Check className="w-4 h-4" />
+                        <span>Copiado</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-4 h-4" />
+                        <span>Copiar</span>
+                      </>
+                    )}
+                  </button>
                 </div>
-              </>
+                <div className="bg-purple-50 dark:bg-purple-950 border-2 border-purple-200 dark:border-purple-900 rounded-lg p-8">
+                  <pre className="whitespace-pre-wrap break-words text-gray-800 dark:text-gray-200 leading-relaxed font-mono text-sm overflow-x-auto">
+{promptOutputFormat}
+                  </pre>
+                </div>
+              </div>
             )}
 
-            {/* Divider */}
-            <div className="border-t border-gray-200 dark:border-gray-700"></div>
-
-            {/* Info box */}
-            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4">
-              <div className="flex gap-3">
-                <div className="flex-shrink-0">
-                  <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
-                    <FileText size={20} className="text-blue-600 dark:text-blue-400" />
+            {/* Enhanced Info Box */}
+            <div className="relative mt-10">
+              <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-purple-500/10 rounded-2xl blur-2xl"></div>
+              <div className="relative bg-gradient-to-r from-blue-50 via-purple-50 to-pink-50 dark:from-blue-900/20 dark:via-purple-900/20 dark:to-pink-900/20 border-2 border-blue-200/50 dark:border-blue-800/50 rounded-2xl p-6 shadow-lg backdrop-blur-sm">
+                <div className="flex gap-4">
+                  <div className="flex-shrink-0">
+                    <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
+                      <FileText size={24} className="text-white" />
+                    </div>
                   </div>
-                </div>
-                <div>
-                  <h3 className="font-semibold text-blue-900 dark:text-blue-300 mb-1">
-                    {tp.infoTitle}
-                  </h3>
-                  <p className="text-sm text-blue-800 dark:text-blue-400">
-                    {tp.infoDesc}
-                  </p>
+                  <div>
+                    <h3 className="font-bold text-lg text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400 mb-2">
+                      {tp.infoTitle}
+                    </h3>
+                    <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
+                      {tp.infoDesc}
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>

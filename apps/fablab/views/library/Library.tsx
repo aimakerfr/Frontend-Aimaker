@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BookOpen, Search, FileText, Notebook, FolderKanban, Globe, Eye, Lock, Plus, X, ExternalLink, Trash2, Star } from 'lucide-react';
+import { BookOpen, Search, FileText, Notebook, FolderKanban, Eye, Plus, X, Trash2, Star } from 'lucide-react';
 import { useLanguage } from '../../language/useLanguage';
 import { 
   getTools, 
@@ -238,11 +238,10 @@ const LibraryView: React.FC<LibraryViewProps> = ({
             <div className="bg-gradient-to-r from-gray-50 to-blue-50/50 dark:from-gray-900 dark:to-blue-900/20 border-b border-gray-200 dark:border-gray-700">
               <div className="grid grid-cols-12 gap-4 px-6 py-4">
                 <div className="col-span-1 text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider">{t.library.tableHeaders.type}</div>
-                <div className="col-span-3 text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider">{t.library.tableHeaders.nameDescription}</div>
+                <div className="col-span-4 text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider">{t.library.tableHeaders.nameDescription}</div>
                 <div className="col-span-1 text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider">{t.library.tableHeaders.language}</div>
                 <div className="col-span-2 text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider">{t.library.tableHeaders.action}</div>
-                <div className="col-span-2 text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider">{t.library.tableHeaders.publicPrivate}</div>
-                <div className="col-span-2 text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider">{t.library.tableHeaders.authorDate}</div>
+                <div className="col-span-3 text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider">{t.library.tableHeaders.authorDate}</div>
                 <div className="col-span-1 text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider text-center">{t.library.filters.favorites}</div>
               </div>
             </div>
@@ -278,7 +277,7 @@ const LibraryView: React.FC<LibraryViewProps> = ({
                         </div>
                       </div>
 
-                      <div className="col-span-3">
+                      <div className="col-span-4">
                         <h3 className="text-base font-bold text-gray-900 dark:text-white mb-1">
                           {item.title}
                         </h3>
@@ -315,29 +314,7 @@ const LibraryView: React.FC<LibraryViewProps> = ({
                         </div>
                       </div>
 
-                      <div className="col-span-2">
-                        {item.isPublic ? (
-                          <button
-                            onClick={() => {
-                              const urlType = item.type === 'note_books' ? 'notebook' : item.type;
-                              const publicUrl = item.publicUrl || `http://localhost:3001/public/${urlType}/${item.id}`;
-                              window.open(publicUrl, '_blank');
-                            }}
-                            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl font-semibold text-sm transition-all bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/30 cursor-pointer hover:scale-105"
-                          >
-                            <Globe size={18} />
-                            {t.library.buttons.public}
-                            <ExternalLink size={14} />
-                          </button>
-                        ) : (
-                          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl font-semibold text-sm bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 opacity-75 cursor-not-allowed">
-                            <Lock size={18} />
-                            {t.library.buttons.private}
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="col-span-2">
+                      <div className="col-span-3">
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center text-white font-bold text-xs shadow-md">
                             {(item.authorName || item.author).substring(0, 2).toUpperCase()}

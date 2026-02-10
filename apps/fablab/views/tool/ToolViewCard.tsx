@@ -1,7 +1,9 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import { CheckCircle, Copy, ExternalLink, Globe, Lock, Heart, FileText, ArrowLeft, MessageSquare, FolderKanban } from 'lucide-react';
-import { getTool, toggleToolFavorite, toggleToolVisibility, updateTool } from '@core/creation-tools/creation-tools.service';
+import { CheckCircle, Copy, ExternalLink, Globe, Lock, Heart, FileText, ArrowLeft, MessageSquare, FolderKanban, AlertCircle } from 'lucide-react';
+import { getTool, toggleToolFavorite, toggleToolVisibility, updateTool, deleteTool } from '@core/creation-tools/creation-tools.service';
 import type { CreationTool } from '@core/creation-tools/creation-tools.types';
+import { getPromptByToolId } from '@core/prompts/prompts.service';
+import { getAssistantByToolId } from '@core/assistants/assistants.service';
 import { copyToClipboard } from '@core/ui_utils/navigator_utilies';
 import { useNavigate } from 'react-router-dom';
 import PromptPublishModal from '../prompt/PublishConfirmModal';
@@ -50,6 +52,15 @@ export interface ToolViewState {
   promptBody: string;
   context: string;
   outputFormat: string;
+  assistantInstructions: string;
+  // Validation state
+  validationErrors: {
+    title?: boolean;
+    description?: boolean;
+    category?: boolean;
+    promptBody?: boolean;
+    assistantInstructions?: boolean;
+  };
 }
 
 type ToolViewContextType = {
@@ -77,6 +88,8 @@ const defaultState: ToolViewState = {
   promptBody: '',
   context: '',
   outputFormat: '',
+  assistantInstructions: '',
+  validationErrors: {},
 };
 
 // MetadataSection component - shared across all tool views
@@ -98,12 +111,21 @@ const MetadataSection: React.FC = () => {
         </div>
 
         <div className="md:col-span-10">
-          <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">{tv.labels.title}</label>
+          <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-1.5">
+            {tv.labels.title}
+            {(!state.title || state.title.trim() === '') && (
+              <span title="Required field">
+                <AlertCircle size={12} className="text-amber-500" />
+              </span>
+            )}
+          </label>
           <input
             type="text"
             value={state.title}
-            onChange={(e) => update({ title: e.target.value })}
-            className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-slate-700 bg-white shadow-sm h-[46px]"
+            onChange={(e) => update({ title: e.target.value, validationErrors: { ...state.validationErrors, title: false } })}
+            className={`w-full px-4 py-2.5 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-slate-700 bg-white shadow-sm h-[46px] ${
+              state.validationErrors?.title ? 'border-red-500 border-2' : 'border-slate-200'
+            }`}
             placeholder={tv.placeholders.title.replace('{type}', toolType.toLowerCase())}
           />
         </div>
@@ -111,22 +133,40 @@ const MetadataSection: React.FC = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
         <div className="md:col-span-5">
-          <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">{tv.labels.description}</label>
+          <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-1.5">
+            {tv.labels.description}
+            {(!state.description || state.description.trim() === '') && (
+              <span title="Required field">
+                <AlertCircle size={12} className="text-amber-500" />
+              </span>
+            )}
+          </label>
           <input
             type="text"
             value={state.description}
-            onChange={(e) => update({ description: e.target.value })}
-            className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-slate-700 bg-white shadow-sm h-[46px]"
+            onChange={(e) => update({ description: e.target.value, validationErrors: { ...state.validationErrors, description: false } })}
+            className={`w-full px-4 py-2.5 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-slate-700 bg-white shadow-sm h-[46px] ${
+              state.validationErrors?.description ? 'border-red-500 border-2' : 'border-slate-200'
+            }`}
             placeholder={tv.placeholders.description.replace('{type}', toolType.toLowerCase())}
           />
         </div>
 
         <div className="md:col-span-3">
-          <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">{tv.labels.category}</label>
+          <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-1.5">
+            {tv.labels.category}
+            {(!state.category || state.category.trim() === '') && (
+              <span title="Required field">
+                <AlertCircle size={12} className="text-amber-500" />
+              </span>
+            )}
+          </label>
           <select
             value={state.category}
-            onChange={(e) => update({ category: e.target.value })}
-            className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all bg-white appearance-none cursor-pointer text-slate-700 shadow-sm h-[46px]"
+            onChange={(e) => update({ category: e.target.value, validationErrors: { ...state.validationErrors, category: false } })}
+            className={`w-full px-4 py-2.5 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all bg-white appearance-none cursor-pointer text-slate-700 shadow-sm h-[46px] ${
+              state.validationErrors?.category ? 'border-red-500 border-2' : 'border-slate-200'
+            }`}
           >
             <option value="Marketing">{tv.categories.marketing}</option>
             <option value="Ventes">{tv.categories.sales}</option>
@@ -182,6 +222,7 @@ const ToolViewCard: React.FC<ToolViewCardProps> = ({
   const [saveModalType, setSaveModalType] = useState<'success' | 'error'>('success');
   const [saveModalMessage, setSaveModalMessage] = useState<string>('');
   const [isPublishModalOpen, setIsPublishModalOpen] = useState(false);
+  const [isValidationModalOpen, setIsValidationModalOpen] = useState(false);
 
   const [state, setState] = useState<ToolViewState>(defaultState);
 
@@ -202,7 +243,37 @@ const ToolViewCard: React.FC<ToolViewCardProps> = ({
     promptBody: (data as any).promptBody || '',
     context: (data as any).context || '',
     outputFormat: (data as any).outputFormat || '',
+    assistantInstructions: (data as any).assistantInstructions || '',
+    validationErrors: {},
   }), []);
+
+  // Helper function to load type-specific data from prompts/assistants tables
+  const loadSpecificData = useCallback(async (toolId: number, toolType: string) => {
+    let specificData: any = {};
+    if (toolType === 'prompt') {
+      try {
+        const promptData = await getPromptByToolId(toolId);
+        // Backend returns 'prompt' field, not 'promptBody'
+        specificData = {
+          promptBody: (promptData as any).prompt || '',
+          context: (promptData as any).context || '',
+          outputFormat: (promptData as any).outputFormat || ''
+        };
+      } catch (e) {
+        specificData = { promptBody: '', context: '', outputFormat: '' };
+      }
+    } else if (toolType === 'assistant') {
+      try {
+        const assistantData = await getAssistantByToolId(toolId);
+        specificData = {
+          assistantInstructions: (assistantData as any).instructions || ''
+        };
+      } catch (e) {
+        specificData = { assistantInstructions: '' };
+      }
+    }
+    return specificData;
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -211,9 +282,16 @@ const ToolViewCard: React.FC<ToolViewCardProps> = ({
       try {
         setLoading(true);
         const data = await getTool(Number(toolId));
+        if (cancelled) return;
+        
+        // Cargar datos específicos según el tipo
+        const specificData = await loadSpecificData(Number(toolId), data.type);
+        
         if (!cancelled) {
           setTool(data);
-          setState(mapToolToState(data));
+          // Mapear datos base y luego agregar datos específicos
+          const baseState = mapToolToState(data);
+          setState({ ...baseState, ...specificData });
           setError(null);
         }
       } catch (e) {
@@ -227,7 +305,7 @@ const ToolViewCard: React.FC<ToolViewCardProps> = ({
     return () => {
       cancelled = true;
     };
-  }, [toolId, mapToolToState, tv.messages.errorLoading]);
+  }, [toolId, mapToolToState, loadSpecificData, tv.messages.errorLoading]);
 
   const isPublic = tool?.hasPublicStatus ?? false;
   const privateUrl = tool?.url || '';
@@ -252,6 +330,33 @@ const ToolViewCard: React.FC<ToolViewCardProps> = ({
 
   const save = useCallback(async () => {
     if (!toolId || !tool) return;
+    
+    // VALIDACIÓN: Verificar campos obligatorios según el tipo de tool
+    const errors: typeof state.validationErrors = {};
+    
+    // Campos obligatorios para todos los tipos
+    if (!state.title || state.title.trim() === '') errors.title = true;
+    if (!state.description || state.description.trim() === '') errors.description = true;
+    if (!state.category || state.category.trim() === '') errors.category = true;
+    
+    // Validación específica: solo para prompt validamos el promptBody
+    if (tool.type === 'prompt') {
+      if (!state.promptBody || state.promptBody.trim() === '') errors.promptBody = true;
+    }
+    
+    // Validación específica: para assistant validamos las instrucciones
+    if (tool.type === 'assistant') {
+      if (!state.assistantInstructions || state.assistantInstructions.trim() === '') errors.assistantInstructions = true;
+    }
+    
+    // Actualizar estado de validación
+    update({ validationErrors: errors });
+    
+    // Si hay errores, no guardar
+    if (Object.keys(errors).length > 0) {
+      return;
+    }
+    
     try {
       setIsSaving(true);
       // Save metadata
@@ -272,14 +377,19 @@ const ToolViewCard: React.FC<ToolViewCardProps> = ({
         await detailSaveHandlerRef.current();
       }
 
+      // Limpiar errores después de guardar exitosamente
+      update({ validationErrors: {} });
+      
       setSaveModalType('success');
       const saveTexts = getSaveModalTexts();
       setSaveModalMessage(saveTexts.successMessage);
       setIsSaveModalOpen(true);
-      // refresh tool
+      // refresh tool with specific data
       const refreshed = await getTool(Number(toolId));
+      const specificData = await loadSpecificData(Number(toolId), refreshed.type);
       setTool(refreshed);
-      setState(mapToolToState(refreshed));
+      const baseState = mapToolToState(refreshed);
+      setState({ ...baseState, ...specificData });
     } catch (e) {
       setSaveModalType('error');
       setSaveModalMessage(tv.messages.errorSaving.replace('{type}', tool?.type || 'tool'));
@@ -287,7 +397,7 @@ const ToolViewCard: React.FC<ToolViewCardProps> = ({
     } finally {
       setIsSaving(false);
     }
-  }, [toolId, tool, state, mapToolToState, tv.messages.errorSaving]);
+  }, [toolId, tool, state, mapToolToState, loadSpecificData, tv.messages.errorSaving, update]);
 
   const confirmPublish = useCallback(async () => {
     if (!toolId || !tool) return;
@@ -305,8 +415,10 @@ const ToolViewCard: React.FC<ToolViewCardProps> = ({
         hasPublicStatus: true,
       });
       const refreshed = await getTool(Number(toolId));
+      const specificData = await loadSpecificData(Number(toolId), refreshed.type);
       setTool(refreshed);
-      setState(mapToolToState(refreshed));
+      const baseState = mapToolToState(refreshed);
+      setState({ ...baseState, ...specificData });
       setSaveModalType('success');
       setSaveModalMessage(tv.messages.successPublish.replace('{type}', tool?.type || 'Tool'));
       setIsSaveModalOpen(true);
@@ -318,9 +430,56 @@ const ToolViewCard: React.FC<ToolViewCardProps> = ({
     } finally {
       setIsPublishing(false);
     }
-  }, [toolId, tool, state, mapToolToState, tv.messages.successPublish, tv.messages.errorPublishing]);
+  }, [toolId, tool, state, mapToolToState, loadSpecificData, tv.messages.successPublish, tv.messages.errorPublishing]);
 
   const openPublish = useCallback(() => setIsPublishModalOpen(true), []);
+  
+  const handleCancelAndDelete = useCallback(async () => {
+    if (!toolId) return;
+    try {
+      await deleteTool(Number(toolId));
+      navigate('/dashboard/library');
+    } catch (e) {
+      console.error('Error deleting tool:', e);
+      navigate('/dashboard/library');
+    }
+  }, [toolId, navigate]);
+  
+  const validateAndNavigate = useCallback(() => {
+    if (!tool) {
+      navigate('/dashboard/library');
+      return;
+    }
+    
+    // VALIDACIÓN: Verificar campos obligatorios según el tipo de tool
+    const errors: typeof state.validationErrors = {};
+    
+    // Campos obligatorios para todos los tipos
+    if (!state.title || state.title.trim() === '') errors.title = true;
+    if (!state.description || state.description.trim() === '') errors.description = true;
+    if (!state.category || state.category.trim() === '') errors.category = true;
+    
+    // Validación específica: solo para prompt validamos el promptBody
+    if (tool.type === 'prompt') {
+      if (!state.promptBody || state.promptBody.trim() === '') errors.promptBody = true;
+    }
+    
+    // Validación específica: para assistant validamos las instrucciones
+    if (tool.type === 'assistant') {
+      if (!state.assistantInstructions || state.assistantInstructions.trim() === '') errors.assistantInstructions = true;
+    }
+    
+    // Actualizar estado de validación
+    update({ validationErrors: errors });
+    
+    // Si NO hay errores, navegar
+    if (Object.keys(errors).length === 0) {
+      navigate('/dashboard/library');
+    } else {
+      // Si hay errores, mostrar modal de confirmación
+      setIsValidationModalOpen(true);
+    }
+  }, [tool, state, navigate, update]);
 
   // Build save section: use external props if provided, otherwise internal when toolId exists
   const internalSaveSection = (saveProps ? (
@@ -483,7 +642,7 @@ const ToolViewCard: React.FC<ToolViewCardProps> = ({
   const internalTitleSection = (
     <div className="flex items-center gap-4 mb-8">
       <button
-        onClick={() => navigate('/dashboard/library')}
+        onClick={validateAndNavigate}
         className="text-slate-400 hover:text-slate-600 transition-colors"
         type="button"
       >
@@ -649,7 +808,7 @@ const ToolViewCard: React.FC<ToolViewCardProps> = ({
       </div>
       <p className="text-gray-600 mb-4">{error || tv.messages.notFound.replace('{type}', 'tool')}</p>
       <button
-        onClick={() => navigate('/dashboard/library')}
+        onClick={validateAndNavigate}
         className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-all"
         type="button"
       >
@@ -728,6 +887,44 @@ const ToolViewCard: React.FC<ToolViewCardProps> = ({
           message={saveModalMessage}
           onClose={() => setIsSaveModalOpen(false)}
         />
+        
+        {/* Modal de validación al intentar regresar */}
+        {isValidationModalOpen && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-6 border-2 border-red-500/20">
+              <div className="flex items-start gap-4 mb-4">
+                <div className="w-12 h-12 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center flex-shrink-0">
+                  <AlertCircle size={24} className="text-red-600 dark:text-red-400" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">
+                    Campos incompletos
+                  </h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    No has completado todos los campos obligatorios. ¿Qué deseas hacer?
+                  </p>
+                </div>
+              </div>
+              <div className="flex gap-3 mt-6">
+                <button
+                  onClick={() => setIsValidationModalOpen(false)}
+                  className="flex-1 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-all shadow-lg"
+                >
+                  Seguir editando
+                </button>
+                <button
+                  onClick={() => {
+                    setIsValidationModalOpen(false);
+                    handleCancelAndDelete();
+                  }}
+                  className="flex-1 px-4 py-3 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-900 dark:text-white font-semibold rounded-xl transition-all"
+                >
+                  Anular y salir
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
