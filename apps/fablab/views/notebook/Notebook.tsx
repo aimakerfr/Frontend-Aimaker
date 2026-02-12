@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import SourcePanel from './components/SourcePanel.tsx';
 import ChatInterface from './components/ChatInterface.tsx';
 import { Source, ChatMessage, SourceType, StructuredSummary, Language } from './types.ts';
@@ -8,6 +8,7 @@ import { generateChatResponse, generateSourceSummary } from './services/geminiSe
 import { Layout, Menu, Globe, ChevronDown, ArrowLeft, Star, ExternalLink, Lock, AlertCircle } from 'lucide-react';
 import { getNotebookSources, postNoteBookSource, deleteNotebookSource, type NotebookSourceItem } from '@core/notebooks';
 import { getTool, updateTool } from '@core/creation-tools/creation-tools.service.ts';
+import { markToolAsSaved } from '@core/creation-tools/unsavedTools.service';
 import { useLanguage } from '../../language/useLanguage';
 
 enum Visibility {
@@ -24,7 +25,6 @@ const App: React.FC<NotebookProps> = ({ isPublicView = false }) => {
     const navigate = useNavigate();
     const { id: urlId } = useParams<{ id: string }>();
     const [id, setId] = useState<string | undefined>(urlId);
-    const [searchParams] = useSearchParams();
     const [sources, setSources] = useState<Source[]>([]);
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [chatLoading, setChatLoading] = useState(false);
@@ -54,16 +54,11 @@ const App: React.FC<NotebookProps> = ({ isPublicView = false }) => {
     }, [urlId]);
 
     useEffect(() => {
-        // Intentar obtener el título del query param primero
-        const titleFromParam = searchParams.get('title');
-        if (titleFromParam) {
-            setNotebookName(decodeURIComponent(titleFromParam));
+        // Solo cargar datos del notebook si el ID existe y es valido
+        if (id && id !== 'new' && !isNaN(parseInt(id))) {
+            loadNotebookData(parseInt(id), null);
         }
-        
-        if (id) {
-            loadNotebookData(parseInt(id), titleFromParam);
-        }
-    }, [id, searchParams]);
+    }, [id]);
 
     const mapApiSourceType = (type: string): SourceType => {
         switch (type?.toUpperCase()) {
@@ -157,6 +152,9 @@ const App: React.FC<NotebookProps> = ({ isPublicView = false }) => {
                 language: toolLanguage,
                 hasPublicStatus: visibility === Visibility.PUBLIC,
             });
+            
+            // Marcar como guardado para que aparezca en biblioteca
+            markToolAsSaved(parseInt(id));
         } catch (error) {
             console.error('Error guardando notebook:', error);
         }
@@ -444,9 +442,8 @@ const App: React.FC<NotebookProps> = ({ isPublicView = false }) => {
                                             </span>
                                         )}
                                     </div>
-                                    <div className="flex items-center gap-2 mt-1">
-                                        <input
-                                            type="text"
+                                    <div className="flex items-center gap-2 mt-2">
+                                        <textarea
                                             value={description}
                                             onChange={(e) => {
                                                 setDescription(e.target.value);
@@ -454,14 +451,15 @@ const App: React.FC<NotebookProps> = ({ isPublicView = false }) => {
                                             }}
                                             onBlur={handleSave}
                                             disabled={isPublicView}
-                                            className={`flex-1 text-sm text-gray-600 bg-transparent border-b outline-none focus:ring-0 px-0 placeholder:text-gray-300 disabled:cursor-not-allowed transition-all ${
-                                                validationErrors.description ? 'border-red-500' : 'border-transparent focus:border-blue-400'
+                                            rows={2}
+                                            className={`flex-1 text-base text-gray-700 bg-transparent border-2 rounded-lg outline-none focus:ring-0 px-3 py-2 placeholder:text-gray-400 placeholder:text-base placeholder:font-medium disabled:cursor-not-allowed transition-all resize-none ${
+                                                validationErrors.description ? 'border-red-500' : 'border-gray-200 focus:border-blue-400'
                                             }`}
                                             placeholder={t.notebook.settings.descriptionPlaceholder}
                                         />
                                         {(!description || description.trim() === '') && (
                                             <span title="Required field">
-                                                <AlertCircle size={14} className="text-amber-500" />
+                                                <AlertCircle size={16} className="text-amber-500" />
                                             </span>
                                         )}
                                     </div>

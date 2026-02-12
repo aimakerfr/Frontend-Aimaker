@@ -736,6 +736,26 @@ export const en: Translations = {
       edit: 'Modify',
       open: 'Open',
     },
+    publishModals: {
+      prompt: {
+        title: 'Publish prompt',
+        message: 'Are you sure you want to make this prompt public? Anyone with the link will be able to access it.',
+        confirm: 'Confirm',
+        cancel: 'Cancel',
+      },
+      assistant: {
+        title: 'Publish assistant',
+        message: 'Are you sure you want to make this assistant public? Anyone with the link will be able to access it.',
+        confirm: 'Confirm',
+        cancel: 'Cancel',
+      },
+      project: {
+        title: 'Publish project',
+        message: 'Are you sure you want to make this project public? Anyone with the link will be able to access it.',
+        confirm: 'Confirm',
+        cancel: 'Cancel',
+      },
+    },
     formGeneral: {
       title: 'Document your research and sharing',
       update: 'Update',

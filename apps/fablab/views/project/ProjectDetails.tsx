@@ -5,7 +5,7 @@ import { useLanguage } from '../../language/useLanguage';
 import { useToolView } from '../tool/ToolViewCard';
 
 type Props = {
-  toolId: number;
+  toolId: number | null;
 };
 
 const ProjectDetails: React.FC<Props> = ({ toolId }) => {
@@ -34,6 +34,12 @@ const ProjectDetails: React.FC<Props> = ({ toolId }) => {
 
   // Load project data
   useEffect(() => {
+    // Skip loading if toolId is null (new mode)
+    if (toolId === null) {
+      setLoading(false);
+      return;
+    }
+    
     let cancelled = false;
     const load = async () => {
       try {
@@ -71,6 +77,12 @@ const ProjectDetails: React.FC<Props> = ({ toolId }) => {
 
   // Save handler
   const handleSave = useCallback(async () => {
+    // Skip if toolId is null (creation mode - tool will be created by ToolViewCard)
+    if (toolId === null) {
+      // Project fields will be saved when ToolViewCard creates the tool
+      return;
+    }
+    
     try {
       setSaving(true);
       // Update project via PATCH /tools/{id}/project with all project fields

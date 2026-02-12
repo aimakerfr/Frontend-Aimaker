@@ -6,7 +6,7 @@ import { useToolView } from '../tool/ToolViewCard';
 import { useLanguage } from '../../language/useLanguage';
 
 type Props = {
-  toolId: number;
+  toolId: number | null;
 };
 
 const PromptDetails: React.FC<Props> = ({ toolId }) => {
@@ -54,6 +54,12 @@ const PromptDetails: React.FC<Props> = ({ toolId }) => {
   }, [contextInitialBody, tp.errorNotPrompt, tp.errorLoading]);
 
   useEffect(() => {
+    // Skip loading if toolId is null (new mode)
+    if (toolId === null) {
+      setLoading(false);
+      return;
+    }
+    
     let cancelled = false;
     const isCancelled = () => cancelled;
     fetchPromptDetails(toolId, isCancelled);
@@ -64,6 +70,19 @@ const PromptDetails: React.FC<Props> = ({ toolId }) => {
 
   // Unified save handler function - saves prompt body, context, and outputFormat
   const handleSave = useCallback(async () => {
+    // Skip if toolId is null (creation mode - tool will be created by ToolViewCard)
+    if (toolId === null) {
+      // Just update the context state, actual save happens in ToolViewCard
+      if (toolView) {
+        toolView.update({ 
+          promptBody: promptBody,
+          context: context,
+          outputFormat: outputFormat
+        });
+      }
+      return;
+    }
+    
     try {
       // Update all prompt fields at once
       await updatePrompt(toolId, {

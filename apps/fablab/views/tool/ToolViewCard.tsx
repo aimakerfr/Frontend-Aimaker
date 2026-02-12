@@ -6,6 +6,7 @@ import { getPromptByToolId } from '@core/prompts/prompts.service';
 import { getAssistantByToolId } from '@core/assistants/assistants.service';
 import { copyToClipboard } from '@core/ui_utils/navigator_utilies';
 import { useNavigate } from 'react-router-dom';
+import { markToolAsSaved } from '@core/creation-tools/unsavedTools.service';
 import PromptPublishModal from '../prompt/PublishConfirmModal';
 import ProjectPublishModal from '../project/PublishConfirmModal';
 import AssistantPublishModal from '../assistant/PublishConfirmModal';
@@ -38,6 +39,7 @@ type ToolViewCardProps = {
   };
   // Optional: make the card self-sufficient for URL section if a tool id is provided
   toolId?: number | null;
+  toolType?: string; // Type for new tools (when toolId is null)
 };
 
 // Internal state exposed to children so Prompt-specific content can bind inputs
@@ -204,6 +206,7 @@ const ToolViewCard: React.FC<ToolViewCardProps> = ({
   saveProps,
   urlsProps,
   toolId,
+  toolType,
 }) => {
   const { t } = useLanguage();
   const tv = t.toolView;
@@ -329,10 +332,9 @@ const ToolViewCard: React.FC<ToolViewCardProps> = ({
   }, []);
 
   const save = useCallback(async () => {
-    if (!toolId || !tool) return;
-    
     // VALIDACIÓN: Verificar campos obligatorios según el tipo de tool
     const errors: typeof state.validationErrors = {};
+    const currentToolType = tool?.type || toolType || 'prompt';
     
     // Campos obligatorios para todos los tipos
     if (!state.title || state.title.trim() === '') errors.title = true;
@@ -340,12 +342,12 @@ const ToolViewCard: React.FC<ToolViewCardProps> = ({
     if (!state.category || state.category.trim() === '') errors.category = true;
     
     // Validación específica: solo para prompt validamos el promptBody
-    if (tool.type === 'prompt') {
+    if (currentToolType === 'prompt') {
       if (!state.promptBody || state.promptBody.trim() === '') errors.promptBody = true;
     }
     
     // Validación específica: para assistant validamos las instrucciones
-    if (tool.type === 'assistant') {
+    if (currentToolType === 'assistant') {
       if (!state.assistantInstructions || state.assistantInstructions.trim() === '') errors.assistantInstructions = true;
     }
     
@@ -359,6 +361,10 @@ const ToolViewCard: React.FC<ToolViewCardProps> = ({
     
     try {
       setIsSaving(true);
+      
+      // Siempre es modo UPDATE porque el tool ya existe (se creó al seleccionar tipo)
+      if (!tool || !toolId) return;
+      
       // Save metadata
       await updateTool(Number(toolId), {
         type: tool.type,
@@ -369,8 +375,11 @@ const ToolViewCard: React.FC<ToolViewCardProps> = ({
         category: (state as any).category,
         isFavorite: state.isFavorite,
         language: (state as any).language,
-        hasPublicStatus: state.visibility === 'PUBLIC',
+        hasPublicStatus: state.visibility === 'PUBLIC'
       });
+      
+      // Marcar como guardado para que aparezca en biblioteca
+      markToolAsSaved(Number(toolId));
       
       // Also save detail section data if handler is registered
       if (detailSaveHandlerRef.current) {
@@ -392,12 +401,12 @@ const ToolViewCard: React.FC<ToolViewCardProps> = ({
       setState({ ...baseState, ...specificData });
     } catch (e) {
       setSaveModalType('error');
-      setSaveModalMessage(tv.messages.errorSaving.replace('{type}', tool?.type || 'tool'));
+      setSaveModalMessage(tv.messages.errorSaving.replace('{type}', tool?.type || toolType || 'tool'));
       setIsSaveModalOpen(true);
     } finally {
       setIsSaving(false);
     }
-  }, [toolId, tool, state, mapToolToState, loadSpecificData, tv.messages.errorSaving, update]);
+  }, [toolId, tool, toolType, state, mapToolToState, loadSpecificData, tv.messages.errorSaving, update, navigate]);
 
   const confirmPublish = useCallback(async () => {
     if (!toolId || !tool) return;
@@ -446,6 +455,12 @@ const ToolViewCard: React.FC<ToolViewCardProps> = ({
   }, [toolId, navigate]);
   
   const validateAndNavigate = useCallback(() => {
+    // Si no hay toolId, es modo creación - permitir salir sin validar
+    if (!toolId) {
+      navigate('/dashboard/library');
+      return;
+    }
+    
     if (!tool) {
       navigate('/dashboard/library');
       return;
@@ -479,7 +494,7 @@ const ToolViewCard: React.FC<ToolViewCardProps> = ({
       // Si hay errores, mostrar modal de confirmación
       setIsValidationModalOpen(true);
     }
-  }, [tool, state, navigate, update]);
+  }, [toolId, tool, state, navigate, update]);
 
   // Build save section: use external props if provided, otherwise internal when toolId exists
   const internalSaveSection = (saveProps ? (
@@ -589,7 +604,43 @@ const ToolViewCard: React.FC<ToolViewCardProps> = ({
         </button>
       </div>
     </div>
-  ) : null));
+  ) : (
+    // NEW MODE: toolId is null, show all buttons but they only modify local state
+    <div className="flex flex-col md:flex-row items-center justify-between gap-4 pt-8 border-t border-slate-100">
+      <div className="flex items-center gap-3">
+        {/* FAVORITO - Solo cambia estado local */}
+        <button
+          type="button"
+          onClick={() => update({ isFavorite: !state.isFavorite })}
+          className={`flex items-center justify-center w-[46px] h-[42px] border rounded-xl transition-all shadow-sm ${
+            state.isFavorite ? 'bg-red-50 border-red-200 text-red-500' : 'bg-white border-slate-200 text-slate-300 hover:text-slate-400'
+          }`}
+          title={state.isFavorite ? tv.actions.removeFavorite : tv.actions.addFavorite}
+        >
+          <Heart size={18} fill={state.isFavorite ? 'currentColor' : 'none'} />
+        </button>
+        {/* PUBLICAR - Solo cambia estado local */}
+        <button
+          type="button"
+          onClick={() => update({ visibility: state.visibility === 'PUBLIC' ? 'PRIVÉ' : 'PUBLIC' })}
+          className="flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 rounded-xl hover:border-blue-300 transition-all shadow-sm h-[42px] text-slate-600"
+          title={state.visibility === 'PUBLIC' ? tv.actions.published : tv.actions.publish}
+        >
+          {state.visibility === 'PUBLIC' ? <Globe size={16} className="text-blue-500" /> : <Lock size={16} className="text-slate-400" />}
+          <span className="text-sm font-semibold">{state.visibility === 'PUBLIC' ? tv.actions.published : tv.actions.publish}</span>
+        </button>
+        {/* GUARDAR */}
+        <button
+          onClick={save}
+          disabled={isSaving}
+          className="bg-[#3b82f6] hover:bg-blue-600 text-white font-bold px-8 py-3 rounded-xl shadow-lg shadow-blue-500/30 transition-all active:scale-[0.98] text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+          type="button"
+        >
+          {isSaving ? tv.actions.saving : tv.actions.save}
+        </button>
+      </div>
+    </div>
+  )));
 
   // Internal default title section (moved from PromptView)
   const getTypeIcon = () => {
