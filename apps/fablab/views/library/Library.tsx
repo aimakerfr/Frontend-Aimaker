@@ -1,15 +1,16 @@
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BookOpen, Search, FileText, Notebook, FolderKanban, Eye, Plus, X, Trash2, Star } from 'lucide-react';
+import { Search, FileText, Notebook, FolderKanban, Eye, Plus, X, Trash2, Star } from 'lucide-react';
 import { useLanguage } from '../../language/useLanguage';
 import { 
   getTools, 
-  createTool, 
   deleteTool, 
-  toggleToolFavorite
+  toggleToolFavorite,
+  createTool
 } from '@core/creation-tools/creation-tools.service';
 import type { Tool } from '@core/creation-tools/creation-tools.types';
+import { markToolAsUnsaved, getUnsavedToolIds } from '@core/creation-tools/unsavedTools.service';
 
 // MOCK DATA - Solo se usa si falla la API
 const mockItems: LibraryItem[] = [
@@ -17,8 +18,22 @@ const mockItems: LibraryItem[] = [
   { id: 2, type: 'project', title: 'Prototype Chatbot Client', description: 'MVP pour le support client e-commerce.', isPublic: true, author: 'JEANDUPONT', createdAt: '20/10/2023', category: 'E-commerce', url: 'aimaker.fr/p/...', language: 'fr', usageCount: 0 },
 ];
 
-type FilterType = 'all' | 'mine' | 'public' | 'private' | 'shared' | 'favorites';
-type ItemType = 'assistant' | 'prompt' | 'note_books' | 'project' | 'perplexity_search';
+type FilterType = 'all' | 'favorites';
+type ItemType = 'prompt' | 'note_books' | 'project';
+
+// Helper function to get icon color based on type
+const getIconColorClass = (type: ItemType): string => {
+  switch (type) {
+    case 'note_books':
+      return 'bg-gradient-to-br from-teal-500 to-cyan-600';
+    case 'prompt':
+      return 'bg-gradient-to-br from-blue-500 to-indigo-600';
+    case 'project':
+      return 'bg-gradient-to-br from-emerald-500 to-green-600';
+    default:
+      return 'bg-gradient-to-br from-gray-500 to-gray-600';
+  }
+};
 
 interface LibraryItem {
   id: number;
@@ -42,60 +57,42 @@ interface LibraryViewProps {
   onDelete?: (itemId: number) => void;
   onToggleFavorite?: (itemId: number) => Promise<void>;
   isLoading?: boolean;
+  activeFilter?: FilterType;
+  setActiveFilter?: (filter: FilterType) => void;
+  typeFilter?: ItemType | 'all';
+  setTypeFilter?: (type: ItemType | 'all') => void;
 }
 
 const LibraryView: React.FC<LibraryViewProps> = ({
   items = mockItems,
   onDelete,
   onToggleFavorite,
-  isLoading = false
+  isLoading = false,
+  activeFilter: activeFilterProp,
+  setActiveFilter: setActiveFilterProp,
+  typeFilter: typeFilterProp,
+  setTypeFilter: setTypeFilterProp
 }) => {
   const navigate = useNavigate();
   const { t } = useLanguage();
-  const [activeFilter, setActiveFilter] = useState<FilterType>('all');
+  
+  // Use props if provided, otherwise local state (backward compat)
+  const [localActiveFilter, setLocalActiveFilter] = useState<FilterType>('all');
+  const [localTypeFilter, setLocalTypeFilter] = useState<ItemType | 'all'>('all');
+  
+  const activeFilter = activeFilterProp ?? localActiveFilter;
+  const setActiveFilter = setActiveFilterProp ?? setLocalActiveFilter;
+  const typeFilter = typeFilterProp ?? localTypeFilter;
+  const setTypeFilter = setTypeFilterProp ?? setLocalTypeFilter;
+  
   const [searchQuery, setSearchQuery] = useState('');
-  const [typeFilter, setTypeFilter] = useState<ItemType | 'all'>('all');
   const [showCreateModal, setShowCreateModal] = useState(false);
-  // Removed showCreateForm and selectedType as we're creating directly now
-  // const [showCreateForm, setShowCreateForm] = useState(false);
-  // const [selectedType, setSelectedType] = useState<ItemType>('note_books');
-
-  const filters: { key: FilterType; label: string }[] = [
-    { key: 'all', label: t.library.filters.all },
-    { key: 'mine', label: t.library.filters.mine },
-    { key: 'shared', label: t.library.filters.shared },
-    { key: 'public', label: t.library.filters.public },
-    { key: 'private', label: t.library.filters.private },
-    { key: 'favorites', label: t.library.filters.favorites }
-  ];
 
   const getFilteredTools = () => {
     let filtered: any = items;
 
-    switch (activeFilter) {
-      case 'mine':
-        break;
-      case 'shared':
-        filtered = filtered.filter((tool: LibraryItem) => tool.isPublic);
-        break;
-      case 'public':
-        filtered = filtered.filter((tool: LibraryItem) => tool.isPublic);
-        break;
-      case 'private':
-        filtered = filtered.filter((tool: LibraryItem) => !tool.isPublic);
-        break;
-      case 'favorites':
-        filtered = filtered.filter((tool: any) => tool.isFavorite === true);
-        break;
-      case 'all':
-      default:
-        break;
-    }
-
-    if (typeFilter !== 'all') {
-      filtered = filtered.filter((tool: LibraryItem) => tool.type === typeFilter);
-    }
-
+    // Backend already filters by type and favorite
+    // Only filter by search query on frontend
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter((tool: LibraryItem) => 
@@ -120,35 +117,27 @@ const LibraryView: React.FC<LibraryViewProps> = ({
     return itemTypes.find(t => t.type === type) || itemTypes[0];
   };
 
-  const handleFilterClick = (filter: FilterType) => {
-    setActiveFilter(filter);
-  };
-
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(e.target.value);
   };
 
   const handleCreateClick = async (type: ItemType) => {
-    // Create tool directly and redirect to detail view
+    // Crear el tool inmediatamente al seleccionar tipo
     setShowCreateModal(false);
     try {
-      const payload: any = {
-        type: type,
+      const newTool = await createTool({
+        type: type as any,
         title: '',
-        description: '',
-        hasPublicStatus: false,
-        isTemplate: false
-      };
+        description: ''
+      });
       
-      const newTool = await createTool(payload);
-      if (newTool && newTool.id) {
-        // Redirect to detail view
-        const urlType = type === 'note_books' ? 'notebook' : type;
-        navigate(`/dashboard/${urlType}/${newTool.id}`);
-      }
-    } catch (err) {
-      console.error('Error creating tool:', err);
-      // Error is logged, user can try again
+      // Marcar como "no guardado" para que no aparezca en biblioteca hasta primer guardado
+      markToolAsUnsaved(newTool.id);
+      
+      const urlType = type === 'note_books' ? 'notebook' : type;
+      navigate(`/dashboard/${urlType}/${newTool.id}`);
+    } catch (error) {
+      console.error('Error creando tool:', error);
     }
   };
 
@@ -205,31 +194,76 @@ const LibraryView: React.FC<LibraryViewProps> = ({
               />
             </div>
             <div className="flex flex-wrap gap-2">
-              <select
-                value={typeFilter}
-                onChange={(e) => setTypeFilter(e.target.value as ItemType | 'all')}
-                className="px-4 py-2.5 font-medium rounded-xl bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-blue-500 outline-none"
+              {/* Todos button */}
+              <button
+                onClick={() => {
+                  setTypeFilter('all');
+                  setActiveFilter('all'); // Siempre desactiva favoritos al hacer clic en Todos
+                }}
+                className={`px-5 py-2.5 font-medium transition-all rounded-xl ${
+                  typeFilter === 'all' && activeFilter === 'all'
+                    ? 'bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-400 shadow-md border border-blue-200 dark:border-blue-800'
+                    : 'text-gray-600 dark:text-gray-400 hover:bg-white dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-200 border border-gray-200 dark:border-gray-700'
+                }`}
               >
-                <option value="all">{t.library.allTypes}</option>
-                <option value="note_books">{t.library.types.notebook}</option>
-                <option value="project">{t.library.types.project}</option>
-                <option value="prompt">{t.library.types.prompt}</option>
-                <option value="assistant">{t.library.types.assistant}</option>
-                <option value="perplexity_search">{t.library.types.perplexitySearch}</option>
-              </select>
-              {filters.map(filter => (
-                <button
-                  key={filter.key}
-                  onClick={() => handleFilterClick(filter.key)}
-                  className={`px-5 py-2.5 font-medium transition-all rounded-xl ${
-                    activeFilter === filter.key
-                      ? 'bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-400 shadow-md border border-blue-200 dark:border-blue-800'
-                      : 'text-gray-600 dark:text-gray-400 hover:bg-white dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-200'
-                  }`}
-                >
-                  {filter.label}
-                </button>
-              ))}
+                {t.library.filters.all}
+              </button>
+              
+              {/* Favoritos button */}
+              <button
+                onClick={() => {
+                  if (activeFilter === 'favorites') {
+                    setActiveFilter('all');
+                  } else {
+                    setActiveFilter('favorites');
+                  }
+                }}
+                className={`px-5 py-2.5 font-medium transition-all rounded-xl ${
+                  activeFilter === 'favorites'
+                    ? 'bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-400 shadow-md border border-blue-200 dark:border-blue-800'
+                    : 'text-gray-600 dark:text-gray-400 hover:bg-white dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-200 border border-gray-200 dark:border-gray-700'
+                }`}
+              >
+                {t.library.filters.favorites}
+              </button>
+              
+              {/* Type Filters as Buttons */}
+              <button
+                onClick={() => {
+                  setTypeFilter('note_books');
+                }}
+                className={`px-5 py-2.5 font-medium transition-all rounded-xl ${
+                  typeFilter === 'note_books'
+                    ? 'bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-400 shadow-md border border-blue-200 dark:border-blue-800'
+                    : 'text-gray-600 dark:text-gray-400 hover:bg-white dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-200 border border-gray-200 dark:border-gray-700'
+                }`}
+              >
+                {t.library.types.notebook}
+              </button>
+              <button
+                onClick={() => {
+                  setTypeFilter('prompt');
+                }}
+                className={`px-5 py-2.5 font-medium transition-all rounded-xl ${
+                  typeFilter === 'prompt'
+                    ? 'bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-400 shadow-md border border-blue-200 dark:border-blue-800'
+                    : 'text-gray-600 dark:text-gray-400 hover:bg-white dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-200 border border-gray-200 dark:border-gray-700'
+                }`}
+              >
+                {t.library.types.prompt}
+              </button>
+              <button
+                onClick={() => {
+                  setTypeFilter('project');
+                }}
+                className={`px-5 py-2.5 font-medium transition-all rounded-xl ${
+                  typeFilter === 'project'
+                    ? 'bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-400 shadow-md border border-blue-200 dark:border-blue-800'
+                    : 'text-gray-600 dark:text-gray-400 hover:bg-white dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-200 border border-gray-200 dark:border-gray-700'
+                }`}
+              >
+                {t.library.types.project}
+              </button>
             </div>
           </div>
 
@@ -267,7 +301,7 @@ const LibraryView: React.FC<LibraryViewProps> = ({
                     >
                       <div className="col-span-1">
                         <div className="flex flex-col items-center gap-2">
-                          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg">
+                          <div className={`w-12 h-12 rounded-xl ${getIconColorClass(item.type)} flex items-center justify-center shadow-lg`}>
                             <TypeIcon size={24} className="text-white" />
                           </div>
                           <div className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide text-center">
@@ -382,7 +416,7 @@ const LibraryView: React.FC<LibraryViewProps> = ({
                     onClick={() => handleCreateClick(type.type)}
                     className="group flex flex-col items-center gap-3 p-6 rounded-xl border-2 border-gray-200 dark:border-gray-700 hover:border-blue-500 dark:hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all"
                   >
-                    <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                    <div className={`w-16 h-16 rounded-xl ${getIconColorClass(type.type)} flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform`}>
                       <Icon size={32} className="text-white" />
                     </div>
                     <span className="text-sm font-bold text-gray-900 dark:text-white text-center">
@@ -413,20 +447,39 @@ const Library = () => {
   const [items, setItems] = useState<LibraryItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [activeFilter, setActiveFilter] = useState<FilterType>('all');
+  const [typeFilter, setTypeFilter] = useState<ItemType | 'all'>('all');
   const { t } = useLanguage();
 
-  const loadCreationTools = async () => {
+  const loadCreationTools = async (filters?: { type?: ItemType | 'all'; favorite?: boolean }) => {
     setIsLoading(true);
     setError(null);
     try {
       console.log('=== LOADING CREATION TOOLS ===');
-      const tools = await getTools();
+      console.log('Filters:', filters);
+      
+      // Build params for backend
+      const params: any = {};
+      if (filters?.type && filters.type !== 'all') {
+        params.type = filters.type;
+      }
+      if (filters?.favorite === true) {
+        params.favorite = true;
+      }
+      
+      const tools = await getTools(params);
       console.log('Tools recibidos del backend:', tools);
       console.log('Número de tools:', tools.length);
       
-      // Filtrar external_link y vibe_coding (ahora están en Acceso Externo)
+      // Obtener IDs de tools no guardados (recién creados)
+      const unsavedIds = getUnsavedToolIds();
+      console.log('IDs de tools no guardados:', unsavedIds);
+      
+      // Filtrar external_link, vibe_coding y tools no guardados
       const filteredTools = tools.filter((tool: Tool) => 
-        (tool.type as string) !== 'external_link' && (tool.type as string) !== 'vibe_coding'
+        (tool.type as string) !== 'external_link' && 
+        (tool.type as string) !== 'vibe_coding' &&
+        !unsavedIds.includes(tool.id) // No mostrar tools recién creados sin guardar
       );
       console.log('Tools después de filtrar:', filteredTools.length);
       
@@ -462,8 +515,28 @@ const Library = () => {
   };
 
   useEffect(() => {
-    loadCreationTools();
+    loadCreationTools({});
   }, []);
+
+  // Reload when filters change
+  useEffect(() => {
+    console.log('🔄 FILTERS CHANGED');
+    console.log('  typeFilter:', typeFilter);
+    console.log('  activeFilter:', activeFilter);
+    
+    const filters: any = {};
+    if (typeFilter !== 'all') {
+      filters.type = typeFilter;
+      console.log('  ✅ Adding type filter:', typeFilter);
+    }
+    if (activeFilter === 'favorites') {
+      filters.favorite = true;
+      console.log('  ✅ Adding favorite filter: true');
+    }
+    
+    console.log('  📤 Calling loadCreationTools with:', filters);
+    loadCreationTools(filters);
+  }, [activeFilter, typeFilter]);
 
   const handleDelete = async (itemId: number) => {
     if (!confirm(t.library.confirmDelete)) return;
@@ -475,7 +548,11 @@ const Library = () => {
     } catch (err) {
       console.error('Error eliminando:', err);
       setError(t.common.errorDeleting);
-      await loadCreationTools();
+      // Reload with current filters
+      const filters: any = {};
+      if (typeFilter !== 'all') filters.type = typeFilter;
+      if (activeFilter === 'favorites') filters.favorite = true;
+      await loadCreationTools(filters);
     } finally {
       setIsLoading(false);
     }
@@ -502,7 +579,12 @@ const Library = () => {
         <div className="text-center">
           <p className="text-red-600 font-semibold mb-4">{error}</p>
           <button
-            onClick={() => loadCreationTools()}
+            onClick={() => {
+              const filters: any = {};
+              if (typeFilter !== 'all') filters.type = typeFilter;
+              if (activeFilter === 'favorites') filters.favorite = true;
+              loadCreationTools(filters);
+            }}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
           >
             {t.common.retry}
@@ -518,6 +600,10 @@ const Library = () => {
       isLoading={isLoading}
       onDelete={handleDelete}
       onToggleFavorite={handleToggleFavorite}
+      activeFilter={activeFilter}
+      setActiveFilter={setActiveFilter}
+      typeFilter={typeFilter}
+      setTypeFilter={setTypeFilter}
     />
   );
 };

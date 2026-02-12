@@ -34,11 +34,30 @@ export const getCreationTools = async (
     queryParams.append('type', params.type);
   }
   
-  const endpoint = queryParams.toString() 
-    ? `${ENDPOINT}?${queryParams.toString()}` 
-    : ENDPOINT;
+  // Solo enviar favorite cuando es true, no cuando es false/undefined
+  if (params.favorite === true) {
+    queryParams.append('favorite', 'true');
+  }
   
-  return httpClient.get<CreationTool[]>(endpoint);
+  const queryString = queryParams.toString();
+  const endpoint = queryString ? `${ENDPOINT}?${queryString}` : ENDPOINT;
+  
+  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  console.log('🔍 API REQUEST');
+  console.log('  Endpoint:', endpoint);
+  console.log('  Full URL:', window.location.origin + endpoint);
+  console.log('  Params received:', params);
+  console.log('  Query string:', queryString || '(empty)');
+  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  
+  const result = await httpClient.get<CreationTool[]>(endpoint);
+  
+  console.log('✅ API RESPONSE');
+  console.log('  Tools count:', result.length);
+  console.log('  Tools:', result.map((t: any) => ({ id: t.id, type: t.type, title: t.title, isFavorite: t.isFavorite })));
+  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  
+  return result;
 };
 
 /**

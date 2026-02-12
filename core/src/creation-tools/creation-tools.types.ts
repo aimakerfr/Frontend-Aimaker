@@ -38,6 +38,7 @@ export interface CreationToolsParams {
   page?: number;
   itemsPerPage?: number;
   type?: CreationToolType;
+  favorite?: boolean;
 }
 
 export interface CreateCreationToolRequest {

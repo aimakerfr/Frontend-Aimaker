@@ -735,6 +735,26 @@ export const fr: Translations = {
       edit: 'Modifier',
       open: 'Ouvrir',
     },
+    publishModals: {
+      prompt: {
+        title: 'Publier le prompt',
+        message: 'Êtes-vous sûr de vouloir rendre ce prompt public ? Toute personne disposant du lien pourra y accéder.',
+        confirm: 'Confirmer',
+        cancel: 'Annuler',
+      },
+      assistant: {
+        title: "Publier l'assistant",
+        message: "Êtes-vous sûr de vouloir rendre cet assistant public ? Toute personne disposant du lien pourra y accéder.",
+        confirm: 'Confirmer',
+        cancel: 'Annuler',
+      },
+      project: {
+        title: 'Publier le projet',
+        message: 'Êtes-vous sûr de vouloir rendre ce projet public ? Toute personne disposant du lien pourra y accéder.',
+        confirm: 'Confirmer',
+        cancel: 'Annuler',
+      },
+    },
     formGeneral: {
       title: 'Documentez vos recherches et partages',
       update: 'Mettre à jour',

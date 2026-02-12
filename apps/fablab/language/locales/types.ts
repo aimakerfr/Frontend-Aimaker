@@ -736,6 +736,26 @@ export interface Translations {
     edit: string;
     open: string;
   };
+  publishModals: {
+    prompt: {
+      title: string;
+      message: string;
+      confirm: string;
+      cancel: string;
+    };
+    assistant: {
+      title: string;
+      message: string;
+      confirm: string;
+      cancel: string;
+    };
+    project: {
+      title: string;
+      message: string;
+      confirm: string;
+      cancel: string;
+    };
+  };
   formGeneral: {
     title: string;
     update: string;
