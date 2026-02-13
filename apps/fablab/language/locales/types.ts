@@ -835,6 +835,7 @@ export interface Translations {
           textLabel: string;
           textPlaceholder: string;
           paste: string;
+          docAllowedTypes: string;
           translationTitle: string;
           translationDesc: string;
           downloadTemplate: string;

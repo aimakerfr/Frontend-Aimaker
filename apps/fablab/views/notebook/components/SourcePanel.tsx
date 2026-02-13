@@ -98,8 +98,14 @@ const fileToBase64 = (file: File): Promise<string> =>
     });
 
 const processPdfForAI = async (file: File): Promise<string> => {
-    // Treat .txt and .csv as plain text
-    if (file.type === 'text/plain' || file.type === 'text/csv' || file.name.toLowerCase().endsWith('.csv')) {
+    // Treat .txt, .md and .csv as plain text
+    if (
+        file.type === 'text/plain' ||
+        file.type === 'text/csv' ||
+        file.type === 'text/markdown' ||
+        file.name.toLowerCase().endsWith('.csv') ||
+        file.name.toLowerCase().endsWith('.md')
+    ) {
         return new Promise((resolve) => {
             const reader = new FileReader();
             reader.onload = (e) => resolve(e.target?.result as string);
@@ -319,7 +325,7 @@ const SourcePanel: React.FC<SourcePanelProps> = ({ sources, onAddSource, onToggl
                                 : tab.id === 'code'
                                 ? 'JSX/TSX'
                                 : tab.id === 'pdf'
-                                ? tp.modal.tabs.pdf
+                                ? 'DOC'
                                 : tab.id === 'image'
                                 ? tp.modal.tabs.image
                                 : tab.id === 'video'
@@ -468,9 +474,10 @@ const SourcePanel: React.FC<SourcePanelProps> = ({ sources, onAddSource, onToggl
                         <div className="flex-1 overflow-y-auto p-6 md:p-8 space-y-5 no-scrollbar min-h-[240px]">
                             {activeTab === 'pdf' && (
                                 <div onClick={() => !isLoading && fileInputRef.current?.click()} className="border-2 border-dashed rounded-[1.5rem] p-8 flex flex-col items-center justify-center cursor-pointer bg-gray-50/30 border-gray-200 hover:border-red-300 hover:bg-red-50/10 transition-all group">
-                                    <input type="file" ref={fileInputRef} className="hidden" accept=".pdf,.txt,.csv" onChange={(e) => handleFileUpload(e, 'pdf')} disabled={isLoading} />
+                                    <input type="file" ref={fileInputRef} className="hidden" accept=".pdf,.txt,.md" onChange={(e) => handleFileUpload(e, 'pdf')} disabled={isLoading} />
                                     <FileText className="mb-3 text-gray-300 group-hover:text-red-400 transition-all" size={36} />
                                     <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">{fileName || tp.modal.placeholders.selectFile}</span>
+                                    <span className="mt-2 text-[9px] font-bold text-gray-300 uppercase tracking-widest text-center">{tp.modal.placeholders.docAllowedTypes}</span>
                                 </div>
                             )}
 
