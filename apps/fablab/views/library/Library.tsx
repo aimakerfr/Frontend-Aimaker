@@ -391,7 +391,8 @@ const LibraryView: React.FC<LibraryViewProps> = ({
       
       {showCreateModal && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-4xl w-full max-h-[85vh] overflow-auto">
+          {/* Modal panel sized by content with safe max width */}
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-auto max-w-[100vw] max-h-[85vh] overflow-y-auto">
             <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700 sticky top-0 bg-white dark:bg-gray-800 z-10">
               <div>
                 <h3 className="text-2xl font-bold text-gray-900 dark:text-white">{t.library.modal.createTitle}</h3>
@@ -407,14 +408,15 @@ const LibraryView: React.FC<LibraryViewProps> = ({
               </button>
             </div>
 
-            <div className="p-6 grid grid-cols-2 md:grid-cols-4 gap-4">
+            {/* Center items and let them define the modal width */}
+            <div className="p-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 place-items-center">
               {itemTypes.map(type => {
                 const Icon = type.icon;
                 return (
                   <button
                     key={type.type}
                     onClick={() => handleCreateClick(type.type)}
-                    className="group flex flex-col items-center gap-3 p-6 rounded-xl border-2 border-gray-200 dark:border-gray-700 hover:border-blue-500 dark:hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all"
+                    className="group flex flex-col items-center gap-3 p-6 rounded-xl border-2 border-gray-200 dark:border-gray-700 hover:border-blue-500 dark:hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all w-48 md:w-56"
                   >
                     <div className={`w-16 h-16 rounded-xl ${getIconColorClass(type.type)} flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform`}>
                       <Icon size={32} className="text-white" />

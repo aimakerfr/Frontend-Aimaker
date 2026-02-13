@@ -66,16 +66,40 @@ export class NotebookService {
   private baseUrl = '/api/v1/notebooks';
   private publicBaseUrl = '/api/v1/public/notebooks';
 
+  // Map legacy/internal 'pdf' type to API 'doc' (outgoing)
+  private normalizeOutgoingType(type?: string): string | undefined {
+    if (!type) return type;
+    return type === 'pdf' ? 'doc' : type;
+  }
+
+  // Normalize API responses: treat legacy 'pdf' as 'doc' (incoming)
+  private normalizeIncomingType(type?: string): string | undefined {
+    if (!type) return type;
+    return type === 'pdf' ? 'doc' : type;
+  }
+
+  private normalizeNotebook(n: Notebook): Notebook {
+    return {
+      ...n,
+      sources: Array.isArray(n.sources)
+        ? n.sources.map((s) => ({ ...s, type: this.normalizeIncomingType(s.type) || s.type }))
+        : n.sources,
+    };
+  }
+
   async getNotebooks(): Promise<Notebook[]> {
-    return httpClient.get<Notebook[]>(this.baseUrl);
+    const data = await httpClient.get<Notebook[]>(this.baseUrl);
+    return Array.isArray(data) ? data.map((n) => this.normalizeNotebook(n)) : data;
   }
 
   async getNotebook(id: number): Promise<Notebook> {
-    return httpClient.get<Notebook>(`${this.baseUrl}/${id}`);
+    const n = await httpClient.get<Notebook>(`${this.baseUrl}/${id}`);
+    return this.normalizeNotebook(n);
   }
 
   async getPublicNotebook(id: number): Promise<Notebook> {
-    return httpClient.get<Notebook>(`${this.publicBaseUrl}/${id}`, { requiresAuth: false });
+    const n = await httpClient.get<Notebook>(`${this.publicBaseUrl}/${id}`, { requiresAuth: false });
+    return this.normalizeNotebook(n);
   }
 
   async createNotebook(data: { creationToolId: number }): Promise<Notebook> {
@@ -124,13 +148,16 @@ export const getNotebookSources = async (noteBookId?: number, type?: string): Pr
   if (noteBookId === undefined) {
     let url = '/api/v1/notebook-sources/user-sources';
     if (type) {
-      url += '?type=' + type;
+      const mapped = type === 'pdf' ? 'doc' : type;
+      url += '?type=' + mapped;
     }
-    return httpClient.get<NotebookSourceItem[]>(url);
+    const items = await httpClient.get<NotebookSourceItem[]>(url);
+    return items.map((it) => ({ ...it, type: it.type === 'pdf' ? 'doc' : it.type }));
   }
   
   // Si se pasa noteBookId, usar el endpoint normal
-  return httpClient.get<NotebookSourceItem[]>(`/api/v1/notebook-sources?note_book_id=${noteBookId}`);
+  const items = await httpClient.get<NotebookSourceItem[]>(`/api/v1/notebook-sources?note_book_id=${noteBookId}`);
+  return items.map((it) => ({ ...it, type: it.type === 'pdf' ? 'doc' : it.type }));
 };
 
 /**
@@ -146,7 +173,20 @@ export const getNotebookSourcesNested = async (noteBookId: number): Promise<Note
 export const postNoteBookSource = async (
   data: FormData | { note_book_id: number; type: string; name: string; text?: string; url?: string }
 ): Promise<PostNoteBookSourceResponse> => {
-  return httpClient.post<PostNoteBookSourceResponse>('/api/v1/notebook-sources', data);
+  // If it's FormData, map 'type' field if present
+  if (data instanceof FormData) {
+    const currentType = data.get('type');
+    if (typeof currentType === 'string' && currentType === 'pdf') {
+      data.set('type', 'doc');
+    }
+    const resp = await httpClient.post<PostNoteBookSourceResponse>('/api/v1/notebook-sources', data);
+    return { ...resp, type: resp.type === 'pdf' ? 'doc' : resp.type };
+  }
+
+  // JSON payload variant
+  const outgoing = { ...data, type: data.type === 'pdf' ? 'doc' : data.type };
+  const resp = await httpClient.post<PostNoteBookSourceResponse>('/api/v1/notebook-sources', outgoing);
+  return { ...resp, type: resp.type === 'pdf' ? 'doc' : resp.type };
 };
 
 /**
@@ -160,5 +200,6 @@ export const deleteNotebookSource = async (sourceId: number): Promise<void> => {
  * Obtener el contenido de una fuente del notebook
  */
 export const getNotebookSourceContent = async (sourceId: number): Promise<{ content: string; isUrl: boolean; type: string; name: string }> => {
-  return httpClient.get<{ content: string; isUrl: boolean; type: string; name: string }>(`/api/v1/notebook-sources/${sourceId}/content`);
+  const resp = await httpClient.get<{ content: string; isUrl: boolean; type: string; name: string }>(`/api/v1/notebook-sources/${sourceId}/content`);
+  return { ...resp, type: resp.type === 'pdf' ? 'doc' : resp.type };
 };

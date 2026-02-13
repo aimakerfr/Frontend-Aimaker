@@ -826,6 +826,7 @@ export const es: Translations = {
           },
           placeholders: {
             selectFile: 'Seleccionar archivo',
+            docAllowedTypes: 'txt, pdf, md',
             uploadHtml: 'Subir Archivo HTML',
             uploadImage: 'Subir Imagen',
             uploadVideo: 'Subir Video Local',
