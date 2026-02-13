@@ -62,7 +62,8 @@ const App: React.FC<NotebookProps> = ({ isPublicView = false }) => {
 
     const mapApiSourceType = (type: string): SourceType => {
         switch (type?.toUpperCase()) {
-            case 'PDF':
+            case 'DOC':
+            case 'PDF': // legacy fallback
                 return 'pdf';
             case 'IMAGE':
                 return 'image';
@@ -321,7 +322,9 @@ const App: React.FC<NotebookProps> = ({ isPublicView = false }) => {
             // Map frontend types to backend types
             let apiType = type.toUpperCase();
             if (apiType === 'URL') apiType = 'WEBSITE';
-            // Keep HTML, PDF, TEXT, VIDEO, IMAGE as is (already uppercase)
+            // Map legacy PDF to DOC for API
+            if (apiType === 'PDF') apiType = 'DOC';
+            // Keep HTML, TEXT, VIDEO, IMAGE as is (already uppercase)
 
             const response = await uploadSource(apiType, title, file, url, content);
             processSourceLocally(response, type, content, url, previewUrl);
