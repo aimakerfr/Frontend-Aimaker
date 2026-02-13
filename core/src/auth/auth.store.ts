@@ -13,6 +13,7 @@ import {
   type RegisterRequest,
   type RegisterResponse,
 } from '../api/api.types';
+import { tokenRefreshService } from './token-refresh.service';
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // Auth State
@@ -104,6 +105,9 @@ class AuthStore {
         isLoading: false,
         error: null,
       });
+
+      // Initialize token refresh service
+      tokenRefreshService.initialize();
     } catch (error) {
       // Token is invalid, clear it
       tokenStorage.remove();
@@ -147,6 +151,9 @@ class AuthStore {
         isLoading: false,
         error: null,
       });
+
+      // Initialize token refresh and inactivity detection
+      tokenRefreshService.initialize();
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Login failed';
       this.setState({
@@ -190,6 +197,9 @@ class AuthStore {
         isLoading: false,
         error: null,
       });
+
+      // Initialize token refresh and inactivity detection
+      tokenRefreshService.initialize();
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Registration failed';
       this.setState({
@@ -206,6 +216,9 @@ class AuthStore {
    * Logout user
    */
   public async logout(): Promise<void> {
+    // Stop token refresh and inactivity detection
+    tokenRefreshService.stop();
+
     try {
       // Call logout endpoint (optional, since JWT is stateless)
       await httpClient.post(API_ENDPOINTS.auth.logout, {});
