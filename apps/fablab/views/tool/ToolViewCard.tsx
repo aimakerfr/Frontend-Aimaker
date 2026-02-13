@@ -244,7 +244,7 @@ const ToolViewCard: React.FC<ToolViewCardProps> = ({
     isFavorite: data.isFavorite || false,
     language: (data as any).language || 'Espagnol',
     promptBody: (data as any).promptBody || '',
-    context: (data as any).context || '',
+    context: (data as any).cag || '',
     outputFormat: (data as any).outputFormat || '',
     assistantInstructions: (data as any).assistantInstructions || '',
     validationErrors: {},
@@ -256,10 +256,10 @@ const ToolViewCard: React.FC<ToolViewCardProps> = ({
     if (toolType === 'prompt') {
       try {
         const promptData = await getPromptByToolId(toolId);
-        // Backend returns 'prompt' field, not 'promptBody'
+        // Backend returns 'prompt' field, not 'promptBody' and 'cag' field
         specificData = {
           promptBody: (promptData as any).prompt || '',
-          context: (promptData as any).context || '',
+          context: (promptData as any).cag || '',
           outputFormat: (promptData as any).outputFormat || ''
         };
       } catch (e) {
@@ -365,13 +365,11 @@ const ToolViewCard: React.FC<ToolViewCardProps> = ({
       // Siempre es modo UPDATE porque el tool ya existe (se creó al seleccionar tipo)
       if (!tool || !toolId) return;
       
-      // Save metadata
+      // Save metadata (only fields that exist in tools table)
       await updateTool(Number(toolId), {
         type: tool.type,
         title: state.title,
         description: state.description,
-        context: state.context,
-        outputFormat: state.outputFormat,
         category: (state as any).category,
         isFavorite: state.isFavorite,
         language: (state as any).language,
@@ -416,8 +414,6 @@ const ToolViewCard: React.FC<ToolViewCardProps> = ({
         type: tool.type,
         title: state.title,
         description: state.description,
-        context: state.context,
-        outputFormat: state.outputFormat,
         category: (state as any).category,
         isFavorite: state.isFavorite,
         language: (state as any).language,

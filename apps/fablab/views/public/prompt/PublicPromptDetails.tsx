@@ -54,7 +54,7 @@ const PublicPromptDetails: React.FC<Props> = ({ toolId }) => {
         if (cancelled) return;
         
         setPromptBody(promptRes?.prompt || '');
-        setContext(promptRes?.context || '');
+        setContext(promptRes?.cag || '');
         setOutputFormat(promptRes?.outputFormat || '');
         setError(null);
       } catch (e) {

@@ -52,12 +52,12 @@ const PublicPrompt: React.FC = () => {
         
         // Cargar el contenido del prompt desde la tabla prompts
         try {
-          const promptData = await httpClient.get<{ prompt: string; context?: string; outputFormat?: string }>(
+          const promptData = await httpClient.get<{ prompt: string; cag?: string; outputFormat?: string }>(
             `/api/v1/tools/${id}/prompt`,
             { requiresAuth: false }
           );
           setPromptContent(promptData.prompt || '');
-          setPromptContext(promptData.context || '');
+          setPromptContext(promptData.cag || '');
           setPromptOutputFormat(promptData.outputFormat || '');
         } catch (promptErr) {
           console.error('Error cargando contenido del prompt:', promptErr);

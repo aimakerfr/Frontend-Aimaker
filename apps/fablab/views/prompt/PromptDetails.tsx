@@ -1,9 +1,19 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { getTool } from '@core/creation-tools/creation-tools.service';
 import { getPromptByToolId, updatePrompt } from '@core/prompts/prompts.service';
 import PromptBodySection from './PromptBodySection';
 import { useToolView } from '../tool/ToolViewCard';
 import { useLanguage } from '../../language/useLanguage';
+
+/** Valid ENUM values for output_format in DB */
+const OUTPUT_FORMAT_OPTIONS = [
+  { value: '', label: '— None —' },
+  { value: 'plain_text', label: 'Plain Text' },
+  { value: 'markdown', label: 'Markdown' },
+  { value: 'json', label: 'JSON' },
+  { value: 'yaml', label: 'YAML' },
+  { value: 'html', label: 'HTML' },
+] as const;
 
 type Props = {
   toolId: number | null;
@@ -21,9 +31,10 @@ const PromptDetails: React.FC<Props> = ({ toolId }) => {
   // Try to access ToolView context if this component is rendered inside ToolViewCard
   const toolView = useToolView();
 
-  const contextInitialBody = useMemo(() => toolView?.state.promptBody ?? '', [toolView?.state.promptBody]);
+  // Use a ref for the initial body fallback so it doesn't trigger re-fetches
+  const initialBodyRef = useRef(toolView?.state.promptBody ?? '');
 
-  // Named loader so effect only calls a function
+  // Named loader so effect only calls a function — NO reactive deps that change while typing
   const fetchPromptDetails = useCallback(async (currentToolId: number, cancelledRef: () => boolean) => {
     try {
       setLoading(true);
@@ -34,24 +45,22 @@ const PromptDetails: React.FC<Props> = ({ toolId }) => {
         setError(tp.errorNotPrompt);
         return;
       }
-      setContext(data.context || '');
-      setOutputFormat(data.outputFormat || '');
 
       // 2) Load body and fields from prompts service (source of truth)
+      // Context (cag) and outputFormat only exist in prompts table, not in tools table
       const promptRes = await getPromptByToolId(currentToolId);
       if (cancelledRef()) return;
       const bodyFromService = (promptRes as any)?.prompt || '';
-      setPromptBody(bodyFromService || contextInitialBody || '');
-      // Load context and outputFormat from prompts table
-      setContext((promptRes as any)?.context || data.context || '');
-      setOutputFormat((promptRes as any)?.outputFormat || data.outputFormat || '');
+      setPromptBody(bodyFromService || initialBodyRef.current || '');
+      setContext((promptRes as any)?.cag || '');
+      setOutputFormat((promptRes as any)?.outputFormat || '');
       setError(null);
     } catch (e) {
       if (!cancelledRef()) setError(tp.errorLoading);
     } finally {
       if (!cancelledRef()) setLoading(false);
     }
-  }, [contextInitialBody, tp.errorNotPrompt, tp.errorLoading]);
+  }, [tp.errorNotPrompt, tp.errorLoading]); // Stable deps only — NO contextInitialBody
 
   useEffect(() => {
     // Skip loading if toolId is null (new mode)
@@ -66,7 +75,7 @@ const PromptDetails: React.FC<Props> = ({ toolId }) => {
     return () => {
       cancelled = true;
     };
-  }, [toolId, contextInitialBody, fetchPromptDetails]);
+  }, [toolId, fetchPromptDetails]);
 
   // Unified save handler function - saves prompt body, context, and outputFormat
   const handleSave = useCallback(async () => {
@@ -87,7 +96,7 @@ const PromptDetails: React.FC<Props> = ({ toolId }) => {
       // Update all prompt fields at once
       await updatePrompt(toolId, {
         prompt: promptBody || '',
-        context: context || '',
+        cag: context || '',
         outputFormat: outputFormat || ''
       });
       // Keep local values - don't refresh to avoid losing user's text
@@ -150,13 +159,16 @@ const PromptDetails: React.FC<Props> = ({ toolId }) => {
         </div>
         <div>
           <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">{tp.outputFormat}</label>
-          <textarea
+          <select
             value={outputFormat}
             onChange={(e) => setOutputFormat(e.target.value)}
             disabled={loading}
-            className="w-full h-24 px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm text-slate-600 bg-white disabled:opacity-60"
-            placeholder={tp.outputFormatPlaceholder}
-          ></textarea>
+            className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm text-slate-600 bg-white disabled:opacity-60"
+          >
+            {OUTPUT_FORMAT_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
+            ))}
+          </select>
         </div>
       </div>
       
