@@ -15,7 +15,7 @@ interface PreviewModalProps {
 
 export const PreviewModal: React.FC<PreviewModalProps> = ({ isOpen, onClose, appState }) => {
   const { language } = useLanguage();
-  const t = translations[language];
+  const t = translations[language as keyof typeof translations];
   
   if (!isOpen) return null;
 

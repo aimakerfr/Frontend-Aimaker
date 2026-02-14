@@ -90,6 +90,30 @@ const openTextFileInNewTab = (content: string) => {
     openBlobInNewTab(blob);
 };
 
+/**
+ * Descarga un archivo desde una URL remota usando el endpoint proxy del backend.
+ * Evita problemas de CORS al descargar archivos estáticos cross-origin.
+ */
+const downloadFileFromUrl = async (url: string, filename: string) => {
+    try {
+        // Usar endpoint proxy del backend que añade Content-Disposition: attachment
+        const apiUrl = import.meta.env.VITE_API_URL || '';
+        const proxyUrl = `${apiUrl}/api/v1/notebook-modules/download-file?url=${encodeURIComponent(url)}&filename=${encodeURIComponent(filename)}`;
+        const token = localStorage.getItem('aimaker_jwt_token') || '';
+        const response = await fetch(proxyUrl, {
+            credentials: 'include',
+            headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!response.ok) throw new Error(`Download failed: ${response.status}`);
+        const blob = await response.blob();
+        downloadBlob(filename, blob);
+    } catch (err) {
+        console.error('[SourcePanel] Error downloading file:', err);
+        // Fallback: abrir en nueva pestaña
+        window.open(url, '_blank', 'noopener,noreferrer');
+    }
+};
+
 const fileToBase64 = (file: File): Promise<string> =>
     new Promise((resolve) => {
         const reader = new FileReader();
@@ -275,7 +299,7 @@ const SourcePanel: React.FC<SourcePanelProps> = ({ sources, onAddSource, onToggl
     // Extract the tabs config into a separate constant to improve readability and reuse
     const TAB_CONFIG: ReadonlyArray<{
         id: 'pdf' | 'html' | 'code' | 'image' | 'video' | 'url' | 'translation' | 'text';
-        icon: React.ComponentType<{ size?: number }>;
+        icon: any;
         color: string;
         bg: string;
     }> = [
@@ -627,9 +651,12 @@ const SourcePanel: React.FC<SourcePanelProps> = ({ sources, onAddSource, onToggl
                                                     <button onClick={() => openSourceFilePathUrl(previewLink)} className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black text-xs uppercase tracking-wider shadow-lg flex items-center justify-center gap-2 hover:bg-indigo-700 transition-colors">
                                                         <ExternalLink size={16} /> {tp.preview.openNewTab}
                                                     </button>
-                                                    <a href={previewLink} download={previewSource.title + (previewSource.type === 'html' ? ".html" : ".pdf")} className="w-full py-4 bg-white text-indigo-600 border-2 border-indigo-600 rounded-2xl font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 hover:bg-indigo-50 transition-colors">
+                                                    <button 
+                                                        onClick={() => downloadFileFromUrl(previewLink, previewSource.title + (previewSource.type === 'html' ? '.html' : '.pdf'))} 
+                                                        className="w-full py-4 bg-white text-indigo-600 border-2 border-indigo-600 rounded-2xl font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 hover:bg-indigo-50 transition-colors"
+                                                    >
                                                         <Download size={16} /> {tp.preview.downloadFile}
-                                                    </a>
+                                                    </button>
                                                 </>
                                             )}
                                             </div>
