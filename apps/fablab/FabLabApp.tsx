@@ -12,6 +12,7 @@ import PathCreationModules from './views/path-creation-modules/App';
 import ExternalAccess from './views/external-access/ExternalAccess';
 import AIChat from './components/AIChat';
 import Notebook from '@apps/fablab/views/notebook/Notebook';
+import NotebookModulesView from '@apps/fablab/views/notebook/components/NotebookModulesView';
 import PerplexityIndex from './views/server-tools/PerplexityIndex';
 import PromptOptimize from './views/server-tools/PromptOptimize';
 import ImageGeneration from './views/server-tools/ImageGeneration';
@@ -118,6 +119,7 @@ const App: React.FC = () => {
       <Routes>
         {/* Rutas privadas sin Sidebar (vista completa) */}
         <Route path="/notebook/:id" element={<Notebook isPublicView={false} />} />
+        <Route path="/notebook/:id/modules" element={<NotebookModulesView />} />
         <Route path="/prompt/:id" element={<PromptView />} />
         <Route path="/assistant/:id" element={<AssistantView />} />
         <Route path="/project/:id" element={<ProjectView />} />

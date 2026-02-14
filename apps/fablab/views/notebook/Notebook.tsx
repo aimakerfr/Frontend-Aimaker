@@ -5,7 +5,7 @@ import SourcePanel from './components/SourcePanel.tsx';
 import ChatInterface from './components/ChatInterface.tsx';
 import { Source, ChatMessage, SourceType, StructuredSummary, Language } from './types.ts';
 import { generateChatResponse, generateSourceSummary } from './services/geminiService.ts';
-import { Layout, Menu, Globe, ChevronDown, ArrowLeft, Star, ExternalLink, Lock, AlertCircle } from 'lucide-react';
+import { Layout, Menu, Globe, ChevronDown, ArrowLeft, Star, ExternalLink, Lock, AlertCircle, Blocks } from 'lucide-react';
 import { getNotebookSources, postNoteBookSource, deleteNotebookSource, type NotebookSourceItem } from '@core/notebooks';
 import { getTool, updateTool } from '@core/creation-tools/creation-tools.service.ts';
 import { markToolAsSaved } from '@core/creation-tools/unsavedTools.service';
@@ -386,6 +386,13 @@ const App: React.FC<NotebookProps> = ({ isPublicView = false }) => {
                             <Layout size={16} />
                             <span className="text-sm font-bold tracking-wide">RAG MULTIMODAL</span>
                         </div>
+                        <button
+                            onClick={() => navigate(`/dashboard/notebook/${id}/modules`)}
+                            className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-gray-600 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-all"
+                        >
+                            <Blocks size={16} />
+                            <span>Módulos</span>
+                        </button>
                     </div>
                     <button
                         onClick={() => setSidebarOpen(!sidebarOpen)}
