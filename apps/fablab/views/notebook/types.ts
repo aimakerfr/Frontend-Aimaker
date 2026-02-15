@@ -1,11 +1,12 @@
 
-export type SourceType = 'pdf' | 'url' | 'text' | 'video' | 'image' | 'html' | 'translation' | 'code';
+export type SourceType = 'pdf' | 'url' | 'text' | 'video' | 'image' | 'html' | 'translation' | 'code' | 'config';
 export type Language = 'es' | 'en' | 'fr';
 
 export interface Source {
     id: string;
     title: string;
     type: SourceType;
+    backendType?: string;
     content: string;
     dateAdded: Date;
     selected: boolean;
