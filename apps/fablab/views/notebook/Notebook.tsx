@@ -71,12 +71,16 @@ const App: React.FC<NotebookProps> = ({ isPublicView = false }) => {
                 return 'video';
             case 'TEXT':
                 return 'text';
+            case 'CODE':
+                return 'code';
             case 'WEBSITE':
                 return 'url';
             case 'HTML':
                 return 'html';
             case 'TRANSLATION':
                 return 'translation';
+            case 'CONFIG':
+                return 'config';
             default:
                 return 'text';
         }
@@ -84,12 +88,14 @@ const App: React.FC<NotebookProps> = ({ isPublicView = false }) => {
 
     const mapApiSourceToLocal = (apiSource: NotebookSourceItem): Source => {
         const filePath = apiSource.filePath || undefined;
+        const content = (apiSource as any)?.text ?? filePath ?? '';
 
         return {
             id: apiSource.id.toString(),
             title: apiSource.name,
             type: mapApiSourceType(apiSource.type),
-            content: filePath ?? '',
+            backendType: apiSource.type,
+            content,
             url: filePath,
             previewUrl: filePath,
             dateAdded: apiSource.createdAt ? new Date(apiSource.createdAt) : new Date(),
@@ -289,7 +295,8 @@ const App: React.FC<NotebookProps> = ({ isPublicView = false }) => {
         type: SourceType, 
         content: string, 
         url?: string,
-        previewUrl?: string
+        previewUrl?: string,
+        backendType?: string,
     ) => {
         const absoluteUrl = response?.filePath || previewUrl || url;
         console.log('[Notebook] processSourceLocally - Creating new source:', { 
@@ -302,6 +309,7 @@ const App: React.FC<NotebookProps> = ({ isPublicView = false }) => {
             id: response.id.toString(),
             title: response.name,
             type,
+            backendType: response?.type || backendType || type.toUpperCase(),
             content,
             url: absoluteUrl,
             previewUrl: absoluteUrl,
@@ -327,7 +335,7 @@ const App: React.FC<NotebookProps> = ({ isPublicView = false }) => {
             // Keep HTML, TEXT, VIDEO, IMAGE as is (already uppercase)
 
             const response = await uploadSource(apiType, title, file, url, content);
-            processSourceLocally(response, type, content, url, previewUrl);
+            processSourceLocally(response, type, content, url, previewUrl, apiType);
         } catch (error) {
             console.error('Error adding source to backend:', error);
         }
