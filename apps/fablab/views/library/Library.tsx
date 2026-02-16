@@ -149,20 +149,20 @@ const LibraryView: React.FC<LibraryViewProps> = ({
 
     setIsCreatingRag(true);
     try {
-      // Create the underlying creation_tool first (same pattern as notebooks)
+      // Create the underlying tool first (same pattern as notebooks)
       const newTool = await createTool({
-        type: 'project' as any,
-        title: '',
+        type: 'rag_multimodal' as any,
+        title: 'New RAG',
         description: ''
       });
 
       // Hide until first save
       markToolAsUnsaved(newTool.id);
 
-      // Create the RAG entity linked to the creation_tool
+      // Create the RAG entity linked to the tool
       const rag = await ragMultimodalService.createRagMultimodal({ creationToolId: newTool.id });
 
-      navigate(`/dashboard/rag_multimodal/${rag.id}`);
+      navigate(`/dashboard/rag-multimodal/${rag.id}`);
     } catch (error) {
       console.error('Error creando RAG:', error);
     } finally {

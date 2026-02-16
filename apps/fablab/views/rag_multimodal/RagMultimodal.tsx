@@ -5,7 +5,7 @@ import SourcePanel from './components/SourcePanel.tsx';
 import ChatInterface from './components/ChatInterface.tsx';
 import { Source, ChatMessage, SourceType, StructuredSummary, Language } from './types.ts';
 import { generateChatResponse, generateSourceSummary } from './services/geminiService.ts';
-import { Layout, Menu, Globe, ChevronDown, ArrowLeft, Star, ExternalLink, Lock, AlertCircle, Blocks } from 'lucide-react';
+import { Layout, Menu, Globe, ChevronDown, ArrowLeft, Star, ExternalLink, Lock, AlertCircle, MessageSquare, Settings } from 'lucide-react';
 import { getRagMultimodalSources, postRagMultimodalSource, deleteRagMultimodalSource, type RagMultimodalSourceItem } from '@core/rag_multimodal';
 import { getTool, updateTool } from '@core/creation-tools/creation-tools.service.ts';
 import { markToolAsSaved } from '@core/creation-tools/unsavedTools.service';
@@ -31,6 +31,7 @@ const RagMultimodal: React.FC<RagMultimodalProps> = ({ isPublicView = false }) =
     const [summary, setSummary] = useState<StructuredSummary | null>(null);
     const [summaryLoading, setSummaryLoading] = useState(false);
     const [sidebarOpen, setSidebarOpen] = useState(true);
+    const [showChatPanel, setShowChatPanel] = useState(false);
     const [notebookName, setNotebookName] = useState('');
     const [description, setDescription] = useState('');
     const [category, setCategory] = useState('Marketing');
@@ -77,8 +78,6 @@ const RagMultimodal: React.FC<RagMultimodalProps> = ({ isPublicView = false }) =
                 return 'url';
             case 'HTML':
                 return 'html';
-            case 'TRANSLATION':
-                return 'translation';
             case 'CONFIG':
                 return 'config';
             default:
@@ -394,13 +393,6 @@ const RagMultimodal: React.FC<RagMultimodalProps> = ({ isPublicView = false }) =
                             <Layout size={16} />
                             <span className="text-sm font-bold tracking-wide">RAG MULTIMODAL</span>
                         </div>
-                        <button
-                            onClick={() => navigate(`/dashboard/rag_multimodal/${id}/modules`)}
-                            className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-gray-600 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-all"
-                        >
-                            <Blocks size={16} />
-                            <span>Módulos</span>
-                        </button>
                     </div>
                     <button
                         onClick={() => setSidebarOpen(!sidebarOpen)}
@@ -416,9 +408,9 @@ const RagMultimodal: React.FC<RagMultimodalProps> = ({ isPublicView = false }) =
             </header>
 
             <div className="flex-1 flex overflow-hidden w-full">
-                {/* Sidebar de fuentes */}
+                {/* Sidebar de fuentes - Expandido */}
                 <aside className={`
-                    ${sidebarOpen ? 'w-80 md:w-96 translate-x-0' : 'w-0 -translate-x-full opacity-0 pointer-events-none'} 
+                    ${sidebarOpen ? 'w-96 md:w-[420px] translate-x-0' : 'w-0 -translate-x-full opacity-0 pointer-events-none'} 
                     transition-all duration-300 ease-in-out flex-shrink-0 z-30 border-r border-gray-200/50
                 `}>
                     <div className="h-full w-full">
@@ -602,15 +594,77 @@ const RagMultimodal: React.FC<RagMultimodalProps> = ({ isPublicView = false }) =
                         </div>
                     </div>
 
-                    {/* Área de chat */}
+                    {/* Área principal - Panel de Herramientas o Chat */}
                     <div className="flex-1 overflow-hidden">
-                        <ChatInterface
-                            messages={messages}
-                            onSendMessage={handleSendMessage}
-                            isLoading={chatLoading}
-                            sourceSummary={summary}
-                            isSummaryLoading={summaryLoading}
-                        />
+                        {showChatPanel ? (
+                            <ChatInterface
+                                messages={messages}
+                                onSendMessage={handleSendMessage}
+                                isLoading={chatLoading}
+                                sourceSummary={summary}
+                                isSummaryLoading={summaryLoading}
+                                onBack={() => setShowChatPanel(false)}
+                            />
+                        ) : (
+                            <div className="h-full flex items-center justify-center p-8">
+                                <div className="max-w-5xl w-full">
+                                    <div className="text-center mb-12">
+                                        <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl mb-6 shadow-lg">
+                                            <Settings size={40} className="text-white" />
+                                        </div>
+                                        <h2 className="text-3xl font-black text-gray-900 mb-3">Herramientas del RAG</h2>
+                                        <p className="text-gray-600 text-lg">Selecciona una herramienta para comenzar a trabajar con tus fuentes</p>
+                                    </div>
+                                    
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                        {/* Chatear con Fuentes */}
+                                        <button
+                                            onClick={() => setShowChatPanel(true)}
+                                            className="flex flex-col items-center gap-4 p-8 bg-gradient-to-br from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 rounded-2xl border-2 border-blue-200 hover:border-blue-300 transition-all group shadow-lg hover:shadow-xl"
+                                        >
+                                            <div className="p-4 bg-white rounded-2xl shadow-md group-hover:shadow-lg transition-shadow">
+                                                <MessageSquare size={32} className="text-blue-600" />
+                                            </div>
+                                            <div className="text-center">
+                                                <div className="text-lg font-black text-gray-900 mb-2">Chat con Fuentes</div>
+                                                <div className="text-sm text-gray-600">Conversa e interroga tus fuentes con IA</div>
+                                            </div>
+                                        </button>
+
+                                        {/* Análisis Automático (Próximamente) */}
+                                        <button
+                                            disabled
+                                            className="flex flex-col items-center gap-4 p-8 bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl border-2 border-gray-200 opacity-60 cursor-not-allowed shadow-lg"
+                                        >
+                                            <div className="p-4 bg-white rounded-2xl shadow-md">
+                                                <Settings size={32} className="text-gray-400" />
+                                            </div>
+                                            <div className="text-center">
+                                                <div className="text-lg font-black text-gray-700 mb-2 flex items-center gap-2 justify-center">
+                                                    Análisis Automático
+                                                    <span className="text-[10px] bg-amber-100 text-amber-700 px-2 py-1 rounded-full font-black">PRÓXIMAMENTE</span>
+                                                </div>
+                                                <div className="text-sm text-gray-500">Genera insights automáticos de tus fuentes</div>
+                                            </div>
+                                        </button>
+
+                                        {/* Más herramientas (Placeholder) */}
+                                        <button
+                                            disabled
+                                            className="flex flex-col items-center gap-4 p-8 bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl border-2 border-gray-200 opacity-60 cursor-not-allowed shadow-lg"
+                                        >
+                                            <div className="p-4 bg-white rounded-2xl shadow-md">
+                                                <Layout size={32} className="text-gray-400" />
+                                            </div>
+                                            <div className="text-center">
+                                                <div className="text-lg font-black text-gray-700 mb-2">Más Herramientas</div>
+                                                <div className="text-sm text-gray-500">Nuevas funcionalidades en desarrollo</div>
+                                            </div>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </main>
             </div>

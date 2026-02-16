@@ -3,11 +3,9 @@ import type { LucideIcon } from 'lucide-react';
 import {
     AlignLeft,
     ClipboardPaste,
-    Download,
     FileText,
     Globe,
     ImageIcon,
-    Languages,
     Upload,
     Video,
     X,
@@ -15,7 +13,6 @@ import {
 
 import { SourceType } from '../types.ts';
 import { analyzeImage, extractUrlContent, processPdfVisual, transcribeVideo, transcribeVideoUrl } from '../services/geminiService.ts';
-import { translations as staticTranslations } from '../../../language/translations';
 import type { Translations } from '../../../language/locales/types';
 
 interface AddSourceModalProps {
@@ -124,7 +121,7 @@ const AddSourceModal: React.FC<AddSourceModalProps> = ({ isOpen, onClose, onAddS
         try {
             if (type === 'pdf') {
                 setContent(await processPdfForAI(file));
-            } else if (type === 'html' || type === 'translation' || type === 'code' || type === 'config') {
+            } else if (type === 'html' || type === 'code' || type === 'config') {
                 const text = await new Promise<string>((resolve) => {
                     const reader = new FileReader();
                     reader.onload = (event) => resolve(event.target?.result as string);
@@ -193,18 +190,8 @@ const AddSourceModal: React.FC<AddSourceModalProps> = ({ isOpen, onClose, onAddS
         }
     };
 
-    const downloadTemplate = () => {
-        const blob = new Blob([JSON.stringify(staticTranslations.en, null, 2)], { type: 'application/json' });
-        const urlObject = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = urlObject;
-        a.download = 'translations_template_en.json';
-        a.click();
-        URL.revokeObjectURL(urlObject);
-    };
-
     const TAB_CONFIG: ReadonlyArray<{
-        id: 'pdf' | 'html' | 'code' | 'image' | 'video' | 'url' | 'translation' | 'text' | 'config';
+        id: 'pdf' | 'html' | 'code' | 'image' | 'video' | 'url' | 'text' | 'config';
         icon: LucideIcon;
         color: string;
         bg: string;
@@ -216,7 +203,6 @@ const AddSourceModal: React.FC<AddSourceModalProps> = ({ isOpen, onClose, onAddS
         { id: 'video', icon: Video, color: 'text-purple-500', bg: 'bg-purple-50' },
         { id: 'url', icon: Globe, color: 'text-blue-500', bg: 'bg-blue-50' },
         { id: 'text', icon: AlignLeft, color: 'text-green-500', bg: 'bg-green-50' },
-        { id: 'translation', icon: Languages, color: 'text-indigo-600', bg: 'bg-indigo-50' },
         { id: 'config', icon: FileText, color: 'text-slate-600', bg: 'bg-slate-50' },
     ];
 
@@ -224,7 +210,7 @@ const AddSourceModal: React.FC<AddSourceModalProps> = ({ isOpen, onClose, onAddS
         if (!content || typeof content !== 'string') return false;
         const isTextMime = mimeType?.startsWith('text/') || fileName.toLowerCase().endsWith('.csv') || fileName.toLowerCase().endsWith('.txt');
         if (activeTab === 'pdf' && isTextMime) return true;
-        if (activeTab === 'html' || activeTab === 'code' || activeTab === 'translation' || activeTab === 'text' || activeTab === 'config') return true;
+        if (activeTab === 'html' || activeTab === 'code' || activeTab === 'text' || activeTab === 'config') return true;
         return false;
     };
 
@@ -248,7 +234,6 @@ const AddSourceModal: React.FC<AddSourceModalProps> = ({ isOpen, onClose, onAddS
     const renderTabButtons = () => (
         <div className="grid grid-cols-6 gap-2 md:gap-3">
             {TAB_CONFIG
-                .filter((tab) => tab.id !== 'translation' || isAdmin)
                 .map((tab) => (
                     <button
                         key={tab.id}
@@ -288,11 +273,9 @@ const AddSourceModal: React.FC<AddSourceModalProps> = ({ isOpen, onClose, onAddS
                                                 ? tp.modal.tabs.video
                                                 : tab.id === 'url'
                                                     ? tp.modal.tabs.url
-                                                    : tab.id === 'translation'
-                                                        ? tp.modal.tabs.translation
-                                                        : tab.id === 'config'
-                                                            ? 'CONFIG'
-                                                            : tp.modal.tabs.text}
+                                                    : tab.id === 'config'
+                                                        ? 'CONFIG'
+                                                        : tp.modal.tabs.text}
                         </span>
                     </button>
                 ))}
@@ -432,37 +415,6 @@ const AddSourceModal: React.FC<AddSourceModalProps> = ({ isOpen, onClose, onAddS
                                 <input type="file" ref={configInputRef} className="hidden" accept=".json,.yaml,.yml,.env,.ini" onChange={(e) => handleFileUpload(e, 'config')} disabled={isLoading} />
                                 <FileText className="mb-3 text-slate-300 group-hover:text-slate-500 transition-all" size={36} />
                                 <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest text-center">{fileName || 'Subir archivo de configuración (.json, .yaml, .yml, .env, .ini)'}</span>
-                            </div>
-                        </div>
-                    )}
-
-                    {activeTab === 'translation' && (
-                        <div className="space-y-6">
-                            <div className="bg-indigo-50/50 p-6 rounded-[1.5rem] border border-indigo-100 flex flex-col items-center gap-4">
-                                <div className="p-3 bg-white rounded-2xl shadow-sm text-indigo-600">
-                                    <FileText size={24} />
-                                </div>
-                                <div className="text-center">
-                                    <h4 className="font-black text-gray-800 text-xs uppercase tracking-widest mb-1">{tp.modal.placeholders.translationTitle}</h4>
-                                    <p className="text-[10px] text-gray-400 font-medium">{tp.modal.placeholders.translationDesc}</p>
-                                </div>
-                                <button
-                                    type="button"
-                                    onClick={downloadTemplate}
-                                    className="w-full py-3 bg-white border border-indigo-200 text-indigo-600 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-indigo-50 transition-all shadow-sm"
-                                >
-                                    <Download size={14} /> {tp.modal.placeholders.downloadTemplate}
-                                </button>
-                            </div>
-
-                            <div onClick={() => !isLoading && fileInputRef.current?.click()} className="border-2 border-dashed rounded-[1.5rem] p-8 flex flex-col items-center justify-center cursor-pointer bg-white border-gray-200 hover:border-indigo-300 hover:bg-indigo-50/10 transition-all group">
-                                <input type="file" ref={fileInputRef} className="hidden" accept=".json" onChange={(e) => handleFileUpload(e, 'translation')} disabled={isLoading} />
-                                <Upload className={`mb-3 transition-all ${fileName ? 'text-indigo-600' : 'text-gray-300 group-hover:text-indigo-400'}`} size={36} />
-                                <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">{fileName || tp.modal.placeholders.uploadTranslation}</span>
-                            </div>
-
-                            <div className="px-1 text-center">
-                                <p className="text-[9px] text-gray-400 italic">{tp.modal.placeholders.translationHint}</p>
                             </div>
                         </div>
                     )}
