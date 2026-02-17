@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Play, Save, Rocket, Workflow } from 'lucide-react';
+import { ArrowLeft, Workflow } from 'lucide-react';
 import { useLanguage } from '../../language/useLanguage';
 import type { WorkflowStep, WorkflowJSON, AvailablePath } from './types';
 import ConfigurationPanel from './components/ConfigurationPanel';
@@ -218,27 +218,11 @@ const ProjectFlow: React.FC = () => {
           <div className="w-8 h-8 bg-gradient-to-br from-orange-500 to-amber-500 rounded-lg flex items-center justify-center">
             <Workflow size={16} className="text-white" />
           </div>
-          <h1 className="text-base font-bold text-gray-900 dark:text-white">
-            <span className="text-orange-500">Maker</span>Flow{' '}
-            <span className="text-gray-400 dark:text-gray-500 font-normal">Interpreter</span>
-          </h1>
+          <h1 className="text-base font-bold text-gray-900 dark:text-white">MakerPath visualizer</h1>
         </div>
 
         {/* Right – actions */}
-        <div className="flex items-center gap-2">
-          <button className="flex items-center gap-1.5 px-4 py-1.5 text-sm font-medium text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-lg transition-colors">
-            <Play size={14} />
-            {t.projectFlow.testWorkflow}
-          </button>
-          <button className="flex items-center gap-1.5 px-4 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">
-            <Save size={14} />
-            {t.projectFlow.save}
-          </button>
-          <button className="flex items-center gap-1.5 px-5 py-1.5 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors shadow-md shadow-blue-500/30">
-            <Rocket size={14} />
-            {t.projectFlow.deploy}
-          </button>
-        </div>
+        <div className="flex items-center gap-2" />
       </header>
 
       {/* Main body – 3 panels */}

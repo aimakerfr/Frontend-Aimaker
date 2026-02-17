@@ -886,7 +886,7 @@ export const fr: Translations = {
       },
     },
     projectFlow: {
-      title: 'MakerFlow Interpreter',
+      title: 'MakerPath Visualizer',
       backToMakerPath: 'Retour au Chemin du Maker',
       configuration: 'CONFIGURATION',
       ragLibrary: 'RAG LIBRARY',
