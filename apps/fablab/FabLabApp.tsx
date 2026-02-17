@@ -9,6 +9,7 @@ import AIContext from './components/AIContext';
 import MakerPathView from './views/maker-path/MakerPath';
 import ProjectPlanner from './views/projects/ProjectPlanner';
 import PathCreationModules from './views/path-creation-modules/App';
+import ProjectFlow from './views/projectflow/ProjectFlow';
 import ExternalAccess from './views/external-access/ExternalAccess';
 import AIChat from './components/AIChat';
 import Notebook from '@apps/fablab/views/notebook/Notebook';
@@ -125,6 +126,7 @@ const App: React.FC = () => {
         <Route path="/prompt/:id" element={<PromptView />} />
         <Route path="/assistant/:id" element={<AssistantView />} />
         <Route path="/project/:id" element={<ProjectView />} />
+        <Route path="/maker-path/projectflow/:id" element={<ProjectFlow />} />
         
         {/* Rutas públicas - Sin autenticación requerida (vistas de configuración) */}
         <Route path="/public/notebook/:id" element={<PublicNotebook />} />

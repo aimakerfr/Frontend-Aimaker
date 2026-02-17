@@ -2,7 +2,7 @@
  * Maker Path Types
  */
 
-export type MakerPathType = 'architect_ai' | 'custom';
+export type MakerPathType = 'architect_ai' | 'module_connector' | 'custom' ;
 export type MakerPathStatus = 'draft' | 'in_progress' | 'completed';
 
 export interface MakerPath {

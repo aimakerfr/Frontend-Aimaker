@@ -40,27 +40,16 @@ const MakerPathView: React.FC = () => {
     }
   };
 
-  const handleCreate = async (routeType: 'architect_ai' | 'module_connector') => {
+  const handleCreate = async () => {
     try {
-      // Mapear el tipo de ruta
-      const pathType = routeType === 'module_connector' ? 'module_connector' : 'architect_ai';
-      const pathTitle = routeType === 'module_connector' ? t.makerPath.types.moduleConnector : t.makerPath.newRoute;
-      
-      // Crear ruta vacía - el usuario completará datos en la vista correspondiente
       const newPath = await createMakerPath({
-        title: pathTitle,
+        title: 'ProjectFlow',
         description: '',
-        type: pathType as any,
+        type: 'custom',
         status: 'draft'
       });
       
-      // Navegar a la vista correspondiente según el tipo
-      if (routeType === 'module_connector') {
-        navigate(`/dashboard/maker-path/modules/${newPath.id}`);
-      } else {
-        navigate(`/dashboard/maker-path/${newPath.id}`);
-      }
-      
+      navigate(`/dashboard/maker-path/projectflow/${newPath.id}`);
       setShowRouteTypeModal(false);
     } catch (error) {
       console.error('Error creating maker path:', error);
@@ -81,6 +70,8 @@ const MakerPathView: React.FC = () => {
     const path = paths.find(p => p.id === pathId);
     if ((path?.type as string) === 'module_connector') {
       navigate(`/dashboard/maker-path/modules/${pathId}`);
+    } else if ((path?.type as string) === 'custom') {
+      navigate(`/dashboard/maker-path/projectflow/${pathId}`);
     } else {
       navigate(`/dashboard/maker-path/${pathId}`);
     }
@@ -130,6 +121,7 @@ const MakerPathView: React.FC = () => {
   const getTypeLabel = (type: string) => {
     if (type === 'architect_ai') return t.makerPath.types.architectAI;
     if (type === 'module_connector') return t.makerPath.types.moduleConnector;
+    if (type === 'custom') return 'custom';
     return t.makerPath.types.custom;
   };
 
@@ -139,7 +131,7 @@ const MakerPathView: React.FC = () => {
       <RouteTypeModal
         isOpen={showRouteTypeModal}
         onClose={() => setShowRouteTypeModal(false)}
-        onSelect={handleCreate}
+        onSelect={() => handleCreate()}
       />
       
       <div className="max-w-7xl mx-auto space-y-6">

@@ -1,11 +1,11 @@
 import React from 'react';
-import { Route, Link2, X } from 'lucide-react';
+import { Workflow, X } from 'lucide-react';
 import { useLanguage } from '../../../language/useLanguage';
 
 interface RouteTypeModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSelect: (type: 'architect_ai' | 'module_connector') => void;
+  onSelect: (type: 'custom') => void;
 }
 
 export const RouteTypeModal: React.FC<RouteTypeModalProps> = ({ isOpen, onClose, onSelect }) => {
@@ -15,7 +15,7 @@ export const RouteTypeModal: React.FC<RouteTypeModalProps> = ({ isOpen, onClose,
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-2xl w-full overflow-hidden animate-in fade-in zoom-in duration-300">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full overflow-hidden animate-in fade-in zoom-in duration-300">
         {/* Header */}
         <div className="p-6 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-gray-900 dark:to-blue-900/20">
           <div className="flex items-center justify-between">
@@ -35,58 +35,30 @@ export const RouteTypeModal: React.FC<RouteTypeModalProps> = ({ isOpen, onClose,
         </div>
 
         {/* Body */}
-        <div className="p-6 grid md:grid-cols-2 gap-4">
-          {/* Ruta Arquitecto AI */}
+        <div className="p-6">
+          {/* ProjectFlow */}
           <button
-            onClick={() => onSelect('architect_ai')}
-            className="group relative p-6 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl border-2 border-blue-200 dark:border-blue-800 hover:border-blue-500 dark:hover:border-blue-600 hover:shadow-xl transition-all duration-300 text-left"
+            onClick={() => onSelect('custom')}
+            className="group relative w-full p-6 bg-gradient-to-br from-orange-50 to-amber-50 dark:from-orange-900/20 dark:to-amber-900/20 rounded-xl border-2 border-orange-200 dark:border-orange-800 hover:border-orange-500 dark:hover:border-orange-600 hover:shadow-xl transition-all duration-300 text-left"
           >
             <div className="flex flex-col items-center text-center space-y-4">
-              <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
-                <Route size={32} className="text-white" />
+              <div className="w-16 h-16 bg-gradient-to-br from-orange-500 to-amber-600 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                <Workflow size={32} className="text-white" />
               </div>
               <div>
                 <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
-                  {t.makerPath.modal.architectAI.title}
+                  {t.makerPath.modal.projectFlow.title}
                 </h3>
                 <p className="text-sm text-gray-600 dark:text-gray-400">
-                  {t.makerPath.modal.architectAI.description}
+                  {t.makerPath.modal.projectFlow.description}
                 </p>
               </div>
               <div className="flex flex-wrap gap-2 justify-center mt-2">
-                <span className="text-xs bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 px-2 py-1 rounded-full">
-                  {t.makerPath.modal.architectAI.badge1}
+                <span className="text-xs bg-orange-100 dark:bg-orange-900/50 text-orange-700 dark:text-orange-300 px-2 py-1 rounded-full">
+                  {t.makerPath.modal.projectFlow.badge1}
                 </span>
-                <span className="text-xs bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 px-2 py-1 rounded-full">
-                  {t.makerPath.modal.architectAI.badge2}
-                </span>
-              </div>
-            </div>
-          </button>
-
-          {/* Conector de Módulos */}
-          <button
-            onClick={() => onSelect('module_connector')}
-            className="group relative p-6 bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-xl border-2 border-purple-200 dark:border-purple-800 hover:border-purple-500 dark:hover:border-purple-600 hover:shadow-xl transition-all duration-300 text-left"
-          >
-            <div className="flex flex-col items-center text-center space-y-4">
-              <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-600 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
-                <Link2 size={32} className="text-white" />
-              </div>
-              <div>
-                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
-                  {t.makerPath.modal.moduleConnector.title}
-                </h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400">
-                  {t.makerPath.modal.moduleConnector.description}
-                </p>
-              </div>
-              <div className="flex flex-wrap gap-2 justify-center mt-2">
-                <span className="text-xs bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 px-2 py-1 rounded-full">
-                  {t.makerPath.modal.moduleConnector.badge1}
-                </span>
-                <span className="text-xs bg-pink-100 dark:bg-pink-900/50 text-pink-700 dark:text-pink-300 px-2 py-1 rounded-full">
-                  {t.makerPath.modal.moduleConnector.badge2}
+                <span className="text-xs bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 px-2 py-1 rounded-full">
+                  {t.makerPath.modal.projectFlow.badge2}
                 </span>
               </div>
             </div>
