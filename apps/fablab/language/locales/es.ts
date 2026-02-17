@@ -887,7 +887,7 @@ export const es: Translations = {
       },
     },
     projectFlow: {
-      title: 'MakerFlow Interpreter',
+      title: 'MakerPath Visualizer',
       backToMakerPath: 'Volver a Maker Path',
       configuration: 'CONFIGURACIÓN',
       ragLibrary: 'RAG LIBRARY',

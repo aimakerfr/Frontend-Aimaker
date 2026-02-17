@@ -281,7 +281,6 @@ const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
         {steps.length === 0 && (
           <div className="flex flex-col items-center justify-center h-full text-gray-400 dark:text-gray-500 py-20">
             <Sparkles size={48} className="mb-4 opacity-30" />
-            <p className="text-lg font-medium">{t.projectFlow.parseAndRender}</p>
             <p className="text-sm mt-1">{t.projectFlow.pasteJsonFirst}</p>
           </div>
         )}
