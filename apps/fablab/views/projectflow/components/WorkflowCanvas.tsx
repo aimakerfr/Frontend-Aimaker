@@ -167,53 +167,53 @@ const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
               {/* Node card */}
               <button
                 onClick={() => onSelectStep(step.step_id)}
-                className={`relative w-72 bg-gradient-to-br ${style.gradient} border-2 ${
+                className={`relative w-80 bg-gradient-to-br ${style.gradient} border-2 ${
                   isSelected
                     ? 'border-blue-500 dark:border-blue-400 shadow-xl shadow-blue-500/20 ring-2 ring-blue-500/30'
                     : style.border + ' shadow-md hover:shadow-lg'
-                } rounded-xl p-5 transition-all duration-200 text-left group`}
+                } rounded-xl p-6 pt-12 pb-6 transition-all duration-200 text-left group overflow-hidden`}
               >
                 {/* Badges (top-right) */}
-                <div className="absolute top-3 right-3 flex flex-col items-end gap-1">
+                <div className="absolute top-4 right-4 flex flex-col items-end gap-2 max-w-[40%]">
                   {showKey && (
-                    <span className="text-[10px] font-bold text-red-500 flex items-center gap-1">
-                      <span className="w-1.5 h-1.5 bg-red-500 rounded-full" />
-                      {t.projectFlow.keyNeeded}
+                    <span className="text-[10px] font-bold text-red-500 flex items-center gap-1.5 whitespace-nowrap">
+                      <span className="w-1.5 h-1.5 bg-red-500 rounded-full flex-shrink-0" />
+                      <span className="truncate">{t.projectFlow.keyNeeded}</span>
                     </span>
                   )}
                   {showLibrary && (
-                    <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 flex items-center gap-1">
-                      <Wand2 size={10} />
-                      {t.projectFlow.library}
+                    <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 flex items-center gap-1.5 whitespace-nowrap">
+                      <Wand2 size={10} className="flex-shrink-0" />
+                      <span className="truncate">{t.projectFlow.library}</span>
                     </span>
                   )}
                 </div>
 
                 {/* Icon + title */}
-                <div className="flex items-start gap-3">
+                <div className="flex items-start gap-4 mb-6 pr-2">
                   <div
-                    className={`w-9 h-9 ${style.iconBg} rounded-lg flex items-center justify-center flex-shrink-0`}
+                    className={`w-10 h-10 ${style.iconBg} rounded-lg flex items-center justify-center flex-shrink-0`}
                   >
-                    <Icon size={18} className="text-white" />
+                    <Icon size={20} className="text-white" />
                   </div>
-                  <div className="min-w-0">
-                    <h3 className="font-bold text-gray-900 dark:text-white text-sm leading-tight truncate">
+                  <div className="min-w-0 flex-1 overflow-hidden">
+                    <h3 className="font-bold text-gray-900 dark:text-white text-base leading-tight truncate">
                       {step.name}
                     </h3>
-                    <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 mt-0.5">
+                    <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 mt-2 truncate">
                       {ACTION_LABELS[step.action] || step.action}
                     </p>
                   </div>
                 </div>
 
                 {/* Bottom info */}
-                <div className="mt-3 flex items-center justify-between">
+                <div className="flex items-center justify-between mb-4 gap-2">
                   {step.input_file_variable ? (
-                    <span className="text-xs font-mono bg-white/60 dark:bg-gray-800/60 text-gray-600 dark:text-gray-300 px-2 py-0.5 rounded">
+                    <span className="text-xs font-mono bg-white/60 dark:bg-gray-800/60 text-gray-600 dark:text-gray-300 px-2 py-0.5 rounded truncate max-w-[60%]">
                       {`{{${step.input_file_variable.replace('.html', '').replace('.css', '')}}}`}
                     </span>
                   ) : step.input_prompt ? (
-                    <span className="text-xs text-gray-500 dark:text-gray-400 truncate max-w-[140px]">
+                    <span className="text-xs text-gray-500 dark:text-gray-400 truncate max-w-[60%]">
                       System
                     </span>
                   ) : (
@@ -221,7 +221,7 @@ const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
                   )}
 
                   {step.required && (
-                    <span className="flex items-center gap-1 text-[10px] font-bold text-red-500">
+                    <span className="flex items-center gap-1 text-[10px] font-bold text-red-500 whitespace-nowrap flex-shrink-0">
                       <span className="w-1.5 h-1.5 bg-red-500 rounded-full" />
                       {t.projectFlow.required}
                     </span>
@@ -234,10 +234,10 @@ const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
                     onClick={(e) => {
                       e.stopPropagation();
                     }}
-                    className="mt-3 w-full flex items-center justify-center gap-2 py-2 bg-gray-900 dark:bg-white text-white dark:text-gray-900 text-xs font-bold uppercase tracking-wide rounded-lg hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors"
+                    className="w-full flex items-center justify-center gap-2 py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 text-xs font-bold uppercase tracking-wide rounded-lg hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors overflow-hidden"
                   >
-                    <Key size={12} />
-                    {t.projectFlow.selectGeminiKey}
+                    <Key size={12} className="flex-shrink-0" />
+                    <span className="truncate">{t.projectFlow.selectGeminiKey}</span>
                   </button>
                 )}
 
@@ -251,7 +251,7 @@ const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
 
               {/* Connector line between nodes */}
               {index < steps.length - 1 && (
-                <div className="w-px h-10 bg-gray-300 dark:bg-gray-600" />
+                <div className="w-px h-14 bg-gray-300 dark:bg-gray-600" />
               )}
             </React.Fragment>
           );
@@ -260,16 +260,16 @@ const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
         {/* End node */}
         {steps.length > 0 && (
           <>
-            <div className="w-px h-10 bg-gray-300 dark:bg-gray-600" />
-            <div className="w-40 bg-gradient-to-br from-violet-100 to-purple-100 dark:from-violet-900/30 dark:to-purple-900/30 border-2 border-dashed border-violet-300 dark:border-violet-700 rounded-xl py-3 px-4 flex items-center gap-3">
-              <div className="w-8 h-8 bg-violet-500 rounded-lg flex items-center justify-center flex-shrink-0">
-                <Flag size={14} className="text-white" />
+            <div className="w-px h-14 bg-gray-300 dark:bg-gray-600" />
+            <div className="w-48 bg-gradient-to-br from-violet-100 to-purple-100 dark:from-violet-900/30 dark:to-purple-900/30 border-2 border-dashed border-violet-300 dark:border-violet-700 rounded-xl py-4 px-5 flex items-center gap-3 overflow-hidden">
+              <div className="w-9 h-9 bg-violet-500 rounded-lg flex items-center justify-center flex-shrink-0">
+                <Flag size={16} className="text-white" />
               </div>
-              <div>
+              <div className="min-w-0 flex-1 overflow-hidden">
                 <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500">
                   {t.projectFlow.end}
                 </p>
-                <p className="text-xs font-bold text-gray-700 dark:text-gray-300 uppercase">
+                <p className="text-xs font-bold text-gray-700 dark:text-gray-300 uppercase truncate">
                   {outputType || stageName || 'OUTPUT'}
                 </p>
               </div>
