@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, FileText, Notebook, FolderKanban, Eye, Plus, X, Trash2, Star } from 'lucide-react';
 import { useLanguage } from '../../language/useLanguage';
@@ -11,7 +11,7 @@ import {
 } from '@core/creation-tools/creation-tools.service';
 import type { Tool } from '@core/creation-tools/creation-tools.types';
 import { markToolAsUnsaved, getUnsavedToolIds } from '@core/creation-tools/unsavedTools.service';
-import { RagMultimodalService } from '@core/rag_multimodal';
+import { createRagMultimodalTool } from '@core/rag_multimodal';
 
 // MOCK DATA - Solo se usa si falla la API
 const mockItems: LibraryItem[] = [
@@ -76,7 +76,13 @@ const LibraryView: React.FC<LibraryViewProps> = ({
 }) => {
   const navigate = useNavigate();
   const { t } = useLanguage();
-  const ragMultimodalService = new RagMultimodalService();
+
+  const isMountedRef = useRef(true);
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
   
   // Use props if provided, otherwise local state (backward compat)
   const [localActiveFilter, setLocalActiveFilter] = useState<FilterType>('all');
@@ -144,30 +150,23 @@ const LibraryView: React.FC<LibraryViewProps> = ({
     }
   };
 
-  const handleCreateRagClick = async () => {
+  const handleCreateRagClick = () => {
     if (isCreatingRag) return;
+    if (isMountedRef.current) setIsCreatingRag(true);
 
-    setIsCreatingRag(true);
-    try {
-      // Create the underlying tool first (same pattern as notebooks)
-      const newTool = await createTool({
-        type: 'rag_multimodal' as any,
-        title: 'New RAG',
-        description: ''
+    createRagMultimodalTool()
+      .then(({ toolId }) => {
+        console.log('[Library] createRagMultimodalTool resolved:', { toolId });
+        console.log('[Library] navigating to:', `/rag-multimodal/${toolId}`);
+        // Use an absolute path (root-relative) so navigation is not resolved from the current nested URL.
+        navigate(`/dashboard/rag-multimodal/${toolId}`);
+      })
+      .catch((error) => {
+        console.error('Error creando RAG:', error);
+      })
+      .finally(() => {
+        if (isMountedRef.current) setIsCreatingRag(false);
       });
-
-      // Hide until first save
-      markToolAsUnsaved(newTool.id);
-
-      // Create the RAG entity linked to the tool
-      const rag = await ragMultimodalService.createRagMultimodal({ creationToolId: newTool.id });
-
-      navigate(`/dashboard/rag-multimodal/${rag.id}`);
-    } catch (error) {
-      console.error('Error creando RAG:', error);
-    } finally {
-      setIsCreatingRag(false);
-    }
   };
 
   const handleToggleFavorite = async (itemId: number, e: React.MouseEvent) => {

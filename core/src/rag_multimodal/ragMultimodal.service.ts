@@ -4,6 +4,8 @@
  */
 
 import { httpClient } from '../api/http.client';
+import { createTool } from '../creation-tools/creation-tools.service';
+import { markToolAsUnsaved } from '../creation-tools/unsavedTools.service';
 
 const ENDPOINT = '/api/v1/rag-multimodal';
 
@@ -114,6 +116,30 @@ export class RagMultimodalService {
     return httpClient.delete(`${this.baseUrl}/${id}`);
   }
 }
+
+export interface CreateRagMultimodalToolResult {
+  toolId: number;
+}
+
+/**
+ * Create the underlying `rag_multimodal` creation tool.
+ *
+ * Backend behavior (confirmed): creating the tool is enough; the backend will automatically
+ * create/open the associated RAG Multimodal based on the tool.
+ *
+ * Workflow:
+ * - Create tool
+ * - Mark tool as unsaved (hide from library until first save)
+ */
+export const createRagMultimodalTool = async (): Promise<CreateRagMultimodalToolResult> => {
+  const tool = await createTool({
+    type: 'rag_multimodal' as any,
+    title: '',
+    description: '',
+  });
+  markToolAsUnsaved(tool.id);
+  return { toolId: tool.id };
+};
 
 /**
  * Obtener rag multimodal por creation_tool_id
