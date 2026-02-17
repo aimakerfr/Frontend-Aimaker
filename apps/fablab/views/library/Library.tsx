@@ -11,6 +11,7 @@ import {
 } from '@core/creation-tools/creation-tools.service';
 import type { Tool } from '@core/creation-tools/creation-tools.types';
 import { markToolAsUnsaved, getUnsavedToolIds } from '@core/creation-tools/unsavedTools.service';
+import { RagMultimodalService } from '@core/rag_multimodal';
 
 // MOCK DATA - Solo se usa si falla la API
 const mockItems: LibraryItem[] = [
@@ -75,6 +76,7 @@ const LibraryView: React.FC<LibraryViewProps> = ({
 }) => {
   const navigate = useNavigate();
   const { t } = useLanguage();
+  const ragMultimodalService = new RagMultimodalService();
   
   // Use props if provided, otherwise local state (backward compat)
   const [localActiveFilter, setLocalActiveFilter] = useState<FilterType>('all');
@@ -87,6 +89,7 @@ const LibraryView: React.FC<LibraryViewProps> = ({
   
   const [searchQuery, setSearchQuery] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [isCreatingRag, setIsCreatingRag] = useState(false);
 
   const getFilteredTools = () => {
     let filtered: any = items;
@@ -141,6 +144,32 @@ const LibraryView: React.FC<LibraryViewProps> = ({
     }
   };
 
+  const handleCreateRagClick = async () => {
+    if (isCreatingRag) return;
+
+    setIsCreatingRag(true);
+    try {
+      // Create the underlying tool first (same pattern as notebooks)
+      const newTool = await createTool({
+        type: 'rag_multimodal' as any,
+        title: 'New RAG',
+        description: ''
+      });
+
+      // Hide until first save
+      markToolAsUnsaved(newTool.id);
+
+      // Create the RAG entity linked to the tool
+      const rag = await ragMultimodalService.createRagMultimodal({ creationToolId: newTool.id });
+
+      navigate(`/dashboard/rag-multimodal/${rag.id}`);
+    } catch (error) {
+      console.error('Error creando RAG:', error);
+    } finally {
+      setIsCreatingRag(false);
+    }
+  };
+
   const handleToggleFavorite = async (itemId: number, e: React.MouseEvent) => {
     e.stopPropagation();
     if (onToggleFavorite) {
@@ -173,13 +202,22 @@ const LibraryView: React.FC<LibraryViewProps> = ({
             </h1>
             <p className="text-gray-600 dark:text-gray-400 mt-1">{t.library.subtitle}</p>
           </div>
-          <button
-            onClick={() => setShowCreateModal(true)}
-            className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold rounded-xl transition-all shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40 hover:scale-[1.02]"
-          >
-            <Plus size={20} />
-            {t.library.createNew}
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleCreateRagClick}
+              disabled={isCreatingRag}
+              className="flex items-center gap-2 px-6 py-3 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-900 dark:text-white font-semibold rounded-xl transition-all shadow-lg border border-gray-200 dark:border-gray-700 disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              {t.library.newRag}
+            </button>
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold rounded-xl transition-all shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40 hover:scale-[1.02]"
+            >
+              <Plus size={20} />
+              {t.library.createNew}
+            </button>
+          </div>
         </div>
 
           <div className="flex flex-col sm:flex-row gap-4">

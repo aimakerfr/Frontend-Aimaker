@@ -49,6 +49,7 @@ export const en: Translations = {
         perplexitySearch: 'PERPLEXITY SEARCH',
       },
       createNew: 'Create',
+      newRag: 'NEW RAG',
       noResults: 'No results found',
       tableHeaders: {
         type: 'Type',

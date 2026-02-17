@@ -49,6 +49,7 @@ export interface Translations {
       perplexitySearch: string;
     };
     createNew: string;
+    newRag: string;
     noResults: string;
     tableHeaders: {
       type: string;
