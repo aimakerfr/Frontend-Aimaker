@@ -131,7 +131,7 @@ const RagMultimodalModulesView: React.FC = () => {
                 <div className="max-w-4xl mx-auto flex items-center justify-between">
                     <div className="flex items-center gap-4">
                         <button 
-                            onClick={() => navigate(`/dashboard/rag_multimodal/${ragMultimodalId}`)} 
+                            onClick={() => navigate(`/dashboard/rag-multimodal/${ragMultimodalId}`)}
                             className="p-2 hover:bg-gray-100 rounded-xl text-gray-400 transition-colors"
                         >
                             <ArrowLeft size={20} />
