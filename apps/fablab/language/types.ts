@@ -252,6 +252,9 @@ export interface Translations {
     testWorkflow: string;
     changesAreSavedLocally: string;
     selectRagSource: string;
+    makerPathSelector: string;
+    noPathsAvailable: string;
+    load: string;
     nodeTypes: {
       fetchData: string;
       inputPrompt: string;
