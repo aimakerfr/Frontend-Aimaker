@@ -165,6 +165,23 @@ export function AppRouter() {
         <Route path="/templates_visualizer" element={<TemplateSelector />} />
 
         {/* Protected Routes */}
+        {/*
+          Some FabLab feature routes are registered inside `FabLabApp` as absolute paths
+          (e.g. `/rag-multimodal/:id`). Since `FabLabApp` was previously mounted only
+          under `/dashboard/*`, direct navigation to those absolute paths would not
+          render the app.
+
+          Mount `FabLabApp` for those absolute protected entrypoints as well.
+        */}
+        <Route
+          path="/rag-multimodal/:id"
+          element={
+            <ProtectedRoute>
+              <FabLabApp />
+            </ProtectedRoute>
+          }
+        />
+
         <Route
           path="/dashboard/*"
           element={
