@@ -9,73 +9,48 @@ import NodeConfigPanel from './components/NodeConfigPanel';
 
 /** Example workflows for the RAG Library / demo */
 const DEMO_WORKFLOWS: Record<string, { json: WorkflowJSON; path: AvailablePath }> = {
-  onboarding_v1: {
+  landing_page_maker: {
     path: {
-      id: 'onboarding_v1',
-      name: 'onboarding_v1',
-      description: 'Onboarding Avanzado',
-      outputType: 'DASHBOARD_JSON',
+      id: 'landing_page_maker',
+      name: 'Landing Page Maker',
+      description: 'A path for creating a basic landing page',
+      outputType: 'HTML',
     },
     json: {
-      onboarding_flow: {
-        stage_name: 'onboarding_avanzado',
-        description: 'Procesamiento de datos de clientes con IA.',
-        output_type: 'DASHBOARD_JSON',
+      simple_landing_creator: {
+        stage_name: 'simple_landing_creator',
+        description: 'A path for creating a basic landing page.',
+        output_type: 'HTML',
         steps: [
           {
             step_id: 1,
-            name: 'Captura de Webhook',
-            action: 'fetch_data',
-            input_source_type: 'json',
-            input_file_variable: 'raw_data',
+            name: 'Select Header',
+            action: 'rag_library_selector',
+            input_source_type: 'HTML',
+            input_file_variable: 'header.html',
             required: true,
           },
           {
             step_id: 2,
-            name: 'Definir Instrucción de Diseño',
-            action: 'text_input',
-            input_source_type: 'text_input',
-            input_prompt: 'Crea una guía de estilo para el cliente basada en: {{raw_data}}',
+            name: 'Select Footer',
+            action: 'rag_library_selector',
+            input_source_type: 'HTML',
+            input_file_variable: 'footer.html',
             required: true,
           },
           {
             step_id: 3,
-            name: 'Procesamiento y Generación',
-            action: 'ai_analysis_generation',
-            input_source_type: 'text_input',
-            required: true,
-          },
-        ],
-      },
-    },
-  },
-  support_rag: {
-    path: {
-      id: 'support_rag',
-      name: 'support_rag',
-      description: 'Resolución Técnica',
-      outputType: 'TICKET_REPLY',
-    },
-    json: {
-      support_flow: {
-        stage_name: 'support_rag',
-        description: 'Busca en la KB y genera respuesta.',
-        output_type: 'TICKET_REPLY',
-        steps: [
-          {
-            step_id: 1,
-            name: 'Consultar Base de Conocimiento',
-            action: 'select_rag_source',
-            input_source_type: 'RAG',
-            input_file_variable: 'kb_context',
+            name: 'Select Body Template',
+            action: 'rag_library_selector',
+            input_source_type: 'HTML',
+            input_file_variable: 'body_template.html',
             required: true,
           },
           {
-            step_id: 2,
-            name: 'Generar Respuesta Técnica',
-            action: 'ai_analysis_generation',
-            input_source_type: 'text_input',
-            input_prompt: 'Responde al usuario usando el contexto: {{kb_context}}',
+            step_id: 4,
+            name: 'Compile and Export Landing Page',
+            action: 'file_generator',
+            input_source_type: 'HTML',
             required: true,
           },
         ],
