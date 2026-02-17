@@ -12,6 +12,9 @@ import {
   Database,
   Scissors,
   Flag,
+  BookOpen,
+  Save,
+  FileCode,
 } from 'lucide-react';
 import type { WorkflowStep, StepAction } from '../types';
 import { ACTION_LABELS } from '../types';
@@ -35,6 +38,74 @@ const NODE_STYLES: Record<
     iconBg: string;
   }
 > = {
+  // New action types with distinct styles
+  rag_library_selector: {
+    icon: Database,
+    gradient: 'from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20',
+    border: 'border-blue-200 dark:border-blue-800',
+    iconBg: 'bg-blue-500',
+  },
+  prompt_library_selector: {
+    icon: BookOpen,
+    gradient: 'from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20',
+    border: 'border-indigo-200 dark:border-indigo-800',
+    iconBg: 'bg-indigo-500',
+  },
+  ia_generator: {
+    icon: Sparkles,
+    gradient: 'from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20',
+    border: 'border-emerald-200 dark:border-emerald-800',
+    iconBg: 'bg-emerald-500',
+  },
+  text_input: {
+    icon: MessageSquare,
+    gradient: 'from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20',
+    border: 'border-purple-200 dark:border-purple-800',
+    iconBg: 'bg-purple-500',
+  },
+  information_searcher: {
+    icon: Search,
+    gradient: 'from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20',
+    border: 'border-amber-200 dark:border-amber-800',
+    iconBg: 'bg-amber-500',
+  },
+  rag_library_uploader: {
+    icon: Upload,
+    gradient: 'from-sky-50 to-blue-50 dark:from-sky-900/20 dark:to-blue-900/20',
+    border: 'border-sky-200 dark:border-sky-800',
+    iconBg: 'bg-sky-500',
+  },
+  prompt_optimizer: {
+    icon: Wand2,
+    gradient: 'from-fuchsia-50 to-pink-50 dark:from-fuchsia-900/20 dark:to-pink-900/20',
+    border: 'border-fuchsia-200 dark:border-fuchsia-800',
+    iconBg: 'bg-fuchsia-500',
+  },
+  api_configurator: {
+    icon: Key,
+    gradient: 'from-rose-50 to-red-50 dark:from-rose-900/20 dark:to-red-900/20',
+    border: 'border-rose-200 dark:border-rose-800',
+    iconBg: 'bg-rose-500',
+  },
+  output_result_saver: {
+    icon: Save,
+    gradient: 'from-cyan-50 to-teal-50 dark:from-cyan-900/20 dark:to-teal-900/20',
+    border: 'border-cyan-200 dark:border-cyan-800',
+    iconBg: 'bg-cyan-500',
+  },
+  text_processor: {
+    icon: Scissors,
+    gradient: 'from-gray-50 to-slate-50 dark:from-gray-800/50 dark:to-slate-800/50',
+    border: 'border-gray-300 dark:border-gray-600',
+    iconBg: 'bg-gray-500',
+  },
+  file_generator: {
+    icon: FileCode,
+    gradient: 'from-violet-50 to-purple-50 dark:from-violet-900/20 dark:to-purple-900/20',
+    border: 'border-violet-200 dark:border-violet-800',
+    iconBg: 'bg-violet-500',
+  },
+  // Legacy actions (backward compatibility)
   fetch_data: {
     icon: Cloud,
     gradient: 'from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20',
@@ -52,12 +123,6 @@ const NODE_STYLES: Record<
     gradient: 'from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20',
     border: 'border-blue-200 dark:border-blue-800',
     iconBg: 'bg-blue-500',
-  },
-  text_input: {
-    icon: MessageSquare,
-    gradient: 'from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20',
-    border: 'border-purple-200 dark:border-purple-800',
-    iconBg: 'bg-purple-500',
   },
   user_input_and_ai_refinement: {
     icon: MessageSquare,
@@ -82,12 +147,6 @@ const NODE_STYLES: Record<
     gradient: 'from-sky-50 to-blue-50 dark:from-sky-900/20 dark:to-blue-900/20',
     border: 'border-sky-200 dark:border-sky-800',
     iconBg: 'bg-sky-500',
-  },
-  prompt_optimizer: {
-    icon: Wand2,
-    gradient: 'from-fuchsia-50 to-pink-50 dark:from-fuchsia-900/20 dark:to-pink-900/20',
-    border: 'border-fuchsia-200 dark:border-fuchsia-800',
-    iconBg: 'bg-fuchsia-500',
   },
   api_configuration: {
     icon: Key,
@@ -128,19 +187,31 @@ const getNodeStyle = (action: StepAction) => {
 
 /** Determine whether a node needs a Gemini key */
 const needsKey = (action: StepAction): boolean => {
-  return ['ai_analysis_generation', 'prompt_optimizer', 'information_search'].includes(action);
+  return [
+    'ia_generator',
+    'prompt_optimizer',
+    'information_searcher',
+    // Legacy actions
+    'ai_analysis_generation',
+    'information_search',
+  ].includes(action);
 };
 
 /** Determine whether a step uses the LIBRARY badge */
 const usesLibrary = (action: StepAction): boolean => {
   return [
+    'rag_library_selector',
+    'prompt_library_selector',
+    'ia_generator',
+    'text_input',
+    'prompt_optimizer',
+    'rag_library_uploader',
+    // Legacy actions
     'fetch_data',
     'select_file',
     'select_rag_source',
-    'text_input',
     'user_input_and_ai_refinement',
     'ai_analysis_generation',
-    'prompt_optimizer',
   ].includes(action);
 };
 
