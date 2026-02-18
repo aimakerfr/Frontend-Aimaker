@@ -16,6 +16,8 @@ export type StepAction =
   | 'output_result_saver'
   | 'text_processor'
   | 'file_generator'
+  | 'rag_selector'
+  | 'rag_chat'
   // Legacy actions (backward compatibility)
   | 'fetch_data'
   | 'select_file'
@@ -58,6 +60,10 @@ export interface WorkflowStep {
   output_format?: OutputFormat;
   output_type?: string;
   required: boolean;
+  /** Variable index number for steps that save variables (e.g., rag_selector) */
+  variable_index_number?: number;
+  /** Variable name for steps that save variables */
+  variable_name?: string;
 }
 
 /** The workflow definition parsed from JSON */
@@ -67,6 +73,8 @@ export interface WorkflowDefinition {
   output_type?: string;
   /** Optional list of required files for the path; reserved for future UI use */
   required_files?: Array<{ id: string | number; name: string }>;
+  /** Optional list of required variable indices for the path */
+  required_variables?: number[];
   steps: WorkflowStep[];
 }
 
@@ -123,6 +131,8 @@ export const ACTION_TO_CARD_TYPE: Record<StepAction, CardType> = {
   output_result_saver: 'store_data',
   text_processor: 'text_processing',
   file_generator: 'store_data',
+  rag_selector: 'rag_library',
+  rag_chat: 'ia_generator',
   // Legacy actions (backward compatibility)
   fetch_data: 'rag_library',
   select_file: 'rag_library',
@@ -151,6 +161,8 @@ export const ACTION_LABELS: Record<StepAction, string> = {
   output_result_saver: 'OUTPUT RESULT SAVER',
   text_processor: 'TEXT PROCESSOR',
   file_generator: 'FILE GENERATOR',
+  rag_selector: 'RAG SELECTOR',
+  rag_chat: 'RAG CHAT',
   // Legacy actions (backward compatibility)
   fetch_data: 'FETCH DATA',
   select_file: 'SELECT FILE',

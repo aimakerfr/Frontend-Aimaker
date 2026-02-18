@@ -32,6 +32,10 @@ type MakerPathStepProps = {
   required?: boolean;
   /** 1-based position of this file variable within the maker path */
   inputFileVariableIndexNumber?: number;
+  /** Variable index number for steps that save/use variables */
+  variableIndexNumber?: number;
+  /** Variable name for steps that save variables */
+  variableName?: string;
   showTopConnectorDot?: boolean;
   t: any;
   selectable?: boolean;
@@ -117,6 +121,18 @@ const NODE_STYLES: Record<
     gradient: 'from-violet-50 to-purple-50 dark:from-violet-900/20 dark:to-purple-900/20',
     border: 'border-violet-200 dark:border-violet-800',
     iconBg: 'bg-violet-500',
+  },
+  rag_selector: {
+    icon: Database,
+    gradient: 'from-teal-50 to-cyan-50 dark:from-teal-900/20 dark:to-cyan-900/20',
+    border: 'border-teal-200 dark:border-teal-800',
+    iconBg: 'bg-teal-500',
+  },
+  rag_chat: {
+    icon: MessageSquare,
+    gradient: 'from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20',
+    border: 'border-green-200 dark:border-green-800',
+    iconBg: 'bg-green-500',
   },
   // Legacy actions (backward compatibility)
   fetch_data: {
@@ -239,6 +255,8 @@ const MakerPathStep: React.FC<MakerPathStepProps> = ({
   inputPrompt,
   required,
   inputFileVariableIndexNumber,
+  variableIndexNumber,
+  variableName,
   showTopConnectorDot,
   t,
   selectable = true,
@@ -282,6 +300,8 @@ const MakerPathStep: React.FC<MakerPathStepProps> = ({
         onNextStep={onNextStep}
         makerPathId={makerPathId}
         inputFileVariableIndexNumber={inputFileVariableIndexNumber}
+        variableIndexNumber={variableIndexNumber}
+        variableName={variableName}
       />
     </MakerPathStepCard>
   );

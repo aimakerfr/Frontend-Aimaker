@@ -46,9 +46,9 @@ export const postMakerPathVariable = async (
 export const getMakerPathVariables = async (
   makerPathId: number
 ): Promise<MakerPathVariableListResponse> => {
-  return httpClient.get<MakerPathVariableListResponse>(ENDPOINT, {
-    params: { makerPathId },
-  });
+  return httpClient.get<MakerPathVariableListResponse>(
+    `${ENDPOINT}?makerPathId=${makerPathId}`
+  );
 };
 
 export type {
