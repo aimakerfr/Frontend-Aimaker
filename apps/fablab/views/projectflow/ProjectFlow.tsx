@@ -225,15 +225,15 @@ const ProjectFlow: React.FC = () => {
         />
 
         {/* Right – Node Config (shown only when a node is selected) */}
-        {selectedStep && (
-          <NodeConfigPanel
-            step={selectedStep}
-            onClose={() => setSelectedStepId(null)}
-            promptContent={promptContents[selectedStepId!] || ''}
-            onPromptChange={handlePromptChange}
-            t={t}
-          />
-        )}
+        {/*{selectedStep && (*/}
+        {/*  <NodeConfigPanel*/}
+        {/*    step={selectedStep}*/}
+        {/*    onClose={() => setSelectedStepId(null)}*/}
+        {/*    promptContent={promptContents[selectedStepId!] || ''}*/}
+        {/*    onPromptChange={handlePromptChange}*/}
+        {/*    t={t}*/}
+        {/*  />*/}
+        {/*)}*/}
       </div>
     </div>
   );

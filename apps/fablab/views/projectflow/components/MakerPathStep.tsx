@@ -1,5 +1,5 @@
 import React from 'react';
-import type { LucideIcon } from 'lucide-react';
+import {LucideIcon, Wand2} from 'lucide-react';
 import {
   Cloud,
   MessageSquare,
@@ -7,7 +7,6 @@ import {
   FileText,
   Search,
   Upload,
-  Wand2,
   Key,
   Database,
   Scissors,
@@ -18,6 +17,8 @@ import {
 } from 'lucide-react';
 import type { StepAction } from '../types';
 import { ACTION_LABELS } from '../types';
+import MakerPathStepCard from './MakerPathStepCard';
+import MakerPathStepContent from './MakerPathStepContent';
 
 type MakerPathStepProps = {
   action: StepAction;
@@ -232,94 +233,34 @@ const MakerPathStep: React.FC<MakerPathStepProps> = ({
   onClick,
 }) => {
   const style = getNodeStyle(action);
-  const Icon = style.icon;
   const showKey = needsKey(action);
   const showLibrary = usesLibrary(action);
 
   return (
-    <button
-      onClick={() => onClick?.(stepId)}
-      className={`relative w-80 bg-gradient-to-br ${style.gradient} border-2 ${
-        selected
-          ? 'border-blue-500 dark:border-blue-400 shadow-xl shadow-blue-500/20 ring-2 ring-blue-500/30'
-          : style.border + ' shadow-md hover:shadow-lg'
-      } rounded-xl p-6 pt-12 pb-6 transition-all duration-200 text-left group overflow-hidden`}
+    <MakerPathStepCard
+      selected={selected}
+      stepId={stepId}
+      title={name}
+      subtitle={ACTION_LABELS[action] || action}
+      icon={style.icon}
+      iconBgClass={style.iconBg}
+      gradientClass={style.gradient}
+      borderClass={style.border}
+      showKeyBadge={showKey}
+      showLibraryBadge={showLibrary}
+      showTopConnectorDot={showTopConnectorDot}
+      t={t}
+      onClick={onClick}
     >
-      {/* Badges (top-right) */}
-      <div className="absolute top-4 right-4 flex flex-col items-end gap-2 max-w-[40%]">
-        {showKey && (
-          <span className="text-[10px] font-bold text-red-500 flex items-center gap-1.5 whitespace-nowrap">
-            <span className="w-1.5 h-1.5 bg-red-500 rounded-full flex-shrink-0" />
-            <span className="truncate">{t.projectFlow.keyNeeded}</span>
-          </span>
-        )}
-        {showLibrary && (
-          <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 flex items-center gap-1.5 whitespace-nowrap">
-            <Wand2 size={10} className="flex-shrink-0" />
-            <span className="truncate">{t.projectFlow.library}</span>
-          </span>
-        )}
-      </div>
-
-      {/* Icon + title */}
-      <div className="flex items-start gap-4 mb-6 pr-2">
-        <div
-          className={`w-10 h-10 ${style.iconBg} rounded-lg flex items-center justify-center flex-shrink-0`}
-        >
-          <Icon size={20} className="text-white" />
-        </div>
-        <div className="min-w-0 flex-1 overflow-hidden">
-          <h3 className="font-bold text-gray-900 dark:text-white text-base leading-tight truncate">
-            {name}
-          </h3>
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 mt-2 truncate">
-            {ACTION_LABELS[action] || action}
-          </p>
-        </div>
-      </div>
-
-      {/* Bottom info */}
-      <div className="flex items-center justify-between mb-4 gap-2">
-        {inputFileVariable ? (
-          <span className="text-xs font-mono bg-white/60 dark:bg-gray-800/60 text-gray-600 dark:text-gray-300 px-2 py-0.5 rounded truncate max-w-[60%]">
-            {`{{${inputFileVariable.replace('.html', '').replace('.css', '')}}}`}
-          </span>
-        ) : inputPrompt ? (
-          <span className="text-xs text-gray-500 dark:text-gray-400 truncate max-w-[60%]">
-            S
-          </span>
-        ) : (
-          <span />
-        )}
-
-        {required && (
-          <span className="flex items-center gap-1 text-[10px] font-bold text-red-500 whitespace-nowrap flex-shrink-0">
-            <span className="w-1.5 h-1.5 bg-red-500 rounded-full" />
-            {t.projectFlow.required}
-          </span>
-        )}
-      </div>
-
-      {/* Gemini Key button */}
-      {showKey && (
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-          }}
-          className="w-full flex items-center justify-center gap-2 py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 text-xs font-bold uppercase tracking-wide rounded-lg hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors overflow-hidden"
-        >
-          <Key size={12} className="flex-shrink-0" />
-          <span className="truncate">{t.projectFlow.selectGeminiKey}</span>
-        </button>
-      )}
-
-      {/* Connection point (bottom) */}
-      <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-3 h-3 bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 rounded-full" />
-      {/* Connection point (top) */}
-      {showTopConnectorDot && (
-        <div className="absolute -top-1.5 left-1/2 -translate-x-1/2 w-3 h-3 bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 rounded-full" />
-      )}
-    </button>
+      <MakerPathStepContent
+        action={action}
+        t={t}
+        inputFileVariable={inputFileVariable}
+        inputPrompt={inputPrompt}
+        required={!!required}
+        showKey={showKey}
+      />
+    </MakerPathStepCard>
   );
 };
 
