@@ -1,14 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { getMakerPathVariables, MakerPathVariableResponse } from '@core/maker-path-variables/maker-path-variables.service';
 import { getRagMultimodalSourceContent } from '@core/rag_multimodal';
-import { Download, FileCode, ArrowUp, ArrowDown } from 'lucide-react';
+import { Download, FileCode } from 'lucide-react';
 
 type ModuleType = 'HEADER' | 'BODY' | 'FOOTER';
 
 interface ModuleAssignment {
   type: ModuleType;
   variable: MakerPathVariableResponse;
-  order?: number;
 }
 
 interface FileGeneratorProps {
@@ -16,10 +15,10 @@ interface FileGeneratorProps {
   onMarkComplete?: () => void;
 }
 
-const MODULE_TYPES: Array<{ type: ModuleType; label: string; color: string; bg: string; icon: string; multi: boolean }> = [
-  { type: 'HEADER', label: 'Header', color: 'text-purple-600', bg: 'bg-purple-50', icon: '🟣', multi: false },
-  { type: 'BODY', label: 'Body', color: 'text-blue-600', bg: 'bg-blue-50', icon: '🔵', multi: true },
-  { type: 'FOOTER', label: 'Footer', color: 'text-emerald-600', bg: 'bg-emerald-50', icon: '🟢', multi: false },
+const MODULE_TYPES: Array<{ type: ModuleType; label: string; color: string; icon: string }> = [
+  { type: 'HEADER', label: 'Header', color: 'text-purple-600', icon: '🟣' },
+  { type: 'BODY', label: 'Body', color: 'text-blue-600', icon: '🔵' },
+  { type: 'FOOTER', label: 'Footer', color: 'text-emerald-600', icon: '🟢' },
 ];
 
 const FileGenerator: React.FC<FileGeneratorProps> = ({ makerPathId, onMarkComplete }) => {
@@ -27,7 +26,6 @@ const FileGenerator: React.FC<FileGeneratorProps> = ({ makerPathId, onMarkComple
   const [assignments, setAssignments] = useState<ModuleAssignment[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
-  // Read-only visualization: no reassign/delete selector
 
   useEffect(() => {
     if (makerPathId) {
@@ -43,15 +41,12 @@ const FileGenerator: React.FC<FileGeneratorProps> = ({ makerPathId, onMarkComple
       const vars = await getMakerPathVariables(makerPathId);
       setVariables(vars);
       
-      // Auto-assign modules based on their source name or index
+      // Auto-assign modules based on their source name
       if (vars.length > 0) {
         const newAssignments: ModuleAssignment[] = [];
-        
-        // Sort by index to maintain order
         const sortedVars = [...vars].sort((a, b) => a.variableIndexNumber - b.variableIndexNumber);
         
-        // Detect module type from variable name or use smart detection
-        sortedVars.forEach((variable, index) => {
+        sortedVars.forEach((variable) => {
           const varName = variable.variableName.toLowerCase();
           const sourceName = ((variable.variableValue as any)?.sourceName || '').toLowerCase();
           
@@ -60,23 +55,8 @@ const FileGenerator: React.FC<FileGeneratorProps> = ({ makerPathId, onMarkComple
             newAssignments.push({ type: 'HEADER', variable });
           } else if (varName.includes('footer') || sourceName.includes('footer')) {
             newAssignments.push({ type: 'FOOTER', variable });
-          } else if (varName.includes('body') || sourceName.includes('body') || sourceName.includes('landing')) {
-            // Body modules get order
-            const bodyOrder = newAssignments.filter(a => a.type === 'BODY').length;
-            newAssignments.push({ type: 'BODY', variable, order: bodyOrder });
           } else {
-            // Fallback: if no type detected, use position-based logic
-            if (index === 0 && !newAssignments.some(a => a.type === 'HEADER')) {
-              // First one without assigned header → HEADER
-              newAssignments.push({ type: 'HEADER', variable });
-            } else if (index === sortedVars.length - 1 && !newAssignments.some(a => a.type === 'FOOTER')) {
-              // Last one without assigned footer → FOOTER
-              newAssignments.push({ type: 'FOOTER', variable });
-            } else {
-              // Middle ones → BODY
-              const bodyOrder = newAssignments.filter(a => a.type === 'BODY').length;
-              newAssignments.push({ type: 'BODY', variable, order: bodyOrder });
-            }
+            newAssignments.push({ type: 'BODY', variable });
           }
         });
         
@@ -89,59 +69,9 @@ const FileGenerator: React.FC<FileGeneratorProps> = ({ makerPathId, onMarkComple
     }
   };
 
-  // Reassign/Delete disabled per requirement – only display selected variables from API
-
-  const handleMoveUp = (type: ModuleType, variableIndexNumber: number) => {
-    if (type !== 'BODY') return;
-    
-    setAssignments(prev => {
-      const bodyAssignments = prev.filter(a => a.type === 'BODY').sort((a, b) => (a.order || 0) - (b.order || 0));
-      const index = bodyAssignments.findIndex(a => a.variable.variableIndexNumber === variableIndexNumber);
-      
-      if (index <= 0) return prev;
-      
-      // Swap orders
-      const temp = bodyAssignments[index].order;
-      bodyAssignments[index].order = bodyAssignments[index - 1].order;
-      bodyAssignments[index - 1].order = temp;
-      
-      return [
-        ...prev.filter(a => a.type !== 'BODY'),
-        ...bodyAssignments
-      ];
-    });
-  };
-
-  const handleMoveDown = (type: ModuleType, variableIndexNumber: number) => {
-    if (type !== 'BODY') return;
-    
-    setAssignments(prev => {
-      const bodyAssignments = prev.filter(a => a.type === 'BODY').sort((a, b) => (a.order || 0) - (b.order || 0));
-      const index = bodyAssignments.findIndex(a => a.variable.variableIndexNumber === variableIndexNumber);
-      
-      if (index < 0 || index >= bodyAssignments.length - 1) return prev;
-      
-      // Swap orders
-      const temp = bodyAssignments[index].order;
-      bodyAssignments[index].order = bodyAssignments[index + 1].order;
-      bodyAssignments[index + 1].order = temp;
-      
-      return [
-        ...prev.filter(a => a.type !== 'BODY'),
-        ...bodyAssignments
-      ];
-    });
-  };
-
   const getAssignmentsByType = (type: ModuleType): ModuleAssignment[] => {
-    const filtered = assignments.filter(a => a.type === type);
-    if (type === 'BODY') {
-      return filtered.sort((a, b) => (a.order || 0) - (b.order || 0));
-    }
-    return filtered;
+    return assignments.filter(a => a.type === type);
   };
-
-  // getAvailableVariables removed – not needed without reassignment UI
 
   const handleGenerateIndex = async () => {
     if (!makerPathId) return;
@@ -149,7 +79,7 @@ const FileGenerator: React.FC<FileGeneratorProps> = ({ makerPathId, onMarkComple
     setIsGenerating(true);
     try {
       const headerAssignment = assignments.find(a => a.type === 'HEADER');
-      const bodyAssignments = assignments.filter(a => a.type === 'BODY').sort((a, b) => (a.order || 0) - (b.order || 0));
+      const bodyAssignments = assignments.filter(a => a.type === 'BODY');
       const footerAssignment = assignments.find(a => a.type === 'FOOTER');
 
       // Fetch content for all modules
@@ -325,73 +255,43 @@ const FileGenerator: React.FC<FileGeneratorProps> = ({ makerPathId, onMarkComple
       {variables.length > 0 && (
         <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg px-4 py-3">
           <p className="text-xs text-blue-700 dark:text-blue-300">
-            Modules have been automatically organized. You can reorganize them before generating the index.html
+            Modules loaded automatically from previous steps. Click Generate to create your index.html file.
           </p>
         </div>
       )}
 
       {/* Module Types */}
       <div className="space-y-3">
-        {MODULE_TYPES.map(({ type, label, color, icon, multi }) => {
+        {MODULE_TYPES.map(({ type, label, color, icon }) => {
           const assigned = getAssignmentsByType(type);
           const hasAssigned = assigned.length > 0;
 
           return (
             <div key={type} className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
               {/* Header */}
-              <div className="px-4 py-3 flex items-center justify-between border-b border-gray-100 dark:border-gray-700">
-                <div className="flex items-center gap-2">
-                  <span className="text-lg">{icon}</span>
-                  <div>
-                    <h3 className={`font-bold text-sm ${color}`}>
-                      {label}
-                      {multi && hasAssigned && (
-                        <span className="ml-2 text-xs text-gray-400">({assigned.length})</span>
-                      )}
-                    </h3>
-                  </div>
-                </div>
-                {/* Reassign removed per requirement */}
+              <div className="px-4 py-3 flex items-center gap-2 border-b border-gray-100 dark:border-gray-700">
+                <span className="text-lg">{icon}</span>
+                <h3 className={`font-bold text-sm ${color}`}>
+                  {label}
+                  {hasAssigned && (
+                    <span className="ml-2 text-xs text-gray-400">({assigned.length})</span>
+                  )}
+                </h3>
               </div>
 
               {/* Assigned */}
               {hasAssigned && (
                 <div className="divide-y divide-gray-100 dark:divide-gray-700">
-                  {assigned.map((assignment, idx) => (
+                  {assigned.map((assignment) => (
                     <div key={assignment.variable.variableIndexNumber} className="px-4 py-3 flex items-center gap-2">
-                      {multi && (
-                        <span className="text-xs font-black text-gray-400 w-5 shrink-0">
-                          {idx + 1}.
-                        </span>
-                      )}
                       <FileCode size={14} className={color} />
                       <span className="text-xs font-bold text-gray-700 dark:text-gray-300 flex-1">
                         {(assignment.variable.variableValue as any)?.sourceName || assignment.variable.variableName}
                       </span>
-                      {multi && (
-                        <>
-                          <button
-                            onClick={() => handleMoveUp(type, assignment.variable.variableIndexNumber)}
-                            disabled={idx === 0}
-                            className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-gray-400 hover:text-gray-600 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
-                          >
-                            <ArrowUp size={14} />
-                          </button>
-                          <button
-                            onClick={() => handleMoveDown(type, assignment.variable.variableIndexNumber)}
-                            disabled={idx === assigned.length - 1}
-                            className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-gray-400 hover:text-gray-600 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
-                          >
-                            <ArrowDown size={14} />
-                          </button>
-                        </>
-                      )}
-                      {/* Delete removed per requirement */}
                     </div>
                   ))}
                 </div>
               )}
-              {/* Selector removed per requirement */}
             </div>
           );
         })}

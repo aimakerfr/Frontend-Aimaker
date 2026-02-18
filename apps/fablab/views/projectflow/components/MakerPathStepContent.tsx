@@ -3,6 +3,8 @@ import type { StepAction } from '../types';
 import { Key, Check } from 'lucide-react';
 import RagLibrarySelector from './RagLibrarySelector';
 import FileGenerator from './FileGenerator';
+import RagSelectorStep from './RagSelectorStep';
+import RagChatStep from './RagChatStep';
 
 type MakerPathStepContentProps = {
   action: StepAction;
@@ -18,6 +20,10 @@ type MakerPathStepContentProps = {
   makerPathId?: number;
   /** 1-based index used to persist variable order */
   inputFileVariableIndexNumber?: number;
+  /** Variable index number for steps that save/use variables */
+  variableIndexNumber?: number;
+  /** Variable name for steps that save variables */
+  variableName?: string;
 };
 
 const GenericContent: React.FC<MakerPathStepContentProps> = ({
@@ -97,6 +103,26 @@ const MakerPathStepContent: React.FC<MakerPathStepContentProps> = (props) => {
           onNext={() => {
             if (props.stepId && props.onNextStep) props.onNextStep(props.stepId);
           }}
+        />
+      );
+    case 'rag_selector':
+      return (
+        <RagSelectorStep
+          makerPathId={props.makerPathId}
+          variableIndexNumber={props.variableIndexNumber}
+          variableName={props.variableName}
+          stepId={props.stepId}
+          required={!!props.required}
+          onMarkStepComplete={props.onMarkStepComplete}
+        />
+      );
+    case 'rag_chat':
+      return (
+        <RagChatStep
+          makerPathId={props.makerPathId}
+          variableIndexNumber={props.variableIndexNumber}
+          stepId={props.stepId}
+          onMarkStepComplete={props.onMarkStepComplete}
         />
       );
     case 'file_generator':

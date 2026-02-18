@@ -58,4 +58,38 @@ export const INITIAL_MAKERPATHS: Record<string, { json: WorkflowJSON; path: Avai
       },
     },
   },
+  rag_chat_maker: {
+    path: {
+      id: 'rag_chat_maker',
+      name: 'RAG Chat Maker',
+      description: 'A path for chatting with selected RAG knowledge sources.',
+      outputType: 'TEXT',
+    },
+    json: {
+      rag_chat_creator: {
+        stage_name: 'rag_chat_creator',
+        description: 'Chat interactively with selected RAG knowledge sources.',
+        output_type: 'TEXT',
+        required_files: [],
+        required_variables: [1],
+        steps: [
+          {
+            step_id: 1,
+            name: 'Select Knowledge Sources',
+            action: 'rag_selector',
+            variable_index_number: 1,
+            variable_name: 'main_selected_rag',
+            required: true,
+          },
+          {
+            step_id: 2,
+            name: 'Generate RAG Chat Response',
+            action: 'rag_chat',
+            variable_index_number: 1,
+            required: true,
+          },
+        ],
+      },
+    },
+  },
 };
