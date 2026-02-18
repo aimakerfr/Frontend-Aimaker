@@ -70,7 +70,7 @@ export interface WorkflowDefinition {
   steps: WorkflowStep[];
 }
 
-/** Parsed JSON root – the key is the workflow name */
+/** Parsed JSON root – the key is the workflow title */
 export type WorkflowJSON = Record<string, WorkflowDefinition>;
 
 /** Represents a single available path entry in the sidebar */

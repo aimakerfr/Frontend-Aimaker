@@ -382,7 +382,7 @@ export const es: Translations = {
         title: 'Vista Previa en Vivo',
         subtitle: 'Previsualiza tu página completa',
         download: 'Descargar Vista Previa',
-        emptyContainer: 'Contenedor {name} Vacío',
+        emptyContainer: 'Contenedor {title} Vacío',
       },
       createTemplate: {
         title: 'Crear Plantilla Personalizada',
@@ -492,7 +492,7 @@ export const es: Translations = {
       addOption: 'Añadir opción',
       knowledgeBase: 'BASE DE CONOCIMIENTOS',
       uploadDocuments: 'Cargar documentos',
-      uploadHint: 'PDF, DOCX o TXT para enriquecer el contexto',
+      uploadHint: 'DOC, DOCX o TXT para enriquecer el contexto',
       capabilities: 'CAPACIDADES Y HERRAMIENTAS',
       imageGeneration: 'Generación de imágenes',
       platform: 'PLATAFORMA',
@@ -825,7 +825,7 @@ export const es: Translations = {
           title: 'Nueva Fuente',
           subtitle: 'Contenido para el motor RAG',
           tabs: {
-            pdf: 'PDF/DOC',
+            pdf: 'DOC',
             html: 'HTML',
             image: 'IMAGEN',
             video: 'VIDEO',
@@ -835,7 +835,7 @@ export const es: Translations = {
           },
           placeholders: {
             selectFile: 'Seleccionar archivo',
-            docAllowedTypes: 'txt, pdf, md',
+            docAllowedTypes: 'txt, doc, md',
             uploadHtml: 'Subir Archivo HTML',
             uploadImage: 'Subir Imagen',
             uploadVideo: 'Subir Video Local',

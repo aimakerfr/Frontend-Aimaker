@@ -27,6 +27,7 @@ import PublicPromptDetails from './views/public/prompt/PublicPromptDetails';
 import PublicAssistantDetails from './views/public/assistant/PublicAssistantDetails';
 import PublicProjectDetails from './views/public/project/PublicProjectDetails';
 import { UserProfile } from './types';
+import ObjectsLibrary from './views/home/ObjectsLibrary';
 
 // Wrapper components para extraer el id de la URL y pasarlo como toolId
 const PublicPromptWrapper = () => {
@@ -139,7 +140,6 @@ const App: React.FC = () => {
         <Route path="/prompt-optimize" element={<PromptOptimize />} />
         <Route path="/image-generation" element={<ImageGeneration />} />
         <Route path="/administration" element={<Administration />} />
-        
         {/* Rutas con Sidebar y Header */}
         <Route path="/*" element={
           <div className="flex h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 overflow-hidden">
@@ -179,6 +179,9 @@ const App: React.FC = () => {
                     {/* Rutas específicas para cada sección */}
                     <Route path="/" element={<ProfileSection user={user} />} />
                     <Route path="/library" element={<Library />} />
+                    {/* Home routes */}
+                    <Route path="/objects-library" element={<ObjectsLibrary />} />
+
                     <Route path="/profile" element={<ProfileSection user={user} />} />
                     <Route path="/context" element={<AIContext />} />
                     <Route path="/maker-path" element={<MakerPathView />} />

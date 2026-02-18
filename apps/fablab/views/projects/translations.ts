@@ -26,7 +26,7 @@ export const translations: Record<Language, any> = {
         helps: "e.g. Save 2 hours of manual data entry",
         target: "e.g. Independent real estate agents",
         problem: "What is the pain point?",
-        result: "e.g. A PDF summary ready for the client"
+        result: "e.g. A DOC summary ready for the client"
       }
     },
     phase1: {
@@ -134,7 +134,7 @@ export const translations: Record<Language, any> = {
         helps: "ej. Ahorrar 2 horas de entrada manual",
         target: "ej. Agentes inmobiliarios independientes",
         problem: "¿Cuál es el punto de dolor?",
-        result: "ej. Un resumen PDF listo para el cliente"
+        result: "ej. Un resumen DOC listo para el cliente"
       }
     },
     phase1: {
@@ -242,7 +242,7 @@ export const translations: Record<Language, any> = {
         helps: "ex. Gain de 2 heures de saisie manuelle",
         target: "ex. Agents immobiliers indépendants",
         problem: "Quel est le point de douleur ?",
-        result: "ex. Un résumé PDF prêt pour le client"
+        result: "ex. Un résumé DOC prêt pour le client"
       }
     },
     phase1: {
