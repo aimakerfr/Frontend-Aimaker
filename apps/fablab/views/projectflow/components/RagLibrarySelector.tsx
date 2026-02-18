@@ -2,7 +2,7 @@ import React, {useEffect, useMemo, useState} from 'react';
 import {getRagMultimodalSources} from '@core/rag_multimodal';
 import {Database} from 'lucide-react';
 import {useLanguage} from '../../../language/useLanguage';
-import {createMakerPathVariable} from '@core/maker-path-variables/maker-path-variables.service';
+import {createMakerPathVariable, getMakerPathVariables} from '@core/maker-path-variables/maker-path-variables.service';
 
 type SourceType = 'HTML';
 
@@ -49,8 +49,46 @@ const RagLibrarySelector: React.FC<RagLibrarySelectorProps> = ({
     const [selectionMap, setSelectionMap] = useState<Record<string, number | ''>>({});
     // Idempotency guard: remember last successfully posted selection per variable
     const [lastPosted, setLastPosted] = useState<Record<string, number | undefined>>({});
+    // Track if we've loaded persisted selections
+    const [hasLoadedPersistedSelections, setHasLoadedPersistedSelections] = useState(false);
 
     // Removed debug/preview array to simplify component per new requirement
+
+    // Load persisted selections from backend when makerPathId is available
+    useEffect(() => {
+        const loadPersistedSelections = async () => {
+            if (!makerPathId || hasLoadedPersistedSelections) return;
+
+            try {
+                const variables = await getMakerPathVariables(makerPathId);
+                
+                // Filter variables that match our current step
+                const relevantVariables = variables.filter(
+                    v => v.variableIndexNumber === inputFileVariableIndexNumber
+                );
+
+                if (relevantVariables.length > 0) {
+                    const persistedMap: Record<string, number | ''> = {};
+                    const postedMap: Record<string, number | undefined> = {};
+
+                    relevantVariables.forEach(v => {
+                        persistedMap[v.variableName] = v.ragMultimodalSourceId || '';
+                        postedMap[v.variableName] = v.ragMultimodalSourceId || undefined;
+                    });
+
+                    setSelectionMap(prev => ({ ...prev, ...persistedMap }));
+                    setLastPosted(prev => ({ ...prev, ...postedMap }));
+                }
+
+                setHasLoadedPersistedSelections(true);
+            } catch (err) {
+                console.error('Error loading persisted selections:', err);
+                setHasLoadedPersistedSelections(true);
+            }
+        };
+
+        loadPersistedSelections();
+    }, [makerPathId, inputFileVariableIndexNumber, hasLoadedPersistedSelections]);
 
     // Initialize selection map whenever the list of required sources or single var changes
     useEffect(() => {

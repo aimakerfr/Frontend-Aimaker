@@ -99,7 +99,16 @@ const MakerPathStepContent: React.FC<MakerPathStepContentProps> = (props) => {
         />
       );
     case 'file_generator':
-      return <FileGenerator />;
+      return (
+        <FileGenerator
+          makerPathId={props.makerPathId}
+          onMarkComplete={() => {
+            if (props.stepId && props.onMarkStepComplete) {
+              props.onMarkStepComplete(props.stepId);
+            }
+          }}
+        />
+      );
     default:
       return <GenericContent {...props} />;
   }

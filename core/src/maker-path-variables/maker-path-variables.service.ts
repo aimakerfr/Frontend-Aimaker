@@ -12,7 +12,17 @@ import type {
 const ENDPOINT = '/api/v1/maker_path_variables';
 
 /**
- * Create a maker path variable
+ * Get all variables for a specific maker path
+ * Example: GET /api/v1/maker_path_variables?makerPathId=123
+ */
+export const getMakerPathVariables = async (
+  makerPathId: number
+): Promise<MakerPathVariableResponse[]> => {
+  return httpClient.get<MakerPathVariableResponse[]>(`${ENDPOINT}?makerPathId=${makerPathId}`);
+};
+
+/**
+ * Create or update a maker path variable (UPSERT behavior)
  * Example body:
  * {
  *   "makerPathId":123,
