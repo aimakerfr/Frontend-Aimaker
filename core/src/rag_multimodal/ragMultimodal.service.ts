@@ -4,7 +4,7 @@
  */
 
 import { httpClient } from '../api/http.client';
-import { createTool } from '../creation-tools/creation-tools.service';
+import { createTool } from '@core/creation-tools';
 import { markToolAsUnsaved } from '../creation-tools/unsavedTools.service';
 
 const ENDPOINT = '/api/v1/rag-multimodal';
@@ -69,12 +69,7 @@ export class RagMultimodalService {
   private publicBaseUrl = '/api/v1/public/rag-multimodal';
 
   // Map legacy/internal 'pdf' type to API 'doc' (outgoing)
-  private normalizeOutgoingType(type?: string): string | undefined {
-    if (!type) return type;
-    return type === 'pdf' ? 'doc' : type;
-  }
-
-  // Normalize API responses: treat legacy 'pdf' as 'doc' (incoming)
+// Normalize API responses: treat legacy 'pdf' as 'doc' (incoming)
   private normalizeIncomingType(type?: string): string | undefined {
     if (!type) return type;
     return type === 'pdf' ? 'doc' : type;
@@ -185,14 +180,6 @@ export const getRagMultimodalSources = async (ragMultimodalId?: number, type?: s
   const items = await httpClient.get<RagMultimodalSourceItem[]>(`/api/v1/rag-multimodal-sources?rag_multimodal_id=${ragMultimodalId}`);
   return items.map((it) => ({ ...it, type: it.type === 'pdf' ? 'doc' : it.type }));
 };
-
-/**
- * Obtener todas las fuentes de un rag multimodal (ruta anidada Api Platform)
- */
-export const getRagMultimodalSourcesNested = async (ragMultimodalId: number): Promise<RagMultimodalSourceItem[]> => {
-  return httpClient.get<RagMultimodalSourceItem[]>(`/api/rag_multimodal/${ragMultimodalId}/sources`);
-};
-
 /**
  * Añadir una fuente al rag multimodal
  */

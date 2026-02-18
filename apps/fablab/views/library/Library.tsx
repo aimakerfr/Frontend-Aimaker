@@ -20,7 +20,7 @@ const mockItems: LibraryItem[] = [
 ];
 
 type FilterType = 'all' | 'favorites';
-type ItemType = 'prompt' | 'note_books' | 'project';
+type ItemType = 'prompt' | 'note_books' | 'project' | 'rag_multimodal';
 
 // Helper function to get icon color based on type
 const getIconColorClass = (type: ItemType): string => {
@@ -366,8 +366,26 @@ const LibraryView: React.FC<LibraryViewProps> = ({
                         <div className="flex gap-2">
                           <button
                             onClick={() => {
-                              const urlType = item.type === 'note_books' ? 'notebook' : item.type;
-                              navigate(`/dashboard/${urlType}/${item.id}`);
+                              let urlType: string;
+                              switch (item.type) {
+                                case 'note_books':
+                                  urlType = 'notebook';
+                                  break;
+                                case 'prompt':
+                                  urlType = 'prompt';
+                                  break;
+                                case 'project':
+                                  urlType = 'project';
+                                  break;
+                                case 'rag_multimodal':
+                                  urlType = 'rag-multimodal';
+                                  break;
+                                default:
+                                  urlType = item.type;
+                              }
+
+                              const baseUrl = `/dashboard/${urlType}/`;
+                              navigate(`${baseUrl}${item.id}`);
                             }}
                             className="inline-flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 border-2 border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-xl font-semibold transition-all text-sm hover:scale-105"
                           >

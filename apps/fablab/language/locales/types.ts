@@ -243,6 +243,12 @@ export interface Translations {
         badge1: string;
         badge2: string;
       };
+      projectFlow: {
+        title: string;
+        description: string;
+        badge1: string;
+        badge2: string;
+      };
       cancel: string;
     };
     noDescription: string;
@@ -439,6 +445,8 @@ export interface Translations {
     errorDeleting: string;
     empty: string;
     characters: string;
+    next: string;
+    select: string;
   };
   assistant: {
     title: string;
@@ -878,6 +886,50 @@ export interface Translations {
       makePrivateDesc: string;
       publishDesc: string;
       confirm: string;
+    };
+  };
+  projectFlow: {
+    title: string;
+    backToMakerPath: string;
+    configuration: string;
+    ragLibrary: string;
+    pasteJson: string;
+    jsonPlaceholder: string;
+    parseAndRender: string;
+    pasteJsonFirst: string;
+    pasteJsonHint: string;
+    availablePaths: string;
+    nodeConfiguration: string;
+    general: string;
+    nodeName: string;
+    requiredStep: string;
+    requiredNode: string;
+    inputsAndConfiguration: string;
+    promptLibrary: string;
+    aiPromptTemplateEditor: string;
+    systemPromptForGeneration: string;
+    geminiEngine: string;
+    noKey: string;
+    keyNeeded: string;
+    selectGeminiKey: string;
+    runGeneration: string;
+    library: string;
+    required: string;
+    end: string;
+    closePanel: string;
+    deploy: string;
+    save: string;
+    testWorkflow: string;
+    changesAreSavedLocally: string;
+    selectRagSource: string;
+    nodeTypes: {
+      fetchData: string;
+      inputPrompt: string;
+      aiAnalysisGeneration: string;
+      selectFile: string;
+      selectRagSource: string;
+      compileAndExport: string;
+      userInputAndAiRefinement: string;
     };
   };
 }

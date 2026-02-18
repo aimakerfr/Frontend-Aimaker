@@ -67,12 +67,7 @@ export class NotebookService {
   private publicBaseUrl = '/api/v1/public/notebooks';
 
   // Map legacy/internal 'pdf' type to API 'doc' (outgoing)
-  private normalizeOutgoingType(type?: string): string | undefined {
-    if (!type) return type;
-    return type === 'pdf' ? 'doc' : type;
-  }
-
-  // Normalize API responses: treat legacy 'pdf' as 'doc' (incoming)
+// Normalize API responses: treat legacy 'pdf' as 'doc' (incoming)
   private normalizeIncomingType(type?: string): string | undefined {
     if (!type) return type;
     return type === 'pdf' ? 'doc' : type;

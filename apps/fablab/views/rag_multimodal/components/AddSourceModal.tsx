@@ -78,7 +78,7 @@ const processPdfForAI = async (file: File): Promise<string> => {
     return await processPdfVisual(pagesBase64);
 };
 
-const AddSourceModal: React.FC<AddSourceModalProps> = ({ isOpen, onClose, onAddSource, tp, t, isAdmin }) => {
+const AddSourceModal: React.FC<AddSourceModalProps> = ({ isOpen, onClose, onAddSource, tp, t }) => {
     const [activeTab, setActiveTab] = useState<SourceType>('pdf');
     const [content, setContent] = useState<string>('');
     const [url, setUrl] = useState('');
