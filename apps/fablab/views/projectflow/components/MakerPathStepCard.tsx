@@ -5,6 +5,7 @@ import { Wand2 } from 'lucide-react';
 type MakerPathStepCardProps = {
   selected: boolean;
   stepId: number;
+  stepNumber?: number;
   title: string;
   subtitle?: string;
   icon: LucideIcon;
@@ -15,6 +16,7 @@ type MakerPathStepCardProps = {
   showLibraryBadge?: boolean;
   showTopConnectorDot?: boolean;
   t: any;
+  disabled?: boolean;
   onClick?: (stepId: number) => void;
   children?: React.ReactNode;
 };
@@ -22,6 +24,7 @@ type MakerPathStepCardProps = {
 const MakerPathStepCard: React.FC<MakerPathStepCardProps> = ({
   selected,
   stepId,
+  stepNumber,
   title,
   subtitle,
   icon: Icon,
@@ -32,18 +35,27 @@ const MakerPathStepCard: React.FC<MakerPathStepCardProps> = ({
   showLibraryBadge,
   showTopConnectorDot,
   t,
+  disabled,
   onClick,
   children,
 }) => {
   return (
     <button
       onClick={() => onClick?.(stepId)}
+      disabled={!!disabled}
       className={`relative bg-gradient-to-br ${gradientClass} border-2 ${
         selected
           ? 'border-blue-500 dark:border-blue-400 shadow-xl shadow-blue-500/20 ring-2 ring-blue-500/30 w-[28rem]'
           : borderClass + ' shadow-md hover:shadow-lg w-80'
       } rounded-xl p-6 pt-12 pb-6 transition-all duration-200 text-left group overflow-hidden`}
+      style={disabled ? { opacity: 0.6, cursor: 'not-allowed' } : undefined}
     >
+      {/* Step number (top-left) */}
+      {typeof stepNumber === 'number' && (
+        <div className="absolute top-4 left-4 w-7 h-7 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 text-xs font-bold flex items-center justify-center">
+          {stepNumber}
+        </div>
+      )}
       {/* Badges (top-right) */}
       <div className="absolute top-4 right-4 flex flex-col items-end gap-2 max-w-[40%]">
         {showKeyBadge && (

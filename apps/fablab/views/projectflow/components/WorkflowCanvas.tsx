@@ -12,6 +12,9 @@ interface WorkflowCanvasProps {
   outputType?: string;
   stageName?: string;
   t: any;
+  selectableStepIds: Set<number>;
+  onMarkStepAsComplete: (stepId: number) => void;
+  onNextStep?: (currentStepId: number) => void;
 }
 
 
@@ -22,32 +25,48 @@ const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
   outputType,
   stageName,
   t,
+  selectableStepIds,
+  onMarkStepAsComplete,
+  onNextStep,
 }) => {
+  // Selectability is centralized in ProjectFlow and passed via selectableStepIds
+  // Ensure visual order matches logical order by sorting by step_id
+  const orderedSteps = React.useMemo(() => {
+    return [...steps].sort((a, b) => a.step_id - b.step_id);
+  }, [steps]);
+
   return (
     <div className="flex-1 overflow-auto bg-[radial-gradient(circle,_rgba(0,0,0,0.04)_1px,_transparent_1px)] dark:bg-[radial-gradient(circle,_rgba(255,255,255,0.04)_1px,_transparent_1px)] bg-[size:20px_20px]">
       <div className="flex flex-col items-center py-10 px-6 min-h-full">
-        {steps.map((step, index) => (
+        {orderedSteps.map((step, index) => (
           <React.Fragment key={step.step_id}>
             <MakerPathStep
               action={step.action}
               name={step.name}
               stepId={step.step_id}
+              stepNumber={index + 1}
               selected={selectedStepId === step.step_id}
               inputFileVariable={step.input_file_variable}
+              inputSourceType={step.input_source_type}
               inputPrompt={step.input_prompt}
               required={step.required}
               showTopConnectorDot={index > 0}
               t={t}
-              onClick={onSelectStep}
+              selectable={selectableStepIds.has(step.step_id)}
+              onClick={(id) => {
+                if (selectableStepIds.has(step.step_id)) onSelectStep(id);
+              }}
+              onMarkStepComplete={onMarkStepAsComplete}
+              onNextStep={onNextStep}
             />
 
             {/* Connector line between nodes */}
-            {index < steps.length - 1 && <ConnectorLine />}
+            {index < orderedSteps.length - 1 && <ConnectorLine />}
           </React.Fragment>
         ))}
 
         {/* End node */}
-        {steps.length > 0 && (
+        {orderedSteps.length > 0 && (
           <>
             <ConnectorLine />
             <EndNode t={t} outputType={outputType} stageName={stageName} />
@@ -55,7 +74,7 @@ const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
         )}
 
         {/* Empty state */}
-        {steps.length === 0 && <EmptyState t={t} />}
+        {orderedSteps.length === 0 && <EmptyState t={t} />}
       </div>
     </div>
   );

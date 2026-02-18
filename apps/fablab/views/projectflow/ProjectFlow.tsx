@@ -1,68 +1,19 @@
-import React, { useState, useCallback } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Workflow } from 'lucide-react';
 import { useLanguage } from '../../language/useLanguage';
-import type { WorkflowStep, WorkflowJSON, AvailablePath } from './types';
+import type { WorkflowStep, AvailablePath } from './types';
 import ConfigurationPanel from './components/ConfigurationPanel';
 import WorkflowCanvas from './components/WorkflowCanvas';
-import NodeConfigPanel from './components/NodeConfigPanel';
+// import NodeConfigPanel from './components/NodeConfigPanel';
+import { INITIAL_MAKERPATHS } from './demoWorkflows';
+import Stepper from './components/Stepper';
 
-/** Example workflows for the RAG Library / demo */
-const DEMO_WORKFLOWS: Record<string, { json: WorkflowJSON; path: AvailablePath }> = {
-  landing_page_maker: {
-    path: {
-      id: 'landing_page_maker',
-      name: 'Landing Page Maker',
-      description: 'A path for creating a basic landing page',
-      outputType: 'HTML',
-    },
-    json: {
-      simple_landing_creator: {
-        stage_name: 'simple_landing_creator',
-        description: 'A path for creating a basic landing page.',
-        output_type: 'HTML',
-        steps: [
-          {
-            step_id: 1,
-            name: 'Select Header',
-            action: 'rag_library_selector',
-            input_source_type: 'HTML',
-            input_file_variable: 'header.html',
-            required: true,
-          },
-          {
-            step_id: 2,
-            name: 'Select Footer',
-            action: 'rag_library_selector',
-            input_source_type: 'HTML',
-            input_file_variable: 'footer.html',
-            required: true,
-          },
-          {
-            step_id: 3,
-            name: 'Select Body Template',
-            action: 'rag_library_selector',
-            input_source_type: 'HTML',
-            input_file_variable: 'body_template.html',
-            required: true,
-          },
-          {
-            step_id: 4,
-            name: 'Compile and Export Landing Page',
-            action: 'file_generator',
-            input_source_type: 'HTML',
-            required: true,
-          },
-        ],
-      },
-    },
-  },
-};
+/** Example workflows for the RAG Library / demo moved to a separate module */
 
 const ProjectFlow: React.FC = () => {
   const { t } = useLanguage();
   const navigate = useNavigate();
-  const { id: _pathId } = useParams<{ id: string }>();
 
   // ── State ──────────────────────────────────────────────
   const [jsonInput, setJsonInput] = useState('');
@@ -71,11 +22,30 @@ const ProjectFlow: React.FC = () => {
   const [outputType, setOutputType] = useState<string>('');
   const [stageName, setStageName] = useState<string>('');
   const [availablePaths, setAvailablePaths] = useState<AvailablePath[]>(
-    Object.values(DEMO_WORKFLOWS).map((d) => d.path)
+    Object.values(INITIAL_MAKERPATHS).map((d) => d.path)
   );
   const [selectedPathId, setSelectedPathId] = useState<string | null>(null);
   const [selectedStepId, setSelectedStepId] = useState<number | null>(null);
-  const [promptContents, setPromptContents] = useState<Record<number, string>>({});
+  // const [promptContents, setPromptContents] = useState<Record<number, string>>({});
+  const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
+
+  // Centralized selectability logic (by step_id)
+  const selectableStepIds = useMemo(() => {
+    if (!steps || steps.length === 0) return new Set<number>();
+    const ordered = [...steps].sort((a, b) => a.step_id - b.step_id);
+    const set = new Set<number>();
+    ordered.forEach((step, idx) => {
+      if (idx === 0) {
+        set.add(step.step_id);
+      } else {
+        const prev = ordered[idx - 1];
+        if (prev.required && completedSteps.has(prev.step_id)) {
+          set.add(step.step_id);
+        }
+      }
+    });
+    return set;
+  }, [steps, completedSteps]);
 
   // ── Handlers ───────────────────────────────────────────
 
@@ -119,6 +89,7 @@ const ProjectFlow: React.FC = () => {
       setStageName(workflow.stage_name || workflowKey);
       setParseError(null);
       setSelectedStepId(null);
+      setCompletedSteps(new Set());
 
       // Add to available paths if not already there
       const pathId = workflow.stage_name || workflowKey;
@@ -144,7 +115,7 @@ const ProjectFlow: React.FC = () => {
     (pathId: string) => {
       setSelectedPathId(pathId);
 
-      const demo = DEMO_WORKFLOWS[pathId];
+      const demo = INITIAL_MAKERPATHS[pathId];
       if (demo) {
         const workflowKey = Object.keys(demo.json)[0];
         const workflow = demo.json[workflowKey];
@@ -154,6 +125,18 @@ const ProjectFlow: React.FC = () => {
         setJsonInput(JSON.stringify(demo.json, null, 2));
         setParseError(null);
         setSelectedStepId(null);
+        // Load completed steps for this path from localStorage if present
+        try {
+          const raw = localStorage.getItem(`projectflow.completed.${pathId}`);
+          if (raw) {
+            const arr = JSON.parse(raw) as number[];
+            setCompletedSteps(new Set(arr));
+          } else {
+            setCompletedSteps(new Set());
+          }
+        } catch {
+          setCompletedSteps(new Set());
+        }
       }
     },
     []
@@ -164,17 +147,52 @@ const ProjectFlow: React.FC = () => {
     setSelectedStepId(stepId);
   }, []);
 
-  /** Update prompt content for a specific step */
-  const handlePromptChange = useCallback(
-    (value: string) => {
-      if (selectedStepId !== null) {
-        setPromptContents((prev) => ({ ...prev, [selectedStepId]: value }));
+  // const selectedStep = steps.find((s) => s.step_id === selectedStepId) ?? null;
+
+  // Persist completed steps per selected path
+  useEffect(() => {
+    if (!selectedPathId) return;
+    try {
+      localStorage.setItem(
+        `projectflow.completed.${selectedPathId}`,
+        JSON.stringify(Array.from(completedSteps))
+      );
+    } catch {
+      // ignore persistence errors
+    }
+  }, [completedSteps, selectedPathId]);
+
+  // Mark a step as completed (from within the card UI)
+  const markStepAsCompleteHandler = useCallback((stepId: number) => {
+    setCompletedSteps((prev) => {
+      if (prev.has(stepId)) return prev;
+      const next = new Set(prev);
+      next.add(stepId);
+      return next;
+    });
+  }, []);
+
+  /** NEXT handler: mark current step complete and move focus to the next step */
+  const handleNextStep = useCallback(
+    (currentStepId: number) => {
+      // Mark as complete
+      setCompletedSteps((prev) => {
+        if (prev.has(currentStepId)) return prev;
+        const next = new Set(prev);
+        next.add(currentStepId);
+        return next;
+      });
+
+      // Move to next step in order if it exists
+      const ordered = [...steps].sort((a, b) => a.step_id - b.step_id);
+      const idx = ordered.findIndex((s) => s.step_id === currentStepId);
+      if (idx >= 0 && idx < ordered.length - 1) {
+        const nextStep = ordered[idx + 1];
+        setSelectedStepId(nextStep.step_id);
       }
     },
-    [selectedStepId]
+    [steps]
   );
-
-  const selectedStep = steps.find((s) => s.step_id === selectedStepId) ?? null;
 
   // ── Render ─────────────────────────────────────────────
   return (
@@ -193,7 +211,7 @@ const ProjectFlow: React.FC = () => {
           <div className="w-8 h-8 bg-gradient-to-br from-orange-500 to-amber-500 rounded-lg flex items-center justify-center">
             <Workflow size={16} className="text-white" />
           </div>
-          <h1 className="text-base font-bold text-gray-900 dark:text-white">MakerPath visualizer</h1>
+          <h1 className="text-base font-bold text-gray-900 dark:text-white">{t.projectFlow.title}</h1>
         </div>
 
         {/* Right – actions */}
@@ -214,7 +232,16 @@ const ProjectFlow: React.FC = () => {
           t={t}
         />
 
-        {/* Center – Workflow Canvas */}
+        {/* Middle – Stepper (after Configuration) */}
+        <Stepper
+          steps={steps}
+          selectedStepId={selectedStepId}
+          completedStepIds={completedSteps}
+          selectableStepIds={selectableStepIds}
+          onSelectStep={handleSelectStep}
+        />
+
+        {/* Right – Workflow Canvas */}
         <WorkflowCanvas
           steps={steps}
           selectedStepId={selectedStepId}
@@ -222,18 +249,10 @@ const ProjectFlow: React.FC = () => {
           outputType={outputType}
           stageName={stageName}
           t={t}
+          selectableStepIds={selectableStepIds}
+          onMarkStepAsComplete={markStepAsCompleteHandler}
+          onNextStep={handleNextStep}
         />
-
-        {/* Right – Node Config (shown only when a node is selected) */}
-        {/*{selectedStep && (*/}
-        {/*  <NodeConfigPanel*/}
-        {/*    step={selectedStep}*/}
-        {/*    onClose={() => setSelectedStepId(null)}*/}
-        {/*    promptContent={promptContents[selectedStepId!] || ''}*/}
-        {/*    onPromptChange={handlePromptChange}*/}
-        {/*    t={t}*/}
-        {/*  />*/}
-        {/*)}*/}
       </div>
     </div>
   );

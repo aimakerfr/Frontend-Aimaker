@@ -1,6 +1,6 @@
 import React from 'react';
 import type { StepAction } from '../types';
-import { Key } from 'lucide-react';
+import { Key, Check } from 'lucide-react';
 import RagLibrarySelector from './RagLibrarySelector';
 import FileGenerator from './FileGenerator';
 
@@ -8,9 +8,13 @@ type MakerPathStepContentProps = {
   action: StepAction;
   t: any;
   inputFileVariable?: string | null;
+  inputSourceType?: string | null;
   inputPrompt?: string | null;
   required?: boolean;
   showKey?: boolean;
+  stepId?: number;
+  onMarkStepComplete?: (stepId: number) => void;
+  onNextStep?: (currentStepId: number) => void;
 };
 
 const GenericContent: React.FC<MakerPathStepContentProps> = ({
@@ -19,6 +23,8 @@ const GenericContent: React.FC<MakerPathStepContentProps> = ({
   inputPrompt,
   required,
   showKey,
+  stepId,
+  onMarkStepComplete,
 }) => {
   return (
     <>
@@ -42,6 +48,19 @@ const GenericContent: React.FC<MakerPathStepContentProps> = ({
         )}
       </div>
 
+      {/* Mark as complete button (icon-only, no i18n literals) */}
+      <div className="mb-2">
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            if (stepId && onMarkStepComplete) onMarkStepComplete(stepId);
+          }}
+          className="inline-flex items-center justify-center w-9 h-9 rounded-lg border border-emerald-300 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 transition-colors"
+        >
+          <Check size={16} />
+        </button>
+      </div>
+
       {/* Gemini Key button */}
       {showKey && (
         <button
@@ -63,7 +82,17 @@ const MakerPathStepContent: React.FC<MakerPathStepContentProps> = (props) => {
 
   switch (action) {
     case 'rag_library_selector':
-      return <RagLibrarySelector />;
+      return (
+        <RagLibrarySelector
+          input_file_variable={props.inputFileVariable || undefined}
+          input_source_type={(props.inputSourceType as any) || 'HTML'}
+          required={!!props.required}
+          step_id={props.stepId}
+          onNext={() => {
+            if (props.stepId && props.onNextStep) props.onNextStep(props.stepId);
+          }}
+        />
+      );
     case 'file_generator':
       return <FileGenerator />;
     default:

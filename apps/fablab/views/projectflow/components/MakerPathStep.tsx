@@ -24,13 +24,18 @@ type MakerPathStepProps = {
   action: StepAction;
   name: string;
   stepId: number;
+  stepNumber?: number;
   selected: boolean;
   inputFileVariable?: string | null;
+  inputSourceType?: string | null;
   inputPrompt?: string | null;
   required?: boolean;
   showTopConnectorDot?: boolean;
   t: any;
+  selectable?: boolean;
   onClick?: (stepId: number) => void;
+  onMarkStepComplete?: (stepId: number) => void;
+  onNextStep?: (currentStepId: number) => void;
 };
 
 /** Icon + gradient colour per action type */
@@ -224,13 +229,18 @@ const MakerPathStep: React.FC<MakerPathStepProps> = ({
   action,
   name,
   stepId,
+  stepNumber,
   selected,
   inputFileVariable,
+  inputSourceType,
   inputPrompt,
   required,
   showTopConnectorDot,
   t,
+  selectable = true,
   onClick,
+  onMarkStepComplete,
+  onNextStep,
 }) => {
   const style = getNodeStyle(action);
   const showKey = needsKey(action);
@@ -240,6 +250,7 @@ const MakerPathStep: React.FC<MakerPathStepProps> = ({
     <MakerPathStepCard
       selected={selected}
       stepId={stepId}
+      stepNumber={stepNumber}
       title={name}
       subtitle={ACTION_LABELS[action] || action}
       icon={style.icon}
@@ -250,15 +261,20 @@ const MakerPathStep: React.FC<MakerPathStepProps> = ({
       showLibraryBadge={showLibrary}
       showTopConnectorDot={showTopConnectorDot}
       t={t}
-      onClick={onClick}
+      disabled={!selectable}
+      onClick={selectable ? onClick : undefined}
     >
       <MakerPathStepContent
         action={action}
         t={t}
         inputFileVariable={inputFileVariable}
+        inputSourceType={inputSourceType || undefined}
         inputPrompt={inputPrompt}
         required={!!required}
         showKey={showKey}
+        stepId={stepId}
+        onMarkStepComplete={onMarkStepComplete}
+        onNextStep={onNextStep}
       />
     </MakerPathStepCard>
   );

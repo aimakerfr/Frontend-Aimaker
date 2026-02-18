@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { getNotebookSources } from '@core/notebooks';
 import { Database } from 'lucide-react';
 import { useLanguage } from '../../../language/useLanguage';
+import { createMakerPathVariable } from '@core/maker-path-variables/maker-path-variables.service';
 
 type SourceType = 'HTML';
 
@@ -18,13 +19,29 @@ type FilesSourceItem = {
 };
 
 type RagLibrarySelectorProps = {
+  // Single-variable mode: if provided, the component renders one selector for this variable
+  input_file_variable?: string;
+  // Multi-variable mode: optional list of variable names to render multiple selectors
   required_sources?: string[];
   input_source_type?: SourceType; // default 'HTML'
+  // Flow control
+  required?: boolean;
+  step_id?: number;
+  onNext?: () => void;
+  // Optional persistence parameters for POST /api/v1/maker_path_variables
+  makerPathId?: number;
+  variableIndexOffset?: number; // if provided, index starts from this offset for multi-select
 };
 
 const RagLibrarySelector: React.FC<RagLibrarySelectorProps> = ({
+  input_file_variable,
   required_sources = [],
   input_source_type = 'HTML',
+  required = false,
+  step_id,
+  onNext,
+  makerPathId,
+  variableIndexOffset = 1,
 }) => {
   const { t } = useLanguage();
 
@@ -38,13 +55,16 @@ const RagLibrarySelector: React.FC<RagLibrarySelectorProps> = ({
   // Final saved array
   const [filesSources, setFilesSources] = useState<FilesSourceItem[]>([]);
 
-  // Initialize selection map whenever the list of required sources changes
+  // Initialize selection map whenever the list of required sources or single var changes
   useEffect(() => {
     const next: Record<string, number | ''> = {};
-    for (const v of required_sources) next[v] = selectionMap[v] ?? '';
+    const variables: string[] = input_file_variable
+      ? [input_file_variable]
+      : required_sources;
+    for (const v of variables) next[v] = selectionMap[v] ?? '';
     setSelectionMap(next);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [required_sources.join('|')]);
+  }, [input_file_variable || '', required_sources.join('|')]);
 
   // Load available sources from backend (copy of HTMLSourcePicker.loadHTMLSources)
   useEffect(() => {
@@ -74,8 +94,37 @@ const RagLibrarySelector: React.FC<RagLibrarySelectorProps> = ({
     loadHTMLSources();
   }, [input_source_type]);
 
-  const handleChange = (variableName: string, value: string) => {
-    setSelectionMap((prev) => ({ ...prev, [variableName]: value ? Number(value) : '' }));
+  const handleChange = async (variableName: string, value: string) => {
+    const numeric = value ? Number(value) : '';
+    setSelectionMap((prev) => ({ ...prev, [variableName]: numeric }));
+
+    // Persist immediately when we have enough information
+    if (makerPathId && numeric !== '') {
+      try {
+        const indexNumber = (() => {
+          // Compute variable index based on order in required_sources or 1 for single var
+          if (input_file_variable) return variableIndexOffset;
+          const idx = required_sources.findIndex((v) => v === variableName);
+          return (variableIndexOffset || 1) + (idx >= 0 ? idx : 0);
+        })();
+
+        const selectedSource = sources.find((s) => s.id === Number(numeric));
+        await createMakerPathVariable({
+          makerPathId,
+          variableIndexNumber: indexNumber,
+          ragMultimodalSourceId: Number(numeric),
+          variableName: variableName,
+          variableValue: {
+            sourceType: input_source_type,
+            sourceName: selectedSource?.name ?? null,
+            stepId: step_id ?? null,
+          },
+        });
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.error('Failed to create maker path variable', err);
+      }
+    }
   };
 
   const handleSave = (e: React.MouseEvent) => {
@@ -92,7 +141,11 @@ const RagLibrarySelector: React.FC<RagLibrarySelectorProps> = ({
     console.log('Files_sources', result);
   };
 
-  const hasRequirements = required_sources.length > 0;
+  const hasRequirements = !!input_file_variable || required_sources.length > 0;
+
+  const anySelectionMade = useMemo(() => {
+    return Object.values(selectionMap).some((v) => v !== '' && v !== undefined && v !== null);
+  }, [selectionMap]);
 
   const sourceOptions = useMemo(() => sources, [sources]);
 
@@ -115,7 +168,7 @@ const RagLibrarySelector: React.FC<RagLibrarySelectorProps> = ({
 
       {/* Required selectors */}
       <div className="space-y-2">
-        {hasRequirements && required_sources.map((variable) => (
+        {hasRequirements && (input_file_variable ? [input_file_variable] : required_sources).map((variable) => (
           <div key={variable} className="flex items-center gap-2">
             <code className="text-[11px] px-2 py-1 rounded bg-white/50 dark:bg-gray-800/50 text-gray-700 dark:text-gray-200">
               {`{{${variable}}}`}
@@ -140,14 +193,28 @@ const RagLibrarySelector: React.FC<RagLibrarySelectorProps> = ({
       </div>
 
       {/* Actions */}
-      <div className="flex items-center justify-end pt-1">
+      <div className="flex items-center justify-end pt-1 gap-2">
         <button
           type="button"
           onClick={handleSave}
-          className="px-3 py-1.5 text-xs font-semibold rounded bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors"
+          className="px-3 py-1.5 text-xs font-semibold rounded bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
         >
           {t?.common?.save}
         </button>
+
+        {/* Show NEXT only when step is required and a selection exists */}
+        {required && anySelectionMade && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onNext?.();
+            }}
+            className="px-3 py-1.5 text-xs font-semibold rounded bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors"
+          >
+            {t?.common?.next}
+          </button>
+        )}
       </div>
 
       {/* Printed state */}
