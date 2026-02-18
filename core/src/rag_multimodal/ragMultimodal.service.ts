@@ -4,7 +4,7 @@
  */
 
 import { httpClient } from '../api/http.client';
-import { createTool } from '../creation-tools/creation-tools.service';
+import { createTool } from '@core/creation-tools';
 import { markToolAsUnsaved } from '../creation-tools/unsavedTools.service';
 
 const ENDPOINT = '/api/v1/rag-multimodal';
@@ -69,12 +69,7 @@ export class RagMultimodalService {
   private publicBaseUrl = '/api/v1/public/rag-multimodal';
 
   // Map legacy/internal 'pdf' type to API 'doc' (outgoing)
-  private normalizeOutgoingType(type?: string): string | undefined {
-    if (!type) return type;
-    return type === 'pdf' ? 'doc' : type;
-  }
-
-  // Normalize API responses: treat legacy 'pdf' as 'doc' (incoming)
+// Normalize API responses: treat legacy 'pdf' as 'doc' (incoming)
   private normalizeIncomingType(type?: string): string | undefined {
     if (!type) return type;
     return type === 'pdf' ? 'doc' : type;

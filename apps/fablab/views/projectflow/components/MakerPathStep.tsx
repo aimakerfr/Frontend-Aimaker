@@ -30,12 +30,15 @@ type MakerPathStepProps = {
   inputSourceType?: string | null;
   inputPrompt?: string | null;
   required?: boolean;
+  /** 1-based position of this file variable within the maker path */
+  inputFileVariableIndexNumber?: number;
   showTopConnectorDot?: boolean;
   t: any;
   selectable?: boolean;
   onClick?: (stepId: number) => void;
   onMarkStepComplete?: (stepId: number) => void;
   onNextStep?: (currentStepId: number) => void;
+  makerPathId?: number;
 };
 
 /** Icon + gradient colour per action type */
@@ -235,12 +238,14 @@ const MakerPathStep: React.FC<MakerPathStepProps> = ({
   inputSourceType,
   inputPrompt,
   required,
+  inputFileVariableIndexNumber,
   showTopConnectorDot,
   t,
   selectable = true,
   onClick,
   onMarkStepComplete,
   onNextStep,
+  makerPathId,
 }) => {
   const style = getNodeStyle(action);
   const showKey = needsKey(action);
@@ -275,6 +280,8 @@ const MakerPathStep: React.FC<MakerPathStepProps> = ({
         stepId={stepId}
         onMarkStepComplete={onMarkStepComplete}
         onNextStep={onNextStep}
+        makerPathId={makerPathId}
+        inputFileVariableIndexNumber={inputFileVariableIndexNumber}
       />
     </MakerPathStepCard>
   );

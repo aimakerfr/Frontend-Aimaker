@@ -428,6 +428,8 @@ export const es: Translations = {
       error: 'Error al cargar datos',
       retry: 'Reintentar',
       cancel: 'Cancelar',
+      next: 'Siguiente',
+      select: 'Seleccionar',
       save: 'Guardar',
       edit: 'Editar',
       delete: 'Eliminar',

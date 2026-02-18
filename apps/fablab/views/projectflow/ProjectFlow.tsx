@@ -1,8 +1,8 @@
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Workflow } from 'lucide-react';
 import { useLanguage } from '../../language/useLanguage';
-import type { WorkflowStep, AvailablePath } from './types';
+import type {WorkflowStep, AvailablePath, WorkflowJSON} from './types';
 import ConfigurationPanel from './components/ConfigurationPanel';
 import WorkflowCanvas from './components/WorkflowCanvas';
 // import NodeConfigPanel from './components/NodeConfigPanel';
@@ -14,6 +14,13 @@ import Stepper from './components/Stepper';
 const ProjectFlow: React.FC = () => {
   const { t } = useLanguage();
   const navigate = useNavigate();
+  const params = useParams();
+  // Prefer the last route param named "id"; fallback to legacy "makerPathId"
+  const makerPathId = params?.id
+    ? Number(params.id)
+    : params?.makerPathId
+    ? Number(params.makerPathId)
+    : undefined;
 
   // ── State ──────────────────────────────────────────────
   const [jsonInput, setJsonInput] = useState('');
@@ -252,6 +259,7 @@ const ProjectFlow: React.FC = () => {
           selectableStepIds={selectableStepIds}
           onMarkStepAsComplete={markStepAsCompleteHandler}
           onNextStep={handleNextStep}
+          makerPathId={makerPathId}
         />
       </div>
     </div>

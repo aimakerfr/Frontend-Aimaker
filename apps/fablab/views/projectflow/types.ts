@@ -52,6 +52,8 @@ export interface WorkflowStep {
   action: StepAction;
   input_source_type?: InputSourceType;
   input_file_variable?: string;
+  /** 1-based position of this file variable within the maker path */
+  input_file_variable_index_number?: number;
   input_prompt?: string;
   output_format?: OutputFormat;
   output_type?: string;
@@ -63,6 +65,8 @@ export interface WorkflowDefinition {
   stage_name: string;
   description: string;
   output_type?: string;
+  /** Optional list of required files for the path; reserved for future UI use */
+  required_files?: Array<{ id: string | number; name: string }>;
   steps: WorkflowStep[];
 }
 
@@ -86,6 +90,8 @@ export interface NodeConfig {
   inputSourceType?: InputSourceType;
   promptContent?: string;
   inputFileVariable?: string;
+  /** 1-based position of this file variable within the maker path */
+  inputFileVariableIndexNumber?: number;
   geminiKeyConfigured: boolean;
   outputFormat?: OutputFormat;
 }

@@ -15,6 +15,9 @@ type MakerPathStepContentProps = {
   stepId?: number;
   onMarkStepComplete?: (stepId: number) => void;
   onNextStep?: (currentStepId: number) => void;
+  makerPathId?: number;
+  /** 1-based index used to persist variable order */
+  inputFileVariableIndexNumber?: number;
 };
 
 const GenericContent: React.FC<MakerPathStepContentProps> = ({
@@ -88,6 +91,8 @@ const MakerPathStepContent: React.FC<MakerPathStepContentProps> = (props) => {
           input_source_type={(props.inputSourceType as any) || 'HTML'}
           required={!!props.required}
           step_id={props.stepId}
+          makerPathId={props.makerPathId}
+          inputFileVariableIndexNumber={props.inputFileVariableIndexNumber}
           onNext={() => {
             if (props.stepId && props.onNextStep) props.onNextStep(props.stepId);
           }}

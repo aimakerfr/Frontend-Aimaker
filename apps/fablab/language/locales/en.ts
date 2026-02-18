@@ -428,6 +428,8 @@ export const en: Translations = {
       error: 'Error loading data',
       retry: 'Retry',
       cancel: 'Cancel',
+      next: 'Next',
+      select: 'Select',
       save: 'Save',
       edit: 'Edit',
       delete: 'Delete',

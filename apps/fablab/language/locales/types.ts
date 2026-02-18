@@ -445,6 +445,8 @@ export interface Translations {
     errorDeleting: string;
     empty: string;
     characters: string;
+    next: string;
+    select: string;
   };
   assistant: {
     title: string;

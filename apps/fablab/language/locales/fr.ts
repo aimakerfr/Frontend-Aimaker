@@ -427,6 +427,8 @@ export const fr: Translations = {
       error: 'Erreur de chargement des données',
       retry: 'Réessayer',
       cancel: 'Annuler',
+      next: 'Suivant',
+      select: 'Sélectionner',
       save: 'Sauvegarder',
       edit: 'Éditer',
       delete: 'Supprimer',
