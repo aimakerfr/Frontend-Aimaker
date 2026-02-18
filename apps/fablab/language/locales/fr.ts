@@ -381,7 +381,7 @@ export const fr: Translations = {
         title: 'Aperçu en Direct',
         subtitle: 'Prévisualisez votre page complète',
         download: 'Télécharger l’Aperçu',
-        emptyContainer: 'Conteneur {name} Vide',
+        emptyContainer: 'Conteneur {title} Vide',
       },
       createTemplate: {
         title: 'Créer un Modèle Personnalisé',
@@ -491,7 +491,7 @@ export const fr: Translations = {
       addOption: 'Ajouter une option',
       knowledgeBase: 'BASE DE CONNAISSANCES',
       uploadDocuments: 'Télécharger des documents',
-      uploadHint: 'PDF, DOCX ou TXT pour enrichir le contexte',
+      uploadHint: 'DOC, DOCX ou TXT pour enrichir le contexte',
       capabilities: 'CAPACITÉS ET OUTILS',
       imageGeneration: 'Génération d\'images',
       platform: 'PLATEFORME',
@@ -824,7 +824,7 @@ export const fr: Translations = {
           title: 'Nouvelle Source',
           subtitle: 'Contenu pour le moteur RAG',
           tabs: {
-            pdf: 'PDF/DOC',
+            pdf: 'DOC',
             html: 'HTML',
             image: 'IMAGE',
             video: 'VIDÉO',
@@ -834,7 +834,7 @@ export const fr: Translations = {
           },
           placeholders: {
             selectFile: 'Sélectionner un fichier',
-            docAllowedTypes: 'txt, pdf, md',
+            docAllowedTypes: 'txt, doc, md',
             uploadHtml: 'Télécharger un fichier HTML',
             uploadImage: 'Télécharger une image',
             uploadVideo: 'Télécharger une vidéo locale',

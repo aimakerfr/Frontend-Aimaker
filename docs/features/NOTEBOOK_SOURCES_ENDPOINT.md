@@ -19,8 +19,8 @@ This document explains how the frontend should consume the notebook sources endp
     {
       "id": 12,
       "name": "User guide",
-      "type": "PDF",
-      "filePath": "http://localhost:8000/uploads/note_books/note_book_sources/25/pdf/user-guide-123.pdf",
+      "type": "DOC",
+      "filePath": "http://localhost:8000/uploads/note_books/note_book_sources/25/doc/user-guide-123.pdf",
       "createdAt": "2026-01-30T12:00:00+00:00"
     }
   ],
@@ -48,9 +48,9 @@ This document explains how the frontend should consume the notebook sources endp
 - **Content-Type:** `multipart/form-data`
 - **Fields:**
   - `note_book_id` (number, required) — notebook/tool id.
-  - `type` (string, required) — one of `PDF | IMAGE | VIDEO | TEXT | WEBSITE | HTML` (case-insensitive; backend uppercases).
+  - `type` (string, required) — one of `DOC | IMAGE | VIDEO | TEXT | WEBSITE | HTML` (case-insensitive; backend uppercases).
   - `name` (string, required).
-  - `stream_file` (file, optional for `WEBSITE`, `HTML`, `TEXT`, `VIDEO`; required for `PDF` and `IMAGE`).
+  - `stream_file` (file, optional for `WEBSITE`, `HTML`, `TEXT`, `VIDEO`; required for `DOC` and `IMAGE`).
 - **Headers:** `Authorization: Bearer <token>` if required.
 
 **Success response (201):**
@@ -60,8 +60,8 @@ This document explains how the frontend should consume the notebook sources endp
   "data": {
     "id": 13,
     "name": "Dataset",
-    "type": "PDF",
-    "filePath": "http://localhost:8000/uploads/note_books/note_book_sources/25/pdf/dataset-abc.pdf",
+    "type": "DOC",
+    "filePath": "http://localhost:8000/uploads/note_books/note_book_sources/25/doc/dataset-abc.pdf",
     "createdAt": "2026-01-30T12:00:00+00:00"
   },
   "error": null,

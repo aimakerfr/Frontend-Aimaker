@@ -124,7 +124,7 @@ export const en: Translations = {
     },
     form: {
       name: 'Name *',
-      namePlaceholder: 'Tool name',
+      namePlaceholder: 'Tool title',
       description: 'Description',
       descriptionPlaceholder: 'Describe the purpose of this tool',
       type: 'Type',
@@ -394,7 +394,7 @@ export const en: Translations = {
       cssPlaceholder: '.my-class { color: blue; }',
       cancel: 'Cancel',
       save: 'Save Template',
-      alertMessage: 'Please complete at least the name and HTML',
+      alertMessage: 'Please complete at least the title and HTML',
     },
     promptLibrary: {
       title: 'Prompt Library',

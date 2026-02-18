@@ -135,7 +135,7 @@ export const en: Translations = {
         titleEdit: 'Edit Tool',
         titleCreate: 'New Tool',
         name: 'Name *',
-        namePlaceholder: 'Tool name',
+        namePlaceholder: 'Tool title',
         description: 'Description',
         descriptionPlaceholder: 'Describe the purpose of this tool',
         type: 'Type',
@@ -382,7 +382,7 @@ export const en: Translations = {
         title: 'Live Preview',
         subtitle: 'Preview your complete page',
         download: 'Download Preview',
-        emptyContainer: 'Empty {name} Container',
+        emptyContainer: 'Empty {title} Container',
       },
       createTemplate: {
         title: 'Create Custom Template',
@@ -399,7 +399,7 @@ export const en: Translations = {
         cssPlaceholder: '.my-class { color: blue; }',
         cancel: 'Cancel',
         save: 'Save Template',
-        alertMessage: 'Please complete at least the name and HTML',
+        alertMessage: 'Please complete at least the title and HTML',
       },
       promptLibrary: {
         title: 'Prompt Library',
@@ -492,7 +492,7 @@ export const en: Translations = {
       addOption: 'Add option',
       knowledgeBase: 'KNOWLEDGE BASE',
       uploadDocuments: 'Upload documents',
-      uploadHint: 'PDF, DOCX or TXT to enrich context',
+      uploadHint: 'DOC, DOCX or TXT to enrich context',
       capabilities: 'CAPABILITIES AND TOOLS',
       imageGeneration: 'Image generation',
       platform: 'PLATFORM',
@@ -825,7 +825,7 @@ export const en: Translations = {
           title: 'New Source',
           subtitle: 'Content for the RAG engine',
           tabs: {
-            pdf: 'PDF/DOC',
+            pdf: 'DOC',
             html: 'HTML',
             image: 'IMAGE',
             video: 'VIDEO',
@@ -835,7 +835,7 @@ export const en: Translations = {
           },
           placeholders: {
             selectFile: 'Select file',
-            docAllowedTypes: 'txt, pdf, md',
+            docAllowedTypes: 'txt, doc, md',
             uploadHtml: 'Upload HTML file',
             uploadImage: 'Upload image',
             uploadVideo: 'Upload local video',

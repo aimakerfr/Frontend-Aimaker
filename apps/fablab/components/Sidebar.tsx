@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { User, Server, ExternalLink, LogOut, Library as LibraryIcon, Route } from 'lucide-react';
+import { User, Server, ExternalLink, LogOut, Library as LibraryIcon, Route, Boxes } from 'lucide-react';
 import { useLanguage } from '../language/useLanguage';
 
 interface SidebarProps {
@@ -15,6 +15,8 @@ const Sidebar: React.FC<SidebarProps> = ({ onLogout }) => {
   const menuItems: { path: string; label: string; icon: React.ReactNode }[] = [
     { path: '/dashboard/profile', label: t.sidebar.profile, icon: <User size={20} /> },
     { path: '/dashboard/library', label: t.sidebar.library, icon: <LibraryIcon size={20} /> },
+    // Use app-relative path so Router basename (e.g., "/dashboard") doesn't get duplicated
+    { path: '/dashboard/objects-library', label: (t as any).sidebar?.objectsLibrary ?? 'Objects Library', icon: <Boxes size={20} /> },
     { path: '/dashboard/context', label: t.sidebar.context, icon: <Server size={20} /> },
     { path: '/dashboard/maker-path', label: t.sidebar.makerPath, icon: <Route size={20} /> },
     { path: '/dashboard/tools', label: t.sidebar.tools, icon: <ExternalLink size={20} /> },
