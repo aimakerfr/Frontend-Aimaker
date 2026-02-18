@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { getMakerPathVariables, MakerPathVariableResponse } from '@core/maker-path-variables/maker-path-variables.service';
 import { getRagMultimodalSourceContent } from '@core/rag_multimodal';
-import { Download, FileCode, Trash2, ArrowUp, ArrowDown } from 'lucide-react';
+import { Download, FileCode, ArrowUp, ArrowDown } from 'lucide-react';
 
 type ModuleType = 'HEADER' | 'BODY' | 'FOOTER';
 
@@ -27,7 +27,7 @@ const FileGenerator: React.FC<FileGeneratorProps> = ({ makerPathId, onMarkComple
   const [assignments, setAssignments] = useState<ModuleAssignment[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [selectorOpen, setSelectorOpen] = useState<ModuleType | null>(null);
+  // Read-only visualization: no reassign/delete selector
 
   useEffect(() => {
     if (makerPathId) {
@@ -89,52 +89,7 @@ const FileGenerator: React.FC<FileGeneratorProps> = ({ makerPathId, onMarkComple
     }
   };
 
-  const handleAssign = (type: ModuleType, variable: MakerPathVariableResponse) => {
-    const moduleType = MODULE_TYPES.find(m => m.type === type);
-    if (!moduleType) return;
-
-    // Check if already assigned
-    const existingAssignment = assignments.find(a => 
-      a.variable.variableIndexNumber === variable.variableIndexNumber && a.type === type
-    );
-    if (existingAssignment) return;
-
-    if (!moduleType.multi) {
-      // Single assignment: remove existing
-      setAssignments(prev => [
-        ...prev.filter(a => a.type !== type),
-        { type, variable }
-      ]);
-    } else {
-      // Multi assignment: add with order
-      const existingCount = assignments.filter(a => a.type === type).length;
-      setAssignments(prev => [
-        ...prev,
-        { type, variable, order: existingCount }
-      ]);
-    }
-
-    setSelectorOpen(null);
-  };
-
-  const handleUnassign = (type: ModuleType, variableIndexNumber: number) => {
-    setAssignments(prev => {
-      const filtered = prev.filter(a => 
-        !(a.type === type && a.variable.variableIndexNumber === variableIndexNumber)
-      );
-      
-      // Reorder BODY items
-      if (type === 'BODY') {
-        return filtered.map(a => 
-          a.type === 'BODY' 
-            ? { ...a, order: filtered.filter(f => f.type === 'BODY' && f.order !== undefined && f.order < (a.order || 0)).length }
-            : a
-        );
-      }
-      
-      return filtered;
-    });
-  };
+  // Reassign/Delete disabled per requirement – only display selected variables from API
 
   const handleMoveUp = (type: ModuleType, variableIndexNumber: number) => {
     if (type !== 'BODY') return;
@@ -186,22 +141,7 @@ const FileGenerator: React.FC<FileGeneratorProps> = ({ makerPathId, onMarkComple
     return filtered;
   };
 
-  const getAvailableVariables = (type: ModuleType): MakerPathVariableResponse[] => {
-    const moduleType = MODULE_TYPES.find(m => m.type === type);
-    if (!moduleType) return [];
-
-    if (moduleType.multi) {
-      // For BODY, allow all variables
-      return variables;
-    } else {
-      // For HEADER/FOOTER, exclude already assigned ones
-      const assigned = assignments.find(a => a.type === type);
-      if (assigned) {
-        return variables.filter(v => v.variableIndexNumber === assigned.variable.variableIndexNumber);
-      }
-      return variables;
-    }
-  };
+  // getAvailableVariables removed – not needed without reassignment UI
 
   const handleGenerateIndex = async () => {
     if (!makerPathId) return;
@@ -395,7 +335,6 @@ const FileGenerator: React.FC<FileGeneratorProps> = ({ makerPathId, onMarkComple
         {MODULE_TYPES.map(({ type, label, color, icon, multi }) => {
           const assigned = getAssignmentsByType(type);
           const hasAssigned = assigned.length > 0;
-          const isSelecting = selectorOpen === type;
 
           return (
             <div key={type} className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
@@ -412,14 +351,7 @@ const FileGenerator: React.FC<FileGeneratorProps> = ({ makerPathId, onMarkComple
                     </h3>
                   </div>
                 </div>
-                {variables.length > 0 && (
-                  <button
-                    onClick={() => setSelectorOpen(isSelecting ? null : type)}
-                    className="px-3 py-1 text-xs font-semibold rounded bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-                  >
-                    {isSelecting ? 'Close' : 'Reassign'}
-                  </button>
-                )}
+                {/* Reassign removed per requirement */}
               </div>
 
               {/* Assigned */}
@@ -454,59 +386,12 @@ const FileGenerator: React.FC<FileGeneratorProps> = ({ makerPathId, onMarkComple
                           </button>
                         </>
                       )}
-                      <button
-                        onClick={() => handleUnassign(type, assignment.variable.variableIndexNumber)}
-                        className="p-1 hover:bg-red-50 dark:hover:bg-red-900/20 rounded text-red-400 hover:text-red-600 transition-all"
-                      >
-                        <Trash2 size={14} />
-                      </button>
+                      {/* Delete removed per requirement */}
                     </div>
                   ))}
                 </div>
               )}
-
-              {/* Selector */}
-              {isSelecting && (
-                <div className="px-4 py-3 bg-gray-50 dark:bg-gray-900/50 space-y-2">
-                  {variables.length === 0 ? (
-                    <div className="text-center py-4 text-gray-400 text-xs">
-                      No variables available
-                    </div>
-                  ) : (
-                    <div className="space-y-1.5">
-                      {getAvailableVariables(type).map(variable => {
-                        const alreadyAssigned = assignments.some(a => 
-                          a.variable.variableIndexNumber === variable.variableIndexNumber && a.type === type
-                        );
-                        const isDisabled = !multi && alreadyAssigned;
-                        
-                        return (
-                          <button
-                            key={variable.variableIndexNumber}
-                            onClick={() => !isDisabled && handleAssign(type, variable)}
-                            disabled={isDisabled}
-                            className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg border transition-all text-left ${
-                              isDisabled
-                                ? 'bg-gray-100 dark:bg-gray-800 border-gray-200 dark:border-gray-700 cursor-default opacity-50'
-                                : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:border-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20'
-                            }`}
-                          >
-                            <FileCode size={14} className="text-gray-400" />
-                            <div className="flex-1 min-w-0">
-                              <p className="text-xs font-bold text-gray-700 dark:text-gray-300 truncate">
-                                {(variable.variableValue as any)?.sourceName || variable.variableName}
-                              </p>
-                              <p className="text-[10px] text-gray-400 truncate">
-                                Step {(variable.variableValue as any)?.stepId || variable.variableIndexNumber}
-                              </p>
-                            </div>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              )}
+              {/* Selector removed per requirement */}
             </div>
           );
         })}

@@ -2,7 +2,7 @@ import React, {useEffect, useMemo, useState} from 'react';
 import {getRagMultimodalSources} from '@core/rag_multimodal';
 import {Database} from 'lucide-react';
 import {useLanguage} from '../../../language/useLanguage';
-import {createMakerPathVariable, getMakerPathVariables} from '@core/maker-path-variables/maker-path-variables.service';
+import {putMakerPathVariable, getMakerPathVariables, postMakerPathVariable} from '@core/maker-path-variables/maker-path-variables.service';
 
 type SourceType = 'HTML';
 
@@ -25,6 +25,7 @@ type RagLibrarySelectorProps = {
     required?: boolean;
     step_id?: number;
     onNext?: () => void;
+    onMarkStepComplete?: (stepId: number) => void;
     // Optional persistence parameters for POST /api/v1/maker_path_variables
     makerPathId?: number;
     inputFileVariableIndexNumber?: number; // 1-based index to persist variable order (directly used)
@@ -36,6 +37,7 @@ const RagLibrarySelector: React.FC<RagLibrarySelectorProps> = ({
                                                                    input_source_type = 'HTML',
                                                                    step_id,
                                                                    onNext,
+                                                                   onMarkStepComplete,
                                                                    makerPathId,
                                                                    inputFileVariableIndexNumber,
                                                                }) => {
@@ -49,46 +51,11 @@ const RagLibrarySelector: React.FC<RagLibrarySelectorProps> = ({
     const [selectionMap, setSelectionMap] = useState<Record<string, number | ''>>({});
     // Idempotency guard: remember last successfully posted selection per variable
     const [lastPosted, setLastPosted] = useState<Record<string, number | undefined>>({});
-    // Track if we've loaded persisted selections
-    const [hasLoadedPersistedSelections, setHasLoadedPersistedSelections] = useState(false);
+    const [didAutoComplete, setDidAutoComplete] = useState<boolean>(false);
 
     // Removed debug/preview array to simplify component per new requirement
 
-    // Load persisted selections from backend when makerPathId is available
-    useEffect(() => {
-        const loadPersistedSelections = async () => {
-            if (!makerPathId || hasLoadedPersistedSelections) return;
-
-            try {
-                const variables = await getMakerPathVariables(makerPathId);
-                
-                // Filter variables that match our current step
-                const relevantVariables = variables.filter(
-                    v => v.variableIndexNumber === inputFileVariableIndexNumber
-                );
-
-                if (relevantVariables.length > 0) {
-                    const persistedMap: Record<string, number | ''> = {};
-                    const postedMap: Record<string, number | undefined> = {};
-
-                    relevantVariables.forEach(v => {
-                        persistedMap[v.variableName] = v.ragMultimodalSourceId || '';
-                        postedMap[v.variableName] = v.ragMultimodalSourceId || undefined;
-                    });
-
-                    setSelectionMap(prev => ({ ...prev, ...persistedMap }));
-                    setLastPosted(prev => ({ ...prev, ...postedMap }));
-                }
-
-                setHasLoadedPersistedSelections(true);
-            } catch (err) {
-                console.error('Error loading persisted selections:', err);
-                setHasLoadedPersistedSelections(true);
-            }
-        };
-
-        loadPersistedSelections();
-    }, [makerPathId, inputFileVariableIndexNumber, hasLoadedPersistedSelections]);
+    // (Removed duplicate persisted selections loader to avoid double GET and undefined state refs)
 
     // Initialize selection map whenever the list of required sources or single var changes
     useEffect(() => {
@@ -129,6 +96,58 @@ const RagLibrarySelector: React.FC<RagLibrarySelectorProps> = ({
         loadHTMLSources();
     }, [input_source_type]);
 
+    // Prefill selection from the backend (GET /api/v1/maker_path_variables) when makerPathId provided
+    useEffect(() => {
+        const prefillFromServer = async () => {
+            try {
+                if (!makerPathId || makerPathId <= 0) return;
+
+                const variablesToCheck: string[] = input_file_variable
+                    ? [input_file_variable]
+                    : required_sources;
+                if (!variablesToCheck || variablesToCheck.length === 0) return;
+
+                const list = await getMakerPathVariables(makerPathId);
+                if (!Array.isArray(list)) return;
+
+                // Build next maps based on server values
+                const nextSelection: Record<string, number | ''> = { ...selectionMap };
+                const nextLastPosted: Record<string, number | undefined> = { ...lastPosted };
+
+                for (const variableName of variablesToCheck) {
+                    const found = list.find((item) => {
+                        const nameMatch = item.variableName === variableName;
+                        const indexMatch =
+                            typeof inputFileVariableIndexNumber === 'number'
+                                ? item.variableIndexNumber === inputFileVariableIndexNumber
+                                : true;
+                        return nameMatch && indexMatch;
+                    });
+                    if (found && typeof found.ragMultimodalSourceId === 'number') {
+                        nextSelection[variableName] = found.ragMultimodalSourceId;
+                        nextLastPosted[variableName] = found.ragMultimodalSourceId;
+                    }
+                }
+
+                setSelectionMap(nextSelection);
+                setLastPosted(nextLastPosted);
+                // If we successfully prefilled at least one selection, mark step as complete once
+                const hasAnyPrefill = Object.values(nextSelection).some((v) => typeof v === 'number');
+                if (hasAnyPrefill && !didAutoComplete && step_id && onMarkStepComplete) {
+                    onMarkStepComplete(step_id);
+                    setDidAutoComplete(true);
+                }
+            } catch (e) {
+                // eslint-disable-next-line no-console
+                console.error('Failed to prefill maker path variables', e);
+            }
+        };
+
+        prefillFromServer();
+        // We intentionally do not include selectionMap/lastPosted as deps to avoid loops
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [makerPathId, input_file_variable || '', required_sources.join('|')]);
+
     const handleChange = async (variableName: string, value: string) => {
         // Normalize selection value
         const numericOrEmpty = value !== '' ? Number(value) : '';
@@ -148,7 +167,7 @@ const RagLibrarySelector: React.FC<RagLibrarySelectorProps> = ({
             const indexNumber = inputFileVariableIndexNumber as number;
 
             const selectedSource = sources.find((s) => s.id === selectedId);
-            await createMakerPathVariable({
+            const payload = {
                 makerPathId: makerPathId as number,
                 variableIndexNumber: indexNumber,
                 ragMultimodalSourceId: selectedId,
@@ -158,7 +177,14 @@ const RagLibrarySelector: React.FC<RagLibrarySelectorProps> = ({
                     sourceName: selectedSource?.name ?? null,
                     stepId: step_id ?? null,
                 },
-            });
+            } as const;
+
+            // If the step is completed (chip shown), use PUT; otherwise POST
+            if (didAutoComplete) {
+                await putMakerPathVariable(payload as any);
+            } else {
+                await postMakerPathVariable(payload as any);
+            }
 
             // Mark as posted
             setLastPosted((prev) => ({...prev, [variableName]: selectedId}));
@@ -175,6 +201,15 @@ const RagLibrarySelector: React.FC<RagLibrarySelectorProps> = ({
     const anySelectionMade = useMemo(() => {
         return Object.values(selectionMap).some((v) => v !== '' && v !== undefined && v !== null);
     }, [selectionMap]);
+
+    // When user makes a selection manually, also mark complete (without auto-advance)
+    useEffect(() => {
+        if (anySelectionMade && !didAutoComplete && step_id && onMarkStepComplete) {
+            onMarkStepComplete(step_id);
+            setDidAutoComplete(true);
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [anySelectionMade]);
 
     const sourceOptions = useMemo(() => sources, [sources]);
 

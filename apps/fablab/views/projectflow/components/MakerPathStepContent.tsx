@@ -93,6 +93,7 @@ const MakerPathStepContent: React.FC<MakerPathStepContentProps> = (props) => {
           step_id={props.stepId}
           makerPathId={props.makerPathId}
           inputFileVariableIndexNumber={props.inputFileVariableIndexNumber}
+          onMarkStepComplete={props.onMarkStepComplete}
           onNext={() => {
             if (props.stepId && props.onNextStep) props.onNextStep(props.stepId);
           }}

@@ -19,3 +19,6 @@ export interface MakerPathVariableResponse {
   variableValue: Record<string, any> | null;
   createdAt: string;
 }
+
+/** List response for GET /api/v1/maker_path_variables */
+export type MakerPathVariableListResponse = MakerPathVariableResponse[];
