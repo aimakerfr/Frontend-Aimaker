@@ -818,6 +818,11 @@ export const es: Translations = {
       },
       sourcePanel: {
         title: 'Fuentes',
+        subtitle: 'Gestiona tus fuentes de datos',
+        activeLabel: 'Fuentes activas',
+        importButton: 'Importar fuente de objeto',
+        importTitle: 'Importar',
+        importSubtitle: 'Importar fuente de objeto',
         total: 'TOTAL',
         empty: 'Libreta vacía',
         add: 'Añadir Fuente',

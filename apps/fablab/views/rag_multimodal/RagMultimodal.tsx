@@ -2,11 +2,13 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import SourcePanel from './components/SourcePanel.tsx';
-import ChatInterface from './components/ChatInterface.tsx';
+import ImportSourceModal from './components/ImportSourceModal.tsx';
+import UploadSourceModal from './components/UploadSourceModal.tsx';
 import { Source, ChatMessage, SourceType, StructuredSummary, Language } from './types.ts';
 import { generateChatResponse, generateSourceSummary } from './services/geminiService.ts';
 import { Layout, Menu, Globe, ChevronDown, ArrowLeft, Star, ExternalLink, Lock, AlertCircle, MessageSquare, Settings } from 'lucide-react';
 import { getRagMultimodalSources, postRagMultimodalSource, deleteRagMultimodalSource, type RagMultimodalSourceItem } from '@core/rag_multimodal';
+import { copyObjectToRag } from '@core/objects';
 import { getTool, updateTool } from '@core/creation-tools/creation-tools.service.ts';
 import { markToolAsSaved } from '@core/creation-tools/unsavedTools.service';
 import { useLanguage } from '../../language/useLanguage';
@@ -38,6 +40,10 @@ const RagMultimodal: React.FC<RagMultimodalProps> = ({ isPublicView = false }) =
     const [isFavorite, setIsFavorite] = useState(false);
     const [visibility, setVisibility] = useState<Visibility>(Visibility.PRIVATE);
     const [showPublishModal, setShowPublishModal] = useState(false);
+    const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+    const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+    const [selectedObjects, setSelectedObjects] = useState<any[]>([]);
+    const [isImporting, setIsImporting] = useState(false);
     const [toolLanguage, setToolLanguage] = useState<'fr' | 'en' | 'es'>('es');
     const [isValidationModalOpen, setIsValidationModalOpen] = useState(false);
     const [validationErrors, setValidationErrors] = useState<{
@@ -130,6 +136,11 @@ const RagMultimodal: React.FC<RagMultimodalProps> = ({ isPublicView = false }) =
         loadRagMultimodalSources(parseInt(id));
     }, [id]);
 
+    const refreshSources = async () => {
+        if (!id) return;
+        await loadRagMultimodalSources(parseInt(id));
+    };
+
     const loadRagMultimodalData = async (notebookId: number, fallbackTitle?: string | null) => {
         try {
             const tool = await getTool(notebookId);
@@ -210,7 +221,7 @@ const RagMultimodal: React.FC<RagMultimodalProps> = ({ isPublicView = false }) =
         
         if (Object.keys(errors).length === 0) {
             // Sin errores, navegar
-            navigate('/dashboard', { state: { view: 'library' } });
+            navigate('/dashboard/library');
         } else {
             // Con errores, mostrar modal
             setIsValidationModalOpen(true);
@@ -226,7 +237,7 @@ const RagMultimodal: React.FC<RagMultimodalProps> = ({ isPublicView = false }) =
                 console.error('Error eliminando notebook:', error);
             }
         }
-        navigate('/dashboard', { state: { view: 'library' } });
+        navigate('/dashboard/library');
     };
 
     const selectedSources = useMemo(() => {
@@ -376,6 +387,38 @@ const RagMultimodal: React.FC<RagMultimodalProps> = ({ isPublicView = false }) =
         setChatLoading(false);
     };
 
+    const handleImportObjects = async () => {
+        if (!id || id === 'new') {
+            console.error('RAG id is required to import objects');
+            return;
+        }
+
+        if (!selectedObjects.length) {
+            setIsImportModalOpen(false);
+            return;
+        }
+
+        try {
+            setIsImporting(true);
+            await Promise.all(
+                selectedObjects.map((object) =>
+                    copyObjectToRag({
+                        object_id: Number(object.id),
+                        rag_id: parseInt(id),
+                    })
+                )
+            );
+            await refreshSources();
+            setSelectedObjects([]);
+            setIsImportModalOpen(false);
+        } catch (error) {
+            console.error('Error importing objects to RAG:', error);
+            alert(t.common.error);
+        } finally {
+            setIsImporting(false);
+        }
+    };
+
     return (
         <div className="flex flex-col h-screen w-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 text-gray-900 overflow-hidden font-inter">
             {/* Header minimalista */}
@@ -387,7 +430,7 @@ const RagMultimodal: React.FC<RagMultimodalProps> = ({ isPublicView = false }) =
                             className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-gray-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"
                         >
                             <ArrowLeft size={16} />
-                            <span>Volver</span>
+                            <span>{t.library.backToLibrary}</span>
                         </button>
                         <div className="flex items-center gap-2.5 px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl text-white shadow-lg shadow-indigo-200">
                             <Layout size={16} />
@@ -416,9 +459,10 @@ const RagMultimodal: React.FC<RagMultimodalProps> = ({ isPublicView = false }) =
                     <div className="h-full w-full">
                         <SourcePanel
                             sources={sources}
-                            onAddSource={handleAddSource}
                             onToggleSource={handleToggleSource}
                             onDeleteSource={handleDeleteSource}
+                            onOpenImportModal={() => setIsImportModalOpen(true)}
+                            onOpenUploadModal={() => setIsUploadModalOpen(true)}
                         />
                     </div>
                 </aside>
@@ -441,14 +485,14 @@ const RagMultimodal: React.FC<RagMultimodalProps> = ({ isPublicView = false }) =
                                             }}
                                             onBlur={handleSave}
                                             disabled={isPublicView}
-                                            className={`flex-1 text-2xl font-bold text-gray-900 bg-transparent border-b-2 outline-none focus:ring-0 px-0 placeholder:text-gray-300 disabled:cursor-not-allowed transition-all ${
+                                            className={`flex-1 text-2xl font-bold text-gray-900 bg-transparent border-b-2 outline-none focus:ring-0 px-0 placeholder:text-gray-400 disabled:cursor-not-allowed transition-all ${
                                                 validationErrors.title ? 'border-red-500' : 'border-transparent focus:border-blue-500'
                                             }`}
                                             placeholder={t.notebook.settings.titlePlaceholder}
                                         />
                                         {(!notebookName || notebookName.trim() === '') && (
                                             <span title="Required field">
-                                                <AlertCircle size={16} className="text-amber-500" />
+                                                <AlertCircle size={16} className="text-amber-600" />
                                             </span>
                                         )}
                                     </div>
@@ -462,14 +506,14 @@ const RagMultimodal: React.FC<RagMultimodalProps> = ({ isPublicView = false }) =
                                             onBlur={handleSave}
                                             disabled={isPublicView}
                                             rows={2}
-                                            className={`flex-1 text-base text-gray-700 bg-transparent border-2 rounded-lg outline-none focus:ring-0 px-3 py-2 placeholder:text-gray-400 placeholder:text-base placeholder:font-medium disabled:cursor-not-allowed transition-all resize-none ${
+                                            className={`flex-1 text-base text-gray-700 bg-transparent border-2 rounded-lg outline-none focus:ring-0 px-3 py-2 placeholder:text-gray-600 placeholder:text-base placeholder:font-medium disabled:cursor-not-allowed transition-all resize-none ${
                                                 validationErrors.description ? 'border-red-500' : 'border-gray-200 focus:border-blue-400'
                                             }`}
                                             placeholder={t.notebook.settings.descriptionPlaceholder}
                                         />
                                         {(!description || description.trim() === '') && (
                                             <span title="Required field">
-                                                <AlertCircle size={16} className="text-amber-500" />
+                                                <AlertCircle size={16} className="text-amber-600" />
                                             </span>
                                         )}
                                     </div>
@@ -737,6 +781,23 @@ const RagMultimodal: React.FC<RagMultimodalProps> = ({ isPublicView = false }) =
                     </div>
                 </div>
             )}
+            <ImportSourceModal
+                isOpen={isImportModalOpen}
+                onClose={() => setIsImportModalOpen(false)}
+                onImport={handleImportObjects}
+                selectedObjects={selectedObjects}
+                onSelectionChange={setSelectedObjects}
+                isImporting={isImporting}
+                tp={t.notebook.sourcePanel}
+                t={t}
+            />
+            <UploadSourceModal
+                isOpen={isUploadModalOpen}
+                onClose={() => setIsUploadModalOpen(false)}
+                onAddSource={handleAddSource}
+                tp={t.notebook.sourcePanel}
+                t={t}
+            />
         </div>
     );
 };

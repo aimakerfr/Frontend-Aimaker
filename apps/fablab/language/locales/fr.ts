@@ -817,6 +817,11 @@ export const fr: Translations = {
       },
       sourcePanel: {
         title: 'Sources',
+        subtitle: 'Gérez vos sources de données',
+        activeLabel: 'Sources actives',
+        importButton: 'Importer une source d’objet',
+        importTitle: 'Importer',
+        importSubtitle: 'Importer une source d’objet',
         total: 'TOTAL',
         empty: 'Cahier vide',
         add: 'Ajouter Source',
