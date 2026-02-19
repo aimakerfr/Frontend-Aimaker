@@ -91,11 +91,22 @@ const RagChatStep: React.FC<RagChatStepProps> = ({
         try {
           console.log('[RagChatStep] Loading source:', sourceId);
           const sourceData = await getRagMultimodalSourceContent(sourceId);
+          
+          // Skip sources with empty content (extraction may have failed during upload)
+          if (!sourceData.content || sourceData.content.trim() === '') {
+            console.warn('[RagChatStep] Skipping source with empty content:', {
+              id: sourceId,
+              name: sourceData.name,
+              type: sourceData.type
+            });
+            continue;
+          }
+          
           loadedSources.push({
             id: sourceId.toString(),
             title: sourceData.name || `Source ${sourceId}`,
             type: 'html' as const,
-            content: sourceData.content || '',
+            content: sourceData.content,
             dateAdded: new Date(),
             selected: true,
           });
@@ -106,13 +117,14 @@ const RagChatStep: React.FC<RagChatStepProps> = ({
 
       console.log('[RagChatStep] Loaded sources:', loadedSources.length);
       if (loadedSources.length === 0) {
-        setError('Could not load any knowledge sources.');
+        setError('No se pudieron cargar fuentes con contenido válido. Verifica que las fuentes tengan texto extraído.');
       } else {
         setSources(loadedSources);
+        console.log('[RagChatStep] Sources ready:', loadedSources.map(s => ({ id: s.id, title: s.title, contentLength: s.content.length })));
       }
     } catch (err) {
       console.error('[RagChatStep] Error loading RAG sources:', err);
-      setError('Error loading knowledge sources. Please try again.');
+      setError('Error al cargar las fuentes. Por favor, intenta nuevamente.');
     } finally {
       setIsLoadingSources(false);
     }

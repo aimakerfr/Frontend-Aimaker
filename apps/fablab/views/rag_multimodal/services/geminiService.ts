@@ -159,61 +159,52 @@ export const generateSourceSummary = async (sources: Source[], lang: Language): 
  */
 export const generateChatResponse = async (history: any[], sources: Source[], message: string, lang: Language): Promise<string> => {
   try {
-    // Formatear las fuentes para el backend
-    const formattedSources = sources
-      .filter(s => s.selected)
+    // Filtrar solo fuentes seleccionadas con contenido
+    const validSources = sources
+      .filter(s => s.selected && s.content && s.content.trim() !== '')
       .map(s => ({
         id: s.id,
         title: s.title,
         type: s.type,
-        content: s.content,
-        selected: s.selected
+        content: s.content
       }));
 
-    console.log('Enviando petición al backend:', {
-      endpoint: `${GEMINI_ENDPOINT}/chat`,
-      sourcesCount: formattedSources.length,
-      historyLength: history.length,
-      messageLength: message.length,
-      language: lang
+    if (validSources.length === 0) {
+      return "No hay fuentes de conocimiento seleccionadas con contenido válido. Por favor, selecciona al menos una fuente.";
+    }
+
+    console.log('[Chat] Enviando:', {
+      sources: validSources.length,
+      history: history.length,
+      messageLength: message.length
     });
 
     const result = await httpClient.post<{ response: string }>(
       `${GEMINI_ENDPOINT}/chat`,
       { 
         history, 
-        sources: formattedSources, 
+        sources: validSources, 
         message, 
         language: lang 
       }
     );
     
-    console.log('Respuesta recibida del backend:', result);
-    
-    if (!result || !result.response) {
-      console.error('Respuesta inválida del backend:', result);
-      return "No se recibió una respuesta válida del servidor.";
+    if (!result?.response) {
+      console.error('[Chat] Respuesta inválida:', result);
+      return "No se recibió respuesta del servidor.";
     }
     
+    console.log('[Chat] Respuesta recibida correctamente');
     return result.response;
+
   } catch (error: any) {
-    console.error("Chat Error Completo:", {
-      message: error?.message,
-      response: error?.response,
-      status: error?.response?.status,
-      data: error?.response?.data
-    });
+    console.error("[Chat] Error:", error);
     
-    // Mensaje de error más detallado según el tipo de error
-    if (error?.response?.status === 401) {
-      return "Error de autenticación. Por favor, inicia sesión nuevamente.";
-    } else if (error?.response?.status === 500) {
-      const errorMsg = error?.response?.data?.message || error?.response?.data?.error;
-      return `Error en el servidor: ${errorMsg || 'Por favor, intenta nuevamente.'}`;
-    } else if (error?.response?.data?.message) {
-      return `Error: ${error.response.data.message}`;
-    }
+    const errorMsg = error?.response?.data?.message 
+                  || error?.response?.data?.error 
+                  || error?.message 
+                  || 'Error desconocido';
     
-    return "Lo siento, ocurrió un error al procesar tu consulta con Gemini.";
+    return `Error: ${errorMsg}`;
   }
 };
