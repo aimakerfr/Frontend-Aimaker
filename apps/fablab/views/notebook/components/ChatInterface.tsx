@@ -10,6 +10,7 @@ interface ChatInterfaceProps {
     isLoading: boolean;
     sourceSummary: StructuredSummary | null;
     isSummaryLoading: boolean;
+    onBack?: () => void;
 }
 
 const ChatInterface: React.FC<ChatInterfaceProps> = ({ messages, onSendMessage, isLoading, sourceSummary, isSummaryLoading }) => {

@@ -6,7 +6,7 @@ import ImportSourceModal from './components/ImportSourceModal.tsx';
 import UploadSourceModal from './components/UploadSourceModal.tsx';
 import { Source, ChatMessage, SourceType, StructuredSummary, Language } from './types.ts';
 import { generateChatResponse, generateSourceSummary } from './services/geminiService.ts';
-import { ChevronDown, Star, ExternalLink, Lock, AlertCircle, MessageSquare, Settings, Globe, Layout } from 'lucide-react';
+import { ChevronDown, Star, ExternalLink, Lock, AlertCircle, Settings, Globe } from 'lucide-react';
 import { getRagMultimodalSources, postRagMultimodalSource, deleteRagMultimodalSource, type RagMultimodalSourceItem } from '@core/rag_multimodal';
 import { copyObjectToRag } from '@core/objects';
 import { getTool, updateTool } from '@core/creation-tools/creation-tools.service.ts';
@@ -15,6 +15,8 @@ import { useLanguage } from '../../language/useLanguage';
 import HeaderBar from './components/HeaderBar.tsx';
 import PublishModal from './components/PublishModal.tsx';
 import ValidationModal from './components/ValidationModal.tsx';
+import { UI_TRANSLATIONS } from './constants/translations.ts';
+import ChatInterface from "@apps/fablab/views/notebook/components/ChatInterface.tsx";
 
 enum Visibility {
   PRIVATE = 'private',
@@ -54,6 +56,18 @@ const RagMultimodal: React.FC<RagMultimodalProps> = ({ isPublicView = false }) =
         description?: boolean;
         category?: boolean;
     }>({});
+    const languageOptions = useMemo(
+        () => ([
+            { value: 'es', label: UI_TRANSLATIONS.es.languages.es },
+            { value: 'en', label: UI_TRANSLATIONS.en.languages.en },
+            { value: 'fr', label: UI_TRANSLATIONS.fr.languages.fr },
+        ]),
+        []
+    );
+    const uiTranslations = useMemo(
+        () => UI_TRANSLATIONS[toolLanguage] || UI_TRANSLATIONS.es,
+        [toolLanguage]
+    );
     
     const publicUrl = id ? `${window.location.origin}/public/rag_multimodal/${id}` : '';
 
@@ -588,9 +602,11 @@ const RagMultimodal: React.FC<RagMultimodalProps> = ({ isPublicView = false }) =
                                         disabled={isPublicView}
                                         className="appearance-none pl-3 pr-8 py-1.5 text-xs font-semibold bg-purple-50 text-purple-700 rounded-full border border-purple-200 cursor-pointer hover:bg-purple-100 transition-all disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-purple-400"
                                     >
-                                        <option value="es">🇪🇸 Español</option>
-                                        <option value="en">🇬🇧 English</option>
-                                        <option value="fr">🇫🇷 Français</option>
+                                        {languageOptions.map((option) => (
+                                            <option key={option.value} value={option.value}>
+                                                {option.label}
+                                            </option>
+                                        ))}
                                     </select>
                                     <ChevronDown size={12} className="absolute right-2 top-1/2 -translate-y-1/2 text-purple-600 pointer-events-none" />
                                 </div>
@@ -638,55 +654,8 @@ const RagMultimodal: React.FC<RagMultimodalProps> = ({ isPublicView = false }) =
                                         <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl mb-6 shadow-lg">
                                             <Settings size={40} className="text-white" />
                                         </div>
-                                        <h2 className="text-3xl font-black text-gray-900 mb-3">Herramientas del RAG</h2>
-                                        <p className="text-gray-600 text-lg">Selecciona una herramienta para comenzar a trabajar con tus fuentes</p>
-                                    </div>
-                                    
-                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                        {/* Chatear con Fuentes */}
-                                        <button
-                                            onClick={() => setShowChatPanel(true)}
-                                            className="flex flex-col items-center gap-4 p-8 bg-gradient-to-br from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 rounded-2xl border-2 border-blue-200 hover:border-blue-300 transition-all group shadow-lg hover:shadow-xl"
-                                        >
-                                            <div className="p-4 bg-white rounded-2xl shadow-md group-hover:shadow-lg transition-shadow">
-                                                <MessageSquare size={32} className="text-blue-600" />
-                                            </div>
-                                            <div className="text-center">
-                                                <div className="text-lg font-black text-gray-900 mb-2">Chat con Fuentes</div>
-                                                <div className="text-sm text-gray-600">Conversa e interroga tus fuentes con IA</div>
-                                            </div>
-                                        </button>
-
-                                        {/* Análisis Automático (Próximamente) */}
-                                        <button
-                                            disabled
-                                            className="flex flex-col items-center gap-4 p-8 bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl border-2 border-gray-200 opacity-60 cursor-not-allowed shadow-lg"
-                                        >
-                                            <div className="p-4 bg-white rounded-2xl shadow-md">
-                                                <Settings size={32} className="text-gray-400" />
-                                            </div>
-                                            <div className="text-center">
-                                                <div className="text-lg font-black text-gray-700 mb-2 flex items-center gap-2 justify-center">
-                                                    Análisis Automático
-                                                    <span className="text-[10px] bg-amber-100 text-amber-700 px-2 py-1 rounded-full font-black">PRÓXIMAMENTE</span>
-                                                </div>
-                                                <div className="text-sm text-gray-500">Genera insights automáticos de tus fuentes</div>
-                                            </div>
-                                        </button>
-
-                                        {/* Más herramientas (Placeholder) */}
-                                        <button
-                                            disabled
-                                            className="flex flex-col items-center gap-4 p-8 bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl border-2 border-gray-200 opacity-60 cursor-not-allowed shadow-lg"
-                                        >
-                                            <div className="p-4 bg-white rounded-2xl shadow-md">
-                                                <Layout size={32} className="text-gray-400" />
-                                            </div>
-                                            <div className="text-center">
-                                                <div className="text-lg font-black text-gray-700 mb-2">Más Herramientas</div>
-                                                <div className="text-sm text-gray-500">Nuevas funcionalidades en desarrollo</div>
-                                            </div>
-                                        </button>
+                                        <h2 className="text-3xl font-black text-gray-900 mb-3">{uiTranslations.toolPicker.title}</h2>
+                                        <p className="text-gray-600 text-lg">{uiTranslations.toolPicker.subtitle}</p>
                                     </div>
                                 </div>
                             </div>
