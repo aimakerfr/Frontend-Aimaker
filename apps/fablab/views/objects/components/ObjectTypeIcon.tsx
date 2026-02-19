@@ -4,7 +4,7 @@ import { Cog, Code2, FileText, Globe, ImageIcon, Video } from 'lucide-react';
 type Props = { type?: string; t: any };
 
 const normalizeType = (raw?: string):
-  | 'pdf'
+  | 'doc'
   | 'html'
   | 'code'
   | 'image'
@@ -15,9 +15,9 @@ const normalizeType = (raw?: string):
   const v = raw.toLowerCase();
   // Map common synonyms coming from backend ENUM to local buckets
   if (v === 'website') return 'html';
-  if (v === 'doc' || v === 'text' || v === 'json') return 'pdf';
+  if (v === 'doc' || v === 'text' || v === 'json' || v === 'pdf') return 'doc';
   // Direct matches
-  if (v === 'pdf' || v === 'html' || v === 'code' || v === 'image' || v === 'video' || v === 'config') return v as any;
+  if (v === 'doc' || v === 'html' || v === 'code' || v === 'image' || v === 'video' || v === 'config') return v as any;
   return undefined;
 };
 
@@ -27,12 +27,12 @@ const ObjectTypeIcon: React.FC<Props> = ({ type, t }) => {
     <div className="flex items-center gap-2">
       {(() => {
         switch (norm) {
-          case 'pdf':
+          case 'doc':
             return (
               <>
                 <FileText className="text-red-500 flex-shrink-0 h-4 w-4" />
                 <span className="font-medium">
-                  {t.home?.objects_library?.tabs?.document ?? 'Document'}
+                  {t.home?.objects_library?.tabs?.document ?? 'DOC'}
                 </span>
               </>
             );

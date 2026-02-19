@@ -27,7 +27,7 @@ import PublicPromptDetails from './views/public/prompt/PublicPromptDetails';
 import PublicAssistantDetails from './views/public/assistant/PublicAssistantDetails';
 import PublicProjectDetails from './views/public/project/PublicProjectDetails';
 import { UserProfile } from './types';
-import ObjectsLibrary from './views/home/ObjectsLibrary';
+import ObjectsLibrary from '@apps/fablab/views/objects/ObjectsLibrary';
 
 // Wrapper components para extraer el id de la URL y pasarlo como toolId
 const PublicPromptWrapper = () => {

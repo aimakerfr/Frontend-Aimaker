@@ -3,7 +3,7 @@ import type { LucideIcon } from 'lucide-react';
 import { Code2, Cog, FileText, Globe, ImageIcon, Upload, Video, X } from 'lucide-react';
 import type { Translations } from '../../../language/locales/types';
 
-export type ObjectType = 'pdf' | 'html' | 'code' | 'image' | 'video' | 'config';
+export type ObjectType = 'doc' | 'html' | 'code' | 'image' | 'video' | 'config';
 
 type AddObjectModalProps = {
   isOpen: boolean;
@@ -14,7 +14,7 @@ type AddObjectModalProps = {
 
 const AddObjectModal: React.FC<AddObjectModalProps> = ({ isOpen, onClose, onSubmit, t }) => {
   const [title, setTitle] = useState('');
-  const [activeType, setActiveType] = useState<ObjectType>('pdf');
+  const [activeType, setActiveType] = useState<ObjectType>('doc');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [fileName, setFileName] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -32,13 +32,13 @@ const AddObjectModal: React.FC<AddObjectModalProps> = ({ isOpen, onClose, onSubm
     accept: string;
   }> = [
     {
-      id: 'pdf',
-      label: (t as any).home?.objects_library?.tabs?.document ?? 'Document',
+      id: 'doc',
+      label: (t as any).home?.objects_library?.tabs?.document ?? 'DOC',
       description: (t as any).home?.objects_library?.tabs?.document_desc ?? 'DOC, TXT, MD',
       color: 'text-red-500',
       bg: 'bg-red-50',
       icon: FileText,
-      accept: '.pdf,.txt,.md',
+      accept: '.doc,.docx,.txt,.md',
     },
     {
       id: 'html',
@@ -89,7 +89,7 @@ const AddObjectModal: React.FC<AddObjectModalProps> = ({ isOpen, onClose, onSubm
 
   const resetState = () => {
     setTitle('');
-    setActiveType('pdf');
+    setActiveType('doc');
     setSelectedFile(null);
     setFileName('');
     setError(null);

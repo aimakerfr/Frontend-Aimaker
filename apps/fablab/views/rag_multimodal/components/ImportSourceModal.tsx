@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { X } from 'lucide-react';
-import ObjectsLibrary from '../../home/ObjectsLibrary.tsx';
+import ObjectsLibrary from '@apps/fablab/views/objects/ObjectsLibrary.tsx';
 import { ObjectItem } from '@core/objects';
 import { Translations } from '../../../language/locales/types';
 
