@@ -48,6 +48,6 @@ export async function createObject(payload: CreateObjectPayload): Promise<Object
 /**
  * Copy an object's file/content to a RAG multimodal source.
  */
-export async function copyObjectToRag(payload: CopyObjectToRagPayload) {
+export async function copyObjectToRag(payload: CopyOjectToRagPayload) {
   return httpClient.post(`${ENDPOINT}/copy_to_rag`, payload);
 }

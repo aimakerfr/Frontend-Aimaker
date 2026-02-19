@@ -73,7 +73,7 @@ const ImportSourceModal: React.FC<ImportSourceModalProps> = ({
                             </>
                         ) : (
                             <>
-                                <span>{t.common.save}</span>
+                                <span>{(t as any)?.home?.objects_library?.import_objects ?? 'Import Objects'}</span>
                             </>
                         )}
                     </button>

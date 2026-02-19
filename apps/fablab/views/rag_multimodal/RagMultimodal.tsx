@@ -6,12 +6,15 @@ import ImportSourceModal from './components/ImportSourceModal.tsx';
 import UploadSourceModal from './components/UploadSourceModal.tsx';
 import { Source, ChatMessage, SourceType, StructuredSummary, Language } from './types.ts';
 import { generateChatResponse, generateSourceSummary } from './services/geminiService.ts';
-import { Layout, Menu, Globe, ChevronDown, ArrowLeft, Star, ExternalLink, Lock, AlertCircle, MessageSquare, Settings } from 'lucide-react';
+import { ChevronDown, Star, ExternalLink, Lock, AlertCircle, MessageSquare, Settings, Globe, Layout } from 'lucide-react';
 import { getRagMultimodalSources, postRagMultimodalSource, deleteRagMultimodalSource, type RagMultimodalSourceItem } from '@core/rag_multimodal';
 import { copyObjectToRag } from '@core/objects';
 import { getTool, updateTool } from '@core/creation-tools/creation-tools.service.ts';
 import { markToolAsSaved } from '@core/creation-tools/unsavedTools.service';
 import { useLanguage } from '../../language/useLanguage';
+import HeaderBar from './components/HeaderBar.tsx';
+import PublishModal from './components/PublishModal.tsx';
+import ValidationModal from './components/ValidationModal.tsx';
 
 enum Visibility {
   PRIVATE = 'private',
@@ -421,34 +424,13 @@ const RagMultimodal: React.FC<RagMultimodalProps> = ({ isPublicView = false }) =
 
     return (
         <div className="flex flex-col h-screen w-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 text-gray-900 overflow-hidden font-inter">
-            {/* Header minimalista */}
-            <header className="bg-white/80 backdrop-blur-md border-b border-gray-200/50 z-20 shrink-0">
-                <div className="px-6 py-3 flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                        <button
-                            onClick={handleBackToLibrary}
-                            className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-gray-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"
-                        >
-                            <ArrowLeft size={16} />
-                            <span>{t.library.backToLibrary}</span>
-                        </button>
-                        <div className="flex items-center gap-2.5 px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl text-white shadow-lg shadow-indigo-200">
-                            <Layout size={16} />
-                            <span className="text-sm font-bold tracking-wide">RAG MULTIMODAL</span>
-                        </div>
-                    </div>
-                    <button
-                        onClick={() => setSidebarOpen(!sidebarOpen)}
-                        className={`p-2.5 rounded-xl transition-all ${
-                            sidebarOpen 
-                                ? 'bg-indigo-100 text-indigo-600 shadow-sm' 
-                                : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
-                        }`}
-                    >
-                        <Menu size={20} />
-                    </button>
-                </div>
-            </header>
+            {/* Header */}
+            <HeaderBar
+                onBack={handleBackToLibrary}
+                sidebarOpen={sidebarOpen}
+                onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
+                t={t}
+            />
 
             <div className="flex-1 flex overflow-hidden w-full">
                 {/* Sidebar de fuentes - Expandido */}
@@ -713,74 +695,19 @@ const RagMultimodal: React.FC<RagMultimodalProps> = ({ isPublicView = false }) =
                 </main>
             </div>
 
-            {/* Modal de publicación */}
-            {showPublishModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-                    <div className="absolute inset-0 bg-black/20 backdrop-blur-sm" onClick={() => setShowPublishModal(false)}></div>
-                    <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden border border-gray-100 animate-in zoom-in-95 duration-200">
-                        <div className="p-8 text-center">
-                            <div className="w-16 h-16 rounded-full mx-auto mb-6 flex items-center justify-center bg-indigo-50 text-indigo-600">
-                                <Globe size={28} />
-                            </div>
-                            <h3 className="text-xl font-black text-gray-900 mb-2">
-                                {visibility === Visibility.PUBLIC ? t.notebook.publishModal.makePrivate : t.notebook.publishModal.publish}
-                            </h3>
-                            <p className="text-gray-500 text-sm mb-8 font-medium">
-                                {visibility === Visibility.PUBLIC 
-                                    ? t.notebook.publishModal.makePrivateDesc
-                                    : t.notebook.publishModal.publishDesc}
-                            </p>
-                            <div className="flex gap-3">
-                                <button
-                                    onClick={() => setShowPublishModal(false)}
-                                    className="flex-1 h-12 rounded-xl border-2 border-gray-200 text-gray-700 font-bold hover:bg-gray-50 transition-all"
-                                >
-                                    {t.common.cancel}
-                                </button>
-                                <button
-                                    onClick={handlePublish}
-                                    className="flex-1 h-12 rounded-xl bg-indigo-600 text-white font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100"
-                                >
-                                    {t.notebook.publishModal.confirm}
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
+            <PublishModal
+                isOpen={showPublishModal}
+                visibility={visibility === Visibility.PUBLIC ? 'public' : 'private'}
+                onCancel={() => setShowPublishModal(false)}
+                onConfirm={handlePublish}
+                t={t}
+            />
             
-            {/* Modal de Validación */}
-            {isValidationModalOpen && (
-                <div className="fixed inset-0 bg-black/30 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-8 animate-in zoom-in-95 duration-200">
-                        <div className="flex flex-col items-center text-center">
-                            <div className="w-16 h-16 bg-amber-100 dark:bg-amber-900/30 rounded-full flex items-center justify-center mb-4">
-                                <AlertCircle size={32} className="text-amber-600 dark:text-amber-400" />
-                            </div>
-                            <h3 className="text-xl font-black text-gray-900 dark:text-white mb-2">
-                                Campos incompletos
-                            </h3>
-                            <p className="text-gray-500 dark:text-gray-400 text-sm mb-8 font-medium">
-                                No has completado todos los campos obligatorios. ¿Qué deseas hacer?
-                            </p>
-                            <div className="flex flex-col gap-3 w-full">
-                                <button
-                                    onClick={() => setIsValidationModalOpen(false)}
-                                    className="w-full h-12 rounded-xl bg-blue-600 text-white font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-100"
-                                >
-                                    Seguir editando
-                                </button>
-                                <button
-                                    onClick={handleDeleteAndExit}
-                                    className="w-full h-12 rounded-xl border-2 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 font-bold hover:bg-gray-50 dark:hover:bg-gray-700 transition-all"
-                                >
-                                    Anular y salir
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
+            <ValidationModal
+                isOpen={isValidationModalOpen}
+                onContinueEditing={() => setIsValidationModalOpen(false)}
+                onDiscardAndExit={handleDeleteAndExit}
+            />
             <ImportSourceModal
                 isOpen={isImportModalOpen}
                 onClose={() => setIsImportModalOpen(false)}
