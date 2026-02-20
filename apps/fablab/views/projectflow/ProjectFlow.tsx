@@ -2,6 +2,7 @@ import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Workflow } from 'lucide-react';
 import { useLanguage } from '../../language/useLanguage';
+import { getMakerPath } from '@core/maker-path';
 import type {WorkflowStep, AvailablePath, WorkflowJSON} from './types';
 import ConfigurationPanel from './components/ConfigurationPanel';
 import WorkflowCanvas from './components/WorkflowCanvas';
@@ -15,19 +16,51 @@ const ProjectFlow: React.FC = () => {
   const { t } = useLanguage();
   const navigate = useNavigate();
   const params = useParams();
+  
+  // Extract template and ID from params
+  const { template, id: paramId, makerPathId: legacyId } = params;
+  
   // Prefer the last route param named "id"; fallback to legacy "makerPathId"
-  const makerPathId = params?.id
-    ? Number(params.id)
-    : params?.makerPathId
-    ? Number(params.makerPathId)
+  const makerPathId = paramId
+    ? Number(paramId)
+    : legacyId
+    ? Number(legacyId)
     : undefined;
 
   // ── State ──────────────────────────────────────────────
-  const [jsonInput, setJsonInput] = useState('');
+  const [jsonInput, setJsonInput] = useState(() => {
+    // If a template is specified in URL, pre-initialize with its JSON
+    if (template && INITIAL_MAKERPATHS[template]) {
+      return JSON.stringify(INITIAL_MAKERPATHS[template].json);
+    }
+    return '';
+  });
   const [parseError, setParseError] = useState<string | null>(null);
-  const [steps, setSteps] = useState<WorkflowStep[]>([]);
-  const [outputType, setOutputType] = useState<string>('');
-  const [stageName, setStageName] = useState<string>('');
+  const [steps, setSteps] = useState<WorkflowStep[]>(() => {
+    // Pre-initialize steps based on template
+    if (template && INITIAL_MAKERPATHS[template]) {
+      const demo = INITIAL_MAKERPATHS[template];
+      const workflowKey = Object.keys(demo.json)[0];
+      return demo.json[workflowKey].steps || [];
+    }
+    return [];
+  });
+  const [outputType, setOutputType] = useState<string>(() => {
+    if (template && INITIAL_MAKERPATHS[template]) {
+      const demo = INITIAL_MAKERPATHS[template];
+      const workflowKey = Object.keys(demo.json)[0];
+      return demo.json[workflowKey].output_type || '';
+    }
+    return '';
+  });
+  const [stageName, setStageName] = useState<string>(() => {
+    if (template && INITIAL_MAKERPATHS[template]) {
+      const demo = INITIAL_MAKERPATHS[template];
+      const workflowKey = Object.keys(demo.json)[0];
+      return demo.json[workflowKey].stage_name || workflowKey;
+    }
+    return '';
+  });
   const [availablePaths, setAvailablePaths] = useState<AvailablePath[]>(
     Object.values(INITIAL_MAKERPATHS).map((d) => d.path)
   );
@@ -35,6 +68,36 @@ const ProjectFlow: React.FC = () => {
   const [selectedStepId, setSelectedStepId] = useState<number | null>(null);
   // const [promptContents, setPromptContents] = useState<Record<number, string>>({});
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
+
+  // ── Effects ───────────────────────────────────────────
+
+  /** Load project data from ID */
+  useEffect(() => {
+    if (makerPathId) {
+      const loadProject = async () => {
+        try {
+          const project = await getMakerPath(makerPathId);
+          console.log('ProjectFlow: Fetched project data:', project);
+          if (project && project.data) {
+            let dataStr = typeof project.data === 'string' ? project.data : JSON.stringify(project.data);
+            setJsonInput(dataStr);
+            
+            const parsed: WorkflowJSON = JSON.parse(dataStr);
+            const workflowKey = Object.keys(parsed)[0];
+            if (workflowKey) {
+              const workflow = parsed[workflowKey];
+              setSteps(workflow.steps || []);
+              setOutputType(workflow.output_type || '');
+              setStageName(workflow.stage_name || workflowKey);
+            }
+          }
+        } catch (error) {
+          console.error('Error fetching project data in ProjectFlow:', error);
+        }
+      };
+      loadProject();
+    }
+  }, [makerPathId]);
 
   // Centralized selectability logic (by step_id)
   const selectableStepIds = useMemo(() => {
@@ -211,14 +274,14 @@ const ProjectFlow: React.FC = () => {
           <button
             onClick={() => navigate('/dashboard/maker-path')}
             className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-            title={t.projectFlow.backToMakerPath}
+            title="Volver a Proyectos"
           >
             <ArrowLeft size={18} className="text-gray-500 dark:text-gray-400" />
           </button>
           <div className="w-8 h-8 bg-gradient-to-br from-orange-500 to-amber-500 rounded-lg flex items-center justify-center">
             <Workflow size={16} className="text-white" />
           </div>
-          <h1 className="text-base font-bold text-gray-900 dark:text-white">{t.projectFlow.title}</h1>
+          <h1 className="text-base font-bold text-gray-900 dark:text-white">Workflow de Proyecto</h1>
         </div>
 
         {/* Right – actions */}
@@ -227,17 +290,19 @@ const ProjectFlow: React.FC = () => {
 
       {/* Main body – 3 panels */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Left – Configuration */}
-        <ConfigurationPanel
-          jsonInput={jsonInput}
-          onJsonChange={setJsonInput}
-          onParseWorkflow={handleParseWorkflow}
-          parseError={parseError}
-          availablePaths={availablePaths}
-          selectedPathId={selectedPathId}
-          onSelectPath={handleSelectPath}
-          t={t}
-        />
+        {/* Left – Configuration (Only shown if NOT viewing an existing project ID) */}
+        {!makerPathId && (
+          <ConfigurationPanel
+            jsonInput={jsonInput}
+            onJsonChange={setJsonInput}
+            onParseWorkflow={handleParseWorkflow}
+            parseError={parseError}
+            availablePaths={availablePaths}
+            selectedPathId={selectedPathId}
+            onSelectPath={handleSelectPath}
+            t={t}
+          />
+        )}
 
         {/* Middle – Stepper (after Configuration) */}
         <Stepper

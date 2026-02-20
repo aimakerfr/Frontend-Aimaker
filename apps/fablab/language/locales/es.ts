@@ -894,6 +894,16 @@ export const es: Translations = {
       },
     },
     projectFlow: {
+      modal: {
+        title: 'Seleccionar Proyecto',
+        subtitle: 'Elige cómo quieres empezar tu nuevo flujo de trabajo',
+        blankProject: 'Proyecto en blanco',
+        blankProjectDesc: 'Empieza desde cero y diseña tu propio flujo de trabajo personalizado paso a paso.',
+        makerPaths: 'Maker Paths',
+        makerPathsDesc: 'Utiliza una de nuestras plantillas optimizadas para acelerar tu proceso creativo.',
+        viewTemplates: 'Ver plantillas disponibles',
+        startNow: 'Empezar ahora',
+      },
       title: 'MakerPath Visualizer',
       backToMakerPath: 'Volver a Maker Path',
       configuration: 'CONFIGURACIÓN',
