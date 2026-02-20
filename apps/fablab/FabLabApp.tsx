@@ -1,17 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, useNavigate, useLocation, useParams } from 'react-router-dom';
 import { useAuth } from '@core/auth/useAuth';
-import Sidebar from './components/Sidebar';
-import Header from './components/Header';
-import Library from './views/library/Library';
-import ProfileSection from './components/ProfileSection';
-import AIContext from './components/AIContext';
-import MakerPathView from './views/maker-path/MakerPath';
-import ProjectPlanner from './views/projects/ProjectPlanner';
-import PathCreationModules from './views/path-creation-modules/App';
 import ProjectFlow from './views/projectflow/ProjectFlow';
-import ExternalAccess from './views/external-access/ExternalAccess';
-import AIChat from './components/AIChat';
 import Notebook from '@apps/fablab/views/notebook/Notebook';
 import NotebookModulesView from '@apps/fablab/views/notebook/components/NotebookModulesView';
 import RagMultimodal from '@apps/fablab/views/rag_multimodal/RagMultimodal';
@@ -27,7 +17,7 @@ import PublicPromptDetails from './views/public/prompt/PublicPromptDetails';
 import PublicAssistantDetails from './views/public/assistant/PublicAssistantDetails';
 import PublicProjectDetails from './views/public/project/PublicProjectDetails';
 import { UserProfile } from './types';
-import ObjectsLibrary from '@apps/fablab/views/objects/ObjectsLibrary';
+import FabLabLayout from '@apps/fablab/views/fablab_layout/FabLabLayout';
 
 // Wrapper components para extraer el id de la URL y pasarlo como toolId
 const PublicPromptWrapper = () => {
@@ -141,61 +131,20 @@ const App: React.FC = () => {
         <Route path="/image-generation" element={<ImageGeneration />} />
         <Route path="/administration" element={<Administration />} />
         {/* Rutas con Sidebar y Header */}
-        <Route path="/*" element={
-          <div className="flex h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 overflow-hidden">
-            {/* Mobile Sidebar Overlay */}
-            {isSidebarOpen && (
-              <div
-                className="fixed inset-0 bg-black/50 z-0 md:hidden"
-                onClick={() => setIsSidebarOpen(false)}
-              />
-            )}
-
-            {/* Sidebar - Responsive */}
-            <div className={`fixed inset-y-0 left-0 z-10 transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:relative md:translate-x-0 transition-transform duration-200 ease-in-out`}>
-              <Sidebar
-                onLogout={handleLogout}
-              />
-              {/* Overlay para cerrar sidebar en móvil al hacer click */}
-              {isSidebarOpen && (
-                <div 
-                  className="md:hidden fixed inset-0 z-[-1]"
-                  onClick={() => setIsSidebarOpen(false)}
-                />
-              )}
-            </div>
-
-            <div className="flex-1 flex flex-col h-screen overflow-hidden">
-              <Header
-                toggleTheme={toggleTheme}
-                isDark={isDark}
-                toggleSidebar={toggleSidebar}
-                title="dashboard"
-              />
-
-              <main className="flex-1 overflow-y-auto p-6 md:p-8">
-                <div className="max-w-7xl mx-auto">
-                  <Routes>
-                    {/* Rutas específicas para cada sección */}
-                    <Route path="/" element={<ProfileSection user={user} />} />
-                    <Route path="/library" element={<Library />} />
-                    {/* Home routes */}
-                    <Route path="/objects-library" element={<ObjectsLibrary />} />
-
-                    <Route path="/profile" element={<ProfileSection user={user} />} />
-                    <Route path="/context" element={<AIContext />} />
-                    <Route path="/maker-path" element={<MakerPathView />} />
-                    <Route path="/maker-path/:id" element={<ProjectPlanner />} />
-                    <Route path="/maker-path/modules/:id" element={<PathCreationModules />} />
-                    <Route path="/tools" element={<ExternalAccess />} />
-                  </Routes>
-                </div>
-              </main>
-            </div>
-
-            <AIChat />
-          </div>
-        } />
+        <Route
+          path="/*"
+          element={
+            <FabLabLayout
+              user={user}
+              isDark={isDark}
+              onToggleTheme={toggleTheme}
+              isSidebarOpen={isSidebarOpen}
+              onToggleSidebar={toggleSidebar}
+              onCloseSidebar={() => setIsSidebarOpen(false)}
+              onLogout={handleLogout}
+            />
+          }
+        />
       </Routes>
     </>
   );

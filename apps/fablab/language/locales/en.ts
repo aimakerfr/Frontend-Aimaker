@@ -27,6 +27,9 @@ export const en: Translations = {
       makerPath: 'Maker Path',
       tools: 'External Access',
       signOut: 'Sign Out',
+      rags: 'RAGs',
+      objectsLibrary: 'Objects Library',
+      projects: 'Projects',
     },
     library: {
       title: 'Library',
