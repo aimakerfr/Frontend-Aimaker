@@ -3,7 +3,15 @@ import type { LucideIcon } from 'lucide-react';
 import { Code2, Cog, FileText, Globe, ImageIcon, Upload, Video, X } from 'lucide-react';
 import type { Translations } from '../../../language/locales/types';
 
-export type ObjectType = 'doc' | 'html' | 'code' | 'image' | 'video' | 'config';
+// Aligned with backend types validation
+export type ObjectType =
+  | 'DOC'
+  | 'IMAGE'
+  | 'VIDEO'
+  | 'HTML'
+  | 'CODE'
+  | 'TRANSLATION'
+  | 'CONFIG';
 
 type AddObjectModalProps = {
   isOpen: boolean;
@@ -14,7 +22,7 @@ type AddObjectModalProps = {
 
 const AddObjectModal: React.FC<AddObjectModalProps> = ({ isOpen, onClose, onSubmit, t }) => {
   const [title, setTitle] = useState('');
-  const [activeType, setActiveType] = useState<ObjectType>('doc');
+  const [activeType, setActiveType] = useState<ObjectType>('DOC');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [fileName, setFileName] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -32,54 +40,63 @@ const AddObjectModal: React.FC<AddObjectModalProps> = ({ isOpen, onClose, onSubm
     accept: string;
   }> = [
     {
-      id: 'doc',
+      id: 'DOC',
       label: (t as any).home?.objects_library?.tabs?.document ?? 'DOC',
-      description: (t as any).home?.objects_library?.tabs?.document_desc ?? 'DOC, TXT, MD',
-      color: 'text-red-500',
-      bg: 'bg-red-50',
+      description: (t as any).home?.objects_library?.tabs?.document_desc ?? 'TXT, PDF, MD, DOC, DOCX, RTF, ODT',
+      color: 'text-rose-600',
+      bg: 'bg-rose-50',
       icon: FileText,
-      accept: '.doc,.docx,.txt,.md',
+      accept: '.txt,.pdf,.md,.doc,.docx,.rtf,.odt',
     },
     {
-      id: 'html',
+      id: 'IMAGE',
+      label: (t as any).home?.objects_library?.tabs?.image ?? 'IMAGE',
+      description: (t as any).home?.objects_library?.tabs?.image_desc ?? 'JPG, JPEG, PNG, GIF, WEBP',
+      color: 'text-amber-600',
+      bg: 'bg-amber-50',
+      icon: ImageIcon,
+      accept: '.jpg,.jpeg,.png,.gif,.webp',
+    },
+    {
+      id: 'VIDEO',
+      label: (t as any).home?.objects_library?.tabs?.video ?? 'VIDEO',
+      description: (t as any).home?.objects_library?.tabs?.video_desc ?? 'MP4, MPEG, MOV, AVI',
+      color: 'text-purple-600',
+      bg: 'bg-purple-50',
+      icon: Video,
+      accept: '.mp4,.mpeg,.mov,.avi',
+    },
+    {
+      id: 'HTML',
       label: (t as any).home?.objects_library?.tabs?.html ?? 'HTML',
-      description: (t as any).home?.objects_library?.tabs?.html_desc ?? 'HTML',
+      description: (t as any).home?.objects_library?.tabs?.html_desc ?? 'HTML, HTM',
       color: 'text-blue-600',
       bg: 'bg-blue-50',
       icon: Globe,
-      accept: '.html',
+      accept: '.html,.htm',
     },
     {
-      id: 'code',
-      label: (t as any).home?.objects_library?.tabs?.code ?? 'Code',
-      description: (t as any).home?.objects_library?.tabs?.code_desc ?? 'JSX, TSX',
+      id: 'CODE',
+      label: (t as any).home?.objects_library?.tabs?.code ?? 'CODE',
+      description: (t as any).home?.objects_library?.tabs?.code_desc ?? 'JSX, TSX, JS, TS',
       color: 'text-teal-600',
       bg: 'bg-teal-50',
       icon: Code2,
       accept: '.jsx,.tsx,.js,.ts',
     },
     {
-      id: 'image',
-      label: (t as any).home?.objects_library?.tabs?.image ?? 'Image',
-      description: (t as any).home?.objects_library?.tabs?.image_desc ?? 'PNG, JPG, SVG',
-      color: 'text-amber-500',
-      bg: 'bg-amber-50',
-      icon: ImageIcon,
-      accept: 'image/*',
+      id: 'TRANSLATION',
+      label: (t as any).home?.objects_library?.tabs?.translation ?? 'TRANSLATION',
+      description: (t as any).home?.objects_library?.tabs?.translation_desc ?? 'JSON',
+      color: 'text-fuchsia-600',
+      bg: 'bg-fuchsia-50',
+      icon: FileText,
+      accept: '.json',
     },
     {
-      id: 'video',
-      label: (t as any).home?.objects_library?.tabs?.video ?? 'Video',
-      description: (t as any).home?.objects_library?.tabs?.video_desc ?? 'MP4, MOV',
-      color: 'text-purple-500',
-      bg: 'bg-purple-50',
-      icon: Video,
-      accept: 'video/*',
-    },
-    {
-      id: 'config',
-      label: (t as any).home?.objects_library?.tabs?.config ?? 'Config',
-      description: (t as any).home?.objects_library?.tabs?.config_desc ?? 'JSON, YAML, ENV',
+      id: 'CONFIG',
+      label: (t as any).home?.objects_library?.tabs?.config ?? 'CONFIG',
+      description: (t as any).home?.objects_library?.tabs?.config_desc ?? 'JSON, YAML, YML, ENV, INI',
       color: 'text-slate-600',
       bg: 'bg-slate-50',
       icon: Cog,
@@ -89,7 +106,7 @@ const AddObjectModal: React.FC<AddObjectModalProps> = ({ isOpen, onClose, onSubm
 
   const resetState = () => {
     setTitle('');
-    setActiveType('doc');
+    setActiveType('DOC');
     setSelectedFile(null);
     setFileName('');
     setError(null);

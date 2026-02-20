@@ -1,9 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useLanguage } from '../../language/useLanguage';
 import { getAllObjects, createObject, ObjectItem } from '@core/objects';
 import AddObjectButton from './components/AddObjectButton';
 import AddObjectModal from './components/AddObjectModal';
 import ObjectsTable from './components/ObjectsTable';
+import { UI_TRANSLATIONS as OBJECTS_UI_T } from './constants/translations';
 
 type ObjectsLibraryProps = {
   selection?: boolean;
@@ -12,7 +13,24 @@ type ObjectsLibraryProps = {
 };
 
 const ObjectsLibrary: React.FC<ObjectsLibraryProps> = ({ selection = false, selectedObjects = [], onSelectionChange }) => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage() as any;
+  
+  // Merge local view translations into global t under the same path used by components
+  const mergedT = useMemo(() => {
+    const langCode = (typeof language === 'string' && language.substring(0,2)) as 'en' | 'es' | 'fr';
+    const local = (OBJECTS_UI_T as any)[langCode] || (OBJECTS_UI_T as any).en;
+    // Shallow merge is enough for our usage here
+    return {
+      ...t,
+      home: {
+        ...(t as any).home,
+        objects_library: {
+          ...((t as any).home?.objects_library || {}),
+          ...(local?.home?.objects_library || {}),
+        },
+      },
+    };
+  }, [t, language]);
   const [items, setItems] = useState<ObjectItem[]>([]);
   const [selected, setSelected] = useState<ObjectItem[]>(selectedObjects ?? []);
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -76,9 +94,9 @@ const ObjectsLibrary: React.FC<ObjectsLibraryProps> = ({ selection = false, sele
   return (
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-semibold">{(t as any).home?.objects_library?.title ?? 'Objects Library'}</h1>
+          <h1 className="text-2xl font-semibold">{(mergedT as any).home?.objects_library?.title ?? 'Objects Library'}</h1>
           <AddObjectButton
-            label={(t as any).home?.objects_library?.add_button ?? 'Add Object'}
+            label={(mergedT as any).home?.objects_library?.add_button ?? 'Add Object'}
             onClick={() => setIsModalOpen(true)}
           />
         </div>
@@ -87,7 +105,7 @@ const ObjectsLibrary: React.FC<ObjectsLibraryProps> = ({ selection = false, sele
           items={items}
           isLoading={isLoading}
           error={error}
-          t={t}
+          t={mergedT as any}
           onView={handleView}
           selection={selection}
           selectedIds={selection ? selected.map((item) => item.id) : []}
@@ -98,7 +116,7 @@ const ObjectsLibrary: React.FC<ObjectsLibraryProps> = ({ selection = false, sele
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}
           onSubmit={handleCreate}
-          t={t as any}
+          t={mergedT as any}
         />
       </div>
   );
