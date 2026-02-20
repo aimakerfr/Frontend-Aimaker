@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Wand2, Loader2, RefreshCw } from 'lucide-react';
-import { getMakerPathVariables, postMakerPathVariable } from '@core/maker-path-variables/maker-path-variables.service';
+import { getMakerPathVariables } from '@core/maker-path-variables/maker-path-variables.service';
 import { generateImageFromPrompt } from '@core/ai/image-generation.service';
 import { useLanguage } from '../../../language/useLanguage';
 
@@ -14,7 +14,6 @@ type IaGeneratorStepProps = {
 
 const IaGeneratorStep: React.FC<IaGeneratorStepProps> = ({
   makerPathId,
-  variableIndexNumber,
   stepId,
   onMarkStepComplete,
   onGeneratedImage,
@@ -97,22 +96,22 @@ const IaGeneratorStep: React.FC<IaGeneratorStepProps> = ({
       setIsGenerating(false);
       setError(null);
 
-      // Save as maker path variable
-      if (makerPathId && variableIndexNumber) {
-        try {
-          await postMakerPathVariable({
-            makerPathId,
-            variableIndexNumber,
-            variableName: 'generated_image_url',
-            variableValue: { imageUrl: result.imageUrl },
-          });
-          console.log('[IaGeneratorStep] Image URL saved as variable');
-          if (stepId && onMarkStepComplete) onMarkStepComplete(stepId);
-        } catch (err) {
-          console.error('[IaGeneratorStep] Error saving image URL:', err);
-        }
+      // Save in sessionStorage (temporal, no DB)
+      if (makerPathId) {
+        const storageKey = `current_generated_image_${makerPathId}`;
+        sessionStorage.setItem(storageKey, result.imageUrl);
+        console.log('[IaGeneratorStep] Image saved to sessionStorage:', storageKey);
+        
+        // Dispatch custom event to notify OutputResultSaver
+        const event = new CustomEvent('imageGenerated', { 
+          detail: { imageUrl: result.imageUrl, makerPathId } 
+        });
+        window.dispatchEvent(event);
+        console.log('[IaGeneratorStep] imageGenerated event dispatched');
       }
 
+      // Mark step as complete
+      if (stepId && onMarkStepComplete) onMarkStepComplete(stepId);
       if (onGeneratedImage) onGeneratedImage(result.imageUrl);
 
     } catch (err: any) {

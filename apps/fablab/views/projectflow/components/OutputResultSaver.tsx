@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Download, FileImage, Check, ExternalLink, Save } from 'lucide-react';
-import { getMakerPathVariables } from '@core/maker-path-variables/maker-path-variables.service';
+import { Download, FileImage, Check, ExternalLink, Save, RefreshCw } from 'lucide-react';
 import { useLanguage } from '../../../language/useLanguage';
 
 type OutputResultSaverProps = {
@@ -20,44 +19,53 @@ const OutputResultSaver: React.FC<OutputResultSaverProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [isDownloaded, setIsDownloaded] = useState(false);
 
+  // Load image from sessionStorage on mount and when stepId changes
   useEffect(() => {
-    loadResultFromPreviousStep();
+    loadImageFromSessionStorage();
+  }, [makerPathId, stepId]);
+
+  // Listen for new images generated in step 3
+  useEffect(() => {
+    const handleImageGenerated = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      const { imageUrl, makerPathId: eventMakerPathId } = customEvent.detail;
+      
+      // Only update if it's for this maker path
+      if (eventMakerPathId === makerPathId) {
+        console.log('[OutputResultSaver] New image received from event');
+        setResultData(imageUrl);
+        setIsDownloaded(false);
+        setError(null);
+      }
+    };
+
+    window.addEventListener('imageGenerated', handleImageGenerated);
+    
+    return () => {
+      window.removeEventListener('imageGenerated', handleImageGenerated);
+    };
   }, [makerPathId]);
 
-  const loadResultFromPreviousStep = async () => {
+  const loadImageFromSessionStorage = () => {
     if (!makerPathId) return;
 
     try {
-      const variables = await getMakerPathVariables(makerPathId);
-      console.log('[OutputResultSaver] All variables:', variables);
-
-      // Look for the generated_image_url variable from the previous step
-      const imageVariable = variables.find(v => 
-        v.makerPathId === makerPathId && v.variableName === 'generated_image_url'
-      );
-
-      if (imageVariable) {
-        const value = imageVariable.variableValue as any;
-        console.log('[OutputResultSaver] Found image variable:', value);
-        
-        // Extract image URL from object or use directly
-        let imageUrl = '';
-        if (typeof value === 'object' && value?.imageUrl) {
-          imageUrl = value.imageUrl;
-        } else if (typeof value === 'string') {
-          imageUrl = value;
-        }
-
-        if (imageUrl) {
-          setResultData(imageUrl);
-          console.log('[OutputResultSaver] Image URL loaded successfully');
-        }
+      const storageKey = `current_generated_image_${makerPathId}`;
+      const imageUrl = sessionStorage.getItem(storageKey);
+      
+      if (imageUrl) {
+        console.log('[OutputResultSaver] Image loaded from sessionStorage');
+        setResultData(imageUrl);
+        setIsDownloaded(false);
+        setError(null);
       } else {
-        console.log('[OutputResultSaver] No generated_image_url variable found');
-        setError('No image found from previous step');
+        console.log('[OutputResultSaver] No image in sessionStorage yet');
+        setResultData(null);
+        setError(null); // Don't show error, user hasn't generated image yet
       }
     } catch (err) {
-      console.error('[OutputResultSaver] Error loading result:', err);
+      console.error('[OutputResultSaver] Error loading from sessionStorage:', err);
+      setResultData(null);
       setError(os.noImageSubtitle);
     }
   };
@@ -109,12 +117,24 @@ const OutputResultSaver: React.FC<OutputResultSaverProps> = ({
   return (
     <div className="flex flex-col h-full space-y-4">
       {/* Header */}
-      <div className="flex items-center gap-3 px-4 py-3 bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 rounded-lg border border-emerald-100 dark:border-emerald-800/30">
-        <FileImage size={20} className="text-emerald-600 dark:text-emerald-400" />
-        <div>
-          <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">{os.title}</h3>
-          <p className="text-xs text-gray-600 dark:text-gray-400">{os.subtitle}</p>
+      <div className="flex items-center justify-between gap-3 px-4 py-3 bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 rounded-lg border border-emerald-100 dark:border-emerald-800/30">
+        <div className="flex items-center gap-3">
+          <FileImage size={20} className="text-emerald-600 dark:text-emerald-400" />
+          <div>
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">{os.title}</h3>
+            <p className="text-xs text-gray-600 dark:text-gray-400">{os.subtitle}</p>
+          </div>
         </div>
+        
+        {/* Reload Button */}
+        <button
+          onClick={loadImageFromSessionStorage}
+          className="flex items-center gap-2 px-3 py-2 bg-white dark:bg-gray-800 text-emerald-700 dark:text-emerald-400 rounded-md hover:bg-emerald-50 dark:hover:bg-emerald-900/30 transition-colors text-xs font-semibold border border-emerald-200 dark:border-emerald-700"
+          title="Recargar imagen"
+        >
+          <RefreshCw size={16} />
+          Recargar
+        </button>
       </div>
 
       {/* Result Preview */}
