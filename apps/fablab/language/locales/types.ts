@@ -936,6 +936,68 @@ export interface Translations {
       compileAndExport: string;
       userInputAndAiRefinement: string;
     };
+    ragSelector: {
+      title: string;
+      subtitle: string;
+      loading: string;
+      noRags: string;
+      selectSources: string;
+      backToList: string;
+      noSources: string;
+      confirm: string;
+      saving: string;
+      errorLoad: string;
+      errorSave: string;
+      retry: string;
+      infoSelectLibrary: string;
+      infoSelectSources: string;
+    };
+    ragChat: {
+      title: string;
+      subtitle: string;
+      loadingSources: string;
+      errorNoSources: string;
+      errorLoadSources: string;
+      useLastResponse: string;
+      savedPrompt: string;
+      savingPrompt: string;
+      failedSave: string;
+      sendPlaceholder: string;
+      send: string;
+      thinking: string;
+      retry: string;
+      sourcesLoaded: string;
+      emptyTitle: string;
+      emptySubtitle: string;
+    };
+    imageGenerator: {
+      title: string;
+      subtitle: string;
+      promptLabel: string;
+      placeholder: string;
+      ctrlEnterHint: string;
+      charsTruncated: string;
+      longPromptWarning: string;
+      generateBtn: string;
+      generatingBtn: string;
+      imageTitle: string;
+      regenerate: string;
+      download: string;
+      errorEmpty: string;
+      errorTimeout: string;
+      errorFailed: string;
+    };
+    outputSaver: {
+      title: string;
+      subtitle: string;
+      imageLabel: string;
+      downloadBtn: string;
+      downloadedBtn: string;
+      downloadHint: string;
+      noImageTitle: string;
+      noImageSubtitle: string;
+      errorDownload: string;
+    };
   };
 }
   
