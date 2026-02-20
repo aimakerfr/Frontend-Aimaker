@@ -893,6 +893,16 @@ export const fr: Translations = {
       },
     },
     projectFlow: {
+      modal: {
+        title: 'Sélectionner le projet',
+        subtitle: 'Choisissez comment vous voulez commencer votre nouveau flux de travail',
+        blankProject: 'Projet à partir de zéro',
+        blankProjectDesc: 'Commencez à zéro et concevez votre propre flux de travail personnalisé étape par étape.',
+        makerPaths: 'Maker Paths',
+        makerPathsDesc: 'Utilisez l\'un de nos modèles optimisés pour accélérer votre processus créatif.',
+        viewTemplates: 'Voir les modèles disponibles',
+        startNow: 'Commencer maintenant',
+      },
       title: 'MakerPath Visualizer',
       backToMakerPath: 'Retour au Chemin du Maker',
       configuration: 'CONFIGURATION',

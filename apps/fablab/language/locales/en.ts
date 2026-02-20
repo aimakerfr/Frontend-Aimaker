@@ -27,9 +27,6 @@ export const en: Translations = {
       makerPath: 'Maker Path',
       tools: 'External Access',
       signOut: 'Sign Out',
-      rags: 'RAGs',
-      objectsLibrary: 'Objects Library',
-      projects: 'Projects',
     },
     library: {
       title: 'Library',
@@ -897,6 +894,16 @@ export const en: Translations = {
       },
     },
     projectFlow: {
+      modal: {
+        title: 'Select Project',
+        subtitle: 'Choose how you want to start your new workflow',
+        blankProject: 'Blank Project',
+        blankProjectDesc: 'Start from scratch and design your own custom workflow step by step.',
+        makerPaths: 'Maker Paths',
+        makerPathsDesc: 'Use one of our optimized templates to accelerate your creative process.',
+        viewTemplates: 'View available templates',
+        startNow: 'Start now',
+      },
       title: 'MakerPath Visualizer',
       backToMakerPath: 'Back to Maker Path',
       configuration: 'CONFIGURATION',

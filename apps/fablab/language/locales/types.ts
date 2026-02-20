@@ -17,6 +17,7 @@ export interface Translations {
       makerPath: string;
       profile: string;
       tools: string;
+
     };
   };
   sidebar: {
@@ -894,6 +895,16 @@ export interface Translations {
     };
   };
   projectFlow: {
+    modal: {
+      title: string;
+      subtitle: string;
+      blankProject: string;
+      blankProjectDesc: string;
+      makerPaths: string;
+      makerPathsDesc: string;
+      viewTemplates: string;
+      startNow: string;
+    };
     title: string;
     backToMakerPath: string;
     configuration: string;

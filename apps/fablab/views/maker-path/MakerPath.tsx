@@ -9,6 +9,7 @@ import {
 import type { MakerPath, MakerPathStatus } from '@core/maker-path';
 import { RouteTypeModal } from './components/RouteTypeModal';
 import { useLanguage } from '../../language/useLanguage';
+import { INITIAL_MAKERPATHS } from '../projectflow/demoWorkflows';
 
 type FilterType = 'all' | 'architect_ai' | 'module_connector' | 'custom';
 type StatusFilter = 'all' | 'draft' | 'in_progress' | 'completed';
@@ -40,40 +41,71 @@ const MakerPathView: React.FC = () => {
     }
   };
 
-  const handleCreate = async () => {
+  const handleCreate = async (type: 'blank' | 'landing_page_maker' | 'rag_chat_maker' | 'image_generator_rag' = 'blank') => {
     try {
+      let title = 'Proyecto sin título';
+      let data = '';
+
+      if (type !== 'blank') {
+        const template = INITIAL_MAKERPATHS[type];
+        if (template) {
+          title = template.path.name;
+          data = JSON.stringify(template.json);
+        }
+      } else {
+        // Enviar un JSON mínimo para proyectos en blanco
+        data = JSON.stringify({
+          blank_project: {
+            stage_name: 'blank_project',
+            description: 'Un nuevo proyecto desde cero.',
+            output_type: 'OUTPUT',
+            steps: []
+          }
+        });
+      }
+
       const newPath = await createMakerPath({
-        title: 'ProjectFlow',
-        description: '',
+        title,
+        description: 'Creado desde el dashboard',
         type: 'custom',
-        status: 'draft'
+        status: 'draft',
+        data
       });
       
-      navigate(`/dashboard/maker-path/projectflow/${newPath.id}`);
       setShowRouteTypeModal(false);
+      
+      if (type === 'blank') {
+        navigate(`/dashboard/projectflow/${newPath.id}`);
+      } else {
+        navigate(`/dashboard/projectflow/${type}/${newPath.id}`);
+      }
     } catch (error) {
-      console.error('Error creating maker path:', error);
+      console.error('Error creating project:', error);
     }
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm(t.makerPath.deleteConfirm)) return;
+    if (!confirm('¿Estás seguro de que quieres eliminar este proyecto?')) return;
     try {
       await deleteMakerPath(id);
       await loadPaths();
     } catch (error) {
-      console.error('Error deleting maker path:', error);
+      console.error('Error deleting project:', error);
     }
   };
 
   const handleRedirectToPlanner = (pathId: number) => {
     const path = paths.find(p => p.id === pathId);
-    if ((path?.type as string) === 'module_connector') {
+    if ((path?.type as string) === 'module_connector' || (path?.type as string) === 'architect_ai') {
       navigate(`/dashboard/maker-path/modules/${pathId}`);
-    } else if ((path?.type as string) === 'custom') {
-      navigate(`/dashboard/maker-path/projectflow/${pathId}`);
     } else {
-      navigate(`/dashboard/maker-path/${pathId}`);
+      // Si el tipo es custom pero es una de las plantillas originales, tratamos de pasarlo en la URL
+      const type = (path?.type as string) || '';
+      if (INITIAL_MAKERPATHS[type]) {
+        navigate(`/dashboard/projectflow/${type}/${pathId}`);
+      } else {
+        navigate(`/dashboard/projectflow/${pathId}`);
+      }
     }
   };
 
@@ -127,11 +159,11 @@ const MakerPathView: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50/30 dark:from-gray-900 dark:to-blue-900/10 p-6">
-      {/* Modal de selección de tipo de ruta */}
+      {/* Modal de selección de tipo de proyecto */}
       <RouteTypeModal
         isOpen={showRouteTypeModal}
         onClose={() => setShowRouteTypeModal(false)}
-        onSelect={() => handleCreate()}
+        onSelect={(type) => handleCreate(type as any)}
       />
       
       <div className="max-w-7xl mx-auto space-y-6">
@@ -139,16 +171,16 @@ const MakerPathView: React.FC = () => {
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-              {t.makerPath.title}
+              Proyectos
             </h1>
-            <p className="text-gray-600 dark:text-gray-400 mt-1">{t.makerPath.subtitle}</p>
+            <p className="text-gray-600 dark:text-gray-400 mt-1">Gestiona y crea tus flujos de trabajo</p>
           </div>
           <button
             onClick={() => setShowRouteTypeModal(true)}
             className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold rounded-xl transition-all shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40 hover:scale-[1.02]"
           >
             <Plus size={20} />
-            {t.makerPath.newRoute}
+            Nuevo Proyecto
           </button>
         </div>
 
@@ -192,11 +224,11 @@ const MakerPathView: React.FC = () => {
         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 overflow-hidden">
           <div className="bg-gradient-to-r from-gray-50 to-blue-50/50 dark:from-gray-900 dark:to-blue-900/20 border-b border-gray-200 dark:border-gray-700">
             <div className="grid grid-cols-12 gap-4 px-6 py-4">
-              <div className="col-span-1 text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider">{t.makerPath.tableHeaders.type}</div>
-              <div className="col-span-4 text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider">{t.makerPath.tableHeaders.titleDescription}</div>
-              <div className="col-span-2 text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider">{t.makerPath.tableHeaders.status}</div>
-              <div className="col-span-2 text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider">{t.makerPath.tableHeaders.creationDate}</div>
-              <div className="col-span-3 text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider">{t.makerPath.tableHeaders.actions}</div>
+              <div className="col-span-1 text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider">Tipo</div>
+              <div className="col-span-4 text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider">Título y Descripción</div>
+              <div className="col-span-2 text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider">Estado</div>
+              <div className="col-span-2 text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider">Fecha de Creación</div>
+              <div className="col-span-3 text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider">Acciones</div>
             </div>
           </div>
 
