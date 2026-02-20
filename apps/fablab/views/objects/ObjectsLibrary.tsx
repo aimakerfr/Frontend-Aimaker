@@ -5,9 +5,16 @@ import AddObjectButton from './components/AddObjectButton';
 import AddObjectModal from './components/AddObjectModal';
 import ObjectsTable from './components/ObjectsTable';
 
-const ObjectsLibrary: React.FC = () => {
+type ObjectsLibraryProps = {
+  selection?: boolean;
+  selectedObjects?: ObjectItem[];
+  onSelectionChange?: (selected: ObjectItem[]) => void;
+};
+
+const ObjectsLibrary: React.FC<ObjectsLibraryProps> = ({ selection = false, selectedObjects = [], onSelectionChange }) => {
   const { t } = useLanguage();
   const [items, setItems] = useState<ObjectItem[]>([]);
+  const [selected, setSelected] = useState<ObjectItem[]>(selectedObjects ?? []);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -38,10 +45,27 @@ const ObjectsLibrary: React.FC = () => {
     };
   }, []);
 
+  useEffect(() => {
+    if (selection) {
+      setSelected(selectedObjects ?? []);
+    }
+  }, [selection, selectedObjects]);
+
   const handleCreate = async ({ title, type, file }: { title: string; type: string; file: File }) => {
     const created = await createObject({ title, type, file });
     // Optimistic append; alternatively refresh() to re-fetch from server
     setItems((prev) => [created, ...prev]);
+  };
+
+  const handleToggleSelect = (item: ObjectItem, checked: boolean) => {
+    if (!selection) return;
+
+    setSelected((prev) => {
+      const filtered = prev.filter((selectedItem) => selectedItem.id !== item.id);
+      const next = checked ? [...filtered, item] : filtered;
+      onSelectionChange?.(next);
+      return next;
+    });
   };
 
   const handleView = (item: ObjectItem) => {
@@ -59,7 +83,16 @@ const ObjectsLibrary: React.FC = () => {
           />
         </div>
 
-        <ObjectsTable items={items} isLoading={isLoading} error={error} t={t} onView={handleView} />
+        <ObjectsTable
+          items={items}
+          isLoading={isLoading}
+          error={error}
+          t={t}
+          onView={handleView}
+          selection={selection}
+          selectedIds={selection ? selected.map((item) => item.id) : []}
+          onToggleSelect={handleToggleSelect}
+        />
 
         <AddObjectModal
           isOpen={isModalOpen}

@@ -1,7 +1,7 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, FileText, Notebook, FolderKanban, Eye, Plus, X, Trash2, Star } from 'lucide-react';
+import { Database, Eye, FileText, FolderKanban, Plus, Search, Star, Trash2, X } from 'lucide-react';
 import { useLanguage } from '../../language/useLanguage';
 import { 
   getTools, 
@@ -31,6 +31,8 @@ const getIconColorClass = (type: ItemType): string => {
       return 'bg-gradient-to-br from-blue-500 to-indigo-600';
     case 'project':
       return 'bg-gradient-to-br from-emerald-500 to-green-600';
+    case 'rag_multimodal':
+      return 'bg-gradient-to-br from-purple-500 to-violet-600';
     default:
       return 'bg-gradient-to-br from-gray-500 to-gray-600';
   }
@@ -77,12 +79,6 @@ const LibraryView: React.FC<LibraryViewProps> = ({
   const navigate = useNavigate();
   const { t } = useLanguage();
 
-  const isMountedRef = useRef(true);
-  useEffect(() => {
-    return () => {
-      isMountedRef.current = false;
-    };
-  }, []);
   
   // Use props if provided, otherwise local state (backward compat)
   const [localActiveFilter, setLocalActiveFilter] = useState<FilterType>('all');
@@ -95,7 +91,6 @@ const LibraryView: React.FC<LibraryViewProps> = ({
   
   const [searchQuery, setSearchQuery] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [isCreatingRag, setIsCreatingRag] = useState(false);
 
   const getFilteredTools = () => {
     let filtered: any = items;
@@ -117,7 +112,7 @@ const LibraryView: React.FC<LibraryViewProps> = ({
   const filteredItems = getFilteredTools();
 
   const itemTypes: { type: ItemType; icon: any; label: string }[] = [
-    { type: 'note_books', icon: Notebook, label: t.library.types.notebook },
+    { type: 'rag_multimodal', icon: Database, label: t.library.types.notebook },
     { type: 'prompt', icon: FileText, label: t.library.types.prompt },
     { type: 'project', icon: FolderKanban, label: t.library.types.project }
   ];
@@ -133,6 +128,17 @@ const LibraryView: React.FC<LibraryViewProps> = ({
   const handleCreateClick = async (type: ItemType) => {
     // Crear el tool inmediatamente al seleccionar tipo
     setShowCreateModal(false);
+    if (type === 'rag_multimodal') {
+      createRagMultimodalTool()
+        .then(({ toolId }) => {
+          console.log('[Library] createRagMultimodalTool resolved:', { toolId });
+          navigate(`/dashboard/rag-multimodal/${toolId}`);
+        })
+        .catch((error) => {
+          console.error('Error creando RAG:', error);
+        });
+      return;
+    }
     try {
       const newTool = await createTool({
         type: type as any,
@@ -150,24 +156,6 @@ const LibraryView: React.FC<LibraryViewProps> = ({
     }
   };
 
-  const handleCreateRagClick = () => {
-    if (isCreatingRag) return;
-    if (isMountedRef.current) setIsCreatingRag(true);
-
-    createRagMultimodalTool()
-      .then(({ toolId }) => {
-        console.log('[Library] createRagMultimodalTool resolved:', { toolId });
-        console.log('[Library] navigating to:', `/rag-multimodal/${toolId}`);
-        // Use an absolute path (root-relative) so navigation is not resolved from the current nested URL.
-        navigate(`/dashboard/rag-multimodal/${toolId}`);
-      })
-      .catch((error) => {
-        console.error('Error creando RAG:', error);
-      })
-      .finally(() => {
-        if (isMountedRef.current) setIsCreatingRag(false);
-      });
-  };
 
   const handleToggleFavorite = async (itemId: number, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -202,13 +190,6 @@ const LibraryView: React.FC<LibraryViewProps> = ({
             <p className="text-gray-600 dark:text-gray-400 mt-1">{t.library.subtitle}</p>
           </div>
           <div className="flex items-center gap-3">
-            <button
-              onClick={handleCreateRagClick}
-              disabled={isCreatingRag}
-              className="flex items-center gap-2 px-6 py-3 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-900 dark:text-white font-semibold rounded-xl transition-all shadow-lg border border-gray-200 dark:border-gray-700 disabled:opacity-60 disabled:cursor-not-allowed"
-            >
-              {t.library.newRag}
-            </button>
             <button
               onClick={() => setShowCreateModal(true)}
               className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold rounded-xl transition-all shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40 hover:scale-[1.02]"

@@ -5,12 +5,18 @@ export type ObjectItem = {
   id: string | number;
   name: string;
   url?: string;
+  type?: string;
 };
 
 export type CreateObjectPayload = {
   title: string;
   type: string;
   file?: File;
+};
+
+export type CopyObjectToRagPayload = {
+  object_id: number;
+  rag_id: number;
 };
 
 const ENDPOINT = '/api/v1/objects';
@@ -37,4 +43,11 @@ export async function createObject(payload: CreateObjectPayload): Promise<Object
   }
 
   return httpClient.post<ObjectItem>(ENDPOINT + '/upload', formData);
+}
+
+/**
+ * Copy an object's file/content to a RAG multimodal source.
+ */
+export async function copyObjectToRag(payload: CopyOjectToRagPayload) {
+  return httpClient.post(`${ENDPOINT}/copy_to_rag`, payload);
 }

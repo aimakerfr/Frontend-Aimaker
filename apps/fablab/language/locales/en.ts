@@ -818,6 +818,11 @@ export const en: Translations = {
       },
       sourcePanel: {
         title: 'Sources',
+        subtitle: 'Manage your data sources',
+        activeLabel: 'Active sources',
+        importButton: 'Import object source',
+        importTitle: 'Import',
+        importSubtitle: 'Import object source',
         total: 'TOTAL',
         empty: 'Empty notebook',
         add: 'Add Source',

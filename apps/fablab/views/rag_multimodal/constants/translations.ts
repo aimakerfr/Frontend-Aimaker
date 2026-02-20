@@ -39,6 +39,28 @@ export const UI_TRANSLATIONS = {
         },
         app: {
             title: 'Libreta de Investigación'
+        },
+        languages: {
+            es: '🇪🇸 Español',
+            en: '🇬🇧 English',
+            fr: '🇫🇷 Français'
+        },
+        toolPicker: {
+            title: 'Herramientas del RAG',
+            subtitle: 'Selecciona una herramienta para comenzar a trabajar con tus fuentes',
+            chat: {
+                title: 'Chat con Fuentes',
+                description: 'Conversa e interroga tus fuentes con IA'
+            },
+            autoAnalysis: {
+                title: 'Análisis Automático',
+                badge: 'PRÓXIMAMENTE',
+                description: 'Genera insights automáticos de tus fuentes'
+            },
+            moreTools: {
+                title: 'Más Herramientas',
+                description: 'Nuevas funcionalidades en desarrollo'
+            }
         }
     },
     en: {
@@ -80,6 +102,28 @@ export const UI_TRANSLATIONS = {
         },
         app: {
             title: 'Research Notebook'
+        },
+        languages: {
+            es: '🇪🇸 Spanish',
+            en: '🇬🇧 English',
+            fr: '🇫🇷 French'
+        },
+        toolPicker: {
+            title: 'RAG Tools',
+            subtitle: 'Select a tool to start working with your sources',
+            chat: {
+                title: 'Chat with Sources',
+                description: 'Chat and interrogate your sources with AI'
+            },
+            autoAnalysis: {
+                title: 'Automatic Analysis',
+                badge: 'COMING SOON',
+                description: 'Generate automatic insights from your sources'
+            },
+            moreTools: {
+                title: 'More Tools',
+                description: 'New features in development'
+            }
         }
     },
     fr: {
@@ -121,6 +165,28 @@ export const UI_TRANSLATIONS = {
         },
         app: {
             title: 'Cahier de Recherche'
+        },
+        languages: {
+            es: '🇪🇸 Espagnol',
+            en: '🇬🇧 Anglais',
+            fr: '🇫🇷 Français'
+        },
+        toolPicker: {
+            title: 'Outils RAG',
+            subtitle: 'Sélectionnez un outil pour commencer à travailler avec vos sources',
+            chat: {
+                title: 'Chat avec Sources',
+                description: 'Discutez et interrogez vos sources avec l’IA'
+            },
+            autoAnalysis: {
+                title: 'Analyse Automatique',
+                badge: 'Bientôt',
+                description: 'Générez automatiquement des insights à partir de vos sources'
+            },
+            moreTools: {
+                title: 'Plus d’outils',
+                description: 'Nouvelles fonctionnalités en développement'
+            }
         }
     }
 };
