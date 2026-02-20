@@ -92,4 +92,52 @@ export const INITIAL_MAKERPATHS: Record<string, { json: WorkflowJSON; path: Avai
       },
     },
   },
+  image_generator_rag: {
+    path: {
+      id: 'image_generator_rag',
+      name: 'Image Generator from RAG',
+      description: 'Generate images using prompts built from RAG knowledge sources.',
+      outputType: 'IMAGE',
+    },
+    json: {
+      rag_image_generator: {
+        stage_name: 'Imagen desde RAG (Simple)',
+        description: 'Selecciona una tarjeta RAG, construye el prompt y genera la imagen.',
+        output_type: 'IMAGE',
+        required_files: [],
+        required_variables: [1],
+        steps: [
+          {
+            step_id: 1,
+            name: 'Seleccionar tarjeta RAG',
+            action: 'rag_selector',
+            variable_index_number: 1,
+            variable_name: 'image_rag_source',
+            required: true,
+          },
+          {
+            step_id: 2,
+            name: 'Construir prompt visual',
+            action: 'rag_chat',
+            variable_index_number: 1,
+            required: true,
+          },
+          {
+            step_id: 3,
+            name: 'Generar imagen',
+            action: 'ia_generator',
+            variable_index_number: 2,
+            variable_name: 'generated_image_url',
+            required: true,
+          },
+          {
+            step_id: 4,
+            name: 'Guardar resultado',
+            action: 'output_result_saver',
+            required: true,
+          },
+        ],
+      },
+    },
+  },
 };

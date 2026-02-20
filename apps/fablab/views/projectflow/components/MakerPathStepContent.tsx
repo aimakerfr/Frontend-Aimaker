@@ -5,6 +5,8 @@ import RagLibrarySelector from './RagLibrarySelector';
 import FileGenerator from './FileGenerator';
 import RagSelectorStep from './RagSelectorStep';
 import RagChatStep from './RagChatStep';
+import IaGeneratorStep from './IaGeneratorStep';
+import OutputResultSaver from './OutputResultSaver';
 
 type MakerPathStepContentProps = {
   action: StepAction;
@@ -121,6 +123,23 @@ const MakerPathStepContent: React.FC<MakerPathStepContentProps> = (props) => {
         <RagChatStep
           makerPathId={props.makerPathId}
           variableIndexNumber={props.variableIndexNumber}
+          stepId={props.stepId}
+          onMarkStepComplete={props.onMarkStepComplete}
+        />
+      );
+    case 'ia_generator':
+      return (
+        <IaGeneratorStep
+          makerPathId={props.makerPathId}
+          variableIndexNumber={props.variableIndexNumber}
+          stepId={props.stepId}
+          onMarkStepComplete={props.onMarkStepComplete}
+        />
+      );
+    case 'output_result_saver':
+      return (
+        <OutputResultSaver
+          makerPathId={props.makerPathId}
           stepId={props.stepId}
           onMarkStepComplete={props.onMarkStepComplete}
         />

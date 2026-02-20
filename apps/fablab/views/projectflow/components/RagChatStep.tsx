@@ -1,9 +1,10 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { getMakerPathVariables } from '@core/maker-path-variables/maker-path-variables.service';
+import { getMakerPathVariables, postMakerPathVariable } from '@core/maker-path-variables/maker-path-variables.service';
 import { getRagMultimodalSourceContent } from '@core/rag_multimodal';
-import { Bot, User, Send, Loader2, MessageSquare } from 'lucide-react';
+import { Bot, User, Send, Loader2, MessageSquare, Check, Wand2 } from 'lucide-react';
 import { generateChatResponse } from '../../rag_multimodal/services/geminiService';
 import type { Source } from '../../rag_multimodal/types';
+import { useLanguage } from '../../../language/useLanguage';
 
 type Message = {
   role: 'user' | 'model';
@@ -20,13 +21,19 @@ type RagChatStepProps = {
 const RagChatStep: React.FC<RagChatStepProps> = ({
   makerPathId,
   variableIndexNumber,
+  stepId,
+  onMarkStepComplete,
 }) => {
+  const { t } = useLanguage();
+  const rc = t.projectFlow.ragChat;
   const [sources, setSources] = useState<Source[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingSources, setIsLoadingSources] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isSavingPrompt, setIsSavingPrompt] = useState(false);
+  const [savedPrompt, setSavedPrompt] = useState<string | null>(null);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -194,11 +201,62 @@ const RagChatStep: React.FC<RagChatStepProps> = ({
     }
   };
 
+  const savePromptAndComplete = async (prompt: string) => {
+    if (!makerPathId || !stepId || !variableIndexNumber) {
+      console.error('[RagChatStep] Missing required data to save prompt');
+      return;
+    }
+
+    setIsSavingPrompt(true);
+    
+    try {
+      // Get the ragMultimodalSourceId from the previous step
+      const variables = await getMakerPathVariables(makerPathId);
+      const targetVariable = variables.find(
+        (v) => v.makerPathId === makerPathId && v.variableIndexNumber === variableIndexNumber
+      );
+      const ragMultimodalSourceId = targetVariable?.ragMultimodalSourceId || null;
+
+      // Save the prompt as a maker path variable
+      await postMakerPathVariable({
+        makerPathId,
+        variableIndexNumber, // Use the same variable index as the RAG selector step
+        variableName: 'image_prompt',
+        variableValue: { prompt },
+        ragMultimodalSourceId, // Include the RAG source reference
+      });
+
+      console.log('[RagChatStep] Prompt saved successfully');
+      setSavedPrompt(prompt);
+
+      // Mark step as complete after a short delay
+      setTimeout(() => {
+        if (onMarkStepComplete) {
+          onMarkStepComplete(stepId);
+        }
+      }, 500);
+    } catch (err) {
+      console.error('[RagChatStep] Error saving prompt:', err);
+      setError(rc.failedSave);
+    } finally {
+      setIsSavingPrompt(false);
+    }
+  };
+
+  const getLastModelMessage = (): string | null => {
+    for (let i = messages.length - 1; i >= 0; i--) {
+      if (messages[i].role === 'model') {
+        return messages[i].content;
+      }
+    }
+    return null;
+  };
+
   if (isLoadingSources) {
     return (
       <div className="flex flex-col items-center justify-center py-12 space-y-3">
         <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
-        <p className="text-sm text-gray-600 dark:text-gray-400">Loading knowledge sources...</p>
+        <p className="text-sm text-gray-600 dark:text-gray-400">{rc.loadingSources}</p>
       </div>
     );
   }
@@ -213,7 +271,7 @@ const RagChatStep: React.FC<RagChatStepProps> = ({
             onClick={loadRagSources}
             className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700"
           >
-            Retry
+            {rc.retry}
           </button>
         </div>
       </div>
@@ -226,12 +284,10 @@ const RagChatStep: React.FC<RagChatStepProps> = ({
       <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
         <div className="flex items-center gap-2">
           <Bot size={18} className="text-blue-600" />
-          <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-            RAG Chat Assistant
-          </span>
+          <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">{rc.title}</span>
         </div>
         <div className="text-xs text-gray-500 dark:text-gray-400">
-          {sources.length} source{sources.length !== 1 ? 's' : ''} loaded
+          {sources.length} {rc.sourcesLoaded}
         </div>
       </div>
 
@@ -242,10 +298,10 @@ const RagChatStep: React.FC<RagChatStepProps> = ({
             <MessageSquare size={48} className="text-gray-300 dark:text-gray-600" />
             <div>
               <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">
-                Start a conversation
+                {rc.emptyTitle}
               </p>
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                Ask questions about the selected knowledge sources
+                {rc.emptySubtitle}
               </p>
             </div>
           </div>
@@ -286,7 +342,7 @@ const RagChatStep: React.FC<RagChatStepProps> = ({
             <div className="bg-white dark:bg-gray-800 rounded-lg px-4 py-3 border border-gray-200 dark:border-gray-700">
               <div className="flex items-center gap-2">
                 <Loader2 size={14} className="animate-spin text-blue-600" />
-                <span className="text-sm text-gray-600 dark:text-gray-400">Thinking...</span>
+                <span className="text-sm text-gray-600 dark:text-gray-400">{rc.thinking}</span>
               </div>
             </div>
           </div>
@@ -296,14 +352,14 @@ const RagChatStep: React.FC<RagChatStepProps> = ({
       </div>
 
       {/* Input */}
-      <div className="border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-3">
+      <div className="border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-3 space-y-3">
         <div className="flex items-end gap-2">
           <textarea
             ref={textareaRef}
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Type your message... (Shift+Enter for new line)"
+            placeholder={rc.sendPlaceholder}
             className="flex-1 resize-none rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-4 py-2 text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             rows={1}
             disabled={isLoading}
@@ -316,6 +372,42 @@ const RagChatStep: React.FC<RagChatStepProps> = ({
             <Send size={18} />
           </button>
         </div>
+
+        {/* Use as Prompt Button */}
+        {messages.length > 0 && getLastModelMessage() && !savedPrompt && (
+          <button
+            onClick={() => {
+              const lastPrompt = getLastModelMessage();
+              if (lastPrompt) {
+                savePromptAndComplete(lastPrompt);
+              }
+            }}
+            disabled={isSavingPrompt}
+            className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white text-sm font-semibold rounded-lg hover:from-purple-700 hover:to-pink-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-xl"
+          >
+            {isSavingPrompt ? (
+              <>
+                <Loader2 size={16} className="animate-spin" />
+                {rc.savingPrompt}
+              </>
+            ) : (
+              <>
+                <Wand2 size={16} />
+                {rc.useLastResponse}
+              </>
+            )}
+          </button>
+        )}
+
+        {/* Prompt Saved Confirmation */}
+        {savedPrompt && (
+          <div className="flex items-center justify-center gap-2 px-4 py-3 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800/30 rounded-lg">
+            <Check size={16} className="text-emerald-600 dark:text-emerald-400" />
+            <span className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">
+              {rc.savedPrompt}
+            </span>
+          </div>
+        )}
       </div>
     </div>
   );

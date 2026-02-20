@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { httpClient } from '@core/api/http.client';
 import { Database, Check, ChevronLeft } from 'lucide-react';
 import { postMakerPathVariable, getMakerPathVariables } from '@core/maker-path-variables/maker-path-variables.service';
+import { useLanguage } from '../../../language/useLanguage';
 
 type RagMultimodal = {
   id: number;
@@ -40,6 +41,8 @@ const RagSelectorStep: React.FC<RagSelectorStepProps> = ({
   required,
   onMarkStepComplete,
 }) => {
+  const { t } = useLanguage();
+  const rs = t.projectFlow.ragSelector;
   const [step, setStep] = useState<'rag-list' | 'source-list'>('rag-list');
   const [rags, setRags] = useState<RagMultimodal[]>([]);
   const [selectedRag, setSelectedRag] = useState<RagMultimodal | null>(null);
@@ -143,7 +146,7 @@ const RagSelectorStep: React.FC<RagSelectorStepProps> = ({
       }
     } catch (err) {
       console.error('[RagSelectorStep] Error saving selection:', err);
-      alert('Error saving selection. Please try again.');
+      alert(rs.errorSave);
     } finally {
       setIsSaving(false);
     }
@@ -171,7 +174,7 @@ const RagSelectorStep: React.FC<RagSelectorStepProps> = ({
           }}
           className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700"
         >
-          Retry
+          {rs.retry}
         </button>
       </div>
     );
@@ -184,11 +187,11 @@ const RagSelectorStep: React.FC<RagSelectorStepProps> = ({
         {/* Header */}
         <div className="flex items-center gap-2 text-slate-700 dark:text-slate-300">
           <Database size={16} />
-          <span className="text-xs font-medium">Select a RAG Library</span>
+          <span className="text-xs font-medium">{rs.title}</span>
           {required && (
             <span className="flex items-center gap-1 text-[10px] font-bold text-red-500 ml-auto">
               <span className="w-1.5 h-1.5 bg-red-500 rounded-full" />
-              Required
+              {t.projectFlow.required}
             </span>
           )}
         </div>
@@ -196,7 +199,7 @@ const RagSelectorStep: React.FC<RagSelectorStepProps> = ({
         {/* Info */}
         <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg px-4 py-3">
           <p className="text-xs text-blue-700 dark:text-blue-300">
-            Select a RAG library. Then you'll choose specific sources from it.
+            {rs.infoSelectLibrary}
           </p>
         </div>
 
@@ -204,7 +207,7 @@ const RagSelectorStep: React.FC<RagSelectorStepProps> = ({
         <div className="space-y-2 max-h-96 overflow-y-auto">
           {rags.length === 0 ? (
             <div className="text-center py-8 text-gray-500 dark:text-gray-400 text-sm">
-              No RAG libraries available. Please create one first.
+              {rs.noRags}
             </div>
           ) : (
             rags.map((rag) => (
@@ -256,13 +259,13 @@ const RagSelectorStep: React.FC<RagSelectorStepProps> = ({
           <div className="flex items-center gap-2 text-slate-700 dark:text-slate-300">
             <Database size={16} />
             <span className="text-xs font-medium">
-              {selectedRag?.tool.title || 'Select Sources'}
+              {selectedRag?.tool.title || rs.selectSources}
             </span>
           </div>
           {required && (
             <span className="flex items-center gap-1 text-[10px] font-bold text-red-500 mt-1">
               <span className="w-1.5 h-1.5 bg-red-500 rounded-full" />
-              Required
+              {t.projectFlow.required}
             </span>
           )}
         </div>
@@ -271,7 +274,7 @@ const RagSelectorStep: React.FC<RagSelectorStepProps> = ({
       {/* Info */}
       <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg px-4 py-3">
         <p className="text-xs text-blue-700 dark:text-blue-300">
-          Select one or more sources from this RAG library to use as context.
+          {rs.infoSelectSources}
         </p>
       </div>
 
@@ -279,7 +282,7 @@ const RagSelectorStep: React.FC<RagSelectorStepProps> = ({
       <div className="space-y-2 max-h-96 overflow-y-auto">
         {!selectedRag?.sources || selectedRag.sources.length === 0 ? (
           <div className="text-center py-8 text-gray-500 dark:text-gray-400 text-sm">
-            No sources in this RAG library. Go back and select another one.
+            {rs.noSources}
           </div>
         ) : (
           selectedRag.sources.map((source) => {
@@ -344,12 +347,12 @@ const RagSelectorStep: React.FC<RagSelectorStepProps> = ({
           {isSaving ? (
             <>
               <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
-              Saving...
+              {rs.saving}
             </>
           ) : (
             <>
               <Check size={16} />
-              Save Selection ({selectedSources.length})
+              {rs.confirm} ({selectedSources.length})
             </>
           )}
         </button>
