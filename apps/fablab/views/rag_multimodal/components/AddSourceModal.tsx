@@ -219,9 +219,9 @@ const AddSourceModal: React.FC<AddSourceModalProps> = ({ isOpen, onClose, onAddS
         return (
             <div className="bg-white border border-gray-100 rounded-[1.5rem] shadow-sm overflow-hidden">
                 <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
-                    <div className="flex items-center gap-2 text-gray-400">
+                    <div className="flex items-center gap-2 text-gray-500">
                         <FileText size={16} />
-                        <span className="text-[9px] font-black uppercase tracking-widest text-gray-400">{tp.modal.placeholders.textLabel}</span>
+                        <span className="text-[9px] font-black uppercase tracking-widest text-gray-500">{tp.modal.placeholders.textLabel}</span>
                     </div>
                 </div>
                 <div className="p-5 max-h-[320px] overflow-auto">
@@ -258,7 +258,7 @@ const AddSourceModal: React.FC<AddSourceModalProps> = ({ isOpen, onClose, onAddS
                         </div>
                         <span
                             className={`text-[8px] font-black uppercase tracking-tight ${
-                                activeTab === (tab.id as SourceType) ? 'text-indigo-600' : 'text-gray-400'
+                                activeTab === (tab.id as SourceType) ? 'text-indigo-600' : 'text-gray-500'
                             }`}
                         >
                             {tab.id === 'html'
@@ -288,7 +288,7 @@ const AddSourceModal: React.FC<AddSourceModalProps> = ({ isOpen, onClose, onAddS
                 <button
                     type="button"
                     onClick={onClose}
-                    className="flex-1 py-3 text-[10px] font-black text-gray-400 hover:text-gray-600 uppercase tracking-widest"
+                    className="flex-1 py-3 text-[10px] font-black text-gray-500 hover:text-gray-700 uppercase tracking-widest"
                     disabled={isLoading}
                 >
                     {t.common.cancel}
@@ -315,15 +315,15 @@ const AddSourceModal: React.FC<AddSourceModalProps> = ({ isOpen, onClose, onAddS
 
     return (
         <div className="fixed inset-0 z-[1000] bg-gray-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-            <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-xl overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200">
+            <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-5xl overflow-hidden flex flex-col max-h-[95vh] animate-in zoom-in-95 duration-200">
                 <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-white shrink-0">
                     <div className="flex flex-col">
                         <h3 className="font-black text-gray-800 text-lg tracking-tight">{tp.modal.title}</h3>
-                        <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">{tp.modal.subtitle}</span>
+                        <span className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">{tp.modal.subtitle}</span>
                     </div>
                     <button
                         onClick={() => !isLoading && onClose()}
-                        className="p-2 hover:bg-gray-100 rounded-xl text-gray-400 transition-colors"
+                        className="p-2 hover:bg-gray-100 rounded-xl text-gray-500 transition-colors"
                         disabled={isLoading}
                         aria-label={t.common.cancel}
                     >
@@ -335,63 +335,63 @@ const AddSourceModal: React.FC<AddSourceModalProps> = ({ isOpen, onClose, onAddS
 
                 <div className="flex-1 overflow-y-auto p-6 md:p-8 space-y-5 no-scrollbar min-h-[240px]">
                     {activeTab === 'pdf' && (
-                        <div onClick={() => !isLoading && fileInputRef.current?.click()} className="border-2 border-dashed rounded-[1.5rem] p-8 flex flex-col items-center justify-center cursor-pointer bg-gray-50/30 border-gray-200 hover:border-red-300 hover:bg-red-50/10 transition-all group">
+                        <div onClick={() => !isLoading && fileInputRef.current?.click()} className="border-2 border-dashed rounded-[1.5rem] p-8 flex flex-col items-center justify-center cursor-pointer bg-gray-50/30 border-gray-300 hover:border-red-300 hover:bg-red-50/10 transition-all group">
                             <input type="file" ref={fileInputRef} className="hidden" accept=".pdf,.txt,.md" onChange={(e) => handleFileUpload(e, 'pdf')} disabled={isLoading} />
-                            <FileText className="mb-3 text-gray-300 group-hover:text-red-400 transition-all" size={36} />
-                            <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">{fileName || tp.modal.placeholders.selectFile}</span>
-                            <span className="mt-2 text-[9px] font-bold text-gray-300 uppercase tracking-widest text-center">{tp.modal.placeholders.docAllowedTypes}</span>
+                            <FileText className="mb-3 text-gray-400 group-hover:text-red-500 transition-all" size={36} />
+                            <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest text-center">{fileName || tp.modal.placeholders.selectFile}</span>
+                            <span className="mt-2 text-[9px] font-bold text-gray-400 uppercase tracking-widest text-center">{tp.modal.placeholders.docAllowedTypes}</span>
                         </div>
                     )}
 
                     {activeTab === 'html' && (
-                        <div onClick={() => !isLoading && htmlInputRef.current?.click()} className="border-2 border-dashed rounded-[1.5rem] p-8 flex flex-col items-center justify-center cursor-pointer bg-blue-50/5 border-blue-50 hover:border-blue-200 hover:bg-blue-50/20 transition-all group">
+                        <div onClick={() => !isLoading && htmlInputRef.current?.click()} className="border-2 border-dashed rounded-[1.5rem] p-8 flex flex-col items-center justify-center cursor-pointer bg-blue-50/5 border-blue-200 hover:border-blue-300 hover:bg-blue-50/20 transition-all group">
                             <input type="file" ref={htmlInputRef} className="hidden" accept=".html" onChange={(e) => handleFileUpload(e, 'html')} disabled={isLoading} />
-                            <Globe className="mb-3 text-blue-200 group-hover:text-blue-500 transition-all" size={36} />
-                            <span className="text-[10px] font-black text-blue-400 uppercase tracking-widest text-center">{fileName || tp.modal.placeholders.uploadHtml}</span>
+                            <Globe className="mb-3 text-blue-300 group-hover:text-blue-600 transition-all" size={36} />
+                            <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest text-center">{fileName || tp.modal.placeholders.uploadHtml}</span>
                         </div>
                     )}
 
                     {activeTab === 'code' && (
-                        <div onClick={() => !isLoading && jsxInputRef.current?.click()} className="border-2 border-dashed rounded-[1.5rem] p-8 flex flex-col items-center justify-center cursor-pointer bg-teal-50/5 border-teal-50 hover:border-teal-200 hover:bg-teal-50/20 transition-all group">
+                        <div onClick={() => !isLoading && jsxInputRef.current?.click()} className="border-2 border-dashed rounded-[1.5rem] p-8 flex flex-col items-center justify-center cursor-pointer bg-teal-50/5 border-teal-200 hover:border-teal-300 hover:bg-teal-50/20 transition-all group">
                             <input type="file" ref={jsxInputRef} className="hidden" accept=".jsx,.tsx,.js,.ts" onChange={(e) => handleFileUpload(e, 'code')} disabled={isLoading} />
-                            <FileText className="mb-3 text-teal-200 group-hover:text-teal-500 transition-all" size={36} />
-                            <span className="text-[10px] font-black text-teal-400 uppercase tracking-widest text-center">{fileName || "Subir JSX/TSX"}</span>
+                            <FileText className="mb-3 text-teal-300 group-hover:text-teal-600 transition-all" size={36} />
+                            <span className="text-[10px] font-black text-teal-600 uppercase tracking-widest text-center">{fileName || "Subir JSX/TSX"}</span>
                         </div>
                     )}
 
                     {activeTab === 'image' && (
-                        <div onClick={() => !isLoading && imageInputRef.current?.click()} className="border-2 border-dashed rounded-[1.5rem] p-8 flex flex-col items-center justify-center cursor-pointer bg-amber-50/5 border-amber-50 hover:border-amber-200 hover:bg-amber-50/20 transition-all group">
+                        <div onClick={() => !isLoading && imageInputRef.current?.click()} className="border-2 border-dashed rounded-[1.5rem] p-8 flex flex-col items-center justify-center cursor-pointer bg-amber-50/5 border-amber-200 hover:border-amber-300 hover:bg-amber-50/20 transition-all group">
                             <input type="file" ref={imageInputRef} className="hidden" accept="image/*" onChange={(e) => handleFileUpload(e, 'image')} disabled={isLoading} />
-                            <ImageIcon className="mb-3 text-amber-200 group-hover:text-amber-500 transition-all" size={36} />
-                            <span className="text-[10px] font-black text-amber-400 uppercase tracking-widest text-center">{fileName || tp.modal.placeholders.uploadImage}</span>
+                            <ImageIcon className="mb-3 text-amber-300 group-hover:text-amber-600 transition-all" size={36} />
+                            <span className="text-[10px] font-black text-amber-600 uppercase tracking-widest text-center">{fileName || tp.modal.placeholders.uploadImage}</span>
                         </div>
                     )}
 
                     {activeTab === 'video' && (
                         <div className="space-y-4">
-                            <div onClick={() => !isLoading && videoInputRef.current?.click()} className="border-2 border-dashed rounded-[1.5rem] p-8 flex flex-col items-center justify-center cursor-pointer bg-purple-50/5 border-purple-50 hover:border-purple-200 hover:bg-purple-50/20 transition-all group">
+                            <div onClick={() => !isLoading && videoInputRef.current?.click()} className="border-2 border-dashed rounded-[1.5rem] p-8 flex flex-col items-center justify-center cursor-pointer bg-purple-50/5 border-purple-200 hover:border-purple-300 hover:bg-purple-50/20 transition-all group">
                                 <input type="file" ref={videoInputRef} className="hidden" accept="video/*" onChange={(e) => handleFileUpload(e, 'video')} disabled={isLoading} />
-                                <Video className="mb-3 text-purple-200 group-hover:text-purple-500 transition-all" size={36} />
-                                <span className="text-[10px] font-black text-purple-400 uppercase tracking-widest text-center">{fileName || tp.modal.placeholders.uploadVideo}</span>
+                                <Video className="mb-3 text-purple-300 group-hover:text-purple-600 transition-all" size={36} />
+                                <span className="text-[10px] font-black text-purple-600 uppercase tracking-widest text-center">{fileName || tp.modal.placeholders.uploadVideo}</span>
                             </div>
                         </div>
                     )}
 
                     {activeTab === 'url' && (
                         <div className="space-y-3">
-                            <div className="flex items-center gap-2 text-blue-500 px-1">
+                            <div className="flex items-center gap-2 text-blue-600 px-1">
                                 <Globe size={16} />
                                 <span className="text-[9px] font-black uppercase tracking-widest">{tp.modal.placeholders.webLink}</span>
                             </div>
                             <input type="url" placeholder="https://ejemplo.com/articulo" className="w-full text-xs p-4 bg-gray-50 border border-gray-100 focus:border-blue-300 rounded-xl outline-none font-bold text-gray-700 transition-all" value={url} onChange={e => setUrl(e.target.value)} required disabled={isLoading} />
-                            <p className="text-[9px] text-gray-400 px-1 italic">{tp.modal.placeholders.webLinkHint}</p>
+                            <p className="text-[9px] text-gray-500 px-1 italic">{tp.modal.placeholders.webLinkHint}</p>
                         </div>
                     )}
 
                     {activeTab === 'text' && (
                         <div className="space-y-3 h-full flex flex-col">
                             <div className="flex justify-between items-center mb-1 shrink-0 px-1">
-                                <span className="text-[9px] font-black text-green-500 uppercase tracking-widest">{tp.modal.placeholders.textLabel}</span>
+                                <span className="text-[9px] font-black text-green-600 uppercase tracking-widest">{tp.modal.placeholders.textLabel}</span>
                                 <button type="button" onClick={handlePaste} className="flex items-center gap-1.5 text-[8px] font-black text-indigo-600 bg-indigo-50 px-3 py-1 rounded-lg hover:bg-indigo-100 transition-all uppercase tracking-widest border border-indigo-100"><ClipboardPaste size={12} /> {tp.modal.placeholders.paste}</button>
                             </div>
                             <textarea
@@ -407,14 +407,14 @@ const AddSourceModal: React.FC<AddSourceModalProps> = ({ isOpen, onClose, onAddS
 
                     {activeTab === 'config' && (
                         <div className="space-y-3 h-full flex flex-col">
-                            <div className="flex items-center gap-2 text-slate-600 px-1">
+                            <div className="flex items-center gap-2 text-slate-700 px-1">
                                 <FileText size={16} />
                                 <span className="text-[9px] font-black uppercase tracking-widest">CONFIG</span>
                             </div>
-                            <div onClick={() => !isLoading && configInputRef.current?.click()} className="border-2 border-dashed rounded-[1.5rem] p-8 flex flex-col items-center justify-center cursor-pointer bg-slate-50/30 border-slate-200 hover:border-slate-300 hover:bg-slate-50/60 transition-all group">
+                            <div onClick={() => !isLoading && configInputRef.current?.click()} className="border-2 border-dashed rounded-[1.5rem] p-8 flex flex-col items-center justify-center cursor-pointer bg-slate-50/30 border-slate-300 hover:border-slate-400 hover:bg-slate-50/60 transition-all group">
                                 <input type="file" ref={configInputRef} className="hidden" accept=".json,.yaml,.yml,.env,.ini" onChange={(e) => handleFileUpload(e, 'config')} disabled={isLoading} />
-                                <FileText className="mb-3 text-slate-300 group-hover:text-slate-500 transition-all" size={36} />
-                                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest text-center">{fileName || 'Subir archivo de configuración (.json, .yaml, .yml, .env, .ini)'}</span>
+                                <FileText className="mb-3 text-slate-400 group-hover:text-slate-600 transition-all" size={36} />
+                                <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest text-center">{fileName || 'Subir archivo de configuración (.json, .yaml, .yml, .env, .ini)'}</span>
                             </div>
                         </div>
                     )}

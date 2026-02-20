@@ -2,14 +2,21 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import SourcePanel from './components/SourcePanel.tsx';
-import ChatInterface from './components/ChatInterface.tsx';
+import ImportSourceModal from './components/ImportSourceModal.tsx';
+import UploadSourceModal from './components/UploadSourceModal.tsx';
 import { Source, ChatMessage, SourceType, StructuredSummary, Language } from './types.ts';
 import { generateChatResponse, generateSourceSummary } from './services/geminiService.ts';
-import { Layout, Menu, Globe, ChevronDown, ArrowLeft, Star, ExternalLink, Lock, AlertCircle, MessageSquare, Settings } from 'lucide-react';
+import { ChevronDown, Star, ExternalLink, Lock, AlertCircle, Settings, Globe } from 'lucide-react';
 import { getRagMultimodalSources, postRagMultimodalSource, deleteRagMultimodalSource, type RagMultimodalSourceItem } from '@core/rag_multimodal';
+import { copyObjectToRag } from '@core/objects';
 import { getTool, updateTool } from '@core/creation-tools/creation-tools.service.ts';
 import { markToolAsSaved } from '@core/creation-tools/unsavedTools.service';
 import { useLanguage } from '../../language/useLanguage';
+import HeaderBar from './components/HeaderBar.tsx';
+import PublishModal from './components/PublishModal.tsx';
+import ValidationModal from './components/ValidationModal.tsx';
+import { UI_TRANSLATIONS } from './constants/translations.ts';
+import ChatInterface from "@apps/fablab/views/notebook/components/ChatInterface.tsx";
 
 enum Visibility {
   PRIVATE = 'private',
@@ -38,6 +45,10 @@ const RagMultimodal: React.FC<RagMultimodalProps> = ({ isPublicView = false }) =
     const [isFavorite, setIsFavorite] = useState(false);
     const [visibility, setVisibility] = useState<Visibility>(Visibility.PRIVATE);
     const [showPublishModal, setShowPublishModal] = useState(false);
+    const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+    const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+    const [selectedObjects, setSelectedObjects] = useState<any[]>([]);
+    const [isImporting, setIsImporting] = useState(false);
     const [toolLanguage, setToolLanguage] = useState<'fr' | 'en' | 'es'>('es');
     const [isValidationModalOpen, setIsValidationModalOpen] = useState(false);
     const [validationErrors, setValidationErrors] = useState<{
@@ -45,6 +56,18 @@ const RagMultimodal: React.FC<RagMultimodalProps> = ({ isPublicView = false }) =
         description?: boolean;
         category?: boolean;
     }>({});
+    const languageOptions = useMemo(
+        () => ([
+            { value: 'es', label: UI_TRANSLATIONS.es.languages.es },
+            { value: 'en', label: UI_TRANSLATIONS.en.languages.en },
+            { value: 'fr', label: UI_TRANSLATIONS.fr.languages.fr },
+        ]),
+        []
+    );
+    const uiTranslations = useMemo(
+        () => UI_TRANSLATIONS[toolLanguage] || UI_TRANSLATIONS.es,
+        [toolLanguage]
+    );
     
     const publicUrl = id ? `${window.location.origin}/public/rag_multimodal/${id}` : '';
 
@@ -130,6 +153,11 @@ const RagMultimodal: React.FC<RagMultimodalProps> = ({ isPublicView = false }) =
         loadRagMultimodalSources(parseInt(id));
     }, [id]);
 
+    const refreshSources = async () => {
+        if (!id) return;
+        await loadRagMultimodalSources(parseInt(id));
+    };
+
     const loadRagMultimodalData = async (notebookId: number, fallbackTitle?: string | null) => {
         try {
             const tool = await getTool(notebookId);
@@ -210,7 +238,7 @@ const RagMultimodal: React.FC<RagMultimodalProps> = ({ isPublicView = false }) =
         
         if (Object.keys(errors).length === 0) {
             // Sin errores, navegar
-            navigate('/dashboard', { state: { view: 'library' } });
+            navigate('/dashboard/library');
         } else {
             // Con errores, mostrar modal
             setIsValidationModalOpen(true);
@@ -226,7 +254,7 @@ const RagMultimodal: React.FC<RagMultimodalProps> = ({ isPublicView = false }) =
                 console.error('Error eliminando notebook:', error);
             }
         }
-        navigate('/dashboard', { state: { view: 'library' } });
+        navigate('/dashboard/library');
     };
 
     const selectedSources = useMemo(() => {
@@ -376,36 +404,47 @@ const RagMultimodal: React.FC<RagMultimodalProps> = ({ isPublicView = false }) =
         setChatLoading(false);
     };
 
+    const handleImportObjects = async () => {
+        if (!id || id === 'new') {
+            console.error('RAG id is required to import objects');
+            return;
+        }
+
+        if (!selectedObjects.length) {
+            setIsImportModalOpen(false);
+            return;
+        }
+
+        try {
+            setIsImporting(true);
+            await Promise.all(
+                selectedObjects.map((object) =>
+                    copyObjectToRag({
+                        object_id: Number(object.id),
+                        rag_id: parseInt(id),
+                    })
+                )
+            );
+            await refreshSources();
+            setSelectedObjects([]);
+            setIsImportModalOpen(false);
+        } catch (error) {
+            console.error('Error importing objects to RAG:', error);
+            alert(t.common.error);
+        } finally {
+            setIsImporting(false);
+        }
+    };
+
     return (
         <div className="flex flex-col h-screen w-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 text-gray-900 overflow-hidden font-inter">
-            {/* Header minimalista */}
-            <header className="bg-white/80 backdrop-blur-md border-b border-gray-200/50 z-20 shrink-0">
-                <div className="px-6 py-3 flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                        <button
-                            onClick={handleBackToLibrary}
-                            className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-gray-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"
-                        >
-                            <ArrowLeft size={16} />
-                            <span>Volver</span>
-                        </button>
-                        <div className="flex items-center gap-2.5 px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl text-white shadow-lg shadow-indigo-200">
-                            <Layout size={16} />
-                            <span className="text-sm font-bold tracking-wide">RAG MULTIMODAL</span>
-                        </div>
-                    </div>
-                    <button
-                        onClick={() => setSidebarOpen(!sidebarOpen)}
-                        className={`p-2.5 rounded-xl transition-all ${
-                            sidebarOpen 
-                                ? 'bg-indigo-100 text-indigo-600 shadow-sm' 
-                                : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
-                        }`}
-                    >
-                        <Menu size={20} />
-                    </button>
-                </div>
-            </header>
+            {/* Header */}
+            <HeaderBar
+                onBack={handleBackToLibrary}
+                sidebarOpen={sidebarOpen}
+                onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
+                t={t}
+            />
 
             <div className="flex-1 flex overflow-hidden w-full">
                 {/* Sidebar de fuentes - Expandido */}
@@ -416,9 +455,10 @@ const RagMultimodal: React.FC<RagMultimodalProps> = ({ isPublicView = false }) =
                     <div className="h-full w-full">
                         <SourcePanel
                             sources={sources}
-                            onAddSource={handleAddSource}
                             onToggleSource={handleToggleSource}
                             onDeleteSource={handleDeleteSource}
+                            onOpenImportModal={() => setIsImportModalOpen(true)}
+                            onOpenUploadModal={() => setIsUploadModalOpen(true)}
                         />
                     </div>
                 </aside>
@@ -441,14 +481,14 @@ const RagMultimodal: React.FC<RagMultimodalProps> = ({ isPublicView = false }) =
                                             }}
                                             onBlur={handleSave}
                                             disabled={isPublicView}
-                                            className={`flex-1 text-2xl font-bold text-gray-900 bg-transparent border-b-2 outline-none focus:ring-0 px-0 placeholder:text-gray-300 disabled:cursor-not-allowed transition-all ${
+                                            className={`flex-1 text-2xl font-bold text-gray-900 bg-transparent border-b-2 outline-none focus:ring-0 px-0 placeholder:text-gray-400 disabled:cursor-not-allowed transition-all ${
                                                 validationErrors.title ? 'border-red-500' : 'border-transparent focus:border-blue-500'
                                             }`}
                                             placeholder={t.notebook.settings.titlePlaceholder}
                                         />
                                         {(!notebookName || notebookName.trim() === '') && (
                                             <span title="Required field">
-                                                <AlertCircle size={16} className="text-amber-500" />
+                                                <AlertCircle size={16} className="text-amber-600" />
                                             </span>
                                         )}
                                     </div>
@@ -462,14 +502,14 @@ const RagMultimodal: React.FC<RagMultimodalProps> = ({ isPublicView = false }) =
                                             onBlur={handleSave}
                                             disabled={isPublicView}
                                             rows={2}
-                                            className={`flex-1 text-base text-gray-700 bg-transparent border-2 rounded-lg outline-none focus:ring-0 px-3 py-2 placeholder:text-gray-400 placeholder:text-base placeholder:font-medium disabled:cursor-not-allowed transition-all resize-none ${
+                                            className={`flex-1 text-base text-gray-700 bg-transparent border-2 rounded-lg outline-none focus:ring-0 px-3 py-2 placeholder:text-gray-600 placeholder:text-base placeholder:font-medium disabled:cursor-not-allowed transition-all resize-none ${
                                                 validationErrors.description ? 'border-red-500' : 'border-gray-200 focus:border-blue-400'
                                             }`}
                                             placeholder={t.notebook.settings.descriptionPlaceholder}
                                         />
                                         {(!description || description.trim() === '') && (
                                             <span title="Required field">
-                                                <AlertCircle size={16} className="text-amber-500" />
+                                                <AlertCircle size={16} className="text-amber-600" />
                                             </span>
                                         )}
                                     </div>
@@ -562,9 +602,11 @@ const RagMultimodal: React.FC<RagMultimodalProps> = ({ isPublicView = false }) =
                                         disabled={isPublicView}
                                         className="appearance-none pl-3 pr-8 py-1.5 text-xs font-semibold bg-purple-50 text-purple-700 rounded-full border border-purple-200 cursor-pointer hover:bg-purple-100 transition-all disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-purple-400"
                                     >
-                                        <option value="es">🇪🇸 Español</option>
-                                        <option value="en">🇬🇧 English</option>
-                                        <option value="fr">🇫🇷 Français</option>
+                                        {languageOptions.map((option) => (
+                                            <option key={option.value} value={option.value}>
+                                                {option.label}
+                                            </option>
+                                        ))}
                                     </select>
                                     <ChevronDown size={12} className="absolute right-2 top-1/2 -translate-y-1/2 text-purple-600 pointer-events-none" />
                                 </div>
@@ -612,55 +654,8 @@ const RagMultimodal: React.FC<RagMultimodalProps> = ({ isPublicView = false }) =
                                         <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl mb-6 shadow-lg">
                                             <Settings size={40} className="text-white" />
                                         </div>
-                                        <h2 className="text-3xl font-black text-gray-900 mb-3">Herramientas del RAG</h2>
-                                        <p className="text-gray-600 text-lg">Selecciona una herramienta para comenzar a trabajar con tus fuentes</p>
-                                    </div>
-                                    
-                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                        {/* Chatear con Fuentes */}
-                                        <button
-                                            onClick={() => setShowChatPanel(true)}
-                                            className="flex flex-col items-center gap-4 p-8 bg-gradient-to-br from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 rounded-2xl border-2 border-blue-200 hover:border-blue-300 transition-all group shadow-lg hover:shadow-xl"
-                                        >
-                                            <div className="p-4 bg-white rounded-2xl shadow-md group-hover:shadow-lg transition-shadow">
-                                                <MessageSquare size={32} className="text-blue-600" />
-                                            </div>
-                                            <div className="text-center">
-                                                <div className="text-lg font-black text-gray-900 mb-2">Chat con Fuentes</div>
-                                                <div className="text-sm text-gray-600">Conversa e interroga tus fuentes con IA</div>
-                                            </div>
-                                        </button>
-
-                                        {/* Análisis Automático (Próximamente) */}
-                                        <button
-                                            disabled
-                                            className="flex flex-col items-center gap-4 p-8 bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl border-2 border-gray-200 opacity-60 cursor-not-allowed shadow-lg"
-                                        >
-                                            <div className="p-4 bg-white rounded-2xl shadow-md">
-                                                <Settings size={32} className="text-gray-400" />
-                                            </div>
-                                            <div className="text-center">
-                                                <div className="text-lg font-black text-gray-700 mb-2 flex items-center gap-2 justify-center">
-                                                    Análisis Automático
-                                                    <span className="text-[10px] bg-amber-100 text-amber-700 px-2 py-1 rounded-full font-black">PRÓXIMAMENTE</span>
-                                                </div>
-                                                <div className="text-sm text-gray-500">Genera insights automáticos de tus fuentes</div>
-                                            </div>
-                                        </button>
-
-                                        {/* Más herramientas (Placeholder) */}
-                                        <button
-                                            disabled
-                                            className="flex flex-col items-center gap-4 p-8 bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl border-2 border-gray-200 opacity-60 cursor-not-allowed shadow-lg"
-                                        >
-                                            <div className="p-4 bg-white rounded-2xl shadow-md">
-                                                <Layout size={32} className="text-gray-400" />
-                                            </div>
-                                            <div className="text-center">
-                                                <div className="text-lg font-black text-gray-700 mb-2">Más Herramientas</div>
-                                                <div className="text-sm text-gray-500">Nuevas funcionalidades en desarrollo</div>
-                                            </div>
-                                        </button>
+                                        <h2 className="text-3xl font-black text-gray-900 mb-3">{uiTranslations.toolPicker.title}</h2>
+                                        <p className="text-gray-600 text-lg">{uiTranslations.toolPicker.subtitle}</p>
                                     </div>
                                 </div>
                             </div>
@@ -669,74 +664,36 @@ const RagMultimodal: React.FC<RagMultimodalProps> = ({ isPublicView = false }) =
                 </main>
             </div>
 
-            {/* Modal de publicación */}
-            {showPublishModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-                    <div className="absolute inset-0 bg-black/20 backdrop-blur-sm" onClick={() => setShowPublishModal(false)}></div>
-                    <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden border border-gray-100 animate-in zoom-in-95 duration-200">
-                        <div className="p-8 text-center">
-                            <div className="w-16 h-16 rounded-full mx-auto mb-6 flex items-center justify-center bg-indigo-50 text-indigo-600">
-                                <Globe size={28} />
-                            </div>
-                            <h3 className="text-xl font-black text-gray-900 mb-2">
-                                {visibility === Visibility.PUBLIC ? t.notebook.publishModal.makePrivate : t.notebook.publishModal.publish}
-                            </h3>
-                            <p className="text-gray-500 text-sm mb-8 font-medium">
-                                {visibility === Visibility.PUBLIC 
-                                    ? t.notebook.publishModal.makePrivateDesc
-                                    : t.notebook.publishModal.publishDesc}
-                            </p>
-                            <div className="flex gap-3">
-                                <button
-                                    onClick={() => setShowPublishModal(false)}
-                                    className="flex-1 h-12 rounded-xl border-2 border-gray-200 text-gray-700 font-bold hover:bg-gray-50 transition-all"
-                                >
-                                    {t.common.cancel}
-                                </button>
-                                <button
-                                    onClick={handlePublish}
-                                    className="flex-1 h-12 rounded-xl bg-indigo-600 text-white font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100"
-                                >
-                                    {t.notebook.publishModal.confirm}
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
+            <PublishModal
+                isOpen={showPublishModal}
+                visibility={visibility === Visibility.PUBLIC ? 'public' : 'private'}
+                onCancel={() => setShowPublishModal(false)}
+                onConfirm={handlePublish}
+                t={t}
+            />
             
-            {/* Modal de Validación */}
-            {isValidationModalOpen && (
-                <div className="fixed inset-0 bg-black/30 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-8 animate-in zoom-in-95 duration-200">
-                        <div className="flex flex-col items-center text-center">
-                            <div className="w-16 h-16 bg-amber-100 dark:bg-amber-900/30 rounded-full flex items-center justify-center mb-4">
-                                <AlertCircle size={32} className="text-amber-600 dark:text-amber-400" />
-                            </div>
-                            <h3 className="text-xl font-black text-gray-900 dark:text-white mb-2">
-                                Campos incompletos
-                            </h3>
-                            <p className="text-gray-500 dark:text-gray-400 text-sm mb-8 font-medium">
-                                No has completado todos los campos obligatorios. ¿Qué deseas hacer?
-                            </p>
-                            <div className="flex flex-col gap-3 w-full">
-                                <button
-                                    onClick={() => setIsValidationModalOpen(false)}
-                                    className="w-full h-12 rounded-xl bg-blue-600 text-white font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-100"
-                                >
-                                    Seguir editando
-                                </button>
-                                <button
-                                    onClick={handleDeleteAndExit}
-                                    className="w-full h-12 rounded-xl border-2 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 font-bold hover:bg-gray-50 dark:hover:bg-gray-700 transition-all"
-                                >
-                                    Anular y salir
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
+            <ValidationModal
+                isOpen={isValidationModalOpen}
+                onContinueEditing={() => setIsValidationModalOpen(false)}
+                onDiscardAndExit={handleDeleteAndExit}
+            />
+            <ImportSourceModal
+                isOpen={isImportModalOpen}
+                onClose={() => setIsImportModalOpen(false)}
+                onImport={handleImportObjects}
+                selectedObjects={selectedObjects}
+                onSelectionChange={setSelectedObjects}
+                isImporting={isImporting}
+                tp={t.notebook.sourcePanel}
+                t={t}
+            />
+            <UploadSourceModal
+                isOpen={isUploadModalOpen}
+                onClose={() => setIsUploadModalOpen(false)}
+                onAddSource={handleAddSource}
+                tp={t.notebook.sourcePanel}
+                t={t}
+            />
         </div>
     );
 };

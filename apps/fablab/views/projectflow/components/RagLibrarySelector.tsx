@@ -47,7 +47,7 @@ const RagLibrarySelector: React.FC<RagLibrarySelectorProps> = ({
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    // Holds the selected mapping per required variable name
+    // Holds the selected mapping per required variable title
     const [selectionMap, setSelectionMap] = useState<Record<string, number | ''>>({});
     // Idempotency guard: remember last successfully posted selection per variable
     const [lastPosted, setLastPosted] = useState<Record<string, number | undefined>>({});

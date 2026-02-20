@@ -34,8 +34,8 @@ const SourceList: React.FC<SourceListProps> = ({ sources, tp, t, onToggleSource,
                     <div className="p-6 bg-gradient-to-br from-gray-100 to-gray-50 rounded-2xl mb-4 shadow-inner">
                         <FileType size={48} className="text-gray-300" />
                     </div>
-                    <p className="text-xs font-black text-gray-400 uppercase tracking-widest">{tp.empty}</p>
-                    <p className="text-[10px] text-gray-400 mt-2 max-w-[180px]">Agrega tu primera fuente para comenzar</p>
+                    <p className="text-xs font-black text-gray-500 uppercase tracking-widest">{tp.empty}</p>
+                    <p className="text-[10px] text-gray-500 mt-2 max-w-[180px]">Agrega tu primera fuente para comenzar</p>
                 </div>
             )}
             {sources.map((source) => {
@@ -46,20 +46,20 @@ const SourceList: React.FC<SourceListProps> = ({ sources, tp, t, onToggleSource,
                         : source.type.toUpperCase());
 
                 const typeColor = source.type === 'pdf'
-                    ? { bg: 'bg-red-50', text: 'text-red-600', border: 'border-red-200', icon: 'text-red-500' }
+                    ? { bg: 'bg-red-50', text: 'text-red-700', border: 'border-red-200', icon: 'text-red-600' }
                     : source.type === 'url'
-                        ? { bg: 'bg-blue-50', text: 'text-blue-600', border: 'border-blue-200', icon: 'text-blue-500' }
+                        ? { bg: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-200', icon: 'text-blue-600' }
                         : source.type === 'html'
-                            ? { bg: 'bg-sky-50', text: 'text-sky-600', border: 'border-sky-200', icon: 'text-sky-500' }
+                            ? { bg: 'bg-sky-50', text: 'text-sky-700', border: 'border-sky-200', icon: 'text-sky-600' }
                             : source.type === 'image'
-                                ? { bg: 'bg-amber-50', text: 'text-amber-600', border: 'border-amber-200', icon: 'text-amber-500' }
+                                ? { bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-200', icon: 'text-amber-600' }
                                 : source.type === 'code'
-                                    ? { bg: 'bg-teal-50', text: 'text-teal-600', border: 'border-teal-200', icon: 'text-teal-500' }
+                                    ? { bg: 'bg-teal-50', text: 'text-teal-700', border: 'border-teal-200', icon: 'text-teal-600' }
                                     : source.type === 'video'
-                                        ? { bg: 'bg-purple-50', text: 'text-purple-600', border: 'border-purple-200', icon: 'text-purple-500' }
+                                        ? { bg: 'bg-purple-50', text: 'text-purple-700', border: 'border-purple-200', icon: 'text-purple-600' }
                                         : source.type === 'config'
-                                            ? { bg: 'bg-slate-50', text: 'text-slate-600', border: 'border-slate-200', icon: 'text-slate-500' }
-                                            : { bg: 'bg-green-50', text: 'text-green-600', border: 'border-green-200', icon: 'text-green-500' };
+                                            ? { bg: 'bg-slate-50', text: 'text-slate-700', border: 'border-slate-200', icon: 'text-slate-600' }
+                                            : { bg: 'bg-green-50', text: 'text-green-700', border: 'border-green-200', icon: 'text-green-600' };
 
                 return (
                     <div
@@ -111,8 +111,8 @@ const SourceList: React.FC<SourceListProps> = ({ sources, tp, t, onToggleSource,
                                     </span>
                                     <div className={`ml-auto flex items-center gap-1.5 px-2 py-1 rounded-lg transition-all ${
                                         source.selected 
-                                            ? 'bg-indigo-100 text-indigo-700' 
-                                            : 'bg-gray-100 text-gray-400'
+                                            ? 'bg-indigo-100 text-indigo-800' 
+                                            : 'bg-gray-100 text-gray-600'
                                     }`}>
                                         {source.selected ? (
                                             <>

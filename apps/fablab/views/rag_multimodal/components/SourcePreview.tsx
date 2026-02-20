@@ -173,7 +173,7 @@ const SourcePreview: React.FC<SourcePreviewProps> = ({ isOpen, source, onClose, 
             <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-4xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200 max-h-[92vh]">
                 <div className="px-8 py-6 border-b border-gray-100 flex items-start justify-between bg-white shrink-0 gap-4 flex-wrap md:flex-nowrap">
                     <div className="flex items-center gap-4 min-w-0 flex-wrap">
-                        <div className="p-3 bg-indigo-50 text-indigo-600 rounded-2xl shrink-0">
+                        <div className="p-3 bg-indigo-50 text-indigo-700 rounded-2xl shrink-0">
                             {source.type === 'image' && <ImageIcon size={22} />}
                             {source.type === 'video' && <Video size={22} />}
                             {source.type === 'pdf' && <FileText size={22} />}
@@ -185,11 +185,11 @@ const SourcePreview: React.FC<SourcePreviewProps> = ({ isOpen, source, onClose, 
                         <div className="min-w-0 flex flex-col gap-1">
                             <div className="flex items-center gap-3 min-w-0 flex-wrap">
                                 <h3 className="font-black text-gray-900 text-lg leading-snug line-clamp-3 break-words whitespace-normal">{source.title}</h3>
-                                <span className="text-[10px] font-black px-2 py-1 rounded-full bg-gray-100 text-gray-600 border border-gray-200 whitespace-nowrap">{displayType}</span>
+                                <span className="text-[10px] font-black px-2 py-1 rounded-full bg-gray-100 text-gray-700 border border-gray-200 whitespace-nowrap">{displayType}</span>
                             </div>
                         </div>
                     </div>
-                    <button onClick={onClose} className="p-3 bg-gray-50 hover:bg-red-50 hover:text-red-500 rounded-2xl text-gray-400 transition-all border border-gray-100 shrink-0" aria-label={tp.modal.title}>
+                    <button onClick={onClose} className="p-3 bg-gray-50 hover:bg-red-50 hover:text-red-600 rounded-2xl text-gray-500 transition-all border border-gray-100 shrink-0" aria-label={tp.modal.title}>
                         <X size={20} />
                     </button>
                 </div>
@@ -200,7 +200,7 @@ const SourcePreview: React.FC<SourcePreviewProps> = ({ isOpen, source, onClose, 
                                 onClick={handleOpenPrimary}
                                 disabled={!canOpen}
                                 className={`w-full flex flex-wrap items-center gap-2 px-4 py-3 rounded-xl text-[11px] font-black uppercase tracking-widest shadow-md transition-all text-left ${
-                                    canOpen ? 'bg-indigo-600 text-white shadow-indigo-100 hover:bg-indigo-700 active:scale-95' : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                    canOpen ? 'bg-indigo-600 text-white shadow-indigo-100 hover:bg-indigo-700 active:scale-95' : 'bg-gray-100 text-gray-500 cursor-not-allowed'
                                 }`}
                             >
                                 <ExternalLink size={16} /> {tp.preview.openNewTab}
@@ -210,8 +210,8 @@ const SourcePreview: React.FC<SourcePreviewProps> = ({ isOpen, source, onClose, 
                                 disabled={!(hasLink || source.type === 'text' || source.type === 'config' || source.type === 'code')}
                                 className={`w-full flex flex-wrap items-center gap-2 px-4 py-3 rounded-xl text-[11px] font-black uppercase tracking-widest border transition-all text-left ${
                                     hasLink || source.type === 'text' || source.type === 'config' || source.type === 'code'
-                                        ? 'bg-white text-indigo-600 border-indigo-200 hover:border-indigo-400'
-                                        : 'bg-gray-50 text-gray-300 border-gray-200 cursor-not-allowed'
+                                        ? 'bg-white text-indigo-700 border-indigo-200 hover:border-indigo-400'
+                                        : 'bg-gray-50 text-gray-500 border-gray-200 cursor-not-allowed'
                                 }`}
                             >
                                 <Download size={16} /> {tp.preview.downloadFile}

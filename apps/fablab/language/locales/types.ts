@@ -818,6 +818,11 @@ export interface Translations {
     };
     sourcePanel: {
       title: string;
+      subtitle: string;
+      activeLabel: string;
+      importButton: string;
+      importTitle: string;
+      importSubtitle: string;
       total: string;
       empty: string;
       add: string;
