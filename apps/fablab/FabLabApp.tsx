@@ -117,11 +117,8 @@ const App: React.FC = () => {
         <Route path="/prompt/:id" element={<PromptView />} />
         <Route path="/assistant/:id" element={<AssistantView />} />
         <Route path="/project/:id" element={<ProjectView />} />
-        <Route path="/maker-path/projectflow/:id" element={<ProjectFlow />} />
-        <Route path="/maker-path/projectflow/:template/:id" element={<ProjectFlow />} />
-        {/* New shorter routes */}
-        <Route path="/projectflow/:id" element={<ProjectFlow />} />
-        <Route path="/projectflow/:template/:id" element={<ProjectFlow />} />
+        {/* ProjectFlow routes with query parameters */}
+        <Route path="/projectflow" element={<ProjectFlow />} />
         
         {/* Rutas públicas - Sin autenticación requerida (vistas de configuración) */}
         <Route path="/public/notebook/:id" element={<PublicNotebook />} />
