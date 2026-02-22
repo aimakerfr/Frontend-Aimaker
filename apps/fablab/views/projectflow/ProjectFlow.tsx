@@ -3,12 +3,12 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Workflow } from 'lucide-react';
 import { useLanguage } from '../../language/useLanguage';
 import { getMakerPath } from '@core/maker-path';
-import type {WorkflowStep, AvailablePath, WorkflowJSON} from './types';
-import ConfigurationPanel from './components/ConfigurationPanel';
+import type {WorkflowStep, WorkflowJSON} from './types';
 import WorkflowCanvas from './components/WorkflowCanvas';
 // import NodeConfigPanel from './components/NodeConfigPanel';
 import { INITIAL_MAKERPATHS } from './demoWorkflows';
 import Stepper from './components/Stepper';
+import RagMultimodalModule from '../rag_multimodal/RagMultimodalModule.tsx';
 
 /** Example workflows for the RAG Library / demo moved to a separate module */
 
@@ -28,14 +28,8 @@ const ProjectFlow: React.FC = () => {
     : undefined;
 
   // ── State ──────────────────────────────────────────────
-  const [jsonInput, setJsonInput] = useState(() => {
-    // If a template is specified in URL, pre-initialize with its JSON
-    if (template && INITIAL_MAKERPATHS[template]) {
-      return JSON.stringify(INITIAL_MAKERPATHS[template].json);
-    }
-    return '';
-  });
-  const [parseError, setParseError] = useState<string | null>(null);
+  const [makerPath, setMakerPath] = useState<any | null>(null);
+  // JSON editor and parse state removed (left panel replaced by RagMultimodalModule)
   const [steps, setSteps] = useState<WorkflowStep[]>(() => {
     // Pre-initialize steps based on template
     if (template && INITIAL_MAKERPATHS[template]) {
@@ -61,10 +55,7 @@ const ProjectFlow: React.FC = () => {
     }
     return '';
   });
-  const [availablePaths, setAvailablePaths] = useState<AvailablePath[]>(
-    Object.values(INITIAL_MAKERPATHS).map((d) => d.path)
-  );
-  const [selectedPathId, setSelectedPathId] = useState<string | null>(null);
+  // Path selection state removed with JSON editor
   const [selectedStepId, setSelectedStepId] = useState<number | null>(null);
   // const [promptContents, setPromptContents] = useState<Record<number, string>>({});
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
@@ -77,10 +68,10 @@ const ProjectFlow: React.FC = () => {
       const loadProject = async () => {
         try {
           const project = await getMakerPath(makerPathId);
+          setMakerPath(project);
           console.log('ProjectFlow: Fetched project data:', project);
           if (project && project.data) {
-            let dataStr = typeof project.data === 'string' ? project.data : JSON.stringify(project.data);
-            setJsonInput(dataStr);
+            const dataStr = typeof project.data === 'string' ? project.data : JSON.stringify(project.data);
             
             const parsed: WorkflowJSON = JSON.parse(dataStr);
             const workflowKey = Object.keys(parsed)[0];
@@ -119,99 +110,6 @@ const ProjectFlow: React.FC = () => {
 
   // ── Handlers ───────────────────────────────────────────
 
-  /** Parse the JSON from the textarea */
-  const handleParseWorkflow = useCallback(() => {
-    if (!jsonInput.trim()) {
-      setParseError(t.projectFlow.pasteJsonFirst);
-      return;
-    }
-
-    try {
-      // Sanitize input: remove trailing commas before } or ]
-      let sanitized = jsonInput.trim().replace(/,\s*([}\]])/g, '$1');
-
-      // If the user pasted without outer braces (e.g. "key": { ... })
-      if (!sanitized.startsWith('{')) {
-        sanitized = `{${sanitized}}`;
-      }
-      // If the user forgot the closing brace
-      const openCount = (sanitized.match(/{/g) || []).length;
-      const closeCount = (sanitized.match(/}/g) || []).length;
-      if (openCount > closeCount) {
-        sanitized += '}'.repeat(openCount - closeCount);
-      }
-
-      const parsed: WorkflowJSON = JSON.parse(sanitized);
-      const workflowKey = Object.keys(parsed)[0];
-      if (!workflowKey) {
-        setParseError('JSON does not contain a workflow definition.');
-        return;
-      }
-
-      const workflow = parsed[workflowKey];
-      if (!workflow.steps || !Array.isArray(workflow.steps)) {
-        setParseError('Workflow must contain a "steps" array.');
-        return;
-      }
-
-      setSteps(workflow.steps);
-      setOutputType(workflow.output_type || '');
-      setStageName(workflow.stage_name || workflowKey);
-      setParseError(null);
-      setSelectedStepId(null);
-      setCompletedSteps(new Set());
-
-      // Add to available paths if not already there
-      const pathId = workflow.stage_name || workflowKey;
-      if (!availablePaths.find((p) => p.id === pathId)) {
-        setAvailablePaths((prev) => [
-          ...prev,
-          {
-            id: pathId,
-            name: pathId,
-            description: workflow.description || pathId,
-            outputType: workflow.output_type || 'OUTPUT',
-          },
-        ]);
-      }
-      setSelectedPathId(pathId);
-    } catch (err: any) {
-      setParseError(`Invalid JSON: ${err.message}`);
-    }
-  }, [jsonInput, availablePaths, t]);
-
-  /** Select a pre-defined path from the sidebar */
-  const handleSelectPath = useCallback(
-    (pathId: string) => {
-      setSelectedPathId(pathId);
-
-      const demo = INITIAL_MAKERPATHS[pathId];
-      if (demo) {
-        const workflowKey = Object.keys(demo.json)[0];
-        const workflow = demo.json[workflowKey];
-        setSteps(workflow.steps);
-        setOutputType(workflow.output_type || '');
-        setStageName(workflow.stage_name || workflowKey);
-        setJsonInput(JSON.stringify(demo.json, null, 2));
-        setParseError(null);
-        setSelectedStepId(null);
-        // Load completed steps for this path from localStorage if present
-        try {
-          const raw = localStorage.getItem(`projectflow.completed.${pathId}`);
-          if (raw) {
-            const arr = JSON.parse(raw) as number[];
-            setCompletedSteps(new Set(arr));
-          } else {
-            setCompletedSteps(new Set());
-          }
-        } catch {
-          setCompletedSteps(new Set());
-        }
-      }
-    },
-    []
-  );
-
   /** Select a step node in the canvas */
   const handleSelectStep = useCallback((stepId: number) => {
     setSelectedStepId(stepId);
@@ -219,18 +117,7 @@ const ProjectFlow: React.FC = () => {
 
   // const selectedStep = steps.find((s) => s.step_id === selectedStepId) ?? null;
 
-  // Persist completed steps per selected path
-  useEffect(() => {
-    if (!selectedPathId) return;
-    try {
-      localStorage.setItem(
-        `projectflow.completed.${selectedPathId}`,
-        JSON.stringify(Array.from(completedSteps))
-      );
-    } catch {
-      // ignore persistence errors
-    }
-  }, [completedSteps, selectedPathId]);
+  // Persist completed steps (path-scoped persistence removed)
 
   // Mark a step as completed (from within the card UI)
   const markStepAsCompleteHandler = useCallback((stepId: number) => {
@@ -290,19 +177,10 @@ const ProjectFlow: React.FC = () => {
 
       {/* Main body – 3 panels */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Left – Configuration (Only shown if NOT viewing an existing project ID) */}
-        {!makerPathId && (
-          <ConfigurationPanel
-            jsonInput={jsonInput}
-            onJsonChange={setJsonInput}
-            onParseWorkflow={handleParseWorkflow}
-            parseError={parseError}
-            availablePaths={availablePaths}
-            selectedPathId={selectedPathId}
-            onSelectPath={handleSelectPath}
-            t={t}
-          />
-        )}
+        {/* Left – RagMultimodal Sources */}
+        <aside className="w-96 md:w-[420px] flex-shrink-0 border-r border-gray-200 dark:border-gray-700 overflow-hidden">
+          <RagMultimodalModule id={makerPath?.rag_id} />
+        </aside>
 
         {/* Middle – Stepper (after Configuration) */}
         <Stepper
