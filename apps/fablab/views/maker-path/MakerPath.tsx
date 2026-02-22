@@ -75,9 +75,9 @@ const MakerPathView: React.FC = () => {
       setShowRouteTypeModal(false);
       
       if (type === 'blank') {
-        navigate(`/dashboard/projectflow/${newPath.id}`);
+        navigate(`/dashboard/projectflow?id=${newPath.id}`);
       } else {
-        navigate(`/dashboard/projectflow/${type}/${newPath.id}`);
+        navigate(`/dashboard/projectflow?maker_path_template=${type}&id=${newPath.id}`);
       }
     } catch (error) {
       console.error('Error creating project:', error);
@@ -99,12 +99,33 @@ const MakerPathView: React.FC = () => {
     if ((path?.type as string) === 'module_connector' || (path?.type as string) === 'architect_ai') {
       navigate(`/dashboard/maker-path/modules/${pathId}`);
     } else {
-      // Si el tipo es custom pero es una de las plantillas originales, tratamos de pasarlo en la URL
-      const type = (path?.type as string) || '';
-      if (INITIAL_MAKERPATHS[type]) {
-        navigate(`/dashboard/projectflow/${type}/${pathId}`);
+      // Try to detect which template was used by checking the data
+      let detectedTemplate: string | null = null;
+      
+      if (path?.data) {
+        try {
+          const dataStr = typeof path.data === 'string' ? path.data : JSON.stringify(path.data);
+          const parsed = JSON.parse(dataStr);
+          const workflowKey = Object.keys(parsed)[0];
+          
+          // Check if the workflow matches any known template
+          if (workflowKey === 'simple_landing_creator') {
+            detectedTemplate = 'landing_page_maker';
+          } else if (workflowKey === 'rag_chat_creator') {
+            detectedTemplate = 'rag_chat_maker';
+          } else if (workflowKey === 'rag_image_generator') {
+            detectedTemplate = 'image_generator_rag';
+          }
+        } catch (e) {
+          console.error('Error parsing path data:', e);
+        }
+      }
+      
+      // Navigate with appropriate query parameters
+      if (detectedTemplate) {
+        navigate(`/dashboard/projectflow?maker_path_template=${detectedTemplate}&id=${pathId}`);
       } else {
-        navigate(`/dashboard/projectflow/${pathId}`);
+        navigate(`/dashboard/projectflow?id=${pathId}`);
       }
     }
   };
