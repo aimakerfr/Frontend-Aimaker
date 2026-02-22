@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Workflow } from 'lucide-react';
 import { useLanguage } from '../../language/useLanguage';
 import { getMakerPath } from '@core/maker-path';
@@ -15,17 +15,11 @@ import Stepper from './components/Stepper';
 const ProjectFlow: React.FC = () => {
   const { t } = useLanguage();
   const navigate = useNavigate();
-  const params = useParams();
+  const [searchParams] = useSearchParams();
   
-  // Extract template and ID from params
-  const { template, id: paramId, makerPathId: legacyId } = params;
-  
-  // Prefer the last route param named "id"; fallback to legacy "makerPathId"
-  const makerPathId = paramId
-    ? Number(paramId)
-    : legacyId
-    ? Number(legacyId)
-    : undefined;
+  // Extract template and ID from query parameters
+  const template = searchParams.get('maker_path_template') || undefined;
+  const makerPathId = searchParams.get('id') ? Number(searchParams.get('id')) : undefined;
 
   // ── State ──────────────────────────────────────────────
   const [jsonInput, setJsonInput] = useState(() => {
@@ -68,6 +62,14 @@ const ProjectFlow: React.FC = () => {
   const [selectedStepId, setSelectedStepId] = useState<number | null>(null);
   // const [promptContents, setPromptContents] = useState<Record<number, string>>({});
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
+  
+  // Get the workflow title from template
+  const workflowTitle = useMemo(() => {
+    if (template && INITIAL_MAKERPATHS[template]) {
+      return INITIAL_MAKERPATHS[template].path.name;
+    }
+    return 'Proyecto desde Cero';
+  }, [template]);
 
   // ── Effects ───────────────────────────────────────────
 
@@ -281,7 +283,7 @@ const ProjectFlow: React.FC = () => {
           <div className="w-8 h-8 bg-gradient-to-br from-orange-500 to-amber-500 rounded-lg flex items-center justify-center">
             <Workflow size={16} className="text-white" />
           </div>
-          <h1 className="text-base font-bold text-gray-900 dark:text-white">Workflow de Proyecto</h1>
+          <h1 className="text-base font-bold text-gray-900 dark:text-white">{workflowTitle}</h1>
         </div>
 
         {/* Right – actions */}
@@ -290,8 +292,8 @@ const ProjectFlow: React.FC = () => {
 
       {/* Main body – 3 panels */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Left – Configuration (Only shown if NOT viewing an existing project ID) */}
-        {!makerPathId && (
+        {/* Left – Configuration (Only shown for blank projects - no template) */}
+        {!template && (
           <ConfigurationPanel
             jsonInput={jsonInput}
             onJsonChange={setJsonInput}
