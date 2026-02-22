@@ -181,21 +181,21 @@ const ProjectFlow: React.FC = () => {
       {/* Main body – 3 panels */}
       <div className="flex-1 flex overflow-hidden">
         {/* Left – Configuration (Only shown for blank projects - no template) */}
-        {!template && (
-          <ConfigurationPanel
-            jsonInput={jsonInput}
-            onJsonChange={setJsonInput}
-            onParseWorkflow={handleParseWorkflow}
-            parseError={parseError}
-            availablePaths={availablePaths}
-            selectedPathId={selectedPathId}
-            onSelectPath={handleSelectPath}
-            t={t}
-          />
-        )}
+        {/*{!template && (*/}
+        {/*  <ConfigurationPanel*/}
+        {/*    jsonInput={jsonInput}*/}
+        {/*    onJsonChange={setJsonInput}*/}
+        {/*    onParseWorkflow={handleParseWorkflow}*/}
+        {/*    parseError={parseError}*/}
+        {/*    availablePaths={availablePaths}*/}
+        {/*    selectedPathId={selectedPathId}*/}
+        {/*    onSelectPath={handleSelectPath}*/}
+        {/*    t={t}*/}
+        {/*  />*/}
+        {/*)}*/}
         {/* Left – RagMultimodal Sources */}
         <aside className="w-96 md:w-[420px] flex-shrink-0 border-r border-gray-200 dark:border-gray-700 overflow-hidden">
-          <RagMultimodalModule id={makerPath?.rag_id} />
+          <RagMultimodalModule id={makerPath?.rag?.id} />
         </aside>
 
         {/* Middle – Stepper (after Configuration) */}
