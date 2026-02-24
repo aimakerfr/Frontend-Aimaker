@@ -1,14 +1,15 @@
 import React, { useState } from 'react';
 import {
   Workflow, X, FilePlus, Layout, MessageSquare,
-  Image as ImageIcon, ChevronDown, Library, ArrowLeft
+  Image as ImageIcon, ChevronDown, Library, ArrowLeft,
+  Languages
 } from 'lucide-react';
 import { useLanguage } from '../../../language/useLanguage';
 
 interface RouteTypeModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSelect: (type: 'blank' | 'landing_page_maker' | 'rag_chat_maker' | 'image_generator_rag') => void;
+  onSelect: (type: 'blank' | 'landing_page_maker' | 'rag_chat_maker' | 'image_generator_rag' | 'translation_maker') => void;
 }
 
 export const RouteTypeModal: React.FC<RouteTypeModalProps> = ({ isOpen, onClose, onSelect }) => {
@@ -47,6 +48,16 @@ export const RouteTypeModal: React.FC<RouteTypeModalProps> = ({ isOpen, onClose,
       bgColor: 'from-emerald-50 to-teal-50',
       borderColor: 'border-emerald-200',
       hoverBorder: 'hover:border-emerald-400',
+    },
+    {
+      id: 'translation_maker',
+      title: 'Translation Maker',
+      description: 'Detecta y traduce textos de archivos JSX/TSX automáticamente.',
+      icon: Languages,
+      color: 'from-orange-500 to-red-600',
+      bgColor: 'from-orange-50 to-red-50',
+      borderColor: 'border-orange-200',
+      hoverBorder: 'hover:border-orange-400',
     },
   ];
 

@@ -411,6 +411,50 @@ export interface Translations {
       noPrompts: string;
       tip: string;
     };
+    sourcePicker: {
+      title: string;
+      loading: string;
+      noSources: string;
+      selectButton: string;
+    };
+  };
+  translationMaker: {
+    title: string;
+    uploadAnalyzer: {
+      uploadFile: string;
+      loadFromLibrary: string;
+      analyze: string;
+      analyzing: string;
+      fileTypes: string;
+      saveToLibrary: string;
+    };
+    extractor: {
+      title: string;
+      description: string;
+      extract: string;
+      variablesDetected: string;
+      reAnalyze: string;
+    };
+    generator: {
+      title: string;
+      description: string;
+      generate: string;
+      generating: string;
+      success: string;
+      regenerate: string;
+      keys: string;
+    };
+    saver: {
+      title: string;
+      description: string;
+      downloadIndividual: string;
+      downloadAll: string;
+      saveToLibrary: string;
+      saveToProject: string;
+      saving: string;
+      success: string;
+      projectPath: string;
+    };
   };
   common: {
     loading: string;

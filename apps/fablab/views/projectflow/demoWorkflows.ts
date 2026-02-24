@@ -140,4 +140,54 @@ export const INITIAL_MAKERPATHS: Record<string, { json: WorkflowJSON; path: Avai
       },
     },
   },
+  translation_maker: {
+    path: {
+      id: 'translation_maker',
+      name: 'Translation Maker',
+      description: 'Create translation files (ES, EN, FR) from React components (JSX, TSX) and HTML files.',
+      outputType: 'JSON',
+    },
+    json: {
+      translation_workflow: {
+        stage_name: 'translation_workflow',
+        description: 'Extract text from code files and generate translation JSON for ES, EN, and FR.',
+        output_type: 'JSON',
+        required_files: [],
+        required_variables: [1, 2],
+        steps: [
+          {
+            step_id: 1,
+            name: 'Upload & Analyze File',
+            action: 'file_upload_analyzer',
+            input_source_type: 'code_file',
+            variable_index_number: 1,
+            variable_name: 'uploaded_file_content',
+            required: true,
+          },
+          {
+            step_id: 2,
+            name: 'Extract Text Variables',
+            action: 'translation_extractor',
+            variable_index_number: 1,
+            required: true,
+          },
+          {
+            step_id: 3,
+            name: 'Generate Translations (ES, EN, FR)',
+            action: 'translation_generator',
+            variable_index_number: 2,
+            variable_name: 'translations_json',
+            required: true,
+          },
+          {
+            step_id: 4,
+            name: 'Save to Project or Download',
+            action: 'translation_saver',
+            variable_index_number: 2,
+            required: true,
+          },
+        ],
+      },
+    },
+  },
 };

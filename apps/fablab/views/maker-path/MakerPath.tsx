@@ -41,7 +41,7 @@ const MakerPathView: React.FC = () => {
     }
   };
 
-  const handleCreate = async (type: 'blank' | 'landing_page_maker' | 'rag_chat_maker' | 'image_generator_rag' = 'blank') => {
+  const handleCreate = async (type: 'blank' | 'landing_page_maker' | 'rag_chat_maker' | 'image_generator_rag' | 'translation_maker' = 'blank') => {
     try {
       let title = 'Proyecto sin título';
       let data = '';
