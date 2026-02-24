@@ -18,6 +18,7 @@ import PublicAssistantDetails from './views/public/assistant/PublicAssistantDeta
 import PublicProjectDetails from './views/public/project/PublicProjectDetails';
 import { UserProfile } from './types';
 import FabLabLayout from '@apps/fablab/views/fablab_layout/FabLabLayout';
+import { initializeLanguages } from './language';
 
 // Wrapper components para extraer el id de la URL y pasarlo como toolId
 const PublicPromptWrapper = () => {
@@ -48,6 +49,11 @@ const App: React.FC = () => {
   });
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  // Initialize language system on app startup
+  useEffect(() => {
+    initializeLanguages();
+  }, []);
 
   // Cerrar sidebar cuando cambia la ruta (útil en móvil)
   useEffect(() => {

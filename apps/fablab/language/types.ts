@@ -2,9 +2,19 @@
  * Language types and interfaces
  * Centralizes all translation type definitions
  */
-export type Language = 'en' | 'es' | 'fr';
 
+// Exporta desde languageManager para mantener compatibilidad
+export type { Language, StandardLanguage, CustomLanguage, LanguageInfo } from './languageManager';
+
+/**
+ * Base Translations interface
+ * Includes core sections and allows dynamic sections from Translation Maker
+ */
 export interface Translations {
+  // ✅ DYNAMIC SECTIONS: Translation Maker auto-genera estas secciones
+  // Ejemplos: makerPathTranslations, projectFlowTranslations, dashboardTranslations
+  // NO ES NECESARIO declararlas aquí - TypeScript las acepta automáticamente
+  [key: string]: any; // Permite cualquier sección dinámica
   dashboard: {
     welcome: string;
     subtitle: string;
@@ -53,6 +63,7 @@ export interface Translations {
       perplexitySearch: string;
     };
     createNew: string;
+    newRag: string;
     noResults: string;
     tableHeaders: {
       type: string;
@@ -72,12 +83,20 @@ export interface Translations {
       createTitle: string;
       createSubtitle: string;
     };
+    tooltips: {
+      addFavorite: string;
+      removeFavorite: string;
+    };
+    confirmDelete: string;
+    authorFallback: string;
   };
   externalAccess: {
     title: string;
     subtitle: string;
     searchPlaceholder: string;
     allTypes: string;
+    retry: string;
+    deleteConfirm: string;
     filters: {
       all: string;
       mine: string;
@@ -127,6 +146,8 @@ export interface Translations {
       actions: string;
     };
     form: {
+      titleEdit: string;
+      titleCreate: string;
       name: string;
       namePlaceholder: string;
       description: string;
@@ -146,6 +167,8 @@ export interface Translations {
     active: string;
     inactive: string;
     tooltips: {
+      activate: string;
+      deactivate: string;
       edit: string;
       delete: string;
     };
@@ -180,6 +203,41 @@ export interface Translations {
       researcher: string;
       other: string;
     };
+    stats: {
+      notebooks: string;
+      projects: string;
+      prompts: string;
+      links: string;
+      assistants: string;
+      apps: string;
+      vibeCoding: string;
+      total: string;
+    };
+    about: string;
+    standardLanguages: string;
+    customLanguages: string;
+    addCustomLanguage: string;
+    manageLanguages: string;
+    languageManager: {
+      title: string;
+      subtitle: string;
+      addNew: string;
+      languageCode: string;
+      languageCodePlaceholder: string;
+      languageName: string;
+      languageNamePlaceholder: string;
+      uploadJSON: string;
+      selectFile: string;
+      addLanguage: string;
+      deleteLanguage: string;
+      deleteConfirm: string;
+      languageAdded: string;
+      languageDeleted: string;
+      errorInvalidJSON: string;
+      errorDuplicateCode: string;
+      availableLanguages: string;
+      noCustomLanguages: string;
+    };
   };
   makerPath: {
     title: string;
@@ -209,6 +267,18 @@ export interface Translations {
     modal: {
       title: string;
       subtitle: string;
+      architectAI: {
+        title: string;
+        description: string;
+        badge1: string;
+        badge2: string;
+      };
+      moduleConnector: {
+        title: string;
+        description: string;
+        badge1: string;
+        badge2: string;
+      };
       projectFlow: {
         title: string;
         description: string;
@@ -216,6 +286,10 @@ export interface Translations {
         badge2: string;
       };
       cancel: string;
+    };
+    noDescription: string;
+    tooltips: {
+      open: string;
     };
   };
   projectFlow: {
@@ -252,9 +326,6 @@ export interface Translations {
     testWorkflow: string;
     changesAreSavedLocally: string;
     selectRagSource: string;
-    makerPathSelector: string;
-    noPathsAvailable: string;
-    load: string;
     nodeTypes: {
       fetchData: string;
       inputPrompt: string;
@@ -263,6 +334,78 @@ export interface Translations {
       selectRagSource: string;
       compileAndExport: string;
       userInputAndAiRefinement: string;
+    };
+    modal: {
+      title: string;
+      subtitle: string;
+      blankProject: string;
+      blankProjectDesc: string;
+      makerPaths: string;
+      makerPathsDesc: string;
+      viewTemplates: string;
+      startNow: string;
+    };
+    ragSelector: {
+      title: string;
+      subtitle: string;
+      loading: string;
+      noRags: string;
+      selectSources: string;
+      backToList: string;
+      noSources: string;
+      confirm: string;
+      saving: string;
+      errorLoad: string;
+      errorSave: string;
+      retry: string;
+      infoSelectLibrary: string;
+      infoSelectSources: string;
+    };
+    ragChat: {
+      title: string;
+      subtitle: string;
+      loadingSources: string;
+      errorNoSources: string;
+      errorLoadSources: string;
+      useLastResponse: string;
+      savedPrompt: string;
+      savingPrompt: string;
+      failedSave: string;
+      sendPlaceholder: string;
+      send: string;
+      thinking: string;
+      retry: string;
+      sourcesLoaded: string;
+      emptyTitle: string;
+      emptySubtitle: string;
+    };
+    imageGenerator: {
+      title: string;
+      subtitle: string;
+      promptLabel: string;
+      placeholder: string;
+      ctrlEnterHint: string;
+      charsTruncated: string;
+      longPromptWarning: string;
+      generateBtn: string;
+      generatingBtn: string;
+      imageTitle: string;
+      regenerate: string;
+      download: string;
+      errorEmpty: string;
+      errorTimeout: string;
+      errorFailed: string;
+    };
+    outputSaver: {
+      title: string;
+      subtitle: string;
+      imageLabel: string;
+      downloadBtn: string;
+      downloadedBtn: string;
+      downloadHint: string;
+      noImageTitle: string;
+      noImageSubtitle: string;
+      errorDownload: string;
     };
   };
   moduleCreator: {
@@ -273,6 +416,11 @@ export interface Translations {
     saveAndFinalize: string;
     finalizeDisabledTooltip: string;
     saving: string;
+    moduleOrchestrator: string;
+    quickActions: string;
+    successFinalize: string;
+    errorFinalize: string;
+    backToPaths: string;
     steps: {
       select: string;
       selectDescription: string;
@@ -295,6 +443,8 @@ export interface Translations {
     moduleEditor: {
       readOnlyBanner: string;
       configuration: string;
+      module: string;
+      loadFromNotebook: string;
       useTailwind: string;
       active: string;
       htmlCode: string;
@@ -319,6 +469,8 @@ export interface Translations {
       body: string;
       footers: string;
       useTemplate: string;
+      templates: string;
+      custom: string;
     };
     phases: {
       select: {
@@ -382,6 +534,7 @@ export interface Translations {
       title: string;
       subtitle: string;
       download: string;
+      emptyContainer: string;
     };
     createTemplate: {
       title: string;
@@ -413,9 +566,14 @@ export interface Translations {
     };
     sourcePicker: {
       title: string;
+      subtitle: string;
       loading: string;
       noSources: string;
+      noSourcesDescription: string;
       selectButton: string;
+      availableSources: string;
+      availableSource: string;
+      created: string;
     };
   };
   translationMaker: {
@@ -449,8 +607,15 @@ export interface Translations {
       description: string;
       downloadIndividual: string;
       downloadAll: string;
+      downloadTemplate: string;
+      downloadTemplateHint: string;
       saveToLibrary: string;
       saveToProject: string;
+      uploadExternalTranslation: string;
+      uploadedSuccess: string;
+      languageCode: string;
+      languageCodePlaceholder: string;
+      languageCodeHint: string;
       saving: string;
       success: string;
       projectPath: string;
@@ -461,6 +626,8 @@ export interface Translations {
     error: string;
     retry: string;
     cancel: string;
+    next: string;
+    select: string;
     save: string;
     edit: string;
     delete: string;
@@ -474,5 +641,10 @@ export interface Translations {
     creating: string;
     updating: string;
     deleting: string;
+    errorSaving: string;
+    errorDeleting: string;
+    empty: string;
+    characters: string;
   };
 }
+

@@ -34,6 +34,8 @@ export interface UserProfile {
   lastLoginAt?: string;
   isActive: boolean;
   stats: ProfileStats;
+  standardLanguages?: Array<{code: string; name: string}>;
+  customLanguages?: Array<{code: string; name: string}>;
 }
 
 export interface UpdateProfileData {

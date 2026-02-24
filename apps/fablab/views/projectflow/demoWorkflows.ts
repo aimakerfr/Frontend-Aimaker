@@ -153,7 +153,7 @@ export const getInitialMakerPaths = (t: any): Record<string, { json: WorkflowJSO
         description: t.makerPathTranslations?.['text_26'] ?? 'Extract text from code files and generate translation JSON for ES, EN, and FR.',
         output_type: 'JSON',
         required_files: [],
-        required_variables: [1, 3],
+        required_variables: [1],
         steps: [
           {
             step_id: 1,
@@ -178,6 +178,14 @@ export const getInitialMakerPaths = (t: any): Record<string, { json: WorkflowJSO
             action: 'translation_saver',
             variable_index_number: 3,
             variable_name: 'translations_json',
+            required: false,
+          },
+          {
+            step_id: 4,
+            name: t.makerPathTranslations?.['text_30'] ?? 'Manage Complete Project Languages',
+            action: 'language_manager',
+            variable_index_number: 4,
+            variable_name: 'complete_project_json',
             required: false,
           },
         ],

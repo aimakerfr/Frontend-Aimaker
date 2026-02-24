@@ -10,6 +10,7 @@ import OutputResultSaver from './OutputResultSaver';
 import FileUploadAnalyzer from './FileUploadAnalyzer';
 import TranslationProcessor from './TranslationProcessor';
 import TranslationSaver from './TranslationSaver';
+import LanguageManager from './LanguageManager';
 
 type MakerPathStepContentProps = {
   action: StepAction;
@@ -191,6 +192,13 @@ const MakerPathStepContent: React.FC<MakerPathStepContentProps> = (props) => {
           stepId={props.stepId}
           onMarkStepComplete={props.onMarkStepComplete}
           required={props.required}
+        />
+      );
+    case 'language_manager':
+      return (
+        <LanguageManager
+          makerPathId={props.makerPathId}
+          variableIndexNumber={props.variableIndexNumber}
         />
       );
     default:

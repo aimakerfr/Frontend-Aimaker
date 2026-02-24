@@ -43,42 +43,42 @@ const MakerPathStepCard: React.FC<MakerPathStepCardProps> = ({
     <div
       onClick={() => !disabled && onClick?.(stepId)}
       className={`relative bg-gradient-to-br ${gradientClass} border-2 ${selected
-          ? 'border-blue-500 dark:border-blue-400 shadow-xl shadow-blue-500/20 ring-2 ring-blue-500/30 w-[28rem]'
-          : borderClass + ' shadow-md hover:shadow-lg w-80'
-        } rounded-xl p-6 pt-12 pb-6 transition-all duration-200 text-left group overflow-hidden ${disabled ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'
+          ? 'border-blue-500 dark:border-blue-400 shadow-xl shadow-blue-500/20 ring-2 ring-blue-500/30 w-[42rem]'
+          : borderClass + ' shadow-md hover:shadow-lg w-[38rem]'
+        } rounded-2xl p-8 pt-14 pb-8 transition-all duration-200 text-left group overflow-hidden ${disabled ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'
         }`}
     >
       {/* Step number (top-left) */}
       {typeof stepNumber === 'number' && (
-        <div className="absolute top-4 left-4 w-7 h-7 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 text-xs font-bold flex items-center justify-center">
+        <div className="absolute top-5 left-5 w-9 h-9 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 text-sm font-bold flex items-center justify-center">
           {stepNumber}
         </div>
       )}
       {/* Badges (top-right) */}
-      <div className="absolute top-4 right-4 flex flex-col items-end gap-2 max-w-[40%]">
+      <div className="absolute top-5 right-5 flex flex-col items-end gap-2 max-w-[40%]">
         {showKeyBadge && (
-          <span className="text-[10px] font-bold text-red-500 flex items-center gap-1.5 whitespace-nowrap">
-            <span className="w-1.5 h-1.5 bg-red-500 rounded-full flex-shrink-0" />
+          <span className="text-xs font-bold text-red-500 flex items-center gap-2 whitespace-nowrap">
+            <span className="w-2 h-2 bg-red-500 rounded-full flex-shrink-0" />
             <span className="truncate">{t.projectFlow.keyNeeded}</span>
           </span>
         )}
         {showLibraryBadge && (
-          <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 flex items-center gap-1.5 whitespace-nowrap">
-            <Wand2 size={10} className="flex-shrink-0" />
+          <span className="text-xs font-bold text-blue-600 dark:text-blue-400 flex items-center gap-2 whitespace-nowrap">
+            <Wand2 size={12} className="flex-shrink-0" />
             <span className="truncate">{t.projectFlow.library}</span>
           </span>
         )}
       </div>
 
       {/* Icon + title */}
-      <div className="flex items-start gap-4 mb-6 pr-2">
-        <div className={`w-10 h-10 ${iconBgClass} rounded-lg flex items-center justify-center flex-shrink-0`}>
-          <Icon size={20} className="text-white" />
+      <div className="flex items-start gap-5 mb-8 pr-2">
+        <div className={`w-14 h-14 ${iconBgClass} rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg`}>
+          <Icon size={28} className="text-white" />
         </div>
         <div className="min-w-0 flex-1 overflow-hidden">
-          <h3 className="font-bold text-gray-900 dark:text-white text-base leading-tight truncate">{title}</h3>
+          <h3 className="font-bold text-gray-900 dark:text-white text-xl leading-tight truncate">{title}</h3>
           {subtitle && (
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 mt-2 truncate">{subtitle}</p>
+            <p className="text-sm font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 mt-2 truncate">{subtitle}</p>
           )}
         </div>
       </div>
@@ -91,10 +91,10 @@ const MakerPathStepCard: React.FC<MakerPathStepCardProps> = ({
       )}
 
       {/* Connection point (bottom) */}
-      <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-3 h-3 bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 rounded-full" />
+      <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 rounded-full" />
       {/* Connection point (top) */}
       {showTopConnectorDot && (
-        <div className="absolute -top-1.5 left-1/2 -translate-x-1/2 w-3 h-3 bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 rounded-full" />
+        <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 rounded-full" />
       )}
     </div>
   );

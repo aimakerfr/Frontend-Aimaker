@@ -115,10 +115,20 @@ const ProjectFlow: React.FC = () => {
     const set = new Set<number>();
     ordered.forEach((step, idx) => {
       if (idx === 0) {
+        // First step is always selectable
         set.add(step.step_id);
       } else {
         const prev = ordered[idx - 1];
-        if (prev.required && completedSteps.has(prev.step_id)) {
+        // If current step is optional (not required), it's always selectable
+        if (!step.required) {
+          set.add(step.step_id);
+        } 
+        // If previous step was required, only enable if it's completed
+        else if (prev.required && completedSteps.has(prev.step_id)) {
+          set.add(step.step_id);
+        }
+        // If previous step was optional, enable regardless
+        else if (!prev.required) {
           set.add(step.step_id);
         }
       }

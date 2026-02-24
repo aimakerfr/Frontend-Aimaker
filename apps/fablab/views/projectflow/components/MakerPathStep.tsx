@@ -14,6 +14,7 @@ import {
   BookOpen,
   Save,
   FileCode,
+  Globe,
 } from 'lucide-react';
 import type { StepAction } from '../types';
 import { ACTION_LABELS } from '../types';
@@ -121,6 +122,12 @@ const NODE_STYLES: Record<
     gradient: 'from-violet-50 to-purple-50 dark:from-violet-900/20 dark:to-purple-900/20',
     border: 'border-violet-200 dark:border-violet-800',
     iconBg: 'bg-violet-500',
+  },
+  language_manager: {
+    icon: Globe,
+    gradient: 'from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20',
+    border: 'border-blue-200 dark:border-indigo-800',
+    iconBg: 'bg-blue-500',
   },
   rag_selector: {
     icon: Database,

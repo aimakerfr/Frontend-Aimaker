@@ -1,3 +1,8 @@
+/* ⚠️ WARNING: Potential syntax issues detected:
+ * - Potential invalid operators detected
+ * Please review the code carefully before using.
+ */
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Route, Search, Plus, Trash2, Eye, CheckCircle2, Clock, FileText } from 'lucide-react';
@@ -7,7 +12,7 @@ import {
   deleteMakerPath
 } from '@core/maker-path';
 import type { MakerPath, MakerPathStatus } from '@core/maker-path';
-import { RouteTypeModal } from './components/RouteTypeModal';
+import { RouteTypeModal } from './components';
 import { useLanguage } from '../../language/useLanguage';
 import { getInitialMakerPaths } from '../projectflow/demoWorkflows';
 
@@ -35,7 +40,7 @@ const MakerPathView: React.FC = () => {
       const data = await getMakerPaths();
       setPaths(data);
     } catch (error) {
-      console.error('Error loading maker paths:', error);
+      console.error(t.makerPathTranslations?.['text_1'] ?? 'Error loading maker paths:', error);
     } finally {
       setIsLoading(false);
     }
@@ -43,7 +48,7 @@ const MakerPathView: React.FC = () => {
 
   const handleCreate = async (type: 'blank' | 'landing_page_maker' | 'rag_chat_maker' | 'image_generator_rag' | 'translation_maker' = 'blank') => {
     try {
-      let title = 'Proyecto sin título';
+      let title = t.makerPathTranslations?.['text_2'] ?? 'New Project';
       let data = '';
 
       if (type !== 'blank') {
@@ -58,7 +63,7 @@ const MakerPathView: React.FC = () => {
         data = JSON.stringify({
           blank_project: {
             stage_name: 'blank_project',
-            description: 'Un nuevo proyecto desde cero.',
+            description: t.makerPathTranslations?.['text_3'] ?? 'Un nuevo proyecto desde cero.',
             output_type: 'OUTPUT',
             steps: []
           }
@@ -67,7 +72,7 @@ const MakerPathView: React.FC = () => {
 
       const newPath = await createMakerPath({
         title,
-        description: 'Creado desde el dashboard',
+        description: t.makerPathTranslations?.['text_4'] ?? 'Creado desde el dashboard',
         type: 'custom',
         status: 'draft',
         data
@@ -81,17 +86,17 @@ const MakerPathView: React.FC = () => {
         navigate(`/dashboard/projectflow?maker_path_template=${type}&id=${newPath.id}`);
       }
     } catch (error) {
-      console.error('Error creating project:', error);
+      console.error(t.makerPathTranslations?.['text_5'] ?? 'Error creating project:', error);
     }
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm('¿Estás seguro de que quieres eliminar este proyecto?')) return;
+    if (!confirm(t.makerPathTranslations?.['text_6'] ?? '¿Estás seguro de que quieres eliminar este proyecto?')) return;
     try {
       await deleteMakerPath(id);
       await loadPaths();
     } catch (error) {
-      console.error('Error deleting project:', error);
+      console.error(t.makerPathTranslations?.['text_7'] ?? 'Error deleting project:', error);
     }
   };
 
@@ -118,7 +123,7 @@ const MakerPathView: React.FC = () => {
             detectedTemplate = 'image_generator_rag';
           }
         } catch (e) {
-          console.error('Error parsing path data:', e);
+          console.error(t.makerPathTranslations?.['text_8'] ?? 'Error parsing path data:', e);
         }
       }
 
@@ -192,18 +197,16 @@ const MakerPathView: React.FC = () => {
         {/* Header */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-              Proyectos
-            </h1>
-            <p className="text-gray-600 dark:text-gray-400 mt-1">Gestiona y crea tus flujos de trabajo</p>
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">{t.makerPathTranslations?.['text_9']}</h1>
+            <p className="text-gray-600 dark:text-gray-400 mt-1">{t.makerPathTranslations?.['text_10']}</p>
           </div>
-          <button
-            onClick={() => setShowRouteTypeModal(true)}
-            className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold rounded-xl transition-all shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40 hover:scale-[1.02]"
-          >
-            <Plus size={20} />
-            Nuevo Proyecto
-          </button>
+          <div className="flex gap-3">
+            <button
+              onClick={() => setShowRouteTypeModal(true)}
+              className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold rounded-xl transition-all shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40 hover:scale-[1.02]"
+            >
+              <Plus size={20} />{t.makerPathTranslations?.['text_11']}</button>
+          </div>
         </div>
 
         {/* Filters */}
@@ -246,11 +249,11 @@ const MakerPathView: React.FC = () => {
         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 overflow-hidden">
           <div className="bg-gradient-to-r from-gray-50 to-blue-50/50 dark:from-gray-900 dark:to-blue-900/20 border-b border-gray-200 dark:border-gray-700">
             <div className="grid grid-cols-12 gap-4 px-6 py-4">
-              <div className="col-span-1 text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider">Tipo</div>
-              <div className="col-span-4 text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider">Título y Descripción</div>
-              <div className="col-span-2 text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider">Estado</div>
-              <div className="col-span-2 text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider">Fecha de Creación</div>
-              <div className="col-span-3 text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider">Acciones</div>
+              <div className="col-span-1 text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider">{t.makerPathTranslations?.['text_12']}</div>
+              <div className="col-span-4 text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider">{t.makerPathTranslations?.['text_13']}</div>
+              <div className="col-span-2 text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider">{t.makerPathTranslations?.['text_14']}</div>
+              <div className="col-span-2 text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider">{t.makerPathTranslations?.['text_15']}</div>
+              <div className="col-span-3 text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider">{t.makerPathTranslations?.['text_16']}</div>
             </div>
           </div>
 

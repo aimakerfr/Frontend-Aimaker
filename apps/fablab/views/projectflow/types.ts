@@ -22,6 +22,7 @@ export type StepAction =
   | 'translation_extractor'
   | 'translation_generator'
   | 'translation_saver'
+  | 'language_manager'
   // Legacy actions (backward compatibility)
   | 'fetch_data'
   | 'select_file'
@@ -174,6 +175,7 @@ export const ACTION_LABELS: Record<StepAction, string> = {
   translation_extractor: 'TRANSLATION EXTRACTOR',
   translation_generator: 'TRANSLATION GENERATOR',
   translation_saver: 'TRANSLATION SAVER',
+  language_manager: 'LANGUAGE MANAGER',
   api_configurator: 'API CONFIGURATOR',
   output_result_saver: 'OUTPUT RESULT SAVER',
   text_processor: 'TEXT PROCESSOR',
