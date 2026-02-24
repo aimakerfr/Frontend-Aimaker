@@ -14,6 +14,7 @@ const ENDPOINT = '/api/v1/maker_path_variables';
 
 /**
  * Update a maker path variable (completed state)
+ * Uses POST with UPSERT behavior on the backend.
  * Example body:
  * {
  *   "makerPathId":123,
@@ -26,7 +27,7 @@ const ENDPOINT = '/api/v1/maker_path_variables';
 export const putMakerPathVariable = async (
   data: CreateMakerPathVariableRequest
 ): Promise<MakerPathVariableResponse> => {
-  return httpClient.put<MakerPathVariableResponse>(ENDPOINT, data);
+  return httpClient.post<MakerPathVariableResponse>(ENDPOINT, data);
 };
 
 /**

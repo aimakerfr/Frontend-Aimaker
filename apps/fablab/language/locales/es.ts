@@ -1009,4 +1009,43 @@ export const es: Translations = {
         errorDownload: 'Error al descargar la imagen',
       },
     },
+
+  // Auto-generated translations from Translation Maker
+  // Auto-generated translations from Translation Maker
+  // Auto-generated translations from Translation Maker
+  // Auto-generated translations from Translation Maker
+  makerPathTranslations: {
+    'text_1': 'Creador de Landing Pages',
+    'text_2': 'Una ruta para crear una landing page básica',
+    'text_3': 'Una ruta para crear una landing page básica.',
+    'text_4': 'header.html',
+    'text_5': 'footer.html',
+    'text_6': 'body.html',
+    'text_7': 'Seleccionar Encabezado',
+    'text_8': 'Seleccionar Pie de Página',
+    'text_9': 'Seleccionar Plantilla de Cuerpo',
+    'text_10': 'Compilar y Exportar Landing Page',
+    'text_11': 'Creador de Chat RAG',
+    'text_12': 'Una ruta para chatear con fuentes de conocimiento RAG seleccionadas.',
+    'text_13': 'Chatea interactivamente con fuentes de conocimiento RAG seleccionadas.',
+    'text_14': 'Seleccionar Fuentes de Conocimiento',
+    'text_15': 'Generar Respuesta de Chat RAG',
+    'text_16': 'Generador de Imágenes desde RAG',
+    'text_17': 'Genera imágenes usando prompts construidos a partir de fuentes de conocimiento RAG.',
+    'text_18': 'Imagen desde RAG (Simple)',
+    'text_19': 'Selecciona una tarjeta RAG, construye el prompt y genera la imagen.',
+    'text_20': 'Seleccionar tarjeta RAG',
+    'text_21': 'Construir prompt visual',
+    'text_22': 'Generar imagen',
+    'text_23': 'Guardar resultado',
+    'text_24': 'Creador de Traducciones',
+    'text_25': 'Crea archivos de traducción (ES, EN, FR) a partir de componentes React (JSX, TSX) y archivos HTML.',
+    'text_26': 'Extrae texto de archivos de código y genera JSON de traducción para ES, EN y FR.',
+    'text_27': 'Subir y Analizar Archivo',
+    'text_28': 'IA: Detectar y Traducir',
+    'text_29': 'Guardar en Proyecto o Descargar',
+  },
+
+
+
 };

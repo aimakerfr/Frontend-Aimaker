@@ -1,15 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Route, Search, Plus, Trash2, Eye, CheckCircle2, Clock, FileText } from 'lucide-react';
-import { 
-  getMakerPaths, 
-  createMakerPath, 
-  deleteMakerPath 
+import {
+  getMakerPaths,
+  createMakerPath,
+  deleteMakerPath
 } from '@core/maker-path';
 import type { MakerPath, MakerPathStatus } from '@core/maker-path';
 import { RouteTypeModal } from './components/RouteTypeModal';
 import { useLanguage } from '../../language/useLanguage';
-import { INITIAL_MAKERPATHS } from '../projectflow/demoWorkflows';
+import { getInitialMakerPaths } from '../projectflow/demoWorkflows';
 
 type FilterType = 'all' | 'architect_ai' | 'module_connector' | 'custom';
 type StatusFilter = 'all' | 'draft' | 'in_progress' | 'completed';
@@ -17,7 +17,7 @@ type StatusFilter = 'all' | 'draft' | 'in_progress' | 'completed';
 const MakerPathView: React.FC = () => {
   const navigate = useNavigate();
   const { t } = useLanguage();
-  
+
   const [paths, setPaths] = useState<MakerPath[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState<FilterType>('all');
@@ -47,7 +47,8 @@ const MakerPathView: React.FC = () => {
       let data = '';
 
       if (type !== 'blank') {
-        const template = INITIAL_MAKERPATHS[type];
+        const paths = getInitialMakerPaths(t);
+        const template = paths[type];
         if (template) {
           title = template.path.name;
           data = JSON.stringify(template.json);
@@ -71,9 +72,9 @@ const MakerPathView: React.FC = () => {
         status: 'draft',
         data
       });
-      
+
       setShowRouteTypeModal(false);
-      
+
       if (type === 'blank') {
         navigate(`/dashboard/projectflow?id=${newPath.id}`);
       } else {
@@ -101,13 +102,13 @@ const MakerPathView: React.FC = () => {
     } else {
       // Try to detect which template was used by checking the data
       let detectedTemplate: string | null = null;
-      
+
       if (path?.data) {
         try {
           const dataStr = typeof path.data === 'string' ? path.data : JSON.stringify(path.data);
           const parsed = JSON.parse(dataStr);
           const workflowKey = Object.keys(parsed)[0];
-          
+
           // Check if the workflow matches any known template
           if (workflowKey === 'simple_landing_creator') {
             detectedTemplate = 'landing_page_maker';
@@ -120,7 +121,7 @@ const MakerPathView: React.FC = () => {
           console.error('Error parsing path data:', e);
         }
       }
-      
+
       // Navigate with appropriate query parameters
       if (detectedTemplate) {
         navigate(`/dashboard/projectflow?maker_path_template=${detectedTemplate}&id=${pathId}`);
@@ -186,7 +187,7 @@ const MakerPathView: React.FC = () => {
         onClose={() => setShowRouteTypeModal(false)}
         onSelect={(type) => handleCreate(type as any)}
       />
-      
+
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -265,9 +266,8 @@ const MakerPathView: React.FC = () => {
               {filteredPaths.map((path, index) => (
                 <div
                   key={path.id}
-                  className={`grid grid-cols-12 gap-4 px-6 py-6 items-center hover:bg-blue-50/50 dark:hover:bg-blue-900/10 transition-all ${
-                    index !== filteredPaths.length - 1 ? 'border-b border-gray-100 dark:border-gray-700' : ''
-                  }`}
+                  className={`grid grid-cols-12 gap-4 px-6 py-6 items-center hover:bg-blue-50/50 dark:hover:bg-blue-900/10 transition-all ${index !== filteredPaths.length - 1 ? 'border-b border-gray-100 dark:border-gray-700' : ''
+                    }`}
                 >
                   {/* Type */}
                   <div className="col-span-1">

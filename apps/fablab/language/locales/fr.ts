@@ -1008,4 +1008,43 @@ export const fr: Translations = {
         errorDownload: 'Échec du téléchargement de l\'image',
       },
     },
-  };
+  
+  // Auto-generated translations from Translation Maker
+  // Auto-generated translations from Translation Maker
+  // Auto-generated translations from Translation Maker
+  // Auto-generated translations from Translation Maker
+  makerPathTranslations: {
+    'text_1': 'Créateur de Pages d\'Atterrissage',
+    'text_2': 'Un chemin pour créer une page d\'atterrissage basique',
+    'text_3': 'Un chemin pour créer une page d\'atterrissage basique.',
+    'text_4': 'header.html',
+    'text_5': 'footer.html',
+    'text_6': 'body.html',
+    'text_7': 'Sélectionner l\'En-tête',
+    'text_8': 'Sélectionner le Pied de Page',
+    'text_9': 'Sélectionner le Modèle de Corps',
+    'text_10': 'Compiler et Exporter la Page d\'Atterrissage',
+    'text_11': 'Créateur de Chat RAG',
+    'text_12': 'Un chemin pour discuter avec des sources de connaissance RAG sélectionnées.',
+    'text_13': 'Discutez interactivement avec des sources de connaissance RAG sélectionnées.',
+    'text_14': 'Sélectionner les Sources de Connaissance',
+    'text_15': 'Générer une Réponse de Chat RAG',
+    'text_16': 'Générateur d\'Images depuis RAG',
+    'text_17': 'Générer des images en utilisant des invites construites à partir de sources de connaissance RAG.',
+    'text_18': 'Image depuis RAG (Simple)',
+    'text_19': 'Sélectionnez une carte RAG, construisez l\'invite et générez l\'image.',
+    'text_20': 'Sélectionner la carte RAG',
+    'text_21': 'Construire l\'invite visuelle',
+    'text_22': 'Générer l\'image',
+    'text_23': 'Enregistrer le résultat',
+    'text_24': 'Créateur de Traductions',
+    'text_25': 'Créer des fichiers de traduction (ES, EN, FR) à partir de composants React (JSX, TSX) et de fichiers HTML.',
+    'text_26': 'Extraire le texte des fichiers de code et générer le JSON de traduction pour ES, EN et FR.',
+    'text_27': 'Télécharger et Analyser le Fichier',
+    'text_28': 'IA : Détecter et Traduire',
+    'text_29': 'Enregistrer dans le Projet ou Télécharger',
+  },
+
+
+
+};

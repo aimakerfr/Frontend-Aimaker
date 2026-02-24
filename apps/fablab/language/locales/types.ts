@@ -1010,5 +1010,5 @@ export interface Translations {
       errorDownload: string;
     };
   };
+  makerPathTranslations?: Record<string, string>;
 }
-  

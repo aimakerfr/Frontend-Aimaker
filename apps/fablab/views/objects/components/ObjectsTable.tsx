@@ -81,7 +81,7 @@ const ObjectsTable: React.FC<ObjectsTableProps> = ({ items, isLoading, error, t,
                 scope="col"
                 className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-200"
               >
-                
+
               </th>
             )}
             <th
@@ -154,7 +154,7 @@ const ObjectsTable: React.FC<ObjectsTableProps> = ({ items, isLoading, error, t,
                     type="button"
                     className="inline-flex items-center px-3 py-1.5 rounded-md text-sm font-medium bg-brand-600 text-white hover:bg-brand-700 disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500 dark:focus:ring-offset-gray-900"
                     onClick={() => onView(item)}
-                    disabled={!item.url}
+                    disabled={!item.url && !(item as any).data}
                   >
                     {(t as any).home?.objects_library?.voir ?? t.library.buttons.view}
                   </button>

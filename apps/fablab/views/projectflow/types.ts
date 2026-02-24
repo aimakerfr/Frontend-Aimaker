@@ -18,6 +18,10 @@ export type StepAction =
   | 'file_generator'
   | 'rag_selector'
   | 'rag_chat'
+  | 'file_upload_analyzer'
+  | 'translation_extractor'
+  | 'translation_generator'
+  | 'translation_saver'
   // Legacy actions (backward compatibility)
   | 'fetch_data'
   | 'select_file'
@@ -42,7 +46,10 @@ export type InputSourceType =
   | 'json'
   | 'image'
   | 'file'
-  | 'api_key';
+  | 'api_key'
+  | 'JSX'
+  | 'TSX'
+  | 'code_file';
 
 /** Output format for the final compiled step */
 export type OutputFormat = 'HTML' | 'JSON' | 'PDF' | 'TEXT' | 'IMAGE';
@@ -113,6 +120,8 @@ export type CardType =
   | 'information_search'
   | 'rag_upload'
   | 'prompt_optimizer'
+  | 'file_upload'
+  | 'translation_processor'
   | 'api_configuration'
   | 'store_data'
   | 'text_processing';
@@ -131,6 +140,10 @@ export const ACTION_TO_CARD_TYPE: Record<StepAction, CardType> = {
   output_result_saver: 'store_data',
   text_processor: 'text_processing',
   file_generator: 'store_data',
+  file_upload_analyzer: 'file_upload',
+  translation_extractor: 'translation_processor',
+  translation_generator: 'translation_processor',
+  translation_saver: 'store_data',
   rag_selector: 'rag_library',
   rag_chat: 'ia_generator',
   // Legacy actions (backward compatibility)
@@ -157,6 +170,10 @@ export const ACTION_LABELS: Record<StepAction, string> = {
   information_searcher: 'INFORMATION SEARCHER',
   rag_library_uploader: 'RAG LIBRARY UPLOADER',
   prompt_optimizer: 'PROMPT OPTIMIZER',
+  file_upload_analyzer: 'FILE UPLOAD & ANALYZER',
+  translation_extractor: 'TRANSLATION EXTRACTOR',
+  translation_generator: 'TRANSLATION GENERATOR',
+  translation_saver: 'TRANSLATION SAVER',
   api_configurator: 'API CONFIGURATOR',
   output_result_saver: 'OUTPUT RESULT SAVER',
   text_processor: 'TEXT PROCESSOR',

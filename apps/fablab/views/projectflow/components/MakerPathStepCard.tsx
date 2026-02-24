@@ -40,15 +40,13 @@ const MakerPathStepCard: React.FC<MakerPathStepCardProps> = ({
   children,
 }) => {
   return (
-    <button
-      onClick={() => onClick?.(stepId)}
-      disabled={!!disabled}
-      className={`relative bg-gradient-to-br ${gradientClass} border-2 ${
-        selected
+    <div
+      onClick={() => !disabled && onClick?.(stepId)}
+      className={`relative bg-gradient-to-br ${gradientClass} border-2 ${selected
           ? 'border-blue-500 dark:border-blue-400 shadow-xl shadow-blue-500/20 ring-2 ring-blue-500/30 w-[28rem]'
           : borderClass + ' shadow-md hover:shadow-lg w-80'
-      } rounded-xl p-6 pt-12 pb-6 transition-all duration-200 text-left group overflow-hidden`}
-      style={disabled ? { opacity: 0.6, cursor: 'not-allowed' } : undefined}
+        } rounded-xl p-6 pt-12 pb-6 transition-all duration-200 text-left group overflow-hidden ${disabled ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'
+        }`}
     >
       {/* Step number (top-left) */}
       {typeof stepNumber === 'number' && (
@@ -86,7 +84,11 @@ const MakerPathStepCard: React.FC<MakerPathStepCardProps> = ({
       </div>
 
       {/* Variable content rendered by parent depending on action */}
-      {selected && children}
+      {selected && (
+        <div onClick={(e) => e.stopPropagation()} className="relative">
+          {children}
+        </div>
+      )}
 
       {/* Connection point (bottom) */}
       <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-3 h-3 bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 rounded-full" />
@@ -94,7 +96,7 @@ const MakerPathStepCard: React.FC<MakerPathStepCardProps> = ({
       {showTopConnectorDot && (
         <div className="absolute -top-1.5 left-1/2 -translate-x-1/2 w-3 h-3 bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 rounded-full" />
       )}
-    </button>
+    </div>
   );
 };
 

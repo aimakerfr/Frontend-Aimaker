@@ -1009,4 +1009,43 @@ export const en: Translations = {
         errorDownload: 'Failed to download image',
       },
     },
+
+  // Auto-generated translations from Translation Maker
+  // Auto-generated translations from Translation Maker
+  // Auto-generated translations from Translation Maker
+  // Auto-generated translations from Translation Maker
+  makerPathTranslations: {
+    'text_1': 'Landing Page Maker',
+    'text_2': 'A path for creating a basic landing page',
+    'text_3': 'A path for creating a basic landing page.',
+    'text_4': 'header.html',
+    'text_5': 'footer.html',
+    'text_6': 'body.html',
+    'text_7': 'Select Header',
+    'text_8': 'Select Footer',
+    'text_9': 'Select Body Template',
+    'text_10': 'Compile and Export Landing Page',
+    'text_11': 'RAG Chat Maker',
+    'text_12': 'A path for chatting with selected RAG knowledge sources.',
+    'text_13': 'Chat interactively with selected RAG knowledge sources.',
+    'text_14': 'Select Knowledge Sources',
+    'text_15': 'Generate RAG Chat Response',
+    'text_16': 'Image Generator from RAG',
+    'text_17': 'Generate images using prompts built from RAG knowledge sources.',
+    'text_18': 'Image from RAG (Simple)',
+    'text_19': 'Select a RAG card, build the prompt, and generate the image.',
+    'text_20': 'Select RAG card',
+    'text_21': 'Build visual prompt',
+    'text_22': 'Generate image',
+    'text_23': 'Save result',
+    'text_24': 'Translation Maker',
+    'text_25': 'Create translation files (ES, EN, FR) from React components (JSX, TSX) and HTML files.',
+    'text_26': 'Extract text from code files and generate translation JSON for ES, EN, and FR.',
+    'text_27': 'Upload & Analyze File',
+    'text_28': 'AI: Detect and Translate',
+    'text_29': 'Save to Project or Download',
+  },
+
+
+
 };
