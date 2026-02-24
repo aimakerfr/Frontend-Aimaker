@@ -8,7 +8,8 @@ import {
     FileCode,
     Globe,
     ArrowRight,
-    Download
+    Download,
+    Undo2
 } from 'lucide-react';
 import { httpClient } from '@core/api/http.client';
 import { getMakerPathVariables } from '@core/maker-path-variables';
@@ -29,9 +30,11 @@ const TranslationSaver: React.FC<TranslationSaverProps> = ({
 }) => {
     const [loading, setLoading] = useState(false);
     const [savingToProject, setSavingToProject] = useState(false);
+    const [reverting, setReverting] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState<string | null>(null);
     const [projectPath, setProjectPath] = useState<string | null>(null);
+    const [previousContent, setPreviousContent] = useState<any>(null);
 
     const [results, setResults] = useState<{
         es: any;
@@ -111,18 +114,27 @@ const TranslationSaver: React.FC<TranslationSaverProps> = ({
         setSavingToProject(true);
         setError(null);
         try {
+            // Obtener el nombre del archivo fuente
+            const sourceFileName = results.i18n_code?.fileName
+                ? results.i18n_code.fileName.replace(/^i18n_/, '')
+                : 'source.tsx';
+
             const response = await httpClient.post<any>('/api/v1/translation/save-to-project', {
                 translations: {
                     es: results.es,
                     en: results.en,
                     fr: results.fr
                 },
+                source_file_name: sourceFileName, // Enviar nombre del archivo
                 i18n_code: results.i18n_code ? {
                     content: results.i18n_code.content,
-                    fileName: results.i18n_code.fileName ? results.i18n_code.fileName.replace(/^i18n_/, '') : 'source.tsx'
+                    fileName: sourceFileName
                 } : null
             });
 
+            // Guardar el contenido previo para poder revertir
+            setPreviousContent(response.previousContent || null);
+            
             setSuccess('¡Todo aplicado correctamente!');
             setProjectPath(response.path || 'apps/fablab/language/locales/');
 
@@ -131,6 +143,33 @@ const TranslationSaver: React.FC<TranslationSaverProps> = ({
             setError('Error al aplicar al proyecto: ' + (err.message || 'Error desconocido'));
         } finally {
             setSavingToProject(false);
+        }
+    };
+
+    const handleRevertChanges = async () => {
+        if (!previousContent) {
+            setError('No hay contenido previo para revertir');
+            return;
+        }
+
+        setReverting(true);
+        setError(null);
+        try {
+            await httpClient.post('/api/v1/translation/revert-changes', {
+                previousContent
+            });
+
+            setSuccess('Cambios revertidos correctamente');
+            setProjectPath(null);
+            setPreviousContent(null);
+            
+            setTimeout(() => {
+                setSuccess(null);
+            }, 3000);
+        } catch (err: any) {
+            setError('Error al revertir cambios: ' + (err.message || 'Error desconocido'));
+        } finally {
+            setReverting(false);
         }
     };
 
@@ -154,9 +193,19 @@ const TranslationSaver: React.FC<TranslationSaverProps> = ({
                 </div>
             ) : (
                 <div className="space-y-5">
+                    {/* Important Notice */}
+                    <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl">
+                        <p className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">
+                            <strong>💡 Todas las opciones son opcionales:</strong><br/>
+                            • Puedes guardar solo los JSON de traducciones<br/>
+                            • Puedes descargar sin aplicar al proyecto<br/>
+                            • Aplicar al proyecto modificará los archivos de idioma
+                        </p>
+                    </div>
+
                     {/* Results Summary */}
                     <div className="space-y-2">
-                        <h4 className="text-xs font-bold text-gray-400 uppercase">Guardar en Biblioteca de Objetos</h4>
+                        <h4 className="text-xs font-bold text-gray-400 uppercase">Opción 1: Descargar JSONs de Traducción</h4>
                         <div className="grid grid-cols-2 gap-2">
                             {(['es', 'en', 'fr'] as const).map(lang => (
                                 <button
@@ -212,7 +261,11 @@ const TranslationSaver: React.FC<TranslationSaverProps> = ({
                     </div>
 
                     {/* Apply to Project Button */}
-                    <div className="pt-4 border-t border-gray-100 dark:border-gray-700">
+                    <div className="pt-4 border-t border-gray-100 dark:border-gray-700 space-y-3">
+                        <h4 className="text-xs font-bold text-gray-400 uppercase">Opción 2: Aplicar al Proyecto (Modifica Archivos)</h4>
+                        <p className="text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 p-3 rounded-lg border border-amber-200 dark:border-amber-800">
+                            ⚠️ Esta opción modificará los archivos de idioma del proyecto
+                        </p>
                         {projectPath ? (
                             <div className="p-6 bg-emerald-50 dark:bg-emerald-900/10 border-2 border-emerald-500/30 rounded-3xl flex flex-col items-center text-center space-y-4 animate-in zoom-in-95 duration-500 shadow-xl shadow-emerald-500/5">
                                 <div className="w-16 h-16 bg-gradient-to-br from-emerald-400 to-teal-600 rounded-full flex items-center justify-center text-white shadow-lg shadow-emerald-200 dark:shadow-none animate-bounce">
@@ -230,12 +283,33 @@ const TranslationSaver: React.FC<TranslationSaverProps> = ({
                                         {projectPath}
                                     </span>
                                 </div>
-                                <button
-                                    onClick={() => window.location.reload()}
-                                    className="pt-2 text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1"
-                                >
-                                    Realizar otra traducción <ArrowRight size={12} />
-                                </button>
+                                <div className="flex gap-3 w-full">
+                                    {previousContent && (
+                                        <button
+                                            onClick={handleRevertChanges}
+                                            disabled={reverting}
+                                            className="flex-1 flex items-center justify-center gap-2 py-3 px-4 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold rounded-xl shadow-lg shadow-amber-200 dark:shadow-none hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50 disabled:scale-100"
+                                        >
+                                            {reverting ? (
+                                                <>
+                                                    <Loader2 size={16} className="animate-spin" />
+                                                    <span className="text-sm">Revirtiendo...</span>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <Undo2 size={16} />
+                                                    <span className="text-sm">Revertir Cambios</span>
+                                                </>
+                                            )}
+                                        </button>
+                                    )}
+                                    <button
+                                        onClick={() => window.location.reload()}
+                                        className="flex-1 py-3 px-4 text-sm font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl hover:bg-emerald-100 dark:hover:bg-emerald-900/30 transition-all flex items-center justify-center gap-1"
+                                    >
+                                        Nueva Traducción <ArrowRight size={14} />
+                                    </button>
+                                </div>
                             </div>
                         ) : (
                             <button

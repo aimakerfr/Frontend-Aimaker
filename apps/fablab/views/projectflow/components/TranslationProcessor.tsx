@@ -143,26 +143,53 @@ const TranslationProcessor: React.FC<TranslationProcessorProps> = ({
             const sortedKeys = Object.entries(extractedKeys).sort((a, b) => b[1].length - a[1].length);
 
             for (const [key, value] of sortedKeys) {
+                // Escape special regex characters properly
                 const escapedValue = value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
                 if (isJSX) {
                     // 1. Text inside tags: >Value< -> >{t.makerPathTranslations?.['text_N']}<
+                    // More precise: ensure we're between tags with proper spacing
                     const tagRegex = new RegExp(`>\\s*${escapedValue}\\s*<`, 'g');
                     modifiedCode = modifiedCode.replace(tagRegex, `>{t.makerPathTranslations?.['${key}']}<`);
 
                     // 2. Attributes: attr="Value" -> attr={t.makerPathTranslations?.['text_N']}
-                    const attrRegex = new RegExp(`=\\s*["']${escapedValue}["']`, 'g');
-                    modifiedCode = modifiedCode.replace(attrRegex, `={t.makerPathTranslations?.['${key}']}`);
+                    // Handle both double and single quotes
+                    const attrDoubleQuote = new RegExp(`=\\s*"${escapedValue}"`, 'g');
+                    const attrSingleQuote = new RegExp(`=\\s*'${escapedValue}'`, 'g');
+                    modifiedCode = modifiedCode.replace(attrDoubleQuote, `={t.makerPathTranslations?.['${key}']}`);
+                    modifiedCode = modifiedCode.replace(attrSingleQuote, `={t.makerPathTranslations?.['${key}']}`);
 
-                    // 3. Simple strings in quotes inside JSX logic/props
-                    const quoteRegex = new RegExp(`(?<=[\\s({[:])["']${escapedValue}["'](?=[\\s)},;?])`, 'g');
-                    modifiedCode = modifiedCode.replace(quoteRegex, `t.makerPathTranslations?.['${key}']`);
+                    // 3. TypeScript/JavaScript logic (NOT in JSX context)
+                    // Pattern: const x = "value" or let y = 'value' or property: "value"
+                    // Should become: const x = t.makerPathTranslations?.['key'] ?? "value"
+                    // DO NOT use JSX braces {} here - this is pure TS/JS
+                    
+                    // Variable assignments: let/const x = "value"
+                    const varAssignDoubleQuote = new RegExp(`(?<=(let|const|var)\\s+\\w+\\s*=\\s*)"${escapedValue}"`, 'g');
+                    const varAssignSingleQuote = new RegExp(`(?<=(let|const|var)\\s+\\w+\\s*=\\s*)'${escapedValue}'`, 'g');
+                    modifiedCode = modifiedCode.replace(varAssignDoubleQuote, `t.makerPathTranslations?.['${key}'] ?? "${value}"`);
+                    modifiedCode = modifiedCode.replace(varAssignSingleQuote, `t.makerPathTranslations?.['${key}'] ?? '${value}'`);
+                    
+                    // Object property values: key: "value"
+                    const objPropDoubleQuote = new RegExp(`(?<=:\\s*)"${escapedValue}"(?=\\s*[,}])`, 'g');
+                    const objPropSingleQuote = new RegExp(`(?<=:\\s*)'${escapedValue}'(?=\\s*[,}])`, 'g');
+                    modifiedCode = modifiedCode.replace(objPropDoubleQuote, `t.makerPathTranslations?.['${key}'] ?? "${value}"`);
+                    modifiedCode = modifiedCode.replace(objPropSingleQuote, `t.makerPathTranslations?.['${key}'] ?? '${value}'`);
+                    
+                    // Function arguments and array elements (only if clearly a standalone string)
+                    const funcArgDoubleQuote = new RegExp(`(?<=[,(\\[]\\s*)"${escapedValue}"(?=\\s*[,)\\]])`, 'g');
+                    const funcArgSingleQuote = new RegExp(`(?<=[,(\\[]\\s*)'${escapedValue}'(?=\\s*[,)\\]])`, 'g');
+                    modifiedCode = modifiedCode.replace(funcArgDoubleQuote, `t.makerPathTranslations?.['${key}'] ?? "${value}"`);
+                    modifiedCode = modifiedCode.replace(funcArgSingleQuote, `t.makerPathTranslations?.['${key}'] ?? '${value}'`);
                 } else if (isTS) {
-                    // For TS/JS files (like data objects), we must ensure it's valid syntax.
-                    // Replace 'Value' with t.makerPathTranslations?.['key'] ?? 'Value'
-                    // but ONLY if it's not a key itself.
-                    const tsQuoteRegex = new RegExp(`(?<=:\\s*)["']${escapedValue}["']`, 'g');
-                    modifiedCode = modifiedCode.replace(tsQuoteRegex, `t.makerPathTranslations?.['${key}'] ?? '${value}'`);
+                    // For TS/JS files (like data objects), replace with fallback
+                    // Pattern: key: 'Value' -> key: t.makerPathTranslations?.['key'] ?? 'Value'
+                    // Be very careful to only match property values, not keys
+                    const tsValueDoubleQuote = new RegExp(`(?<=:\\s*)"${escapedValue}"(?=\\s*[,}])`, 'g');
+                    const tsValueSingleQuote = new RegExp(`(?<=:\\s*)'${escapedValue}'(?=\\s*[,}])`, 'g');
+                    
+                    modifiedCode = modifiedCode.replace(tsValueDoubleQuote, `t.makerPathTranslations?.['${key}'] ?? "${value}"`);
+                    modifiedCode = modifiedCode.replace(tsValueSingleQuote, `t.makerPathTranslations?.['${key}'] ?? '${value}'`);
                 } else {
                     // HTML / other simple replacement
                     const genericRegex = new RegExp(escapedValue, 'g');
@@ -174,22 +201,41 @@ const TranslationProcessor: React.FC<TranslationProcessorProps> = ({
             if (isJSX) {
                 // Add import if missing
                 if (!modifiedCode.includes('useLanguage')) {
-                    modifiedCode = `import { useLanguage } from '@apps/fablab/language/useLanguage';\n` + modifiedCode;
+                    // Find first import statement to add after it, or add at the beginning
+                    const firstImportMatch = modifiedCode.match(/^import\s+.*?;/m);
+                    if (firstImportMatch) {
+                        const importIndex = modifiedCode.indexOf(firstImportMatch[0]) + firstImportMatch[0].length;
+                        modifiedCode = modifiedCode.slice(0, importIndex) + 
+                                      `\nimport { useLanguage } from '@apps/fablab/language/useLanguage';` + 
+                                      modifiedCode.slice(importIndex);
+                    } else {
+                        modifiedCode = `import { useLanguage } from '@apps/fablab/language/useLanguage';\n\n` + modifiedCode;
+                    }
                 }
 
                 // Inject const { t } = useLanguage() INSIDE the component
                 if (!modifiedCode.includes('const { t } = useLanguage()')) {
-                    // Try to find the start of a functional component
-                    const componentMatch = modifiedCode.match(/(?:export\s+)?(?:const|function)\s+\w+.*?\s*=>\s*{\s*|function\s+\w+\s*\(.*?\)\s*{\s*/);
-                    if (componentMatch) {
-                        const match = componentMatch[0];
-                        modifiedCode = modifiedCode.replace(match, `${match}\n  const { t } = useLanguage();`);
+                    // Try to find the start of a functional component - more robust regex
+                    const componentMatches = [
+                        /(?:export\s+default\s+)?(?:const|function)\s+(\w+)(?:<[^>]*>)?\s*(?::\s*React\.FC[^=]*?)?\s*=\s*\([^)]*\)\s*=>\s*\{/,
+                        /(?:export\s+default\s+)?function\s+(\w+)\s*\([^)]*\)\s*\{/,
+                        /(?:export\s+)?const\s+(\w+)\s*=\s*\([^)]*\)\s*=>\s*\{/
+                    ];
+                    
+                    for (const regex of componentMatches) {
+                        const componentMatch = modifiedCode.match(regex);
+                        if (componentMatch) {
+                            const fullMatch = componentMatch[0];
+                            const replacement = fullMatch + '\n  const { t } = useLanguage();\n';
+                            modifiedCode = modifiedCode.replace(fullMatch, replacement);
+                            break;
+                        }
                     }
                 }
             } else if (isTS) {
                 // Robust refactoring for .ts data files
                 // 1. Convert "export const INITIAL_MAKERPATHS: ... = {" into "export const getInitialMakerPaths = (t: any): ... => ({"
-                const staticExportRegex = /export\s+const\s+(\w+)(?::\s*([^=]+))?\s*=\s*{/;
+                const staticExportRegex = /export\s+const\s+(\w+)(?::\s*([^=]+))?\s*=\s*\{/;
                 const match = modifiedCode.match(staticExportRegex);
 
                 if (match) {
@@ -198,23 +244,62 @@ const TranslationProcessor: React.FC<TranslationProcessorProps> = ({
 
                     // Generate a better function name (e.g., getInitialMakerPaths)
                     const funcName = varName.startsWith('INITIAL_')
-                        ? 'get' + varName.toLowerCase().split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join('')
+                        ? 'get' + varName.toLowerCase().split('_').map((word: string) => word.charAt(0).toUpperCase() + word.slice(1)).join('')
                         : `get${varName.charAt(0).toUpperCase()}${varName.slice(1)}`;
 
-                    // Replace the start of the export
+                    // Replace the start of the export - ensure proper spacing
                     modifiedCode = modifiedCode.replace(match[0], `export const ${funcName} = (t: any)${typePart} => ({`);
 
                     // Replace the closing brace at the end of the file if it matches
-                    // This is simple but works for most config objects
-                    if (modifiedCode.trim().endsWith('};')) {
-                        modifiedCode = modifiedCode.replace(/};\s*$/, '});');
+                    // More robust - handle different whitespace patterns
+                    const closingPattern = /\};\s*$/;
+                    if (closingPattern.test(modifiedCode.trim())) {
+                        modifiedCode = modifiedCode.replace(closingPattern, '});');
+                    }
+                    
+                    // Also handle case where file ends with just }
+                    const altClosingPattern = /\}\s*$/;
+                    if (altClosingPattern.test(modifiedCode.trim()) && !modifiedCode.trim().endsWith('});')) {
+                        modifiedCode = modifiedCode.replace(altClosingPattern, '});');
                     }
                 }
 
                 // Ensure a safety check for 't' if not already refactored
                 if (!modifiedCode.includes('(t: any)') && modifiedCode.includes('t.makerPathTranslations')) {
-                    modifiedCode = `/* NOTE: This file depends on 't'. Ensure it is passed as a param. */\n` + modifiedCode;
+                    modifiedCode = `/* NOTE: This file depends on 't' parameter. Ensure it is passed correctly. */\n\n` + modifiedCode;
                 }
+            }
+
+            // Final syntax validation - check for common issues
+            const syntaxIssues: string[] = [];
+            
+            // Check for unmatched braces/brackets/parentheses
+            const openBraces = (modifiedCode.match(/\{/g) || []).length;
+            const closeBraces = (modifiedCode.match(/\}/g) || []).length;
+            const openBrackets = (modifiedCode.match(/\[/g) || []).length;
+            const closeBrackets = (modifiedCode.match(/\]/g) || []).length;
+            const openParens = (modifiedCode.match(/\(/g) || []).length;
+            const closeParens = (modifiedCode.match(/\)/g) || []).length;
+            
+            if (openBraces !== closeBraces) {
+                syntaxIssues.push(`Unmatched braces: ${openBraces} open vs ${closeBraces} close`);
+            }
+            if (openBrackets !== closeBrackets) {
+                syntaxIssues.push(`Unmatched brackets: ${openBrackets} open vs ${closeBrackets} close`);
+            }
+            if (openParens !== closeParens) {
+                syntaxIssues.push(`Unmatched parentheses: ${openParens} open vs ${closeParens} close`);
+            }
+            
+            // Check for consecutive operators that might indicate syntax errors
+            if (/[=<>!]{3,}/.test(modifiedCode)) {
+                syntaxIssues.push('Potential invalid operators detected');
+            }
+            
+            // Warn if issues found but don't block
+            if (syntaxIssues.length > 0) {
+                console.warn('⚠️ Potential syntax issues detected:', syntaxIssues);
+                modifiedCode = `/* ⚠️ WARNING: Potential syntax issues detected:\n${syntaxIssues.map(issue => ` * - ${issue}`).join('\n')}\n * Please review the code carefully before using.\n */\n\n` + modifiedCode;
             }
 
             // Download it
@@ -240,11 +325,11 @@ const TranslationProcessor: React.FC<TranslationProcessorProps> = ({
                 });
             }
 
-            setSuccess('Código con Auto-i18n generado y descargado');
+            setSuccess('Código con Auto-i18n generado y descargado (opcional - puedes continuar sin aplicarlo)');
             setTimeout(() => setSuccess(null), 3000);
 
-            // Auto complete this step
-            if (stepId && onMarkStepComplete) onMarkStepComplete(stepId);
+            // Don't auto-complete - let user decide when to move forward
+            // if (stepId && onMarkStepComplete) onMarkStepComplete(stepId);
 
         } catch (err: any) {
             setError('Error en Auto-i18n: ' + err.message);
@@ -325,7 +410,7 @@ const TranslationProcessor: React.FC<TranslationProcessorProps> = ({
 
                     {/* Auto-i18n Section */}
                     <div className="space-y-3 pt-2">
-                        <h4 className="text-xs font-bold text-gray-400 uppercase">2. Preparar Código</h4>
+                        <h4 className="text-xs font-bold text-gray-400 uppercase">2. Preparar Código (Opcional)</h4>
                         <button
                             onClick={handleAutoI18n}
                             disabled={loading || Object.keys(extractedKeys).length === 0}
@@ -335,8 +420,23 @@ const TranslationProcessor: React.FC<TranslationProcessorProps> = ({
                             <span>Generar Código con Auto-i18n</span>
                         </button>
                         <p className="text-[10px] text-gray-400 text-center mt-2 italic">
-                            Reemplaza textos por variables y añade hooks automáticamente.
+                            Opcional: Reemplaza textos por variables. Puedes omitir este paso.
                         </p>
+                    </div>
+
+                    {/* Manual Step Complete */}
+                    <div className="pt-4 border-t border-gray-100 dark:border-gray-700">
+                        <button
+                            onClick={() => {
+                                if (stepId && onMarkStepComplete) onMarkStepComplete(stepId);
+                                setSuccess('¡Paso completado! Puedes continuar.');
+                                setTimeout(() => setSuccess(null), 2000);
+                            }}
+                            className="w-full flex items-center justify-center gap-2 py-3 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 font-medium rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-all"
+                        >
+                            <Check size={16} />
+                            <span>Continuar al siguiente paso</span>
+                        </button>
                     </div>
                 </div>
             )}
