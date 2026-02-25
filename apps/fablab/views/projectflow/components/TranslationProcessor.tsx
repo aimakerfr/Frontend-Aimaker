@@ -131,6 +131,7 @@ const TranslationProcessor: React.FC<TranslationProcessorProps> = ({
     };
 
     const handleAutoI18n = async () => {
+
         if (!sourceData || !extractedKeys) return;
 
         setLoading(true);
@@ -138,6 +139,10 @@ const TranslationProcessor: React.FC<TranslationProcessorProps> = ({
             let modifiedCode = sourceData.content;
             const isJSX = sourceData.name.endsWith('.tsx') || sourceData.name.endsWith('.jsx');
             const isTS = sourceData.name.endsWith('.ts') || sourceData.name.endsWith('.js');
+
+            // Determinar el nombre del objeto de traducción según el archivo fuente
+            const fileBaseName = sourceData.name.replace(/\.[^.]+$/, '');
+            const translationObject = `${fileBaseName}Translations`;
 
             // Sort keys by value length (desc) to avoid partial replacements
             const sortedKeys = Object.entries(extractedKeys).sort((a, b) => b[1].length - a[1].length);
@@ -147,53 +152,43 @@ const TranslationProcessor: React.FC<TranslationProcessorProps> = ({
                 const escapedValue = value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
                 if (isJSX) {
-                    // 1. Text inside tags: >Value< -> >{t.makerPathTranslations?.['text_N']}<
-                    // More precise: ensure we're between tags with proper spacing
+                    // 1. Text inside tags: >Value< -> >{t.[obj]?.['text_N']}<
                     const tagRegex = new RegExp(`>\\s*${escapedValue}\\s*<`, 'g');
-                    modifiedCode = modifiedCode.replace(tagRegex, `>{t.makerPathTranslations?.['${key}']}<`);
+                    modifiedCode = modifiedCode.replace(tagRegex, `>{t.${translationObject}?.['${key}']}<`);
 
-                    // 2. Attributes: attr="Value" -> attr={t.makerPathTranslations?.['text_N']}
-                    // Handle both double and single quotes
+                    // 2. Attributes: attr="Value" -> attr={t.[obj]?.['text_N']}
                     const attrDoubleQuote = new RegExp(`=\\s*"${escapedValue}"`, 'g');
                     const attrSingleQuote = new RegExp(`=\\s*'${escapedValue}'`, 'g');
-                    modifiedCode = modifiedCode.replace(attrDoubleQuote, `={t.makerPathTranslations?.['${key}']}`);
-                    modifiedCode = modifiedCode.replace(attrSingleQuote, `={t.makerPathTranslations?.['${key}']}`);
+                    modifiedCode = modifiedCode.replace(attrDoubleQuote, `={t.${translationObject}?.['${key}']}`);
+                    modifiedCode = modifiedCode.replace(attrSingleQuote, `={t.${translationObject}?.['${key}']}`);
 
                     // 3. TypeScript/JavaScript logic (NOT in JSX context)
-                    // Pattern: const x = "value" or let y = 'value' or property: "value"
-                    // Should become: const x = t.makerPathTranslations?.['key'] ?? "value"
-                    // DO NOT use JSX braces {} here - this is pure TS/JS
-                    
-                    // Variable assignments: let/const x = "value"
                     const varAssignDoubleQuote = new RegExp(`(?<=(let|const|var)\\s+\\w+\\s*=\\s*)"${escapedValue}"`, 'g');
                     const varAssignSingleQuote = new RegExp(`(?<=(let|const|var)\\s+\\w+\\s*=\\s*)'${escapedValue}'`, 'g');
-                    modifiedCode = modifiedCode.replace(varAssignDoubleQuote, `t.makerPathTranslations?.['${key}'] ?? "${value}"`);
-                    modifiedCode = modifiedCode.replace(varAssignSingleQuote, `t.makerPathTranslations?.['${key}'] ?? '${value}'`);
-                    
+                    modifiedCode = modifiedCode.replace(varAssignDoubleQuote, `t.${translationObject}?.['${key}'] ?? "${value}"`);
+                    modifiedCode = modifiedCode.replace(varAssignSingleQuote, `t.${translationObject}?.['${key}'] ?? '${value}'`);
+
                     // Object property values: key: "value"
                     const objPropDoubleQuote = new RegExp(`(?<=:\\s*)"${escapedValue}"(?=\\s*[,}])`, 'g');
                     const objPropSingleQuote = new RegExp(`(?<=:\\s*)'${escapedValue}'(?=\\s*[,}])`, 'g');
-                    modifiedCode = modifiedCode.replace(objPropDoubleQuote, `t.makerPathTranslations?.['${key}'] ?? "${value}"`);
-                    modifiedCode = modifiedCode.replace(objPropSingleQuote, `t.makerPathTranslations?.['${key}'] ?? '${value}'`);
-                    
-                    // Function arguments and array elements (only if clearly a standalone string)
-                    const funcArgDoubleQuote = new RegExp(`(?<=[,(\\[]\\s*)"${escapedValue}"(?=\\s*[,)\\]])`, 'g');
-                    const funcArgSingleQuote = new RegExp(`(?<=[,(\\[]\\s*)'${escapedValue}'(?=\\s*[,)\\]])`, 'g');
-                    modifiedCode = modifiedCode.replace(funcArgDoubleQuote, `t.makerPathTranslations?.['${key}'] ?? "${value}"`);
-                    modifiedCode = modifiedCode.replace(funcArgSingleQuote, `t.makerPathTranslations?.['${key}'] ?? '${value}'`);
+                    modifiedCode = modifiedCode.replace(objPropDoubleQuote, `t.${translationObject}?.['${key}'] ?? "${value}"`);
+                    modifiedCode = modifiedCode.replace(objPropSingleQuote, `t.${translationObject}?.['${key}'] ?? '${value}'`);
+
+                    // Function arguments and array elements
+                    const funcArgDoubleQuote = new RegExp(`(?<=[,(\[]\\s*)"${escapedValue}"(?=\\s*[,)\]])`, 'g');
+                    const funcArgSingleQuote = new RegExp(`(?<=[,(\[]\\s*)'${escapedValue}'(?=\\s*[,)\]])`, 'g');
+                    modifiedCode = modifiedCode.replace(funcArgDoubleQuote, `t.${translationObject}?.['${key}'] ?? "${value}"`);
+                    modifiedCode = modifiedCode.replace(funcArgSingleQuote, `t.${translationObject}?.['${key}'] ?? '${value}'`);
                 } else if (isTS) {
-                    // For TS/JS files (like data objects), replace with fallback
-                    // Pattern: key: 'Value' -> key: t.makerPathTranslations?.['key'] ?? 'Value'
-                    // Be very careful to only match property values, not keys
+                    // Para archivos TS/JS
                     const tsValueDoubleQuote = new RegExp(`(?<=:\\s*)"${escapedValue}"(?=\\s*[,}])`, 'g');
                     const tsValueSingleQuote = new RegExp(`(?<=:\\s*)'${escapedValue}'(?=\\s*[,}])`, 'g');
-                    
-                    modifiedCode = modifiedCode.replace(tsValueDoubleQuote, `t.makerPathTranslations?.['${key}'] ?? "${value}"`);
-                    modifiedCode = modifiedCode.replace(tsValueSingleQuote, `t.makerPathTranslations?.['${key}'] ?? '${value}'`);
+                    modifiedCode = modifiedCode.replace(tsValueDoubleQuote, `t.${translationObject}?.['${key}'] ?? "${value}"`);
+                    modifiedCode = modifiedCode.replace(tsValueSingleQuote, `t.${translationObject}?.['${key}'] ?? '${value}'`);
                 } else {
-                    // HTML / other simple replacement
+                    // HTML / otros
                     const genericRegex = new RegExp(escapedValue, 'g');
-                    modifiedCode = modifiedCode.replace(genericRegex, `{{t.makerPathTranslations?.['${key}']}}`);
+                    modifiedCode = modifiedCode.replace(genericRegex, `{{t.${translationObject}?.['${key}']}}`);
                 }
             }
 

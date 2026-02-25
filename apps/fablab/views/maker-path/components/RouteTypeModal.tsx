@@ -1,3 +1,8 @@
+/* ⚠️ WARNING: Potential syntax issues detected:
+ * - Potential invalid operators detected
+ * Please review the code carefully before using.
+ */
+
 import React, { useState } from 'react';
 import {
   Workflow, X, FilePlus, Layout, MessageSquare,
@@ -21,8 +26,8 @@ export const RouteTypeModal: React.FC<RouteTypeModalProps> = ({ isOpen, onClose,
   const templates = [
     {
       id: 'landing_page_maker',
-      title: 'Creador de páginas de aterrizaje',
-      description: 'Crea páginas de aterrizaje optimizadas con RAG.',
+      title: t.RouteTypeModalTranslations?.['text_1'] ?? 'Creador de páginas de aterrizaje',
+      description: t.RouteTypeModalTranslations?.['text_2'] ?? 'Crea páginas de aterrizaje optimizadas con RAG.',
       icon: Layout,
       color: 'from-blue-500 to-indigo-600',
       bgColor: 'from-blue-50 to-indigo-50',
@@ -31,8 +36,8 @@ export const RouteTypeModal: React.FC<RouteTypeModalProps> = ({ isOpen, onClose,
     },
     {
       id: 'rag_chat_maker',
-      title: 'RAG Chat Maker',
-      description: 'Chat inteligente conectado a tus fuentes de datos.',
+      title: t.RouteTypeModalTranslations?.['text_3'] ?? 'RAG Chat Maker',
+      description: t.RouteTypeModalTranslations?.['text_4'] ?? 'Chat inteligente conectado a tus fuentes de datos.',
       icon: MessageSquare,
       color: 'from-purple-500 to-pink-600',
       bgColor: 'from-purple-50 to-pink-50',
@@ -41,8 +46,8 @@ export const RouteTypeModal: React.FC<RouteTypeModalProps> = ({ isOpen, onClose,
     },
     {
       id: 'image_generator_rag',
-      title: 'Generador de imágenes de RAG',
-      description: 'Generación de imágenes basada en contextos RAG.',
+      title: t.RouteTypeModalTranslations?.['text_5'] ?? 'Generador de imágenes de RAG',
+      description: t.RouteTypeModalTranslations?.['text_6'] ?? 'Generación de imágenes basada en contextos RAG.',
       icon: ImageIcon,
       color: 'from-emerald-500 to-teal-600',
       bgColor: 'from-emerald-50 to-teal-50',
@@ -51,8 +56,8 @@ export const RouteTypeModal: React.FC<RouteTypeModalProps> = ({ isOpen, onClose,
     },
     {
       id: 'translation_maker',
-      title: 'Translation Maker',
-      description: 'Detecta y traduce textos de archivos JSX/TSX automáticamente.',
+      title: t.RouteTypeModalTranslations?.['text_7'] ?? 'Translation Maker',
+      description: t.RouteTypeModalTranslations?.['text_8'] ?? 'Detecta y traduce textos de archivos JSX/TSX automáticamente.',
       icon: Languages,
       color: 'from-orange-500 to-red-600',
       bgColor: 'from-orange-50 to-red-50',
@@ -80,7 +85,7 @@ export const RouteTypeModal: React.FC<RouteTypeModalProps> = ({ isOpen, onClose,
                 <button
                   onClick={() => setView('default')}
                   className="w-11 h-11 flex items-center justify-center rounded-2xl border border-gray-200 dark:border-gray-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 hover:border-indigo-300 transition-all group"
-                  title="Volver"
+                  title={t.RouteTypeModalTranslations?.['text_9']}
                 >
                   <ArrowLeft size={18} className="text-gray-400 group-hover:text-indigo-600 transition-colors" />
                 </button>
@@ -224,13 +229,11 @@ export const RouteTypeModal: React.FC<RouteTypeModalProps> = ({ isOpen, onClose,
               className={`transition-colors ${view === 'default'
                 ? 'text-gray-700 dark:text-gray-200 font-semibold cursor-default'
                 : 'hover:text-gray-600 dark:hover:text-gray-300 cursor-pointer'}`}
-            >
-              Inicio
-            </button>
+            >{t.RouteTypeModalTranslations?.['text_20']}</button>
             {view === 'templates' && (
               <>
                 <span className="text-gray-300 dark:text-gray-600">/</span>
-                <span className="text-indigo-600 dark:text-indigo-400 font-semibold">Maker Paths</span>
+                <span className="text-indigo-600 dark:text-indigo-400 font-semibold">{t.RouteTypeModalTranslations?.['text_10']}</span>
               </>
             )}
           </div>
@@ -238,9 +241,7 @@ export const RouteTypeModal: React.FC<RouteTypeModalProps> = ({ isOpen, onClose,
           <button
             onClick={onClose}
             className="px-8 py-3 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors font-bold text-base"
-          >
-            Cancelar
-          </button>
+          >{t.RouteTypeModalTranslations?.['text_21']}</button>
         </div>
       </div>
     </div>

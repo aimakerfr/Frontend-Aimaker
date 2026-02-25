@@ -576,51 +576,6 @@ export interface Translations {
       created: string;
     };
   };
-  translationMaker: {
-    title: string;
-    uploadAnalyzer: {
-      uploadFile: string;
-      loadFromLibrary: string;
-      analyze: string;
-      analyzing: string;
-      fileTypes: string;
-      saveToLibrary: string;
-    };
-    extractor: {
-      title: string;
-      description: string;
-      extract: string;
-      variablesDetected: string;
-      reAnalyze: string;
-    };
-    generator: {
-      title: string;
-      description: string;
-      generate: string;
-      generating: string;
-      success: string;
-      regenerate: string;
-      keys: string;
-    };
-    saver: {
-      title: string;
-      description: string;
-      downloadIndividual: string;
-      downloadAll: string;
-      downloadTemplate: string;
-      downloadTemplateHint: string;
-      saveToLibrary: string;
-      saveToProject: string;
-      uploadExternalTranslation: string;
-      uploadedSuccess: string;
-      languageCode: string;
-      languageCodePlaceholder: string;
-      languageCodeHint: string;
-      saving: string;
-      success: string;
-      projectPath: string;
-    };
-  };
   common: {
     loading: string;
     error: string;
