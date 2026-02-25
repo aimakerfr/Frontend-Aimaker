@@ -58,7 +58,10 @@ export type OutputFormat = 'HTML' | 'JSON' | 'PDF' | 'TEXT' | 'IMAGE';
 /** A single step in the workflow */
 export interface WorkflowStep {
   step_id: number;
+  /** Internal identifier - should never be translated (used in logic) */
   name: string;
+  /** Translated name for UI display only - if not provided, 'name' will be used */
+  displayName?: string;
   action: StepAction;
   input_source_type?: InputSourceType;
   input_file_variable?: string;
@@ -147,6 +150,7 @@ export const ACTION_TO_CARD_TYPE: Record<StepAction, CardType> = {
   translation_saver: 'store_data',
   rag_selector: 'rag_library',
   rag_chat: 'ia_generator',
+  language_manager: 'translation_processor',
   // Legacy actions (backward compatibility)
   fetch_data: 'rag_library',
   select_file: 'rag_library',

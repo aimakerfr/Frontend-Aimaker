@@ -141,8 +141,9 @@ const TranslationProcessor: React.FC<TranslationProcessorProps> = ({
             const isTS = sourceData.name.endsWith('.ts') || sourceData.name.endsWith('.js');
 
             // Determinar el nombre del objeto de traducción según el archivo fuente
+            // Always camelCase (lowercase first letter) so it matches the language file keys
             const fileBaseName = sourceData.name.replace(/\.[^.]+$/, '');
-            const translationObject = `${fileBaseName}Translations`;
+            const translationObject = fileBaseName.charAt(0).toLowerCase() + fileBaseName.slice(1) + 'Translations';
 
             // Sort keys by value length (desc) to avoid partial replacements
             const sortedKeys = Object.entries(extractedKeys).sort((a, b) => b[1].length - a[1].length);
@@ -189,6 +190,19 @@ const TranslationProcessor: React.FC<TranslationProcessorProps> = ({
                     // HTML / otros
                     const genericRegex = new RegExp(escapedValue, 'g');
                     modifiedCode = modifiedCode.replace(genericRegex, `{{t.${translationObject}?.['${key}']}}`);
+                }
+
+                // ── Catch-all for JSX/TS ──────────────────────────────────────────────
+                // Replaces any remaining occurrences not covered by the patterns above.
+                // Covers: ternary expressions, return statements, default parameters, etc.
+                // Negative lookahead (?!\s*:) prevents replacing object property KEYS.
+                if (isJSX || isTS) {
+                    const safeValue = value.replace(/"/g, '\\"');
+                    const safeValueSingle = value.replace(/'/g, "\\'");
+                    const catchAllDouble = new RegExp(`"${escapedValue}"(?!\\s*:)`, 'g');
+                    const catchAllSingle = new RegExp(`'${escapedValue}'(?!\\s*:)`, 'g');
+                    modifiedCode = modifiedCode.replace(catchAllDouble, `(t.${translationObject}?.['${key}'] ?? "${safeValue}")`);
+                    modifiedCode = modifiedCode.replace(catchAllSingle, `(t.${translationObject}?.['${key}'] ?? '${safeValueSingle}')`);
                 }
             }
 

@@ -23,7 +23,10 @@ import MakerPathStepContent from './MakerPathStepContent';
 
 type MakerPathStepProps = {
   action: StepAction;
+  /** Internal identifier - never translated (used in logic) */
   name: string;
+  /** Translated name for UI display - if not provided, 'name' will be used */
+  displayName?: string;
   stepId: number;
   stepNumber?: number;
   selected: boolean;
@@ -254,6 +257,7 @@ const usesLibrary = (action: StepAction): boolean => {
 const MakerPathStep: React.FC<MakerPathStepProps> = ({
   action,
   name,
+  displayName,
   stepId,
   stepNumber,
   selected,
@@ -281,7 +285,7 @@ const MakerPathStep: React.FC<MakerPathStepProps> = ({
       selected={selected}
       stepId={stepId}
       stepNumber={stepNumber}
-      title={name}
+      title={displayName || name}
       subtitle={ACTION_LABELS[action] || action}
       icon={style.icon}
       iconBgClass={style.iconBg}

@@ -1,6 +1,10 @@
 import type { WorkflowJSON, AvailablePath } from './types';
 
-/** Example workflows for the RAG Library / demo */
+/** 
+ * Example workflows for the RAG Library / demo
+ * IMPORTANT: 'name' fields are INTERNAL IDENTIFIERS (never translated, used in logic)
+ *            'displayName' fields are for UI DISPLAY (translated based on user language)
+ */
 export const getInitialMakerPaths = (t: any): Record<string, { json: WorkflowJSON; path: AvailablePath }> => ({
   landing_page_maker: {
     path: {
@@ -22,7 +26,8 @@ export const getInitialMakerPaths = (t: any): Record<string, { json: WorkflowJSO
         steps: [
           {
             step_id: 1,
-            name: t.demoWorkflowsTranslations?.['text_4'] ?? 'Seleccionar Header',
+            name: 'Select Header', // Internal identifier - never changes
+            displayName: t.demoWorkflowsTranslations?.['text_4'] ?? 'Seleccionar Header', // UI display - translated
             action: 'rag_library_selector',
             input_source_type: 'HTML',
             input_file_variable: 'header.html',
@@ -31,7 +36,8 @@ export const getInitialMakerPaths = (t: any): Record<string, { json: WorkflowJSO
           },
           {
             step_id: 2,
-            name: t.demoWorkflowsTranslations?.['text_5'] ?? 'Seleccionar Footer',
+            name: 'Select Footer', // Internal identifier - never changes
+            displayName: t.demoWorkflowsTranslations?.['text_5'] ?? 'Seleccionar Footer', // UI display - translated
             action: 'rag_library_selector',
             input_source_type: 'HTML',
             input_file_variable: 'footer.html',
@@ -40,7 +46,8 @@ export const getInitialMakerPaths = (t: any): Record<string, { json: WorkflowJSO
           },
           {
             step_id: 3,
-            name: t.demoWorkflowsTranslations?.['text_6'] ?? 'Seleccionar plantilla Body',
+            name: 'Select Body Template', // Internal identifier - never changes
+            displayName: t.demoWorkflowsTranslations?.['text_6'] ?? 'Seleccionar plantilla Body', // UI display - translated
             action: 'rag_library_selector',
             input_source_type: 'HTML',
             input_file_variable: 'body.html',
@@ -49,7 +56,8 @@ export const getInitialMakerPaths = (t: any): Record<string, { json: WorkflowJSO
           },
           {
             step_id: 4,
-            name: t.demoWorkflowsTranslations?.['text_7'] ?? 'Compilar y exportar Landing Page',
+            name: 'Compile and Export Landing Page', // Internal identifier - never changes
+            displayName: t.demoWorkflowsTranslations?.['text_7'] ?? 'Compilar y exportar Landing Page', // UI display - translated
             action: 'file_generator',
             input_source_type: 'HTML',
             required: true,
@@ -75,7 +83,8 @@ export const getInitialMakerPaths = (t: any): Record<string, { json: WorkflowJSO
         steps: [
           {
             step_id: 1,
-            name: t.demoWorkflowsTranslations?.['text_11'] ?? 'Seleccionar fuentes de conocimiento',
+            name: 'Select Knowledge Sources', // Internal identifier - never changes
+            displayName: t.demoWorkflowsTranslations?.['text_11'] ?? 'Seleccionar fuentes de conocimiento', // UI display - translated
             action: 'rag_selector',
             variable_index_number: 1,
             variable_name: 'main_selected_rag',
@@ -83,7 +92,8 @@ export const getInitialMakerPaths = (t: any): Record<string, { json: WorkflowJSO
           },
           {
             step_id: 2,
-            name: t.demoWorkflowsTranslations?.['text_12'] ?? 'Generar respuesta de chat RAG',
+            name: 'Generate RAG Chat Response', // Internal identifier - never changes
+            displayName: t.demoWorkflowsTranslations?.['text_12'] ?? 'Generar respuesta de chat RAG', // UI display - translated
             action: 'rag_chat',
             variable_index_number: 1,
             required: true,
@@ -109,7 +119,8 @@ export const getInitialMakerPaths = (t: any): Record<string, { json: WorkflowJSO
         steps: [
           {
             step_id: 1,
-            name: t.demoWorkflowsTranslations?.['text_17'] ?? 'Seleccionar tarjeta RAG',
+            name: 'Select RAG Card', // Internal identifier - never changes
+            displayName: t.demoWorkflowsTranslations?.['text_17'] ?? 'Seleccionar tarjeta RAG', // UI display - translated
             action: 'rag_selector',
             variable_index_number: 1,
             variable_name: 'image_rag_source',
@@ -117,14 +128,16 @@ export const getInitialMakerPaths = (t: any): Record<string, { json: WorkflowJSO
           },
           {
             step_id: 2,
-            name: t.demoWorkflowsTranslations?.['text_18'] ?? 'Construir prompt visual',
+            name: 'Build Visual Prompt', // Internal identifier - never changes
+            displayName: t.demoWorkflowsTranslations?.['text_18'] ?? 'Construir prompt visual', // UI display - translated
             action: 'rag_chat',
             variable_index_number: 1,
             required: true,
           },
           {
             step_id: 3,
-            name: t.demoWorkflowsTranslations?.['text_19'] ?? 'Generar imagen',
+            name: 'Generate Image', // Internal identifier - never changes
+            displayName: t.demoWorkflowsTranslations?.['text_19'] ?? 'Generar imagen', // UI display - translated
             action: 'ia_generator',
             variable_index_number: 2,
             variable_name: 'generated_image_url',
@@ -132,7 +145,8 @@ export const getInitialMakerPaths = (t: any): Record<string, { json: WorkflowJSO
           },
           {
             step_id: 4,
-            name: t.demoWorkflowsTranslations?.['text_20'] ?? 'Guardar resultado',
+            name: 'Save Result', // Internal identifier - never changes
+            displayName: t.demoWorkflowsTranslations?.['text_20'] ?? 'Guardar resultado', // UI display - translated
             action: 'output_result_saver',
             required: true,
           },
@@ -157,7 +171,8 @@ export const getInitialMakerPaths = (t: any): Record<string, { json: WorkflowJSO
         steps: [
           {
             step_id: 1,
-            name: t.demoWorkflowsTranslations?.['text_24'] ?? 'Subir y analizar archivo',
+            name: 'Upload and Analyze File', // Internal identifier - never changes
+            displayName: t.demoWorkflowsTranslations?.['text_24'] ?? 'Subir y analizar archivo', // UI display - translated
             action: 'file_upload_analyzer',
             input_source_type: 'code_file',
             variable_index_number: 1,
@@ -166,7 +181,8 @@ export const getInitialMakerPaths = (t: any): Record<string, { json: WorkflowJSO
           },
           {
             step_id: 2,
-            name: t.demoWorkflowsTranslations?.['text_25'] ?? 'IA: Detectar y traducir',
+            name: 'AI: Detect and Translate', // Internal identifier - never changes
+            displayName: t.demoWorkflowsTranslations?.['text_25'] ?? 'IA: Detectar y traducir', // UI display - translated
             action: 'translation_extractor',
             variable_index_number: 2,
             variable_name: 'extracted_variables',
@@ -174,7 +190,8 @@ export const getInitialMakerPaths = (t: any): Record<string, { json: WorkflowJSO
           },
           {
             step_id: 3,
-            name: t.demoWorkflowsTranslations?.['text_26'] ?? 'Guardar en proyecto o descargar',
+            name: 'Save to Project or Download', // Internal identifier - never changes
+            displayName: t.demoWorkflowsTranslations?.['text_26'] ?? 'Guardar en proyecto o descargar', // UI display - translated
             action: 'translation_saver',
             variable_index_number: 3,
             variable_name: 'translations_json',
@@ -182,7 +199,8 @@ export const getInitialMakerPaths = (t: any): Record<string, { json: WorkflowJSO
           },
           {
             step_id: 4,
-            name: t.demoWorkflowsTranslations?.['text_27'] ?? 'Gestionar idiomas completos del proyecto',
+            name: 'Manage Complete Project Languages', // Internal identifier - never changes
+            displayName: t.demoWorkflowsTranslations?.['text_27'] ?? 'Gestionar idiomas completos del proyecto', // UI display - translated
             action: 'language_manager',
             variable_index_number: 4,
             variable_name: 'complete_project_json',
