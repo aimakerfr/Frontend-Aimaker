@@ -1,4 +1,10 @@
+/* ⚠️ WARNING: Potential syntax issues detected:
+ * - Potential invalid operators detected
+ * Please review the code carefully before using.
+ */
+
 import React, { useState, useEffect } from 'react';
+import { useLanguage } from '@apps/fablab/language/useLanguage';
 import {
     Save,
     Check,
@@ -28,6 +34,8 @@ const TranslationSaver: React.FC<TranslationSaverProps> = ({
     stepId,
     onMarkStepComplete,
 }) => {
+  const { t } = useLanguage();
+
     const [loading, setLoading] = useState(false);
     const [savingToProject, setSavingToProject] = useState(false);
     const [reverting, setReverting] = useState(false);
@@ -107,7 +115,7 @@ const TranslationSaver: React.FC<TranslationSaverProps> = ({
 
     const handleApplyToProject = async () => {
         if (!results.es && !results.en && !results.fr && !results.i18n_code) {
-            setError('No hay traducciones ni código para aplicar');
+            setError((t.translationSaverTranslations?.['text_2'] ?? 'No hay traducciones ni código para aplicar'));
             return;
         }
 
@@ -135,12 +143,12 @@ const TranslationSaver: React.FC<TranslationSaverProps> = ({
             // Guardar el contenido previo para poder revertir
             setPreviousContent(response.previousContent || null);
             
-            setSuccess('¡Todo aplicado correctamente!');
+            setSuccess((t.translationSaverTranslations?.['text_3'] ?? '¡Todo aplicado correctamente!'));
             setProjectPath(response.path || 'apps/fablab/language/locales/');
 
             if (stepId && onMarkStepComplete) onMarkStepComplete(stepId);
         } catch (err: any) {
-            setError('Error al aplicar al proyecto: ' + (err.message || 'Error desconocido'));
+            setError('Error al aplicar al proyecto: ' + (err.message || (t.translationSaverTranslations?.['text_5'] ?? 'Error desconocido')));
         } finally {
             setSavingToProject(false);
         }
@@ -148,7 +156,7 @@ const TranslationSaver: React.FC<TranslationSaverProps> = ({
 
     const handleRevertChanges = async () => {
         if (!previousContent) {
-            setError('No hay contenido previo para revertir');
+            setError((t.translationSaverTranslations?.['text_6'] ?? 'No hay contenido previo para revertir'));
             return;
         }
 
@@ -159,7 +167,7 @@ const TranslationSaver: React.FC<TranslationSaverProps> = ({
                 previousContent
             });
 
-            setSuccess('Cambios revertidos correctamente');
+            setSuccess((t.translationSaverTranslations?.['text_7'] ?? 'Cambios revertidos correctamente'));
             setProjectPath(null);
             setPreviousContent(null);
             
@@ -167,7 +175,7 @@ const TranslationSaver: React.FC<TranslationSaverProps> = ({
                 setSuccess(null);
             }, 3000);
         } catch (err: any) {
-            setError('Error al revertir cambios: ' + (err.message || 'Error desconocido'));
+            setError('Error al revertir cambios: ' + (err.message || (t.translationSaverTranslations?.['text_5'] ?? 'Error desconocido')));
         } finally {
             setReverting(false);
         }
@@ -182,8 +190,8 @@ const TranslationSaver: React.FC<TranslationSaverProps> = ({
                     <Save className="text-emerald-600 dark:text-emerald-400" size={20} />
                 </div>
                 <div>
-                    <h3 className="text-lg font-bold text-gray-900 dark:text-white">Paso 3: Guardar y Aplicar</h3>
-                    <p className="text-xs text-gray-500">Finaliza el proceso guardando en la biblioteca o el proyecto.</p>
+                    <h3 className="text-lg font-bold text-gray-900 dark:text-white">{t.translationSaverTranslations?.['text_9']}</h3>
+                    <p className="text-xs text-gray-500">{t.translationSaverTranslations?.['text_10']}</p>
                 </div>
             </div>
 
@@ -196,16 +204,12 @@ const TranslationSaver: React.FC<TranslationSaverProps> = ({
                     {/* Important Notice */}
                     <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl">
                         <p className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">
-                            <strong>💡 Todas las opciones son opcionales:</strong><br/>
-                            • Puedes guardar solo los JSON de traducciones<br/>
-                            • Puedes descargar sin aplicar al proyecto<br/>
-                            • Aplicar al proyecto modificará los archivos de idioma
-                        </p>
+                            <strong>{t.translationSaverTranslations?.['text_11']}</strong><br/>{t.translationSaverTranslations?.['text_12']}<br/>{t.translationSaverTranslations?.['text_13']}<br/>{t.translationSaverTranslations?.['text_14']}</p>
                     </div>
 
                     {/* Results Summary */}
                     <div className="space-y-2">
-                        <h4 className="text-xs font-bold text-gray-400 uppercase">Opción 1: Descargar JSONs de Traducción</h4>
+                        <h4 className="text-xs font-bold text-gray-400 uppercase">{t.translationSaverTranslations?.['text_15']}</h4>
                         <div className="grid grid-cols-2 gap-2">
                             {(['es', 'en', 'fr'] as const).map(lang => (
                                 <button
@@ -227,14 +231,14 @@ const TranslationSaver: React.FC<TranslationSaverProps> = ({
                                         <button
                                             onClick={(e) => { e.stopPropagation(); saveToLibrary(lang); }}
                                             className="p-1 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 rounded transition-colors"
-                                            title="Guardar en Biblioteca"
+                                            title={t.translationSaverTranslations?.['text_16']}
                                         >
                                             <Database size={14} className="text-gray-400 hover:text-emerald-500 transition-colors" />
                                         </button>
                                         <button
                                             onClick={(e) => { e.stopPropagation(); downloadJson(lang); }}
                                             className="p-1 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded transition-colors"
-                                            title="Descargar JSON"
+                                            title={t.translationSaverTranslations?.['text_17']}
                                         >
                                             <Download size={14} className="text-gray-400 hover:text-blue-500 transition-colors" />
                                         </button>
@@ -253,7 +257,7 @@ const TranslationSaver: React.FC<TranslationSaverProps> = ({
                             >
                                 <div className="flex items-center gap-2">
                                     <FileCode size={14} className={results.i18n_code ? "text-purple-500" : "text-gray-400"} />
-                                    <span className="text-xs font-bold uppercase">Código i18n</span>
+                                    <span className="text-xs font-bold uppercase">{t.translationSaverTranslations?.['text_18']}</span>
                                 </div>
                                 <Database size={14} className="text-gray-400 group-hover:text-emerald-500 transition-colors" />
                             </button>
@@ -262,20 +266,16 @@ const TranslationSaver: React.FC<TranslationSaverProps> = ({
 
                     {/* Apply to Project Button */}
                     <div className="pt-4 border-t border-gray-100 dark:border-gray-700 space-y-3">
-                        <h4 className="text-xs font-bold text-gray-400 uppercase">Opción 2: Aplicar al Proyecto (Modifica Archivos)</h4>
-                        <p className="text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 p-3 rounded-lg border border-amber-200 dark:border-amber-800">
-                            ⚠️ Esta opción modificará los archivos de idioma del proyecto
-                        </p>
+                        <h4 className="text-xs font-bold text-gray-400 uppercase">{t.translationSaverTranslations?.['text_19']}</h4>
+                        <p className="text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 p-3 rounded-lg border border-amber-200 dark:border-amber-800">{t.translationSaverTranslations?.['text_20']}</p>
                         {projectPath ? (
                             <div className="p-6 bg-emerald-50 dark:bg-emerald-900/10 border-2 border-emerald-500/30 rounded-3xl flex flex-col items-center text-center space-y-4 animate-in zoom-in-95 duration-500 shadow-xl shadow-emerald-500/5">
                                 <div className="w-16 h-16 bg-gradient-to-br from-emerald-400 to-teal-600 rounded-full flex items-center justify-center text-white shadow-lg shadow-emerald-200 dark:shadow-none animate-bounce">
                                     <Check size={32} strokeWidth={3} />
                                 </div>
                                 <div className="space-y-1">
-                                    <h4 className="text-xl font-bold text-gray-900 dark:text-white">¡Misión Completada!</h4>
-                                    <p className="text-sm text-gray-500 dark:text-gray-400">
-                                        Se han actualizado las traducciones y el código fuente.
-                                    </p>
+                                    <h4 className="text-xl font-bold text-gray-900 dark:text-white">{t.translationSaverTranslations?.['text_21']}</h4>
+                                    <p className="text-sm text-gray-500 dark:text-gray-400">{t.translationSaverTranslations?.['text_22']}</p>
                                 </div>
                                 <div className="w-full p-3 bg-white dark:bg-gray-800 rounded-xl border border-emerald-100 dark:border-emerald-900/50 flex items-center gap-3">
                                     <Database size={16} className="text-emerald-500" />
@@ -293,12 +293,12 @@ const TranslationSaver: React.FC<TranslationSaverProps> = ({
                                             {reverting ? (
                                                 <>
                                                     <Loader2 size={16} className="animate-spin" />
-                                                    <span className="text-sm">Revirtiendo...</span>
+                                                    <span className="text-sm">{t.translationSaverTranslations?.['text_23']}</span>
                                                 </>
                                             ) : (
                                                 <>
                                                     <Undo2 size={16} />
-                                                    <span className="text-sm">Revertir Cambios</span>
+                                                    <span className="text-sm">{t.translationSaverTranslations?.['text_24']}</span>
                                                 </>
                                             )}
                                         </button>
@@ -306,8 +306,7 @@ const TranslationSaver: React.FC<TranslationSaverProps> = ({
                                     <button
                                         onClick={() => window.location.reload()}
                                         className="flex-1 py-3 px-4 text-sm font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl hover:bg-emerald-100 dark:hover:bg-emerald-900/30 transition-all flex items-center justify-center gap-1"
-                                    >
-                                        Nueva Traducción <ArrowRight size={14} />
+                                    >{t.translationSaverTranslations?.['text_25']}<ArrowRight size={14} />
                                     </button>
                                 </div>
                             </div>
@@ -320,12 +319,12 @@ const TranslationSaver: React.FC<TranslationSaverProps> = ({
                                 {savingToProject ? (
                                     <>
                                         <Loader2 size={24} className="animate-spin" />
-                                        <span>Aplicando Cambios...</span>
+                                        <span>{t.translationSaverTranslations?.['text_26']}</span>
                                     </>
                                 ) : (
                                     <>
                                         <Save size={24} />
-                                        <span>Aplicar TODO al Proyecto</span>
+                                        <span>{t.translationSaverTranslations?.['text_27']}</span>
                                         <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
                                     </>
                                 )}
