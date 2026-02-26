@@ -73,7 +73,7 @@ const MakerPathView: React.FC = () => {
       const newPath = await createMakerPath({
         title,
         description: t.makerPathTranslations?.['text_4'] ?? 'Creado desde el dashboard',
-        type: 'custom',
+        type: type !== 'blank' ? type : 'custom',
         status: 'draft',
         data
       });
@@ -99,43 +99,23 @@ const MakerPathView: React.FC = () => {
       console.error(t.makerPathTranslations?.['text_7'] ?? 'Error al eliminar el proyecto:', error);
     }
   };
+const handleRedirectToPlanner = (pathId: number) => {
+  const path = paths.find(p => p.id === pathId);
 
-  const handleRedirectToPlanner = (pathId: number) => {
-    const path = paths.find(p => p.id === pathId);
-    if ((path?.type as string) === 'module_connector' || (path?.type as string) === 'architect_ai') {
-      navigate(`/dashboard/maker-path/modules/${pathId}`);
-    } else {
-      // Try to detect which template was used by checking the data
-      let detectedTemplate: string | null = null;
+  if ((path?.type as string) === 'module_connector' || (path?.type as string) === 'architect_ai') {
+    navigate(`/dashboard/maker-path/modules/${pathId}`);
+    return;
+  }
 
-      if (path?.data) {
-        try {
-          const dataStr = typeof path.data === 'string' ? path.data : JSON.stringify(path.data);
-          const parsed = JSON.parse(dataStr);
-          const workflowKey = Object.keys(parsed)[0];
+  const knownTemplates = ['rag_chat_maker', 'landing_page_maker', 'image_generator_rag', 'translation_maker'];
+  const isTemplate = knownTemplates.includes(path?.type ?? '');
 
-          // Check if the workflow matches any known template
-          if (workflowKey === 'simple_landing_creator') {
-            detectedTemplate = 'landing_page_maker';
-          } else if (workflowKey === 'rag_chat_creator') {
-            detectedTemplate = 'rag_chat_maker';
-          } else if (workflowKey === 'rag_image_generator') {
-            detectedTemplate = 'image_generator_rag';
-          }
-        } catch (e) {
-          console.error(t.makerPathTranslations?.['text_8'] ?? 'Error al analizar los datos de la ruta:', e);
-        }
-      }
-
-      // Navigate with appropriate query parameters
-      if (detectedTemplate) {
-        navigate(`/dashboard/projectflow?maker_path_template=${detectedTemplate}&id=${pathId}`);
-      } else {
-        navigate(`/dashboard/projectflow?id=${pathId}`);
-      }
-    }
-  };
-
+  if (isTemplate) {
+    navigate(`/dashboard/projectflow?maker_path_template=${path!.type}&id=${pathId}`);
+  } else {
+    navigate(`/dashboard/projectflow?id=${pathId}`);
+  }
+};
   const getFilteredPaths = () => {
     let filtered = [...paths];
 
