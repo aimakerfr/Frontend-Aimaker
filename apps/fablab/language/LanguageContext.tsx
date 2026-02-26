@@ -87,33 +87,8 @@ export const LanguageProvider: React.FC<LanguageProviderProps> = ({ children }) 
       
       let remoteT: any = null;
 
-      if (userLang.startsWith('rag:')) {
-        // Fetch from API using ID (avoids CORS)
-        const id = userLang.split(':')[1];
-        const response = await httpClient.get<{ content: string }>(`/api/v1/notebook-sources/${id}/content`);
-        remoteT = JSON.parse(response.content);
-      } else if (userLang.startsWith('http')) {
-        // Fetch remote translation (kept for compatibility)
-        const response = await fetch(userLang);
-        if (!response.ok) throw new Error('Failed to fetch remote translation');
-        remoteT = await response.json();
-      }
-
-      if (remoteT) {
-        // MERGE with default English to avoid crashes from missing keys
-        const mergedT = deepMerge(translations.en, remoteT);
-        setT(mergedT as Translations);
-        setLanguage(userLang);
-        
-        // Persist to localStorage
-        try {
-          localStorage.setItem(STORAGE_KEY, userLang);
-          localStorage.setItem(STORAGE_TRANSLATIONS_KEY, JSON.stringify(mergedT));
-        } catch (e) {
-          console.warn('Failed to save language to localStorage:', e);
-        }
-      } else {
-        // Standard language code
+      // Check if it's a standard language (es, en, fr)
+      if (userLang === 'es' || userLang === 'en' || userLang === 'fr') {
         const langCode = userLang as Language;
         const selectedTranslations = translations[langCode] || translations.en;
         setT(selectedTranslations);
@@ -125,6 +100,44 @@ export const LanguageProvider: React.FC<LanguageProviderProps> = ({ children }) 
           localStorage.setItem(STORAGE_TRANSLATIONS_KEY, JSON.stringify(selectedTranslations));
         } catch (e) {
           console.warn('Failed to save language to localStorage:', e);
+        }
+      } else {
+        // Custom language - fetch from new endpoint
+        try {
+          const response = await httpClient.get<any>(`/api/v1/translation/language/${userLang}`);
+          remoteT = response.translations || response.data;
+          
+          if (remoteT) {
+            // MERGE with default English to avoid crashes from missing keys
+            const mergedT = deepMerge(translations.en, remoteT);
+            setT(mergedT as Translations);
+            setLanguage(userLang);
+            
+            // Persist to localStorage
+            try {
+              localStorage.setItem(STORAGE_KEY, userLang);
+              localStorage.setItem(STORAGE_TRANSLATIONS_KEY, JSON.stringify(mergedT));
+            } catch (e) {
+              console.warn('Failed to save language to localStorage:', e);
+            }
+          } else {
+            // Fallback to English if custom language has no data
+            setT(translations.en);
+            setLanguage('en');
+          }
+        } catch (error) {
+          console.error(`Error loading custom language '${userLang}':`, error);
+          // Fallback to English
+          setT(translations.en);
+          setLanguage('en');
+          
+          // Clear localStorage on error
+          try {
+            localStorage.removeItem(STORAGE_KEY);
+            localStorage.removeItem(STORAGE_TRANSLATIONS_KEY);
+          } catch (e) {
+            // Ignore
+          }
         }
       }
     } catch (error) {

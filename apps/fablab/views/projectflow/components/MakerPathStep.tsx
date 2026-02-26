@@ -14,6 +14,7 @@ import {
   BookOpen,
   Save,
   FileCode,
+  Globe,
 } from 'lucide-react';
 import type { StepAction } from '../types';
 import { ACTION_LABELS } from '../types';
@@ -22,7 +23,10 @@ import MakerPathStepContent from './MakerPathStepContent';
 
 type MakerPathStepProps = {
   action: StepAction;
+  /** Internal identifier - never translated (used in logic) */
   name: string;
+  /** Translated name for UI display - if not provided, 'name' will be used */
+  displayName?: string;
   stepId: number;
   stepNumber?: number;
   selected: boolean;
@@ -121,6 +125,12 @@ const NODE_STYLES: Record<
     gradient: 'from-violet-50 to-purple-50 dark:from-violet-900/20 dark:to-purple-900/20',
     border: 'border-violet-200 dark:border-violet-800',
     iconBg: 'bg-violet-500',
+  },
+  language_manager: {
+    icon: Globe,
+    gradient: 'from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20',
+    border: 'border-blue-200 dark:border-indigo-800',
+    iconBg: 'bg-blue-500',
   },
   rag_selector: {
     icon: Database,
@@ -247,6 +257,7 @@ const usesLibrary = (action: StepAction): boolean => {
 const MakerPathStep: React.FC<MakerPathStepProps> = ({
   action,
   name,
+  displayName,
   stepId,
   stepNumber,
   selected,
@@ -274,7 +285,7 @@ const MakerPathStep: React.FC<MakerPathStepProps> = ({
       selected={selected}
       stepId={stepId}
       stepNumber={stepNumber}
-      title={name}
+      title={displayName || name}
       subtitle={ACTION_LABELS[action] || action}
       icon={style.icon}
       iconBgClass={style.iconBg}

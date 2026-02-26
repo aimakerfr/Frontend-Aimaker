@@ -139,7 +139,7 @@ const NodeConfigPanel: React.FC<NodeConfigPanelProps> = ({
             </label>
             <input
               type="text"
-              value={step.name}
+              value={step.displayName || step.name}
               readOnly
               className="w-full px-3 py-2 text-sm bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-800 dark:text-gray-200 outline-none"
             />

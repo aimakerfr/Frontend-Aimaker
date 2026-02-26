@@ -45,6 +45,7 @@ const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
             <MakerPathStep
               action={step.action}
               name={step.name}
+              displayName={step.displayName}
               stepId={step.step_id}
               stepNumber={index + 1}
               selected={selectedStepId === step.step_id}

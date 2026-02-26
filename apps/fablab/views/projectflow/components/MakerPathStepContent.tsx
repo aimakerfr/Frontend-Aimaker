@@ -7,6 +7,10 @@ import RagSelectorStep from './RagSelectorStep';
 import RagChatStep from './RagChatStep';
 import IaGeneratorStep from './IaGeneratorStep';
 import OutputResultSaver from './OutputResultSaver';
+import FileUploadAnalyzer from './FileUploadAnalyzer';
+import TranslationProcessor from './TranslationProcessor';
+import TranslationSaver from './TranslationSaver';
+import LanguageManager from './LanguageManager';
 
 type MakerPathStepContentProps = {
   action: StepAction;
@@ -153,6 +157,48 @@ const MakerPathStepContent: React.FC<MakerPathStepContentProps> = (props) => {
               props.onMarkStepComplete(props.stepId);
             }
           }}
+        />
+      );
+    case 'file_upload_analyzer':
+      return (
+        <FileUploadAnalyzer
+          makerPathId={props.makerPathId}
+          variableIndexNumber={props.variableIndexNumber}
+          variableName={props.variableName}
+          stepId={props.stepId}
+          onMarkStepComplete={props.onMarkStepComplete}
+          onNextStep={props.onNextStep}
+          t={props.t}
+          required={props.required}
+        />
+      );
+    case 'translation_extractor':
+    case 'translation_generator':
+      return (
+        <TranslationProcessor
+          makerPathId={props.makerPathId}
+          variableIndexNumber={props.variableIndexNumber}
+          stepId={props.stepId}
+          onMarkStepComplete={props.onMarkStepComplete}
+          onNextStep={props.onNextStep}
+          required={props.required}
+        />
+      );
+    case 'translation_saver':
+      return (
+        <TranslationSaver
+          makerPathId={props.makerPathId}
+          variableIndexNumber={props.variableIndexNumber}
+          stepId={props.stepId}
+          onMarkStepComplete={props.onMarkStepComplete}
+          required={props.required}
+        />
+      );
+    case 'language_manager':
+      return (
+        <LanguageManager
+          makerPathId={props.makerPathId}
+          variableIndexNumber={props.variableIndexNumber}
         />
       );
     default:

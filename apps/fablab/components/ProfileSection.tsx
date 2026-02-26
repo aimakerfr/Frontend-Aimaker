@@ -10,7 +10,6 @@ import { useLanguage } from '../language/useLanguage';
 const ProfileSection: React.FC<{ user: UserProfile | null }> = () => {
   const { t } = useLanguage();
   const [profileData, setProfileData] = useState<ApiUserProfile | null>(null);
-  const [translationSources, setTranslationSources] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState({ 
@@ -25,17 +24,7 @@ const ProfileSection: React.FC<{ user: UserProfile | null }> = () => {
 
   useEffect(() => {
     loadProfileData();
-    loadTranslationSources();
   }, []);
-
-  const loadTranslationSources = async () => {
-    try {
-      const response = await httpClient.get<any[]>('/api/v1/notebook-sources/user-sources?type=TRANSLATION');
-      setTranslationSources(response || []);
-    } catch (error) {
-      console.error('Error cargando fuentes de traducción:', error);
-    }
-  };
 
   const loadProfileData = async () => {
     try {
@@ -200,15 +189,15 @@ const ProfileSection: React.FC<{ user: UserProfile | null }> = () => {
                   className="text-lg font-semibold text-gray-900 dark:text-white bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded px-2 py-1 w-full"
                 >
                   <optgroup label={t.profile.standardLanguages}>
-                    <option value="es">ES</option>
-                    <option value="en">EN</option>
-                    <option value="fr">FR</option>
+                    <option value="es">Español (ES)</option>
+                    <option value="en">English (EN)</option>
+                    <option value="fr">Français (FR)</option>
                   </optgroup>
-                  {translationSources.length > 0 && (
+                  {profileData?.customLanguages && profileData.customLanguages.length > 0 && (
                     <optgroup label={t.profile.customLanguages}>
-                      {translationSources.map(source => (
-                        <option key={source.id} value={`rag:${source.id}`}>
-                          {source.name.toUpperCase()}
+                      {profileData.customLanguages.map(lang => (
+                        <option key={lang.code} value={lang.code}>
+                          {lang.name} ({lang.code.toUpperCase()})
                         </option>
                       ))}
                     </optgroup>
@@ -216,9 +205,17 @@ const ProfileSection: React.FC<{ user: UserProfile | null }> = () => {
                 </select>
               ) : (
                 <div className="text-lg font-semibold text-gray-900 dark:text-white uppercase truncate max-w-[150px]">
-                  {profileData.uiLanguage?.startsWith('rag:') 
-                    ? translationSources.find(s => `rag:${s.id}` === profileData.uiLanguage)?.name || 'CUSTOM'
-                    : profileData.uiLanguage}
+                  {(() => {
+                    const customLang = profileData?.customLanguages?.find(l => l.code === profileData.uiLanguage);
+                    if (customLang) return `${customLang.name} (${customLang.code.toUpperCase()})`;
+                    
+                    const standardLangs: Record<string, string> = {
+                      'es': 'Español',
+                      'en': 'English',
+                      'fr': 'Français'
+                    };
+                    return standardLangs[profileData?.uiLanguage || 'es'] || profileData?.uiLanguage;
+                  })()}
                 </div>
               )}
             </div>

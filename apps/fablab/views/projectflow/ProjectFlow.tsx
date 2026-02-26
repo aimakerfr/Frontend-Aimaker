@@ -3,11 +3,11 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Workflow } from 'lucide-react';
 import { useLanguage } from '../../language/useLanguage';
 import { getMakerPath } from '@core/maker-path';
-import type {WorkflowStep, AvailablePath, WorkflowJSON} from './types';
+import type { WorkflowStep, AvailablePath, WorkflowJSON } from './types';
 import ConfigurationPanel from './components/ConfigurationPanel';
 import WorkflowCanvas from './components/WorkflowCanvas';
 // import NodeConfigPanel from './components/NodeConfigPanel';
-import { INITIAL_MAKERPATHS } from './demoWorkflows';
+import { getInitialMakerPaths } from './demoWorkflows';
 import Stepper from './components/Stepper';
 
 /** Example workflows for the RAG Library / demo moved to a separate module */
@@ -16,60 +16,67 @@ const ProjectFlow: React.FC = () => {
   const { t } = useLanguage();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  
+
   // Extract template and ID from query parameters
   const template = searchParams.get('maker_path_template') || undefined;
   const makerPathId = searchParams.get('id') ? Number(searchParams.get('id')) : undefined;
 
   // ── State ──────────────────────────────────────────────
   const [jsonInput, setJsonInput] = useState(() => {
+    const paths = getInitialMakerPaths(t);
     // If a template is specified in URL, pre-initialize with its JSON
-    if (template && INITIAL_MAKERPATHS[template]) {
-      return JSON.stringify(INITIAL_MAKERPATHS[template].json);
+    if (template && paths[template]) {
+      return JSON.stringify(paths[template].json);
     }
     return '';
   });
   const [parseError, setParseError] = useState<string | null>(null);
   const [steps, setSteps] = useState<WorkflowStep[]>(() => {
+    const paths = getInitialMakerPaths(t);
     // Pre-initialize steps based on template
-    if (template && INITIAL_MAKERPATHS[template]) {
-      const demo = INITIAL_MAKERPATHS[template];
+    if (template && paths[template]) {
+      const demo = paths[template];
       const workflowKey = Object.keys(demo.json)[0];
       return demo.json[workflowKey].steps || [];
     }
     return [];
   });
   const [outputType, setOutputType] = useState<string>(() => {
-    if (template && INITIAL_MAKERPATHS[template]) {
-      const demo = INITIAL_MAKERPATHS[template];
+    const paths = getInitialMakerPaths(t);
+    if (template && paths[template]) {
+      const demo = paths[template];
       const workflowKey = Object.keys(demo.json)[0];
       return demo.json[workflowKey].output_type || '';
     }
     return '';
   });
   const [stageName, setStageName] = useState<string>(() => {
-    if (template && INITIAL_MAKERPATHS[template]) {
-      const demo = INITIAL_MAKERPATHS[template];
+    const paths = getInitialMakerPaths(t);
+    if (template && paths[template]) {
+      const demo = paths[template];
       const workflowKey = Object.keys(demo.json)[0];
       return demo.json[workflowKey].stage_name || workflowKey;
     }
     return '';
   });
-  const [availablePaths, setAvailablePaths] = useState<AvailablePath[]>(
-    Object.values(INITIAL_MAKERPATHS).map((d) => d.path)
-  );
+  const [customPaths, setCustomPaths] = useState<AvailablePath[]>([]);
+  const availablePaths: AvailablePath[] = useMemo(() => {
+    const paths = getInitialMakerPaths(t);
+    return [...Object.values(paths).map((d) => d.path), ...customPaths];
+  }, [t, customPaths]);
   const [selectedPathId, setSelectedPathId] = useState<string | null>(null);
   const [selectedStepId, setSelectedStepId] = useState<number | null>(null);
   // const [promptContents, setPromptContents] = useState<Record<number, string>>({});
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
-  
+
   // Get the workflow title from template
   const workflowTitle = useMemo(() => {
-    if (template && INITIAL_MAKERPATHS[template]) {
-      return INITIAL_MAKERPATHS[template].path.name;
+    const paths = getInitialMakerPaths(t);
+    if (template && paths[template]) {
+      return paths[template].path.name;
     }
     return 'Proyecto desde Cero';
-  }, [template]);
+  }, [template, t]);
 
   // ── Effects ───────────────────────────────────────────
 
@@ -83,7 +90,7 @@ const ProjectFlow: React.FC = () => {
           if (project && project.data) {
             let dataStr = typeof project.data === 'string' ? project.data : JSON.stringify(project.data);
             setJsonInput(dataStr);
-            
+
             const parsed: WorkflowJSON = JSON.parse(dataStr);
             const workflowKey = Object.keys(parsed)[0];
             if (workflowKey) {
@@ -108,10 +115,20 @@ const ProjectFlow: React.FC = () => {
     const set = new Set<number>();
     ordered.forEach((step, idx) => {
       if (idx === 0) {
+        // First step is always selectable
         set.add(step.step_id);
       } else {
         const prev = ordered[idx - 1];
-        if (prev.required && completedSteps.has(prev.step_id)) {
+        // If current step is optional (not required), it's always selectable
+        if (!step.required) {
+          set.add(step.step_id);
+        } 
+        // If previous step was required, only enable if it's completed
+        else if (prev.required && completedSteps.has(prev.step_id)) {
+          set.add(step.step_id);
+        }
+        // If previous step was optional, enable regardless
+        else if (!prev.required) {
           set.add(step.step_id);
         }
       }
@@ -166,7 +183,7 @@ const ProjectFlow: React.FC = () => {
       // Add to available paths if not already there
       const pathId = workflow.stage_name || workflowKey;
       if (!availablePaths.find((p) => p.id === pathId)) {
-        setAvailablePaths((prev) => [
+        setCustomPaths((prev) => [
           ...prev,
           {
             id: pathId,
@@ -187,7 +204,8 @@ const ProjectFlow: React.FC = () => {
     (pathId: string) => {
       setSelectedPathId(pathId);
 
-      const demo = INITIAL_MAKERPATHS[pathId];
+      const paths = getInitialMakerPaths(t);
+      const demo = paths[pathId];
       if (demo) {
         const workflowKey = Object.keys(demo.json)[0];
         const workflow = demo.json[workflowKey];

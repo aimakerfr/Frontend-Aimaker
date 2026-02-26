@@ -54,7 +54,7 @@ const Stepper: React.FC<Props> = ({
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
-                      {step.name}
+                      {step.displayName || step.name}
                     </div>
                   </div>
                   {/* Completion shown visually only in the dot; no toggle here */}
