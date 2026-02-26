@@ -99,7 +99,7 @@ export const RouteTypeModal: React.FC<RouteTypeModalProps> = ({ isOpen, onClose,
                 </h2>
                 <p className="text-gray-500 dark:text-gray-400 mt-1 text-base transition-all duration-300">
                   {view === 'templates'
-                    ? 'Elige la plantilla que mejor se adapte a tu flujo de trabajo.'
+                    ? (t.RouteTypeModalTranslations?.['text_11'] ?? 'Elige la plantilla que mejor se adapte a tu flujo de trabajo.')
                     : (t.projectFlow?.modal?.subtitle || 'Elige cómo quieres empezar tu nuevo flujo de trabajo')}
                 </p>
               </div>

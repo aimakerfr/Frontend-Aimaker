@@ -1,4 +1,10 @@
+/* ⚠️ WARNING: Potential syntax issues detected:
+ * - Potential invalid operators detected
+ * Please review the code carefully before using.
+ */
+
 import React, { useState, useCallback, useRef } from 'react';
+import { useLanguage } from '@apps/fablab/language/useLanguage';
 import { Upload, File, Check, X, Database, FileCode } from 'lucide-react';
 import { putMakerPathVariable } from '@core/maker-path-variables';
 import { httpClient } from '@core/api/http.client';
@@ -23,6 +29,8 @@ const FileUploadAnalyzer: React.FC<FileUploadAnalyzerProps> = ({
   onNextStep,
   required,
 }) => {
+  const { t } = useLanguage();
+
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [fileContent, setFileContent] = useState<string>('');
   const [loading, setLoading] = useState(false);
@@ -38,20 +46,20 @@ const FileUploadAnalyzer: React.FC<FileUploadAnalyzerProps> = ({
     try {
       // Fetch both tags
       const [codeRes, htmlRes] = await Promise.all([
-        httpClient.get<any[]>('/api/v1/objects?type=CODE'),
-        httpClient.get<any[]>('/api/v1/objects?type=HTML')
+        httpClient.get<any[]>((t.fileUploadAnalyzerTranslations?.['text_1'] ?? '/api/v1/objects?type=CODE')),
+        httpClient.get<any[]>((t.fileUploadAnalyzerTranslations?.['text_2'] ?? '/api/v1/objects?type=HTML'))
       ]);
       const merged = [...(Array.isArray(codeRes) ? codeRes : []), ...(Array.isArray(htmlRes) ? htmlRes : [])];
       setObjects(merged.sort((a, b) => b.id - a.id));
     } catch (error) {
-      console.error('Error loading objects:', error);
+      console.error((t.fileUploadAnalyzerTranslations?.['text_3'] ?? 'Error loading objects:'), error);
       // fallback
       try {
         const res = await httpClient.get<any[]>('/api/v1/objects/all');
         const filtered = res.filter(o => o.type === 'CODE' || o.type === 'HTML');
         setObjects(filtered);
       } catch (innerError) {
-        console.error('Failed to load objects');
+        console.error((t.fileUploadAnalyzerTranslations?.['text_4'] ?? 'Failed to load objects'));
       }
     } finally {
       setLoadingObjects(false);
@@ -85,7 +93,7 @@ const FileUploadAnalyzer: React.FC<FileUploadAnalyzerProps> = ({
       }
 
       if (!content) {
-        console.warn('Object has no content in data field');
+        console.warn((t.fileUploadAnalyzerTranslations?.['text_5'] ?? 'Object has no content in data field'));
       }
 
       setFileContent(content);
@@ -96,7 +104,7 @@ const FileUploadAnalyzer: React.FC<FileUploadAnalyzerProps> = ({
       setSelectedFile(file);
       setShowObjectLibrary(false);
     } catch (error) {
-      console.error('Error loading object content:', error);
+      console.error((t.fileUploadAnalyzerTranslations?.['text_6'] ?? 'Error loading object content:'), error);
     } finally {
       setLoading(false);
     }
@@ -131,9 +139,9 @@ const FileUploadAnalyzer: React.FC<FileUploadAnalyzerProps> = ({
           payload.append('data', JSON.stringify({ content: fileContent }));
 
           await httpClient.post('/api/v1/objects/upload', payload);
-          console.log('Saved to object library successfully as', detectedType);
+          console.log((t.fileUploadAnalyzerTranslations?.['text_7'] ?? 'Saved to object library successfully as'), detectedType);
         } catch (error) {
-          console.error('Error saving to object library:', error);
+          console.error((t.fileUploadAnalyzerTranslations?.['text_8'] ?? 'Error saving to object library:'), error);
         }
       }
 
@@ -144,7 +152,7 @@ const FileUploadAnalyzer: React.FC<FileUploadAnalyzerProps> = ({
         onNextStep(stepId);
       }
     } catch (error) {
-      console.error('Error analyzing file:', error);
+      console.error((t.fileUploadAnalyzerTranslations?.['text_9'] ?? 'Error analyzing file:'), error);
     } finally {
       setLoading(false);
     }
@@ -154,10 +162,8 @@ const FileUploadAnalyzer: React.FC<FileUploadAnalyzerProps> = ({
     <div className="space-y-6 p-6">
       {/* Título del paso */}
       <div className="space-y-2">
-        <h3 className="text-lg font-semibold text-gray-900 line-clamp-1">📄 Paso 1: Cargar Archivo de Código</h3>
-        <p className="text-sm text-gray-600">
-          Sube un archivo JSX, TSX, HTML o JS que contenga texto hardcodeado que quieras traducir.
-        </p>
+        <h3 className="text-lg font-semibold text-gray-900 line-clamp-1">{t.fileUploadAnalyzerTranslations?.['text_10']}</h3>
+        <p className="text-sm text-gray-600">{t.fileUploadAnalyzerTranslations?.['text_11']}</p>
       </div>
 
       {/* Required indicator */}
@@ -180,7 +186,7 @@ const FileUploadAnalyzer: React.FC<FileUploadAnalyzerProps> = ({
       >
         <Database size={16} />
         <span className="text-sm font-medium">
-          {showObjectLibrary ? 'Ocultar Biblioteca' : 'Cargar desde Biblioteca'}
+          {showObjectLibrary ? 'Ocultar Biblioteca' : t.fileUploadAnalyzerTranslations?.['text_13'] ?? (t.fileUploadAnalyzerTranslations?.['text_13'] ?? 'Cargar desde Biblioteca')}
         </span>
       </button>
 
@@ -188,7 +194,7 @@ const FileUploadAnalyzer: React.FC<FileUploadAnalyzerProps> = ({
       {showObjectLibrary && (
         <div className="border border-gray-300 dark:border-gray-600 rounded-lg p-4 bg-white dark:bg-gray-800 max-h-64 overflow-y-auto">
           <div className="flex items-center justify-between mb-3 border-b border-gray-100 dark:border-gray-700 pb-2">
-            <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Biblioteca de Objetos</h3>
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-white">{t.fileUploadAnalyzerTranslations?.['text_14']}</h3>
             <button
               onClick={() => setShowObjectLibrary(false)}
               className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
@@ -198,9 +204,9 @@ const FileUploadAnalyzer: React.FC<FileUploadAnalyzerProps> = ({
           </div>
 
           {loadingObjects ? (
-            <p className="text-sm text-gray-500 dark:text-gray-400">Cargando...</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">{t.fileUploadAnalyzerTranslations?.['text_15']}</p>
           ) : objects.length === 0 ? (
-            <p className="text-sm text-gray-500 dark:text-gray-400">No se encontraron archivos de código</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">{t.fileUploadAnalyzerTranslations?.['text_16']}</p>
           ) : (
             <div className="space-y-2">
               {objects.map((obj, index) => (
@@ -252,9 +258,7 @@ const FileUploadAnalyzer: React.FC<FileUploadAnalyzerProps> = ({
             <button
               onClick={() => fileInputRef.current?.click()}
               className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
-            >
-              Elegir otro archivo
-            </button>
+            >{t.fileUploadAnalyzerTranslations?.['text_17']}</button>
           </div>
         ) : (
           <div className="space-y-3">
@@ -262,19 +266,13 @@ const FileUploadAnalyzer: React.FC<FileUploadAnalyzerProps> = ({
               <Upload size={48} className="text-gray-400 dark:text-gray-500" />
             </div>
             <div>
-              <p className="text-sm font-medium text-gray-900 dark:text-white mb-1">
-                Subir archivo de código
-              </p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">
-                JSX, TSX, HTML, JS, TS
-              </p>
+              <p className="text-sm font-medium text-gray-900 dark:text-white mb-1">{t.fileUploadAnalyzerTranslations?.['text_18']}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">{t.fileUploadAnalyzerTranslations?.['text_19']}</p>
             </div>
             <button
               onClick={() => fileInputRef.current?.click()}
               className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
-            >
-              Elegir Archivo
-            </button>
+            >{t.fileUploadAnalyzerTranslations?.['text_20']}</button>
           </div>
         )}
       </div>
@@ -287,7 +285,7 @@ const FileUploadAnalyzer: React.FC<FileUploadAnalyzerProps> = ({
             onChange={(e) => setSaveToLibrary(e.target.checked)}
             className="rounded border-gray-300 dark:border-gray-600 focus:ring-blue-500"
           />
-          <span>Guardar en Biblioteca de Objetos</span>
+          <span>{t.fileUploadAnalyzerTranslations?.['text_21']}</span>
         </label>
       )}
 
@@ -302,12 +300,12 @@ const FileUploadAnalyzer: React.FC<FileUploadAnalyzerProps> = ({
             {loading ? (
               <>
                 <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent" />
-                <span>Analizando...</span>
+                <span>{t.fileUploadAnalyzerTranslations?.['text_22']}</span>
               </>
             ) : (
               <>
                 <Check size={20} />
-                <span>Continuar al Siguiente Paso</span>
+                <span>{t.fileUploadAnalyzerTranslations?.['text_23']}</span>
               </>
             )}
           </button>
