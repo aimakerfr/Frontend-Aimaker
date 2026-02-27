@@ -68,22 +68,41 @@ export const LanguageProvider: React.FC<LanguageProviderProps> = ({ children }) 
 
   const [language, setLanguage] = useState<Language | string>(getInitialLanguage);
   const [t, setT] = useState<Translations>(getInitialTranslations);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false); // Changed to false for instant load
+  const [hasLoadedFromProfile, setHasLoadedFromProfile] = useState(false);
 
-  const loadUserLanguage = useCallback(async () => {
+  const loadUserLanguage = useCallback(async (forceLoad: boolean = false) => {
     // Only load user language if user is authenticated
     const token = tokenStorage.get();
     if (!token) {
       // User not authenticated, use default language
-      setT(translations.en);
+      const defaultT = translations.en;
+      setT(defaultT);
       setLanguage('en');
-      setIsLoading(false);
+      
+      // Persist to localStorage
+      try {
+        localStorage.setItem(STORAGE_KEY, 'en');
+        localStorage.setItem(STORAGE_TRANSLATIONS_KEY, JSON.stringify(defaultT));
+      } catch (e) {
+        console.warn('Failed to save language to localStorage:', e);
+      }
+      
       return;
     }
 
     try {
       const profile = await profileService.getProfile();
       const userLang = profile.uiLanguage || 'en';
+      
+      // Skip update if language hasn't changed (but always load on first mount)
+      const currentLang = localStorage.getItem(STORAGE_KEY);
+      if (!forceLoad && hasLoadedFromProfile && currentLang === userLang) {
+        return; // No change needed
+      }
+      
+      // Mark that we've loaded from profile at least once
+      setHasLoadedFromProfile(true);
       
       let remoteT: any = null;
 
@@ -122,13 +141,22 @@ export const LanguageProvider: React.FC<LanguageProviderProps> = ({ children }) 
             }
           } else {
             // Fallback to English if custom language has no data
-            setT(translations.en);
+            const fallbackT = translations.en;
+            setT(fallbackT);
             setLanguage('en');
+            
+            try {
+              localStorage.setItem(STORAGE_KEY, 'en');
+              localStorage.setItem(STORAGE_TRANSLATIONS_KEY, JSON.stringify(fallbackT));
+            } catch (e) {
+              console.warn('Failed to save language to localStorage:', e);
+            }
           }
         } catch (error) {
           console.error(`Error loading custom language '${userLang}':`, error);
           // Fallback to English
-          setT(translations.en);
+          const fallbackT = translations.en;
+          setT(fallbackT);
           setLanguage('en');
           
           // Clear localStorage on error
@@ -142,33 +170,22 @@ export const LanguageProvider: React.FC<LanguageProviderProps> = ({ children }) 
       }
     } catch (error) {
       console.error('Error loading user language:', error);
-      // Default to 'en' if there's an error
-      setT(translations.en);
-      setLanguage('en');
-      
-      // Clear localStorage on error
-      try {
-        localStorage.removeItem(STORAGE_KEY);
-        localStorage.removeItem(STORAGE_TRANSLATIONS_KEY);
-      } catch (e) {
-        // Ignore
-      }
-    } finally {
-      setIsLoading(false);
+      // Don't change current language on error to avoid flickering
     }
-  }, []);
+  }, [hasLoadedFromProfile]);
 
   useEffect(() => {
-    loadUserLanguage();
+    // Force load on first mount
+    loadUserLanguage(true);
 
-    // Poll for language changes every 30 seconds
+    // Poll for language changes every 30 seconds (without force)
     const intervalId = setInterval(() => {
-      loadUserLanguage();
+      loadUserLanguage(false);
     }, 30000);
 
-    // Listen for language change events for immediate updates
+    // Listen for language change events for immediate updates (force reload)
     const handleLanguageChange = () => {
-      loadUserLanguage();
+      loadUserLanguage(true);
     };
 
     window.addEventListener('languageChanged', handleLanguageChange);

@@ -1106,7 +1106,7 @@ export const es: Translations = {
   RouteTypeModalTranslations: {
     'text_1': 'Creador de páginas de aterrizaje',
     'text_2': 'Crea páginas de aterrizaje optimizadas con RAG.',
-    'text_3': 'RAG Chat Maker',
+    'text_3': 'Notebook',
     'text_4': 'Chat inteligente conectado a tus fuentes de datos.',
     'text_5': 'Generador de imágenes de RAG',
     'text_6': 'Generación de imágenes basada en contextos RAG.',

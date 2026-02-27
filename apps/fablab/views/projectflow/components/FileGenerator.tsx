@@ -1,17 +1,22 @@
 import React, { useEffect, useState } from 'react';
-import { getMakerPathVariables, MakerPathVariableResponse } from '@core/maker-path-variables/maker-path-variables.service';
+import { httpClient } from '@core/api/http.client';
 import { getRagMultimodalSourceContent } from '@core/rag_multimodal';
-import { Download, FileCode } from 'lucide-react';
+import { postMakerPathVariable, getMakerPathVariables } from '@core/maker-path-variables/maker-path-variables.service';
+import { saveMakerPathStepProgress } from '@core/maker-path-step-progress/maker-path-step-progress.service';
+import { Download, FileCode, ChevronDown } from 'lucide-react';
 
 type ModuleType = 'HEADER' | 'BODY' | 'FOOTER';
 
-interface ModuleAssignment {
-  type: ModuleType;
-  variable: MakerPathVariableResponse;
+interface HTMLSource {
+  id: number;
+  name: string;
+  type: string;
 }
 
 interface FileGeneratorProps {
   makerPathId?: number;
+  stepId?: number;
+  onMarkStepComplete?: (stepId: number) => void;
   onMarkComplete?: () => void;
 }
 
@@ -21,89 +26,130 @@ const MODULE_TYPES: Array<{ type: ModuleType; label: string; color: string; icon
   { type: 'FOOTER', label: 'Footer', color: 'text-emerald-600', icon: '🟢' },
 ];
 
-const FileGenerator: React.FC<FileGeneratorProps> = ({ makerPathId, onMarkComplete }) => {
-  const [variables, setVariables] = useState<MakerPathVariableResponse[]>([]);
-  const [assignments, setAssignments] = useState<ModuleAssignment[]>([]);
+const FileGenerator: React.FC<FileGeneratorProps> = ({ 
+  makerPathId, 
+  stepId, 
+  onMarkStepComplete,
+  onMarkComplete 
+}) => {
+  const [sources, setSources] = useState<HTMLSource[]>([]);
+  const [selectedHeader, setSelectedHeader] = useState<number | null>(null);
+  const [selectedBody, setSelectedBody] = useState<number | null>(null);
+  const [selectedFooter, setSelectedFooter] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (makerPathId) {
-      loadVariablesAndAutoAssign();
+      loadHTMLSources();
+      loadPreviousSelections();
     }
   }, [makerPathId]);
 
-  const loadVariablesAndAutoAssign = async () => {
+  const loadHTMLSources = async () => {
     if (!makerPathId) return;
     
     setIsLoading(true);
+    setError(null);
     try {
-      const vars = await getMakerPathVariables(makerPathId);
-      setVariables(vars);
+      // Load maker_path to get its rag_id
+      const makerPath = await httpClient.get<any>(`/api/v1/maker-paths/${makerPathId}`);
       
-      // Auto-assign modules based on their source name
-      if (vars.length > 0) {
-        const newAssignments: ModuleAssignment[] = [];
-        const sortedVars = [...vars].sort((a, b) => a.variableIndexNumber - b.variableIndexNumber);
-        
-        sortedVars.forEach((variable) => {
-          const varName = variable.variableName.toLowerCase();
-          const sourceName = ((variable.variableValue as any)?.sourceName || '').toLowerCase();
-          
-          // Detect type from name
-          if (varName.includes('header') || sourceName.includes('header')) {
-            newAssignments.push({ type: 'HEADER', variable });
-          } else if (varName.includes('footer') || sourceName.includes('footer')) {
-            newAssignments.push({ type: 'FOOTER', variable });
-          } else {
-            newAssignments.push({ type: 'BODY', variable });
-          }
-        });
-        
-        setAssignments(newAssignments);
+      if (!makerPath?.rag?.id) {
+        setError('No se encontró biblioteca RAG. Complete el paso anterior.');
+        setIsLoading(false);
+        return;
       }
-    } catch (error) {
-      console.error('Error loading variables:', error);
+      
+      // Load RAG with sources
+      const ragData = await httpClient.get<any>(`/api/v1/rag-multimodal/${makerPath.rag.id}`);
+      const allSources = ragData.sources || [];
+      
+      // Filter only HTML sources
+      const htmlSources = allSources
+        .filter((s: any) => s.type === 'HTML' || s.name.endsWith('.html'))
+        .map((s: any) => ({
+          id: s.id,
+          name: s.name,
+          type: s.type
+        }));
+      
+      setSources(htmlSources);
+      
+      if (htmlSources.length === 0) {
+        setError('No hay fuentes HTML en el RAG. Agregue fuentes HTML en el paso anterior.');
+      }
+    } catch (err) {
+      console.error('Error loading HTML sources:', err);
+      setError('Error al cargar fuentes HTML.');
     } finally {
       setIsLoading(false);
     }
   };
 
-  const getAssignmentsByType = (type: ModuleType): ModuleAssignment[] => {
-    return assignments.filter(a => a.type === type);
+  const loadPreviousSelections = async () => {
+    if (!makerPathId) return;
+    
+    try {
+      const variables = await getMakerPathVariables(makerPathId);
+      
+      // Look for saved selections (variable_index_number 2 for this step)
+      const savedSelections = variables.find(v => v.variableIndexNumber === 2);
+      
+      if (savedSelections?.variableValue) {
+        const value = savedSelections.variableValue as any;
+        if (value.headerSourceId) setSelectedHeader(value.headerSourceId);
+        if (value.bodySourceId) setSelectedBody(value.bodySourceId);
+        if (value.footerSourceId) setSelectedFooter(value.footerSourceId);
+      }
+    } catch (err) {
+      console.error('Error loading previous selections:', err);
+    }
+  };
+
+  const saveSelections = async () => {
+    if (!makerPathId) return;
+    
+    try {
+      await postMakerPathVariable({
+        makerPathId,
+        variableIndexNumber: 2,
+        variableName: 'html_module_selections',
+        variableValue: {
+          headerSourceId: selectedHeader,
+          bodySourceId: selectedBody,
+          footerSourceId: selectedFooter
+        }
+      });
+    } catch (err) {
+      console.error('Error saving selections:', err);
+    }
   };
 
   const handleGenerateIndex = async () => {
-    if (!makerPathId) return;
+    if (!makerPathId || !selectedHeader || !selectedBody || !selectedFooter) {
+      alert('Por favor selecciona Header, Body y Footer');
+      return;
+    }
     
     setIsGenerating(true);
     try {
-      const headerAssignment = assignments.find(a => a.type === 'HEADER');
-      const bodyAssignments = assignments.filter(a => a.type === 'BODY');
-      const footerAssignment = assignments.find(a => a.type === 'FOOTER');
-
-      // Fetch content for all modules
-      const headerContent = headerAssignment 
-        ? await fetchModuleContent(headerAssignment.variable.ragMultimodalSourceId)
-        : null;
+      // Save selections to variables
+      await saveSelections();
       
-      const bodyContents = await Promise.all(
-        bodyAssignments.map(b => 
-          b.variable.ragMultimodalSourceId 
-            ? fetchModuleContent(b.variable.ragMultimodalSourceId)
-            : Promise.resolve(null)
-        )
-      );
-      
-      const footerContent = footerAssignment
-        ? await fetchModuleContent(footerAssignment.variable.ragMultimodalSourceId)
-        : null;
+      // Fetch content for selected modules
+      const [headerContent, bodyContent, footerContent] = await Promise.all([
+        fetchModuleContent(selectedHeader),
+        fetchModuleContent(selectedBody),
+        fetchModuleContent(selectedFooter)
+      ]);
 
-      // Generate HTML with embedded content
+      // Generate HTML
       const indexHtml = generateIndexHtml(
         makerPathId,
         headerContent,
-        bodyContents.filter((c): c is { html: string; css: string } => c !== null),
+        bodyContent ? [bodyContent] : [],
         footerContent
       );
 
@@ -118,18 +164,35 @@ const FileGenerator: React.FC<FileGeneratorProps> = ({ makerPathId, onMarkComple
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
 
+      // Save progress
+      if (stepId) {
+        await saveMakerPathStepProgress({
+          makerPathId,
+          stepId,
+          status: 'success',
+          resultText: {
+            fileName: `maker-path-${makerPathId}-index.html`,
+            headerSourceId: selectedHeader,
+            bodySourceId: selectedBody,
+            footerSourceId: selectedFooter
+          }
+        });
+      }
+
+      // Mark complete
+      if (stepId && onMarkStepComplete) {
+        onMarkStepComplete(stepId);
+      }
       onMarkComplete?.();
     } catch (error) {
       console.error('Error generating index:', error);
-      alert('Error generating index.html. Please check the console for details.');
+      alert('Error al generar index.html');
     } finally {
       setIsGenerating(false);
     }
   };
 
-  const fetchModuleContent = async (sourceId: number | null): Promise<{ html: string; css: string } | null> => {
-    if (!sourceId) return null;
-    
+  const fetchModuleContent = async (sourceId: number): Promise<{ html: string; css: string } | null> => {
     try {
       const response = await getRagMultimodalSourceContent(sourceId);
       
@@ -211,7 +274,7 @@ const FileGenerator: React.FC<FileGeneratorProps> = ({ makerPathId, onMarkComple
 </html>`;
   };
 
-  const canGenerate = assignments.length > 0;
+  const canGenerate = selectedHeader && selectedBody && selectedFooter;
 
   if (isLoading) {
     return (
@@ -224,19 +287,36 @@ const FileGenerator: React.FC<FileGeneratorProps> = ({ makerPathId, onMarkComple
   if (!makerPathId) {
     return (
       <div className="text-center py-8 text-gray-500 dark:text-gray-400 text-sm">
-        No maker path ID available
+        No maker path ID disponible
       </div>
     );
   }
 
-  if (variables.length === 0 && !isLoading) {
+  if (error) {
+    return (
+      <div className="text-center py-8 space-y-3">
+        <FileCode size={48} className="mx-auto text-red-300 dark:text-red-600" />
+        <div>
+          <p className="text-red-600 dark:text-red-400 font-semibold text-sm">{error}</p>
+          <button
+            onClick={loadHTMLSources}
+            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700"
+          >
+            Reintentar
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (sources.length === 0 && !isLoading) {
     return (
       <div className="text-center py-8 space-y-3">
         <FileCode size={48} className="mx-auto text-gray-300 dark:text-gray-600" />
         <div>
-          <p className="text-gray-700 dark:text-gray-300 font-semibold text-sm">No modules found</p>
+          <p className="text-gray-700 dark:text-gray-300 font-semibold text-sm">No hay fuentes HTML</p>
           <p className="text-gray-500 dark:text-gray-400 text-xs mt-1">
-            Please complete the previous steps to select modules
+            Agregue fuentes HTML en el paso anterior
           </p>
         </div>
       </div>
@@ -248,50 +328,48 @@ const FileGenerator: React.FC<FileGeneratorProps> = ({ makerPathId, onMarkComple
       {/* Header */}
       <div className="flex items-center gap-2 text-slate-700 dark:text-slate-300">
         <FileCode size={16} />
-        <span className="text-xs font-medium">Modules from Previous Steps</span>
+        <span className="text-xs font-medium">Selecciona fuentes HTML del RAG</span>
       </div>
 
       {/* Info message */}
-      {variables.length > 0 && (
-        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg px-4 py-3">
-          <p className="text-xs text-blue-700 dark:text-blue-300">
-            Modules loaded automatically from previous steps. Click Generate to create your index.html file.
-          </p>
-        </div>
-      )}
+      <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg px-4 py-3">
+        <p className="text-xs text-blue-700 dark:text-blue-300">
+          Selecciona una fuente HTML para cada sección de tu página.
+        </p>
+      </div>
 
-      {/* Module Types */}
+      {/* Module Selectors */}
       <div className="space-y-3">
         {MODULE_TYPES.map(({ type, label, color, icon }) => {
-          const assigned = getAssignmentsByType(type);
-          const hasAssigned = assigned.length > 0;
-
+          const selectedId = type === 'HEADER' ? selectedHeader : type === 'BODY' ? selectedBody : selectedFooter;
+          const setSelected = type === 'HEADER' ? setSelectedHeader : type === 'BODY' ? setSelectedBody : setSelectedFooter;
+          
           return (
             <div key={type} className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
               {/* Header */}
               <div className="px-4 py-3 flex items-center gap-2 border-b border-gray-100 dark:border-gray-700">
                 <span className="text-lg">{icon}</span>
-                <h3 className={`font-bold text-sm ${color}`}>
-                  {label}
-                  {hasAssigned && (
-                    <span className="ml-2 text-xs text-gray-400">({assigned.length})</span>
-                  )}
-                </h3>
+                <h3 className={`font-bold text-sm ${color}`}>{label}</h3>
               </div>
 
-              {/* Assigned */}
-              {hasAssigned && (
-                <div className="divide-y divide-gray-100 dark:divide-gray-700">
-                  {assigned.map((assignment) => (
-                    <div key={assignment.variable.variableIndexNumber} className="px-4 py-3 flex items-center gap-2">
-                      <FileCode size={14} className={color} />
-                      <span className="text-xs font-bold text-gray-700 dark:text-gray-300 flex-1">
-                        {(assignment.variable.variableValue as any)?.sourceName || assignment.variable.variableName}
-                      </span>
-                    </div>
-                  ))}
+              {/* Selector */}
+              <div className="p-4">
+                <div className="relative">
+                  <select
+                    value={selectedId || ''}
+                    onChange={(e) => setSelected(e.target.value ? Number(e.target.value) : null)}
+                    className="w-full px-3 py-2 pr-10 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none"
+                  >
+                    <option value="">Seleccionar fuente...</option>
+                    {sources.map(source => (
+                      <option key={source.id} value={source.id}>
+                        {source.name}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                 </div>
-              )}
+              </div>
             </div>
           );
         })}
@@ -307,12 +385,12 @@ const FileGenerator: React.FC<FileGeneratorProps> = ({ makerPathId, onMarkComple
           {isGenerating ? (
             <>
               <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
-              Generating...
+              Generando...
             </>
           ) : (
             <>
               <Download size={16} />
-              Generate Index.html
+              Generar Index.html
             </>
           )}
         </button>

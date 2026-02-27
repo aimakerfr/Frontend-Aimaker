@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Wand2, Loader2, RefreshCw } from 'lucide-react';
 import { getMakerPathVariables } from '@core/maker-path-variables/maker-path-variables.service';
+import { saveMakerPathStepProgress } from '@core/maker-path-step-progress';
 import { generateImageFromPrompt } from '@core/ai/image-generation.service';
 import { useLanguage } from '../../../language/useLanguage';
 
@@ -108,6 +109,26 @@ const IaGeneratorStep: React.FC<IaGeneratorStepProps> = ({
         });
         window.dispatchEvent(event);
         console.log('[IaGeneratorStep] imageGenerated event dispatched');
+      }
+
+      // Save progress to database
+      if (stepId && makerPathId) {
+        try {
+          await saveMakerPathStepProgress({
+            makerPathId,
+            stepId,
+            status: 'success',
+            resultText: {
+              prompt: finalPrompt,
+              imageSize: result.size,
+              contentType: result.contentType
+            }
+          });
+          console.log('[IaGeneratorStep] Progress saved to DB');
+        } catch (err) {
+          console.error('[IaGeneratorStep] Error saving progress:', err);
+          // Continue anyway
+        }
       }
 
       // Mark step as complete

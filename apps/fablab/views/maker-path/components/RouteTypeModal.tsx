@@ -52,7 +52,7 @@ export const RouteTypeModal: React.FC<RouteTypeModalProps> = ({ isOpen, onClose,
     },
     {
       id: 'rag_chat_maker',
-      title: t.RouteTypeModalTranslations?.['text_3'] ?? (t.routeTypeModalTranslations?.['text_3'] ?? 'RAG Chat Maker'),
+      title: t.RouteTypeModalTranslations?.['text_3'] ?? (t.routeTypeModalTranslations?.['text_3'] ?? 'Notebook'),
       description: t.RouteTypeModalTranslations?.['text_4'] ?? (t.routeTypeModalTranslations?.['text_4'] ?? 'Chat inteligente conectado a tus fuentes de datos.'),
       icon: MessageSquare,
       color: 'from-purple-500 to-pink-600',

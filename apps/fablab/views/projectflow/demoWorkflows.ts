@@ -18,44 +18,20 @@ export const getInitialMakerPaths = (t: any): Record<string, { json: WorkflowJSO
         stage_name: 'simple_landing_creator',
         description: t.demoWorkflowsTranslations?.['text_3'] ?? 'Un flujo para crear una landing page básica.',
         output_type: 'HTML',
-        required_files: [
-          { id: 1, name: 'header.html' },
-          { id: 2, name: 'footer.html' },
-          { id: 3, name: 'body.html' },
-        ],
+        required_files: [],
+        required_variables: [1],
         steps: [
           {
             step_id: 1,
-            name: 'Select Header', // Internal identifier - never changes
-            displayName: t.demoWorkflowsTranslations?.['text_4'] ?? 'Seleccionar Header', // UI display - translated
-            action: 'rag_library_selector',
-            input_source_type: 'HTML',
-            input_file_variable: 'header.html',
-            input_file_variable_index_number: 1,
+            name: 'Manage HTML Sources', // Internal identifier - never changes
+            displayName: t.demoWorkflowsTranslations?.['text_11'] ?? 'Gestionar fuentes HTML', // UI display - translated
+            action: 'rag_selector',
+            variable_index_number: 1,
+            variable_name: 'html_sources',
             required: true,
           },
           {
             step_id: 2,
-            name: 'Select Footer', // Internal identifier - never changes
-            displayName: t.demoWorkflowsTranslations?.['text_5'] ?? 'Seleccionar Footer', // UI display - translated
-            action: 'rag_library_selector',
-            input_source_type: 'HTML',
-            input_file_variable: 'footer.html',
-            input_file_variable_index_number: 2,
-            required: true,
-          },
-          {
-            step_id: 3,
-            name: 'Select Body Template', // Internal identifier - never changes
-            displayName: t.demoWorkflowsTranslations?.['text_6'] ?? 'Seleccionar plantilla Body', // UI display - translated
-            action: 'rag_library_selector',
-            input_source_type: 'HTML',
-            input_file_variable: 'body.html',
-            input_file_variable_index_number: 3,
-            required: true,
-          },
-          {
-            step_id: 4,
             name: 'Compile and Export Landing Page', // Internal identifier - never changes
             displayName: t.demoWorkflowsTranslations?.['text_7'] ?? 'Compilar y exportar Landing Page', // UI display - translated
             action: 'file_generator',
@@ -120,7 +96,7 @@ export const getInitialMakerPaths = (t: any): Record<string, { json: WorkflowJSO
           {
             step_id: 1,
             name: 'Select RAG Card', // Internal identifier - never changes
-            displayName: t.demoWorkflowsTranslations?.['text_17'] ?? 'Seleccionar tarjeta RAG', // UI display - translated
+            displayName: t.demoWorkflowsTranslations?.['text_11'] ?? 'Seleccionar tarjeta RAG', // UI display - translated
             action: 'rag_selector',
             variable_index_number: 1,
             variable_name: 'image_rag_source',

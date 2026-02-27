@@ -30,6 +30,8 @@ type MakerPathStepContentProps = {
   variableIndexNumber?: number;
   /** Variable name for steps that save variables */
   variableName?: string;
+  /** Workflow type (e.g., 'rag_chat_maker', 'image_generator_rag') for conditional features */
+  workflowType?: string;
 };
 
 const GenericContent: React.FC<MakerPathStepContentProps> = ({
@@ -129,6 +131,7 @@ const MakerPathStepContent: React.FC<MakerPathStepContentProps> = (props) => {
           variableIndexNumber={props.variableIndexNumber}
           stepId={props.stepId}
           onMarkStepComplete={props.onMarkStepComplete}
+          showImagePromptButton={props.workflowType === 'image_generator_rag'}
         />
       );
     case 'ia_generator':
@@ -152,11 +155,8 @@ const MakerPathStepContent: React.FC<MakerPathStepContentProps> = (props) => {
       return (
         <FileGenerator
           makerPathId={props.makerPathId}
-          onMarkComplete={() => {
-            if (props.stepId && props.onMarkStepComplete) {
-              props.onMarkStepComplete(props.stepId);
-            }
-          }}
+          stepId={props.stepId}
+          onMarkStepComplete={props.onMarkStepComplete}
         />
       );
     case 'file_upload_analyzer':

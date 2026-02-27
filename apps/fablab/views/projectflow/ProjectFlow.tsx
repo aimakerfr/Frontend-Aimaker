@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Workflow } from 'lucide-react';
 import { useLanguage } from '../../language/useLanguage';
 import { getMakerPath } from '@core/maker-path';
+import { getMakerPathStepProgress, saveMakerPathStepProgress } from '@core/maker-path-step-progress';
 import type { WorkflowStep, AvailablePath, WorkflowJSON } from './types';
 import ConfigurationPanel from './components/ConfigurationPanel';
 import WorkflowCanvas from './components/WorkflowCanvas';
@@ -113,6 +114,21 @@ const ProjectFlow: React.FC = () => {
               setStageName(workflow.stage_name || workflowKey);
             }
           }
+
+          // Load completed steps from database
+          try {
+            const progressData = await getMakerPathStepProgress(makerPathId);
+            console.log('[ProjectFlow] Raw progress data from API:', progressData);
+            console.log('[ProjectFlow] Filtering for makerPathId:', makerPathId);
+            const successfulSteps = progressData
+              .filter((p: any) => p.status === 'success')
+              .map((p: any) => p.stepId);
+            setCompletedSteps(new Set(successfulSteps));
+            console.log('[ProjectFlow] Loaded completed steps:', successfulSteps);
+          } catch (err) {
+            console.error('[ProjectFlow] Error loading step progress:', err);
+            setCompletedSteps(new Set());
+          }
         } catch (error) {
           console.error('Error fetching project data in ProjectFlow:', error);
         }
@@ -121,33 +137,12 @@ const ProjectFlow: React.FC = () => {
     }
   }, [makerPathId]);
 
-  // Centralized selectability logic (by step_id)
+  // All steps are always selectable - no blocking based on completion
   const selectableStepIds = useMemo(() => {
     if (!steps || steps.length === 0) return new Set<number>();
-    const ordered = [...steps].sort((a, b) => a.step_id - b.step_id);
-    const set = new Set<number>();
-    ordered.forEach((step, idx) => {
-      if (idx === 0) {
-        // First step is always selectable
-        set.add(step.step_id);
-      } else {
-        const prev = ordered[idx - 1];
-        // If current step is optional (not required), it's always selectable
-        if (!step.required) {
-          set.add(step.step_id);
-        } 
-        // If previous step was required, only enable if it's completed
-        else if (prev.required && completedSteps.has(prev.step_id)) {
-          set.add(step.step_id);
-        }
-        // If previous step was optional, enable regardless
-        else if (!prev.required) {
-          set.add(step.step_id);
-        }
-      }
-    });
-    return set;
-  }, [steps, completedSteps]);
+    // Make all steps selectable regardless of completion status
+    return new Set(steps.map(step => step.step_id));
+  }, [steps]);
 
   // ── Handlers ───────────────────────────────────────────
 
@@ -266,18 +261,33 @@ const ProjectFlow: React.FC = () => {
   }, [completedSteps, selectedPathId]);
 
   // Mark a step as completed (from within the card UI)
-  const markStepAsCompleteHandler = useCallback((stepId: number) => {
+  const markStepAsCompleteHandler = useCallback(async (stepId: number) => {
     setCompletedSteps((prev) => {
       if (prev.has(stepId)) return prev;
       const next = new Set(prev);
       next.add(stepId);
       return next;
     });
-  }, []);
+
+    // Save progress to database
+    if (makerPathId) {
+      try {
+        await saveMakerPathStepProgress({
+          makerPathId,
+          stepId,
+          status: 'success',
+          resultText: { completedAt: new Date().toISOString() }
+        });
+        console.log('ProjectFlow: Saved step progress to DB:', stepId);
+      } catch (err) {
+        console.error('Error saving step progress:', err);
+      }
+    }
+  }, [makerPathId]);
 
   /** NEXT handler: mark current step complete and move focus to the next step */
   const handleNextStep = useCallback(
-    (currentStepId: number) => {
+    async (currentStepId: number) => {
       // Mark as complete
       setCompletedSteps((prev) => {
         if (prev.has(currentStepId)) return prev;
@@ -285,6 +295,21 @@ const ProjectFlow: React.FC = () => {
         next.add(currentStepId);
         return next;
       });
+
+      // Save progress to database
+      if (makerPathId) {
+        try {
+          await saveMakerPathStepProgress({
+            makerPathId,
+            stepId: currentStepId,
+            status: 'success',
+            resultText: { completedAt: new Date().toISOString() }
+          });
+          console.log('ProjectFlow: Saved step progress to DB (handleNextStep):', currentStepId);
+        } catch (err) {
+          console.error('Error saving step progress:', err);
+        }
+      }
 
       // Move to next step in order if it exists
       const ordered = [...steps].sort((a, b) => a.step_id - b.step_id);
@@ -294,7 +319,7 @@ const ProjectFlow: React.FC = () => {
         setSelectedStepId(nextStep.step_id);
       }
     },
-    [steps]
+    [steps, makerPathId]
   );
 
   // ── Render ─────────────────────────────────────────────
@@ -358,6 +383,7 @@ const ProjectFlow: React.FC = () => {
           onMarkStepAsComplete={markStepAsCompleteHandler}
           onNextStep={handleNextStep}
           makerPathId={makerPathId}
+          workflowType={template}
         />
       </div>
     </div>

@@ -1106,7 +1106,7 @@ export const en: Translations = {
   RouteTypeModalTranslations: {
     'text_1': 'Landing Page Maker',
     'text_2': 'Create optimized landing pages with RAG.',
-    'text_3': 'RAG Chat Maker',
+    'text_3': 'Notebook',
     'text_4': 'Smart chat connected to your data sources.',
     'text_5': 'RAG Image Generator',
     'text_6': 'Image generation based on RAG contexts.',

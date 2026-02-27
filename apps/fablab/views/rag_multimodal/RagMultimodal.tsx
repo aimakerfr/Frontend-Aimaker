@@ -363,6 +363,9 @@ const RagMultimodal: React.FC<RagMultimodalProps> = ({ isPublicView = false }) =
 
             const response = await uploadSource(apiType, title, file, url, content);
             processSourceLocally(response, type, content, url, previewUrl, apiType);
+            
+            // Force reload to ensure UI is updated
+            await loadRagMultimodalSources(parseInt(id));
         } catch (error) {
             console.error('Error adding source to backend:', error);
         }

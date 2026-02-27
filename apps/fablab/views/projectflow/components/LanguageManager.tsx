@@ -38,6 +38,8 @@ import { httpClient } from '@core/api/http.client';
  */
 
 interface LanguageManagerProps {
+    makerPathId?: number;
+    variableIndexNumber?: number;
     onLanguageAdded?: (langCode: string) => void;
 }
 

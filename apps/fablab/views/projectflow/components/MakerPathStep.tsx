@@ -47,6 +47,8 @@ type MakerPathStepProps = {
   onMarkStepComplete?: (stepId: number) => void;
   onNextStep?: (currentStepId: number) => void;
   makerPathId?: number;
+  /** Workflow type (e.g., 'rag_chat_maker', 'image_generator_rag') for conditional features */
+  workflowType?: string;
 };
 
 /** Icon + gradient colour per action type */
@@ -275,6 +277,7 @@ const MakerPathStep: React.FC<MakerPathStepProps> = ({
   onMarkStepComplete,
   onNextStep,
   makerPathId,
+  workflowType,
 }) => {
   const style = getNodeStyle(action);
   const showKey = needsKey(action);
@@ -313,6 +316,7 @@ const MakerPathStep: React.FC<MakerPathStepProps> = ({
         inputFileVariableIndexNumber={inputFileVariableIndexNumber}
         variableIndexNumber={variableIndexNumber}
         variableName={variableName}
+        workflowType={workflowType}
       />
     </MakerPathStepCard>
   );

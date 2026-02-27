@@ -9,6 +9,7 @@ import { Route, Search, Plus, Trash2, Eye, CheckCircle2, Clock, FileText } from 
 import {
   getMakerPaths,
   createMakerPath,
+  updateMakerPath,
   deleteMakerPath
 } from '@core/maker-path';
 import type { MakerPath, MakerPathStatus } from '@core/maker-path';
@@ -32,6 +33,19 @@ const MakerPathView: React.FC = () => {
 
   useEffect(() => {
     loadPaths();
+  }, []);
+
+  // Reload paths when returning to this view (e.g., after completing a maker path)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        console.log('[MakerPath] Page visible again, reloading paths...');
+        loadPaths();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, []);
 
   const loadPaths = async () => {
@@ -82,12 +96,16 @@ const MakerPathView: React.FC = () => {
         data
       });
 
+      // Build the edition URL
+      const editionUrl = type === 'blank' 
+        ? `/dashboard/projectflow?id=${newPath.id}`
+        : `/dashboard/projectflow?maker_path_template=${type}&id=${newPath.id}`;
+
+      // Update the maker path with the edition URL
+      await updateMakerPath(newPath.id, { editionUrl });
+
       setShowRouteTypeModal(false);
- if (type === 'blank') {
-      navigate(`/dashboard/projectflow?id=${newPath.id}`);
-    } else {
-      navigate(`/dashboard/projectflow?maker_path_template=${type}&id=${newPath.id}`);
-    }
+      navigate(editionUrl);
 
   } catch (error) {
     console.error(
