@@ -1,7 +1,3 @@
-/* ⚠️ WARNING: Potential syntax issues detected:
- * - Potential invalid operators detected
- * Please review the code carefully before using.
- */
 
 import React, { useState, useEffect } from 'react';
 import {
@@ -46,8 +42,8 @@ export const RouteTypeModal: React.FC<RouteTypeModalProps> = ({ isOpen, onClose,
   const templates = [
     {
       id: 'landing_page_maker',
-      title: t.RouteTypeModalTranslations?.['text_1'] ?? 'Creador de páginas de aterrizaje',
-      description: t.RouteTypeModalTranslations?.['text_2'] ?? 'Crea páginas de aterrizaje optimizadas con RAG.',
+      title: t.RouteTypeModalTranslations?.['text_1'] ?? (t.routeTypeModalTranslations?.['text_1'] ?? 'Creador de páginas de aterrizaje'),
+      description: t.RouteTypeModalTranslations?.['text_2'] ?? (t.routeTypeModalTranslations?.['text_2'] ?? 'Crea páginas de aterrizaje optimizadas con RAG.'),
       icon: Layout,
       color: 'from-blue-500 to-indigo-600',
       bgColor: 'from-blue-50 to-indigo-50',
@@ -56,8 +52,8 @@ export const RouteTypeModal: React.FC<RouteTypeModalProps> = ({ isOpen, onClose,
     },
     {
       id: 'rag_chat_maker',
-      title: t.RouteTypeModalTranslations?.['text_3'] ?? 'RAG Chat Maker',
-      description: t.RouteTypeModalTranslations?.['text_4'] ?? 'Chat inteligente conectado a tus fuentes de datos.',
+      title: t.RouteTypeModalTranslations?.['text_3'] ?? (t.routeTypeModalTranslations?.['text_3'] ?? 'RAG Chat Maker'),
+      description: t.RouteTypeModalTranslations?.['text_4'] ?? (t.routeTypeModalTranslations?.['text_4'] ?? 'Chat inteligente conectado a tus fuentes de datos.'),
       icon: MessageSquare,
       color: 'from-purple-500 to-pink-600',
       bgColor: 'from-purple-50 to-pink-50',
@@ -66,8 +62,8 @@ export const RouteTypeModal: React.FC<RouteTypeModalProps> = ({ isOpen, onClose,
     },
     {
       id: 'image_generator_rag',
-      title: t.RouteTypeModalTranslations?.['text_5'] ?? 'Generador de imágenes de RAG',
-      description: t.RouteTypeModalTranslations?.['text_6'] ?? 'Generación de imágenes basada en contextos RAG.',
+      title: t.RouteTypeModalTranslations?.['text_5'] ?? (t.routeTypeModalTranslations?.['text_5'] ?? 'Generador de imágenes de RAG'),
+      description: t.RouteTypeModalTranslations?.['text_6'] ?? (t.routeTypeModalTranslations?.['text_6'] ?? 'Generación de imágenes basada en contextos RAG.'),
       icon: ImageIcon,
       color: 'from-emerald-500 to-teal-600',
       bgColor: 'from-emerald-50 to-teal-50',
@@ -76,8 +72,8 @@ export const RouteTypeModal: React.FC<RouteTypeModalProps> = ({ isOpen, onClose,
     },
     {
       id: 'translation_maker',
-      title: t.RouteTypeModalTranslations?.['text_7'] ?? 'Translation Maker',
-      description: t.RouteTypeModalTranslations?.['text_8'] ?? 'Detecta y traduce textos de archivos JSX/TSX automáticamente.',
+      title: t.RouteTypeModalTranslations?.['text_7'] ?? (t.routeTypeModalTranslations?.['text_7'] ?? 'Translation Maker'),
+      description: t.RouteTypeModalTranslations?.['text_8'] ?? (t.routeTypeModalTranslations?.['text_8'] ?? 'Detecta y traduce textos de archivos JSX/TSX automáticamente.'),
       icon: Languages,
       color: 'from-orange-500 to-red-600',
       bgColor: 'from-orange-50 to-red-50',
@@ -114,13 +110,13 @@ export const RouteTypeModal: React.FC<RouteTypeModalProps> = ({ isOpen, onClose,
               <div>
                 <h2 className="text-3xl font-black text-gray-900 dark:text-white tracking-tight transition-all duration-300">
                   {view === 'templates'
-                    ? (t.projectFlow?.modal?.makerPaths || 'Maker Paths')
-                    : (t.projectFlow?.modal?.title || 'Seleccionar Proyecto')}
+                    ? (t.projectFlow?.modal?.makerPaths || (t.routeTypeModalTranslations?.['text_9'] ?? 'Maker Paths'))
+                    : (t.projectFlow?.modal?.title || (t.routeTypeModalTranslations?.['text_10'] ?? 'Seleccionar Proyecto'))}
                 </h2>
                 <p className="text-gray-500 dark:text-gray-400 mt-1 text-base transition-all duration-300">
                   {view === 'templates'
-                    ? (t.RouteTypeModalTranslations?.['text_11'] ?? 'Elige la plantilla que mejor se adapte a tu flujo de trabajo.')
-                    : (t.projectFlow?.modal?.subtitle || 'Elige cómo quieres empezar tu nuevo flujo de trabajo')}
+                    ? (t.RouteTypeModalTranslations?.['text_11'] ?? (t.routeTypeModalTranslations?.['text_11'] ?? 'Elige la plantilla que mejor se adapte a tu flujo de trabajo.'))
+                    : (t.projectFlow?.modal?.subtitle || (t.routeTypeModalTranslations?.['text_12'] ?? 'Elige cómo quieres empezar tu nuevo flujo de trabajo'))}
                 </p>
               </div>
             </div>
@@ -153,13 +149,13 @@ export const RouteTypeModal: React.FC<RouteTypeModalProps> = ({ isOpen, onClose,
                   <FilePlus size={32} className="text-orange-500" />
                 </div>
                 <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">
-                  {t.projectFlow?.modal?.blankProject || 'Proyecto en blanco'}
+                  {t.projectFlow?.modal?.blankProject || (t.routeTypeModalTranslations?.['text_13'] ?? 'Proyecto en blanco')}
                 </h3>
                 <p className="text-gray-500 dark:text-gray-400 leading-relaxed mb-6 text-lg">
-                  {t.projectFlow?.modal?.blankProjectDesc || 'Empieza desde cero y diseña tu propio flujo de trabajo personalizado paso a paso.'}
+                  {t.projectFlow?.modal?.blankProjectDesc || (t.routeTypeModalTranslations?.['text_14'] ?? 'Empieza desde cero y diseña tu propio flujo de trabajo personalizado paso a paso.')}
                 </p>
                 <div className="mt-auto pt-6 border-t border-gray-100 dark:border-gray-700 w-full flex items-center text-orange-600 font-bold text-base">
-                  {t.projectFlow?.modal?.startNow || 'Empezar ahora'}
+                  {t.projectFlow?.modal?.startNow || (t.routeTypeModalTranslations?.['text_15'] ?? 'Empezar ahora')}
                   <Workflow size={18} className="ml-2 group-hover:translate-x-1 transition-transform" />
                 </div>
               </button>
@@ -176,13 +172,13 @@ export const RouteTypeModal: React.FC<RouteTypeModalProps> = ({ isOpen, onClose,
                   <Library size={32} className="text-indigo-600" />
                 </div>
                 <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">
-                  {t.projectFlow?.modal?.makerPaths || 'Maker Paths'}
+                  {t.projectFlow?.modal?.makerPaths || (t.routeTypeModalTranslations?.['text_9'] ?? 'Maker Paths')}
                 </h3>
                 <p className="text-gray-500 dark:text-gray-400 leading-relaxed mb-6 text-lg">
-                  {t.projectFlow?.modal?.makerPathsDesc || 'Utiliza una de nuestras plantillas optimizadas para acelerar tu proceso creativo.'}
+                  {t.projectFlow?.modal?.makerPathsDesc || (t.routeTypeModalTranslations?.['text_16'] ?? 'Utiliza una de nuestras plantillas optimizadas para acelerar tu proceso creativo.')}
                 </p>
                 <div className="mt-auto pt-6 border-t border-gray-100 dark:border-gray-700 w-full flex items-center text-indigo-600 font-bold text-base">
-                  {t.projectFlow?.modal?.viewTemplates || 'Ver plantillas disponibles'}
+                  {t.projectFlow?.modal?.viewTemplates || (t.routeTypeModalTranslations?.['text_17'] ?? 'Ver plantillas disponibles')}
                   <ChevronDown size={18} className="ml-2 group-hover:translate-y-0.5 transition-transform" />
                 </div>
               </button>
@@ -247,12 +243,10 @@ export const RouteTypeModal: React.FC<RouteTypeModalProps> = ({ isOpen, onClose,
               {/* Inputs */}
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-semibold text-gray-600 dark:text-gray-300 mb-1">
-                    Título
-                  </label>
+                  <label className="block text-sm font-semibold text-gray-600 dark:text-gray-300 mb-1">{t.routeTypeModalTranslations?.['text_18']}</label>
                   <input
                     type="text"
-                    placeholder='Escribe el título del proyecto'
+                    placeholder={t.routeTypeModalTranslations?.['text_19']}
                     value={formData.title}
                     onChange={(e) =>
                       setFormData(prev => ({ ...prev, title: e.target.value }))
@@ -261,11 +255,9 @@ export const RouteTypeModal: React.FC<RouteTypeModalProps> = ({ isOpen, onClose,
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-gray-600 dark:text-gray-300 mb-1">
-                    Descripción
-                  </label>
+                  <label className="block text-sm font-semibold text-gray-600 dark:text-gray-300 mb-1">{t.routeTypeModalTranslations?.['text_20']}</label>
                   <textarea
-                    placeholder='Escribe una breve descripción del proyecto'
+                    placeholder={t.routeTypeModalTranslations?.['text_21']}
                     value={formData.description}
                     onChange={(e) =>
                       setFormData(prev => ({ ...prev, description: e.target.value }))
@@ -276,9 +268,7 @@ export const RouteTypeModal: React.FC<RouteTypeModalProps> = ({ isOpen, onClose,
               </div>
               {/* Template seleccionado */}
               <div className="p-4 rounded-xl bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800">
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  Plantilla seleccionada
-                </p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">{t.routeTypeModalTranslations?.['text_22']}</p>
                 <p className="font-bold text-indigo-600 dark:text-indigo-400">
                   {templates.find(t => t.id === selectedTemplate)?.title}
                 </p>
@@ -291,9 +281,7 @@ export const RouteTypeModal: React.FC<RouteTypeModalProps> = ({ isOpen, onClose,
                     onSelect(selectedTemplate as string, formData.title, formData.description);
                   }}
                   className="px-8 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition-all"
-                >
-                  Crear Proyecto
-                </button>
+                >{t.routeTypeModalTranslations?.['text_23']}</button>
               </div>
             </div>
           )}

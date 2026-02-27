@@ -16,6 +16,8 @@ const ProjectFlow: React.FC = () => {
   const { t } = useLanguage();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const [workflowTitle, setWorkflowTitle] = useState<string>('Proyecto desde Cero');
+  
 
   // Extract template and ID from query parameters
   const template = searchParams.get('maker_path_template') || undefined;
@@ -69,15 +71,6 @@ const ProjectFlow: React.FC = () => {
   // const [promptContents, setPromptContents] = useState<Record<number, string>>({});
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
 
-  // Get the workflow title from template
-  const workflowTitle = useMemo(() => {
-    const paths = getInitialMakerPaths(t);
-    if (template && paths[template]) {
-      return paths[template].path.name;
-    }
-    return 'Proyecto desde Cero';
-  }, [template, t]);
-
   // ── Effects ───────────────────────────────────────────
 
   /** Load project data from ID */
@@ -87,11 +80,31 @@ const ProjectFlow: React.FC = () => {
         try {
           const project = await getMakerPath(makerPathId);
           console.log('ProjectFlow: Fetched project data:', project);
-          if (project && project.data) {
-            let dataStr = typeof project.data === 'string' ? project.data : JSON.stringify(project.data);
-            setJsonInput(dataStr);
+          if (project && project.title) {
+            setWorkflowTitle(project.title);
+            if (!project.data) {
+                console.warn('Project has no data field');
+                return;
+              }
 
-            const parsed: WorkflowJSON = JSON.parse(dataStr);
+            let dataStr =
+              typeof project.data === 'string'
+                ? project.data
+                : JSON.stringify(project.data);
+
+            setJsonInput(dataStr);
+            let parsed: WorkflowJSON;
+
+            try {
+                parsed = JSON.parse(dataStr);
+            } catch (err) {
+              console.error('Invalid JSON in project.data');
+              return;
+            }
+            if (!parsed || typeof parsed !== 'object') {
+                console.warn('Parsed data is not valid');
+                return;
+            }
             const workflowKey = Object.keys(parsed)[0];
             if (workflowKey) {
               const workflow = parsed[workflowKey];
