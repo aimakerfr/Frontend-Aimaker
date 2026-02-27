@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Download, FileImage, Check, ExternalLink, Save, RefreshCw } from 'lucide-react';
+import { saveMakerPathStepProgress } from '@core/maker-path-step-progress';
 import { useLanguage } from '../../../language/useLanguage';
 
 type OutputResultSaverProps = {
@@ -84,6 +85,25 @@ const OutputResultSaver: React.FC<OutputResultSaverProps> = ({
       document.body.removeChild(link);
       
       setIsDownloaded(true);
+      
+      // Save progress to database
+      if (stepId && makerPathId) {
+        try {
+          await saveMakerPathStepProgress({
+            makerPathId,
+            stepId,
+            status: 'success',
+            resultText: {
+              action: 'downloaded',
+              timestamp: new Date().toISOString()
+            }
+          });
+          console.log('[OutputResultSaver] Progress saved to DB');
+        } catch (err) {
+          console.error('[OutputResultSaver] Error saving progress:', err);
+          // Continue anyway
+        }
+      }
       
       // Auto-complete the step after download
       setTimeout(() => {

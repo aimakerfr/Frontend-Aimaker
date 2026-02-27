@@ -20,6 +20,8 @@ export interface MakerPath {
   apiSource: string | null;
   selectedTool: string | null;
   deploymentUrl: string | null;
+  productLink: string | null;
+  editionUrl: string | null;
   createdAt: string;
   updatedAt: string | null;
   userId: number;
@@ -39,6 +41,8 @@ export interface CreateMakerPathRequest {
   projectName?: string;
   projectMission?: string;
   hasDatabase?: boolean;
+  productLink?: string;
+  editionUrl?: string;
 }
 
 export interface UpdateMakerPathRequest {
@@ -51,4 +55,6 @@ export interface UpdateMakerPathRequest {
   projectName?: string;
   projectMission?: string;
   hasDatabase?: boolean;
+  productLink?: string;
+  editionUrl?: string;
 }

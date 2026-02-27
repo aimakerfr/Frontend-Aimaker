@@ -16,6 +16,7 @@ interface WorkflowCanvasProps {
   onMarkStepAsComplete: (stepId: number) => void;
   onNextStep?: (currentStepId: number) => void;
   makerPathId?: number;
+  workflowType?: string;
 }
 
 
@@ -30,6 +31,7 @@ const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
   onMarkStepAsComplete,
   onNextStep,
   makerPathId,
+  workflowType,
 }) => {
   // Selectability is centralized in ProjectFlow and passed via selectableStepIds
   // Ensure visual order matches logical order by sorting by step_id
@@ -65,6 +67,7 @@ const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
               onMarkStepComplete={onMarkStepAsComplete}
               onNextStep={onNextStep}
               makerPathId={makerPathId}
+              workflowType={workflowType}
             />
 
             {/* Connector line between nodes */}

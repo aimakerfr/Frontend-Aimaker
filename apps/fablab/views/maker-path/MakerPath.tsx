@@ -9,6 +9,7 @@ import { Route, Search, Plus, Trash2, Eye, CheckCircle2, Clock, FileText } from 
 import {
   getMakerPaths,
   createMakerPath,
+  updateMakerPath,
   deleteMakerPath
 } from '@core/maker-path';
 import type { MakerPath, MakerPathStatus } from '@core/maker-path';
@@ -34,6 +35,19 @@ const MakerPathView: React.FC = () => {
     loadPaths();
   }, []);
 
+  // Reload paths when returning to this view (e.g., after completing a maker path)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        console.log('[MakerPath] Page visible again, reloading paths...');
+        loadPaths();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, []);
+
   const loadPaths = async () => {
     try {
       setIsLoading(true);
@@ -46,16 +60,20 @@ const MakerPathView: React.FC = () => {
     }
   };
 
-  const handleCreate = async (type: 'blank' | 'landing_page_maker' | 'rag_chat_maker' | 'image_generator_rag' | 'translation_maker' = 'blank') => {
+  const handleCreate = async (
+    type: 'blank' | 'landing_page_maker' | 'rag_chat_maker' | 'image_generator_rag' | 'translation_maker' = 'blank',
+    customTitle?: string,
+    customDescription?: string
+  ) => {
     try {
-      let title = t.makerPathTranslations?.['text_2'] ?? 'Proyecto sin título';
+      let title = customTitle || t.makerPathTranslations?.['text_2'] || 'Proyecto sin título';
+      let description = customDescription || t.makerPathTranslations?.['text_4'] || 'Creado desde el dashboard';
       let data = '';
 
       if (type !== 'blank') {
         const paths = getInitialMakerPaths(t);
         const template = paths[type];
         if (template) {
-          title = template.path.name;
           data = JSON.stringify(template.json);
         }
       } else {
@@ -63,7 +81,7 @@ const MakerPathView: React.FC = () => {
         data = JSON.stringify({
           blank_project: {
             stage_name: 'blank_project',
-            description: t.makerPathTranslations?.['text_3'] ?? 'Un nuevo proyecto desde cero.',
+            description: t.makerPathTranslations?.['text_3'] || 'Un nuevo proyecto desde cero.',
             output_type: 'OUTPUT',
             steps: []
           }
@@ -72,21 +90,28 @@ const MakerPathView: React.FC = () => {
 
       const newPath = await createMakerPath({
         title,
-        description: t.makerPathTranslations?.['text_4'] ?? 'Creado desde el dashboard',
+        description,
         type: type !== 'blank' ? type : 'custom',
         status: 'draft',
         data
       });
 
-      setShowRouteTypeModal(false);
+      // Build the edition URL
+      const editionUrl = type === 'blank' 
+        ? `/dashboard/projectflow?id=${newPath.id}`
+        : `/dashboard/projectflow?maker_path_template=${type}&id=${newPath.id}`;
 
-      if (type === 'blank') {
-        navigate(`/dashboard/projectflow?id=${newPath.id}`);
-      } else {
-        navigate(`/dashboard/projectflow?maker_path_template=${type}&id=${newPath.id}`);
-      }
-    } catch (error) {
-      console.error(t.makerPathTranslations?.['text_5'] ?? 'Error al crear el proyecto:', error);
+      // Update the maker path with the edition URL
+      await updateMakerPath(newPath.id, { editionUrl });
+
+      setShowRouteTypeModal(false);
+      navigate(editionUrl);
+
+  } catch (error) {
+    console.error(
+      t.makerPathTranslations?.['text_5'] || 'Error al crear el proyecto:',
+      error
+    );
     }
   };
 
@@ -170,7 +195,9 @@ const handleRedirectToPlanner = (pathId: number) => {
       <RouteTypeModal
         isOpen={showRouteTypeModal}
         onClose={() => setShowRouteTypeModal(false)}
-        onSelect={(type) => handleCreate(type as any)}
+        onSelect={(type, title, description) =>
+          handleCreate(type as any, title, description)
+        }
       />
 
       <div className="max-w-7xl mx-auto space-y-6">

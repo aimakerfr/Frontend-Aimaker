@@ -6,6 +6,7 @@ import ImportSourceModal from '../../rag_multimodal/components/ImportSourceModal
 import { useLanguage } from '../../../language/useLanguage';
 import { postRagMultimodalSource, deleteRagMultimodalSource } from '@core/rag_multimodal';
 import { copyObjectToRag, type ObjectItem } from '@core/objects';
+import { saveMakerPathStepProgress } from '@core/maker-path-step-progress/maker-path-step-progress.service';
 import { SourceType } from '../../rag_multimodal/types';
 
 type RagMultimodal = {
@@ -22,11 +23,17 @@ type RagMultimodal = {
 
 type RagSelectorStepProps = {
   makerPathId?: number;
+  stepId?: number;
+  variableIndexNumber?: number;
+  variableName?: string;
+  onMarkStepComplete?: (stepId: number) => void;
   required?: boolean;
 };
 
 const RagSelectorStep: React.FC<RagSelectorStepProps> = ({
   makerPathId,
+  stepId,
+  onMarkStepComplete,
 }) => {
   const { t } = useLanguage();
   const [ragMultimodal, setRagMultimodal] = useState<RagMultimodal | null>(null);
@@ -91,10 +98,45 @@ const RagSelectorStep: React.FC<RagSelectorStepProps> = ({
     ));
   };
 
+  // Helper to auto-complete step
+  const autoCompleteStep = async () => {
+    if (!stepId || !onMarkStepComplete || !makerPathId) return;
+    
+    try {
+      await saveMakerPathStepProgress({
+        makerPathId,
+        stepId,
+        status: 'success',
+        resultText: {
+          sourcesCount: sources.length + 1, // +1 for just-added source
+          ragId: ragMultimodal?.id,
+          autoCompleted: true
+        }
+      });
+      onMarkStepComplete(stepId);
+      console.log('[RagSelectorStep] Step auto-completed');
+    } catch (err) {
+      console.error('[RagSelectorStep] Error saving progress:', err);
+      // Still mark as complete even if save fails
+      onMarkStepComplete(stepId);
+    }
+  };
+
   const handleAddSource = async (type: SourceType, content: string, title: string, url?: string, _previewUrl?: string, file?: File) => {
     if (!ragMultimodal?.id) return;
 
     try {
+      console.log('[RagSelectorStep] handleAddSource called:', {
+        type,
+        title,
+        hasContent: !!content,
+        hasUrl: !!url,
+        hasFile: !!file,
+        fileName: file?.name,
+        fileType: file?.type,
+        fileSize: file?.size
+      });
+
       // Map frontend types to backend types
       let apiType = type.toUpperCase();
       if (apiType === 'URL') apiType = 'WEBSITE';
@@ -105,24 +147,35 @@ const RagSelectorStep: React.FC<RagSelectorStepProps> = ({
       formData.append('type', apiType);
       formData.append('name', title);
       
+      // Priority: file > url > text
+      // For file-based types (HTML, CODE, etc.), backend requires either a file or a url
       if (file) {
         formData.append('stream_file', file);
+        console.log('[RagSelectorStep] Added stream_file to FormData');
       }
       
       if (url) {
         formData.append('url', url);
+        console.log('[RagSelectorStep] Added url to FormData:', url);
       }
       
-      if (content && !file) {
+      // For TEXT type or when no file is provided, send text content
+      if (!file && content) {
         formData.append('text', content);
+        console.log('[RagSelectorStep] Added text to FormData (length:', content.length, ')');
       }
 
+      console.log('[RagSelectorStep] Sending FormData to backend...');
       await postRagMultimodalSource(formData);
+      console.log('[RagSelectorStep] Source added successfully, reloading...');
       await loadRagForMakerPath();
       setIsUploadModalOpen(false);
+      
+      // Auto-complete step after adding source
+      await autoCompleteStep();
     } catch (error) {
-      console.error('Error adding source:', error);
-      alert('Error al agregar fuente');
+      console.error('[RagSelectorStep] Error adding source:', error);
+      alert('Error al agregar fuente: ' + (error instanceof Error ? error.message : String(error)));
     }
   };
 
@@ -146,6 +199,9 @@ const RagSelectorStep: React.FC<RagSelectorStepProps> = ({
       await loadRagForMakerPath();
       setSelectedObjects([]);
       setIsImportModalOpen(false);
+      
+      // Auto-complete step after importing sources
+      await autoCompleteStep();
     } catch (error) {
       console.error('Error importing objects:', error);
       alert('Error al importar desde objetos');
@@ -153,6 +209,8 @@ const RagSelectorStep: React.FC<RagSelectorStepProps> = ({
       setIsImporting(false);
     }
   };
+
+
 
   if (isLoading) {
     return (

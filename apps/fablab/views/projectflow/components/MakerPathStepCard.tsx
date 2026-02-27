@@ -43,8 +43,8 @@ const MakerPathStepCard: React.FC<MakerPathStepCardProps> = ({
     <div
       onClick={() => !disabled && onClick?.(stepId)}
       className={`relative bg-gradient-to-br ${gradientClass} border-2 ${selected
-          ? 'border-blue-500 dark:border-blue-400 shadow-xl shadow-blue-500/20 ring-2 ring-blue-500/30 w-[42rem]'
-          : borderClass + ' shadow-md hover:shadow-lg w-[38rem]'
+          ? 'border-blue-500 dark:border-blue-400 shadow-xl shadow-blue-500/20 ring-2 ring-blue-500/30 w-[65rem]'
+          : borderClass + ' shadow-md hover:shadow-lg w-[45rem]'
         } rounded-2xl p-8 pt-14 pb-8 transition-all duration-200 text-left group overflow-hidden ${disabled ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'
         }`}
     >

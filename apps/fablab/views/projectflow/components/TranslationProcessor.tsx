@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { httpClient } from '@core/api/http.client';
 import { getMakerPathVariables, putMakerPathVariable } from '@core/maker-path-variables';
+import { saveMakerPathStepProgress } from '@core/maker-path-step-progress';
 import { extractTextFromCode, extractTextFromHTML } from '../utils/astExtractor';
 
 interface TranslationProcessorProps {
@@ -436,10 +437,28 @@ const TranslationProcessor: React.FC<TranslationProcessorProps> = ({
                     {/* Manual Step Complete */}
                     <div className="pt-4 border-t border-gray-100 dark:border-gray-700">
                         <button
-                            onClick={() => {
-                                if (stepId && onMarkStepComplete) onMarkStepComplete(stepId);
-                                setSuccess('¡Paso completado! Puedes continuar.');
-                                setTimeout(() => setSuccess(null), 2000);
+                            onClick={async () => {
+                                if (stepId && onMarkStepComplete && makerPathId) {
+                                    try {
+                                        await saveMakerPathStepProgress({
+                                            makerPathId,
+                                            stepId,
+                                            status: 'success',
+                                            resultText: {
+                                                extractedKeysCount: Object.keys(extractedKeys).length,
+                                                translationsCount: Object.keys(translations).length
+                                            }
+                                        });
+                                        onMarkStepComplete(stepId);
+                                        setSuccess('¡Paso completado! Puedes continuar.');
+                                        setTimeout(() => setSuccess(null), 2000);
+                                    } catch (err) {
+                                        console.error('Error saving progress:', err);
+                                        // Still complete even if save fails
+                                        onMarkStepComplete(stepId);
+                                        setSuccess('¡Paso completado!');
+                                    }
+                                }
                             }}
                             className="w-full flex items-center justify-center gap-2 py-3 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 font-medium rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-all"
                         >

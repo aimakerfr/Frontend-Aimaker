@@ -1,6 +1,8 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { getMakerPathVariables, postMakerPathVariable } from '@core/maker-path-variables/maker-path-variables.service';
+import { saveMakerPathStepProgress, getMakerPathStepProgress } from '@core/maker-path-step-progress';
 import { getRagMultimodalSourceContent } from '@core/rag_multimodal';
+import { httpClient } from '@core/api/http.client';
 import { Bot, User, Send, Loader2, MessageSquare, Check, Wand2 } from 'lucide-react';
 import { generateChatResponse } from '../../rag_multimodal/services/geminiService';
 import type { Source } from '../../rag_multimodal/types';
@@ -16,6 +18,7 @@ type RagChatStepProps = {
   variableIndexNumber?: number;
   stepId?: number;
   onMarkStepComplete?: (stepId: number) => void;
+  showImagePromptButton?: boolean; // Only show for image generator workflows
 };
 
 const RagChatStep: React.FC<RagChatStepProps> = ({
@@ -23,6 +26,7 @@ const RagChatStep: React.FC<RagChatStepProps> = ({
   variableIndexNumber,
   stepId,
   onMarkStepComplete,
+  showImagePromptButton = false,
 }) => {
   const { t } = useLanguage();
   const rc = t.projectFlow.ragChat;
@@ -34,13 +38,15 @@ const RagChatStep: React.FC<RagChatStepProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [isSavingPrompt, setIsSavingPrompt] = useState(false);
   const [savedPrompt, setSavedPrompt] = useState<string | null>(null);
+  const [isStepCompleted, setIsStepCompleted] = useState(false);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     loadRagSources();
-  }, [makerPathId, variableIndexNumber]);
+    loadPreviousConversation();
+  }, [makerPathId, stepId]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -53,9 +59,40 @@ const RagChatStep: React.FC<RagChatStepProps> = ({
     }
   }, [inputValue]);
 
+  const loadPreviousConversation = async () => {
+    console.log('[RagChatStep] loadPreviousConversation called with:', { makerPathId, stepId });
+    
+    if (!makerPathId || !stepId) {
+      console.log('[RagChatStep] Skipping conversation load - missing makerPathId or stepId');
+      return;
+    }
+    
+    try {
+      console.log('[RagChatStep] Fetching progress for makerPathId:', makerPathId);
+      const progressData = await getMakerPathStepProgress(makerPathId);
+      console.log('[RagChatStep] Received progress data:', progressData);
+      console.log('[RagChatStep] Progress data details:', JSON.stringify(progressData, null, 2));
+      
+      const stepProgress = progressData.find(p => p.stepId === stepId && p.status === 'success');
+      console.log('[RagChatStep] Looking for stepId:', stepId, 'status: success');
+      console.log('[RagChatStep] Found step progress:', stepProgress);
+      
+      if (stepProgress?.resultText?.conversation) {
+        console.log('[RagChatStep] Loading previous conversation with', stepProgress.resultText.conversation.length, 'messages');
+        setMessages(stepProgress.resultText.conversation);
+        // Mark step as already completed if progress exists
+        setIsStepCompleted(true);
+      } else {
+        console.log('[RagChatStep] No conversation found in progress data');
+      }
+    } catch (err) {
+      console.error('[RagChat Step] Error loading previous conversation:', err);
+    }
+  };
+
   const loadRagSources = async () => {
-    if (!makerPathId || !variableIndexNumber) {
-      console.error('[RagChatStep] Missing config:', { makerPathId, variableIndexNumber });
+    if (!makerPathId) {
+      console.error('[RagChatStep] Missing makerPathId');
       setError('Missing required configuration');
       setIsLoadingSources(false);
       return;
@@ -65,44 +102,40 @@ const RagChatStep: React.FC<RagChatStepProps> = ({
     setError(null);
     
     try {
-      // Get the variable that contains the selected RAG IDs
-      console.log('[RagChatStep] Loading variables for:', { makerPathId, variableIndexNumber });
-      const variables = await getMakerPathVariables(makerPathId);
-      console.log('[RagChatStep] All variables:', variables);
+      // Load maker_path to get its rag_id
+      console.log('[RagChatStep] Loading maker path:', makerPathId);
+      const makerPath = await httpClient.get<any>(`/api/v1/maker-paths/${makerPathId}`);
       
-      const targetVariable = variables.find(
-        (v) => v.makerPathId === makerPathId && v.variableIndexNumber === variableIndexNumber
-      );
-      console.log('[RagChatStep] Target variable:', targetVariable);
-
-      if (!targetVariable) {
-        setError('No knowledge sources found. Please complete the previous step.');
+      if (!makerPath?.rag?.id) {
+        setError('No RAG library found for this project.');
         setIsLoadingSources(false);
         return;
       }
 
-      // Extract RAG source IDs
-      const variableValue = targetVariable.variableValue as any;
-      const ragSourceIds: number[] = variableValue?.ragSourceIds || [];
-      console.log('[RagChatStep] RAG source IDs:', ragSourceIds);
-
-      if (ragSourceIds.length === 0) {
-        setError('No knowledge sources selected.');
+      console.log('[RagChatStep] RAG ID:', makerPath.rag.id);
+      
+      // Load RAG with sources
+      const ragData = await httpClient.get<any>(`/api/v1/rag-multimodal/${makerPath.rag.id}`);
+      const ragSources = ragData.sources || [];
+      
+      if (ragSources.length === 0) {
+        // Show friendly message instead of error - chat is accessible but cannot function without sources
+        setError('No hay fuentes por analizar. Por favor agrega fuentes en el paso anterior para comenzar el chat.');
         setIsLoadingSources(false);
         return;
       }
 
-      // Load content for each RAG source
+      // Load content for each source
       const loadedSources: Source[] = [];
-      for (const sourceId of ragSourceIds) {
+      for (const source of ragSources) {
         try {
-          console.log('[RagChatStep] Loading source:', sourceId);
-          const sourceData = await getRagMultimodalSourceContent(sourceId);
+          console.log('[RagChatStep] Loading source:', source.id);
+          const sourceData = await getRagMultimodalSourceContent(source.id);
           
           // Skip sources with empty content (extraction may have failed during upload)
           if (!sourceData.content || sourceData.content.trim() === '') {
             console.warn('[RagChatStep] Skipping source with empty content:', {
-              id: sourceId,
+              id: source.id,
               name: sourceData.name,
               type: sourceData.type
             });
@@ -110,28 +143,28 @@ const RagChatStep: React.FC<RagChatStepProps> = ({
           }
           
           loadedSources.push({
-            id: sourceId.toString(),
-            title: sourceData.name || `Source ${sourceId}`,
+            id: source.id.toString(),
+            title: sourceData.name || `Source ${source.id}`,
             type: 'html' as const,
             content: sourceData.content,
             dateAdded: new Date(),
             selected: true,
           });
         } catch (err) {
-          console.error(`[RagChatStep] Error loading source ${sourceId}:`, err);
+          console.error(`[RagChatStep] Error loading source ${source.id}:`, err);
         }
       }
 
       console.log('[RagChatStep] Loaded sources:', loadedSources.length);
       if (loadedSources.length === 0) {
-        setError('No se pudieron cargar fuentes con contenido válido. Verifica que las fuentes tengan texto extraído.');
+        setError('No se pudieron cargar fuentes con contenido válido.');
       } else {
         setSources(loadedSources);
         console.log('[RagChatStep] Sources ready:', loadedSources.map(s => ({ id: s.id, title: s.title, contentLength: s.content.length })));
       }
     } catch (err) {
       console.error('[RagChatStep] Error loading RAG sources:', err);
-      setError('Error al cargar las fuentes. Por favor, intenta nuevamente.');
+      setError('Error loading sources. Please try again.');
     } finally {
       setIsLoadingSources(false);
     }
@@ -181,7 +214,34 @@ const RagChatStep: React.FC<RagChatStepProps> = ({
         content: response,
       };
 
-      setMessages((prev) => [...prev, botMessage]);
+      const updatedMessages = [...messages, userMessage, botMessage];
+      setMessages(updatedMessages);
+      
+      // Auto-save conversation to database after each exchange
+      if (makerPathId && stepId) {
+        try {
+          await saveMakerPathStepProgress({
+            makerPathId,
+            stepId,
+            status: 'success',
+            resultText: {
+              conversation: updatedMessages,
+              messagesCount: updatedMessages.length,
+              lastMessageAt: new Date().toISOString()
+            }
+          });
+          console.log('[RagChatStep] Conversation auto-saved');
+          
+          // Auto-complete step on first message exchange
+          if (!isStepCompleted && onMarkStepComplete) {
+            onMarkStepComplete(stepId);
+            setIsStepCompleted(true);
+            console.log('[RagChatStep] Step auto-completed on first message');
+          }
+        } catch (err) {
+          console.error('[RagChatStep] Error auto-saving conversation:', err);
+        }
+      }
     } catch (err) {
       console.error('Error sending message:', err);
       const errorMessage: Message = {
@@ -229,7 +289,24 @@ const RagChatStep: React.FC<RagChatStepProps> = ({
       console.log('[RagChatStep] Prompt saved successfully');
       setSavedPrompt(prompt);
 
+      // Save progress to database (preserve conversation)
+      const currentProgress = await getMakerPathStepProgress(makerPathId);
+      const existingProgress = currentProgress.find(p => p.stepId === stepId);
+      
+      await saveMakerPathStepProgress({
+        makerPathId,
+        stepId,
+        status: 'success',
+        resultText: {
+          ...existingProgress?.resultText, // Preserve existing data (like conversation)
+          prompt,
+          ragMultimodalSourceId,
+          messagesCount: messages.length
+        }
+      });
+
       // Mark step as complete after a short delay
+      setIsStepCompleted(true);
       setTimeout(() => {
         if (onMarkStepComplete) {
           onMarkStepComplete(stepId);
@@ -242,6 +319,7 @@ const RagChatStep: React.FC<RagChatStepProps> = ({
       setIsSavingPrompt(false);
     }
   };
+
 
   const getLastModelMessage = (): string | null => {
     for (let i = messages.length - 1; i >= 0; i--) {
@@ -373,8 +451,8 @@ const RagChatStep: React.FC<RagChatStepProps> = ({
           </button>
         </div>
 
-        {/* Use as Prompt Button */}
-        {messages.length > 0 && getLastModelMessage() && !savedPrompt && (
+        {/* Use as Image Prompt Button - Only for image generator workflows */}
+        {showImagePromptButton && messages.length > 0 && getLastModelMessage() && !savedPrompt && (
           <button
             onClick={() => {
               const lastPrompt = getLastModelMessage();
@@ -399,8 +477,8 @@ const RagChatStep: React.FC<RagChatStepProps> = ({
           </button>
         )}
 
-        {/* Prompt Saved Confirmation */}
-        {savedPrompt && (
+        {/* Prompt Saved Confirmation - Only for image generator workflows */}
+        {showImagePromptButton && savedPrompt && (
           <div className="flex items-center justify-center gap-2 px-4 py-3 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800/30 rounded-lg">
             <Check size={16} className="text-emerald-600 dark:text-emerald-400" />
             <span className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">
