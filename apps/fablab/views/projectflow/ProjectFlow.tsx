@@ -269,20 +269,11 @@ const ProjectFlow: React.FC = () => {
       return next;
     });
 
-    // Save progress to database
-    if (makerPathId) {
-      try {
-        await saveMakerPathStepProgress({
-          makerPathId,
-          stepId,
-          status: 'success',
-          resultText: { completedAt: new Date().toISOString() }
-        });
-        console.log('ProjectFlow: Saved step progress to DB:', stepId);
-      } catch (err) {
-        console.error('Error saving step progress:', err);
-      }
-    }
+    // NOTE: Individual step components (RagChatStep, RagSelectorStep, etc.) 
+    // already auto-save their own resultText with specific data.
+    // We should NOT overwrite their data here.
+    // Only update the UI state, not the database.
+    console.log('ProjectFlow: Step marked as complete in UI:', stepId);
   }, [makerPathId]);
 
   /** NEXT handler: mark current step complete and move focus to the next step */

@@ -60,20 +60,33 @@ const RagChatStep: React.FC<RagChatStepProps> = ({
   }, [inputValue]);
 
   const loadPreviousConversation = async () => {
-    if (!makerPathId || !stepId) return;
+    console.log('[RagChatStep] loadPreviousConversation called with:', { makerPathId, stepId });
+    
+    if (!makerPathId || !stepId) {
+      console.log('[RagChatStep] Skipping conversation load - missing makerPathId or stepId');
+      return;
+    }
     
     try {
+      console.log('[RagChatStep] Fetching progress for makerPathId:', makerPathId);
       const progressData = await getMakerPathStepProgress(makerPathId);
+      console.log('[RagChatStep] Received progress data:', progressData);
+      console.log('[RagChatStep] Progress data details:', JSON.stringify(progressData, null, 2));
+      
       const stepProgress = progressData.find(p => p.stepId === stepId && p.status === 'success');
+      console.log('[RagChatStep] Looking for stepId:', stepId, 'status: success');
+      console.log('[RagChatStep] Found step progress:', stepProgress);
       
       if (stepProgress?.resultText?.conversation) {
-        console.log('[RagChatStep] Loading previous conversation:', stepProgress.resultText.conversation);
+        console.log('[RagChatStep] Loading previous conversation with', stepProgress.resultText.conversation.length, 'messages');
         setMessages(stepProgress.resultText.conversation);
         // Mark step as already completed if progress exists
         setIsStepCompleted(true);
+      } else {
+        console.log('[RagChatStep] No conversation found in progress data');
       }
     } catch (err) {
-      console.error('[RagChatStep] Error loading previous conversation:', err);
+      console.error('[RagChat Step] Error loading previous conversation:', err);
     }
   };
 
