@@ -9,6 +9,8 @@ import ConfigurationPanel from './components/ConfigurationPanel';
 import WorkflowCanvas from './components/WorkflowCanvas';
 // import NodeConfigPanel from './components/NodeConfigPanel';
 import { getInitialMakerPaths } from './demoWorkflows';
+import WorkflowBuilderModal from './components/WorkflowBuilderModal';
+import { useWorkflowLibrary } from './hooks/useWorkflowLibrary';
 import Stepper from './components/Stepper';
 
 /** Example workflows for the RAG Library / demo moved to a separate module */
@@ -23,6 +25,27 @@ const ProjectFlow: React.FC = () => {
   // Extract template and ID from query parameters
   const template = searchParams.get('maker_path_template') || undefined;
   const makerPathId = searchParams.get('id') ? Number(searchParams.get('id')) : undefined;
+
+  const workflowLibrary = useWorkflowLibrary();
+
+  // Seed demo workflows once per language (to capture translated names/descriptions)
+  useEffect(() => {
+    const paths = getInitialMakerPaths(t);
+    const seed = Object.values(paths).map((d) => {
+      const workflowKey = Object.keys(d.json)[0];
+      const workflow = d.json[workflowKey];
+      return {
+        id: d.path.id,
+        name: d.path.name,
+        description: d.path.description,
+        outputType: d.path.outputType,
+        stageName: workflow.stage_name || workflowKey,
+        steps: (workflow.steps || []) as any,
+        source: 'demo' as const,
+      };
+    });
+    workflowLibrary.ensureSeed(seed);
+  }, [t, workflowLibrary]);
 
   // ── State ──────────────────────────────────────────────
   const [jsonInput, setJsonInput] = useState(() => {
@@ -62,17 +85,18 @@ const ProjectFlow: React.FC = () => {
     }
     return '';
   });
-  const [customPaths, setCustomPaths] = useState<AvailablePath[]>([]);
   const availablePaths: AvailablePath[] = useMemo(() => {
-    const paths = getInitialMakerPaths(t);
-    return [...Object.values(paths).map((d) => d.path), ...customPaths];
-  }, [t, customPaths]);
+    return workflowLibrary.availablePaths;
+  }, [workflowLibrary.availablePaths]);
   const [selectedPathId, setSelectedPathId] = useState<string | null>(null);
   const [selectedStepId, setSelectedStepId] = useState<number | null>(null);
   // const [promptContents, setPromptContents] = useState<Record<number, string>>({});
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
   const [productLink, setProductLink] = useState<string | null>(null);
   const [productStatus, setProductStatus] = useState<string>('private');
+
+  const [isBuilderOpen, setIsBuilderOpen] = useState(false);
+  const [builderWorkflowId, setBuilderWorkflowId] = useState<string | null>(null);
 
   // ── Effects ───────────────────────────────────────────
 
@@ -192,29 +216,49 @@ const ProjectFlow: React.FC = () => {
       setSelectedStepId(null);
       setCompletedSteps(new Set());
 
-      // Add to available paths if not already there
       const pathId = workflow.stage_name || workflowKey;
-      if (!availablePaths.find((p) => p.id === pathId)) {
-        setCustomPaths((prev) => [
-          ...prev,
-          {
-            id: pathId,
-            name: pathId,
-            description: workflow.description || pathId,
-            outputType: workflow.output_type || 'OUTPUT',
-          },
-        ]);
-      }
+      // Persist as a custom workflow in localStorage-backed library
+      workflowLibrary.upsertWorkflow({
+        id: pathId,
+        name: pathId,
+        description: workflow.description || pathId,
+        outputType: workflow.output_type || 'OUTPUT',
+        stageName: workflow.stage_name || workflowKey,
+        steps: workflow.steps as any,
+        source: 'custom',
+      });
       setSelectedPathId(pathId);
     } catch (err: any) {
       setParseError(`Invalid JSON: ${err.message}`);
     }
-  }, [jsonInput, availablePaths, t]);
+  }, [jsonInput, t, workflowLibrary]);
 
   /** Select a pre-defined path from the sidebar */
   const handleSelectPath = useCallback(
     (pathId: string) => {
       setSelectedPathId(pathId);
+
+      const stored = workflowLibrary.getWorkflow(pathId);
+      if (stored) {
+        setSteps((stored.steps as any) || []);
+        setOutputType(stored.outputType || '');
+        setStageName(stored.stageName || stored.id);
+        setJsonInput('');
+        setParseError(null);
+        setSelectedStepId(null);
+        try {
+          const raw = localStorage.getItem(`projectflow.completed.${pathId}`);
+          if (raw) {
+            const arr = JSON.parse(raw) as number[];
+            setCompletedSteps(new Set(arr));
+          } else {
+            setCompletedSteps(new Set());
+          }
+        } catch {
+          setCompletedSteps(new Set());
+        }
+        return;
+      }
 
       const paths = getInitialMakerPaths(t);
       const demo = paths[pathId];
@@ -241,8 +285,29 @@ const ProjectFlow: React.FC = () => {
         }
       }
     },
-    []
+    [t, workflowLibrary]
   );
+
+  const openCreateWorkflow = useCallback(() => {
+    setBuilderWorkflowId(null);
+    setIsBuilderOpen(true);
+  }, []);
+
+  const openEditWorkflow = useCallback((workflowId: string) => {
+    setBuilderWorkflowId(workflowId);
+    setIsBuilderOpen(true);
+  }, []);
+
+  const deleteSelectedWorkflow = useCallback(() => {
+    if (!selectedPathId) return;
+    workflowLibrary.deleteWorkflow(selectedPathId);
+    setSelectedPathId(null);
+    setSelectedStepId(null);
+    setSteps([]);
+    setOutputType('');
+    setStageName('');
+    setCompletedSteps(new Set());
+  }, [selectedPathId, workflowLibrary]);
 
   /** Select a step node in the canvas */
   const handleSelectStep = useCallback((stepId: number) => {
@@ -388,6 +453,12 @@ const ProjectFlow: React.FC = () => {
             availablePaths={availablePaths}
             selectedPathId={selectedPathId}
             onSelectPath={handleSelectPath}
+            onCreateWorkflow={openCreateWorkflow}
+            onEditWorkflow={(id: string) => openEditWorkflow(id)}
+            onDeleteWorkflow={deleteSelectedWorkflow}
+            canEditSelectedWorkflow={
+              !!selectedPathId && (workflowLibrary.getWorkflow(selectedPathId)?.source !== 'demo')
+            }
             t={t}
             makerPathId={makerPathId}
           />
@@ -423,6 +494,54 @@ const ProjectFlow: React.FC = () => {
           workflowType={template}
         />
       </div>
+
+      <WorkflowBuilderModal
+        open={isBuilderOpen}
+        onClose={() => setIsBuilderOpen(false)}
+        t={t}
+        initial={(() => {
+          if (!builderWorkflowId) return undefined;
+          const wf = workflowLibrary.getWorkflow(builderWorkflowId);
+          if (!wf) return undefined;
+          return {
+            id: wf.id,
+            name: wf.name,
+            description: wf.description,
+            outputType: wf.outputType,
+            stageName: wf.stageName,
+            steps: (wf.steps as any) || [],
+            source: wf.source,
+          };
+        })()}
+        onSave={(draft) => {
+          workflowLibrary.upsertWorkflow({
+            id: draft.id,
+            name: draft.name,
+            description: draft.description,
+            outputType: draft.outputType,
+            stageName: draft.stageName,
+            steps: draft.steps as any,
+            source: draft.source || 'custom',
+          });
+          setIsBuilderOpen(false);
+          setSelectedPathId(draft.id);
+          setSteps(draft.steps);
+          setOutputType(draft.outputType);
+          setStageName(draft.stageName);
+        }}
+        onDelete={builderWorkflowId ? (id) => {
+          workflowLibrary.deleteWorkflow(id);
+          setIsBuilderOpen(false);
+          if (selectedPathId === id) {
+            setSelectedPathId(null);
+            setSelectedStepId(null);
+            setSteps([]);
+            setOutputType('');
+            setStageName('');
+            setCompletedSteps(new Set());
+          }
+        } : undefined}
+      />
     </div>
   );
 };
