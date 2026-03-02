@@ -106,6 +106,9 @@ class AuthStore {
         error: null,
       });
 
+      // Notify language context to reload after successful auth check
+      window.dispatchEvent(new Event('languageChanged'));
+
       // Initialize token refresh service
       tokenRefreshService.initialize();
     } catch (error) {
@@ -151,6 +154,9 @@ class AuthStore {
         isLoading: false,
         error: null,
       });
+
+      // Notify language context to reload immediately after login
+      window.dispatchEvent(new Event('languageChanged'));
 
       // Initialize token refresh and inactivity detection
       tokenRefreshService.initialize();

@@ -132,7 +132,7 @@ const LibraryView: React.FC<LibraryViewProps> = ({
       createRagMultimodalTool()
         .then(({ toolId }) => {
           console.log('[Library] createRagMultimodalTool resolved:', { toolId });
-          navigate(`/dashboard/rag-multimodal/${toolId}`);
+          navigate(`/rag-multimodal/${toolId}`);
         })
         .catch((error) => {
           console.error('Error creando RAG:', error);
@@ -365,8 +365,8 @@ const LibraryView: React.FC<LibraryViewProps> = ({
                                   urlType = item.type;
                               }
 
-                              const baseUrl = `/dashboard/${urlType}/`;
-                              navigate(`${baseUrl}${item.id}`);
+                              // No incluir /dashboard prefix ya que las rutas están en root
+                              navigate(`/${urlType}/${item.id}`);
                             }}
                             className="inline-flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 border-2 border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-xl font-semibold transition-all text-sm hover:scale-105"
                           >

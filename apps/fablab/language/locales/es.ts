@@ -907,6 +907,10 @@ export const es: Translations = {
         startSub: 'Analiza fuentes y obtén respuestas precisas en segundos.',
         synthesizing: 'SINTETIZANDO...',
         placeholder: 'Haz una pregunta estratégica sobre las fuentes...',
+        artifacts: {
+          analyzeSources: 'Analiza las fuentes',
+          summarizeIdeas: 'Resume las ideas principales',
+        },
       },
       publishModal: {
         makePrivate: '¿Hacer privado?',
@@ -1002,6 +1006,10 @@ export const es: Translations = {
         sourcesLoaded: 'fuentes cargadas',
         emptyTitle: 'Inicia una conversación',
         emptySubtitle: 'Haz preguntas sobre las fuentes de conocimiento seleccionadas',
+        artifacts: {
+          analyzeSources: 'Analiza las fuentes',
+          summarizeIdeas: 'Resume las ideas principales',
+        },
       },
       imageGenerator: {
         title: 'Generador de Imágenes con IA',

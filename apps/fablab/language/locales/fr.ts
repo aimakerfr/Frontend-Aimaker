@@ -906,6 +906,10 @@ export const fr: Translations = {
         startSub: 'Analysez les sources et obtenez des réponses précises en quelques secondes.',
         synthesizing: 'SYNTHÈSE EN COURS...',
         placeholder: 'Posez une question stratégique sur les sources...',
+        artifacts: {
+          analyzeSources: 'Analyser les sources',
+          summarizeIdeas: 'Résumer les idées principales',
+        },
       },
       publishModal: {
         makePrivate: 'Rendre privé ?',
@@ -1001,6 +1005,10 @@ export const fr: Translations = {
         sourcesLoaded: 'sources chargées',
         emptyTitle: 'Commencez une conversation',
         emptySubtitle: 'Posez des questions sur les sources de connaissance sélectionnées',
+        artifacts: {
+          analyzeSources: 'Analyser les sources',
+          summarizeIdeas: 'Résumer les idées principales',
+        },
       },
       imageGenerator: {
         title: 'Générateur d\'Images IA',

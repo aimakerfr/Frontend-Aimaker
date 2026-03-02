@@ -119,15 +119,21 @@ const AddSourceModal: React.FC<AddSourceModalProps> = ({ isOpen, onClose, onAddS
         setLocalPreviewUrl(objectUrl);
 
         try {
-            if (type === 'pdf') {
-                setContent(await processPdfForAI(file));
-            } else if (type === 'html' || type === 'code' || type === 'config') {
-                const text = await new Promise<string>((resolve) => {
-                    const reader = new FileReader();
-                    reader.onload = (event) => resolve(event.target?.result as string);
-                    reader.readAsText(file);
-                });
-                setContent(text);
+            // Para PDF, HTML, code, config: solo guardar el archivo, sin procesarlo con Gemini
+            // El backend se encarga de guardarlo. Gemini solo se usa en RAG chat.
+            if (type === 'pdf' || type === 'html' || type === 'code' || type === 'config') {
+                // Leer contenido solo para preview, pero no procesarlo con AI
+                if (type !== 'pdf') {
+                    const text = await new Promise<string>((resolve) => {
+                        const reader = new FileReader();
+                        reader.onload = (event) => resolve(event.target?.result as string);
+                        reader.readAsText(file);
+                    });
+                    setContent(text);
+                } else {
+                    // Para PDF, no procesar nada - solo guardar el archivo
+                    setContent(''); // Vacío, el backend maneja el PDF
+                }
             } else if (type === 'image' || type === 'video') {
                 setContent(await fileToBase64(file));
             }
@@ -295,7 +301,7 @@ const AddSourceModal: React.FC<AddSourceModalProps> = ({ isOpen, onClose, onAddS
                 </button>
                 <button
                     type="submit"
-                    disabled={isLoading || (!content && !url)}
+                    disabled={isLoading || (!content && !url && !selectedFile)}
                     className="flex-[2] py-3 min-h-[48px] text-[10px] font-black bg-indigo-600 text-white rounded-xl shadow-lg shadow-indigo-100 flex items-center justify-center gap-2 active:scale-95 transition-all uppercase tracking-widest disabled:bg-indigo-200"
                 >
                     {isLoading ? (

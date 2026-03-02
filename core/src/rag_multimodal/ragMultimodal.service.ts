@@ -193,12 +193,18 @@ export const postRagMultimodalSource = async (
       data.set('type', 'doc');
     }
     const resp = await httpClient.post<PostRagMultimodalSourceResponse>('/api/v1/rag-multimodal-sources', data);
+    if (!resp || typeof resp !== 'object') {
+      throw new Error('Invalid response from server: response is null or not an object');
+    }
     return { ...resp, type: resp.type === 'pdf' ? 'doc' : resp.type };
   }
 
   // JSON payload variant
   const outgoing = { ...data, type: (data as any).type === 'pdf' ? 'doc' : (data as any).type } as { rag_multimodal_id: number; type: string; name: string; text?: string; url?: string };
   const resp = await httpClient.post<PostRagMultimodalSourceResponse>('/api/v1/rag-multimodal-sources', outgoing);
+  if (!resp || typeof resp !== 'object') {
+    throw new Error('Invalid response from server: response is null or not an object');
+  }
   return { ...resp, type: resp.type === 'pdf' ? 'doc' : resp.type };
 };
 

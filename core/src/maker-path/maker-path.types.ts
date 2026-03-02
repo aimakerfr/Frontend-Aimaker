@@ -21,6 +21,7 @@ export interface MakerPath {
   selectedTool: string | null;
   deploymentUrl: string | null;
   productLink: string | null;
+  productStatus?: 'public' | 'private';
   editionUrl: string | null;
   createdAt: string;
   updatedAt: string | null;
@@ -51,10 +52,8 @@ export interface UpdateMakerPathRequest {
   type?: MakerPathType;
   status?: MakerPathStatus;
   data?: string;
-  projectType?: string;
-  projectName?: string;
-  projectMission?: string;
-  hasDatabase?: boolean;
   productLink?: string;
+  productStatus?: 'public' | 'private';
   editionUrl?: string;
 }
+  

@@ -907,6 +907,10 @@ export const en: Translations = {
         startSub: 'Analyze sources and get accurate answers in seconds.',
         synthesizing: 'SYNTHESIZING...',
         placeholder: 'Ask a strategic question about the sources...',
+        artifacts: {
+          analyzeSources: 'Analyze the sources',
+          summarizeIdeas: 'Summarize the key ideas',
+        },
       },
       publishModal: {
         makePrivate: 'Make private?',
@@ -1002,6 +1006,10 @@ export const en: Translations = {
         sourcesLoaded: 'sources loaded',
         emptyTitle: 'Start a conversation',
         emptySubtitle: 'Ask questions about the selected knowledge sources',
+        artifacts: {
+          analyzeSources: 'Analyze the sources',
+          summarizeIdeas: 'Summarize the key ideas',
+        },
       },
       imageGenerator: {
         title: 'AI Image Generator',

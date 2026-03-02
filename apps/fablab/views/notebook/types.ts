@@ -15,7 +15,7 @@ export interface Source {
 }
 
 export interface ChatMessage {
-    id: string;
+    id?: string;  // Optional: only used for React keys in UI
     role: 'user' | 'model';
     content: string;
 }

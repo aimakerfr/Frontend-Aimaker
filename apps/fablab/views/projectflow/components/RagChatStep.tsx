@@ -3,7 +3,7 @@ import { getMakerPathVariables, postMakerPathVariable } from '@core/maker-path-v
 import { saveMakerPathStepProgress, getMakerPathStepProgress } from '@core/maker-path-step-progress';
 import { getRagMultimodalSourceContent } from '@core/rag_multimodal';
 import { httpClient } from '@core/api/http.client';
-import { Bot, User, Send, Loader2, MessageSquare, Check, Wand2 } from 'lucide-react';
+import { Bot, User, Send, Loader2, MessageSquare, Check, Wand2, FileSearch, ListOrdered } from 'lucide-react';
 import { generateChatResponse } from '../../rag_multimodal/services/geminiService';
 import type { Source } from '../../rag_multimodal/types';
 import { useLanguage } from '../../../language/useLanguage';
@@ -230,10 +230,10 @@ const RagChatStep: React.FC<RagChatStepProps> = ({
               lastMessageAt: new Date().toISOString()
             }
           });
-          console.log('[RagChatStep] Conversation auto-saved');
+          console.log('[RagChatStep] Conversation auto-saved with stepId:', stepId);
           
           // Auto-complete step on first message exchange
-          if (!isStepCompleted && onMarkStepComplete) {
+          if (!isStepCompleted && onMarkStepComplete && stepId) {
             onMarkStepComplete(stepId);
             setIsStepCompleted(true);
             console.log('[RagChatStep] Step auto-completed on first message');
@@ -259,6 +259,51 @@ const RagChatStep: React.FC<RagChatStepProps> = ({
       e.preventDefault();
       handleSendMessage();
     }
+  };
+
+  const handleArtifactClick = (prompt: string) => {
+    if (isLoading || sources.length === 0) return;
+    setInputValue(prompt);
+    // Auto-send the artifact prompt
+    setTimeout(async () => {
+      const userMessage: Message = {
+        role: 'user',
+        content: prompt,
+      };
+      setMessages((prev) => [...prev, userMessage]);
+      setInputValue('');
+      setIsLoading(true);
+
+      try {
+        const history = messages.map((m) => ({
+          role: m.role,
+          content: m.content,
+        }));
+
+        const response = await generateChatResponse(
+          history,
+          sources.filter((s) => s.selected),
+          prompt
+        );
+
+        const modelMessage: Message = {
+          role: 'model',
+          content: response,
+        };
+
+        setMessages((prev) => [...prev, modelMessage]);
+        await saveConversation([...messages, userMessage, modelMessage]);
+      } catch (err) {
+        console.error('[RagChatStep] Error in artifact send:', err);
+        const errorMessage: Message = {
+          role: 'model',
+          content: 'Error generating response. Please try again.',
+        };
+        setMessages((prev) => [...prev, errorMessage]);
+      } finally {
+        setIsLoading(false);
+      }
+    }, 50);
   };
 
   const savePromptAndComplete = async (prompt: string) => {
@@ -308,7 +353,7 @@ const RagChatStep: React.FC<RagChatStepProps> = ({
       // Mark step as complete after a short delay
       setIsStepCompleted(true);
       setTimeout(() => {
-        if (onMarkStepComplete) {
+        if (onMarkStepComplete && stepId) {
           onMarkStepComplete(stepId);
         }
       }, 500);
@@ -431,6 +476,28 @@ const RagChatStep: React.FC<RagChatStepProps> = ({
 
       {/* Input */}
       <div className="border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-3 space-y-3">
+        {/* Artifact Buttons */}
+        <div className="flex gap-2 items-center">
+          <button
+            type="button"
+            onClick={() => handleArtifactClick(rc.artifacts?.analyzeSources || 'Analiza las fuentes')}
+            disabled={isLoading || sources.length === 0}
+            className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-indigo-50 to-purple-50 hover:from-indigo-100 hover:to-purple-100 dark:from-indigo-900/20 dark:to-purple-900/20 dark:hover:from-indigo-900/30 dark:hover:to-purple-900/30 border border-indigo-200 dark:border-indigo-700 rounded-xl text-xs font-semibold text-indigo-700 dark:text-indigo-300 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+          >
+            <FileSearch size={14} />
+            <span>{rc.artifacts?.analyzeSources || 'Analiza las fuentes'}</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => handleArtifactClick(rc.artifacts?.summarizeIdeas || 'Resume las ideas principales')}
+            disabled={isLoading || sources.length === 0}
+            className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-blue-50 to-cyan-50 hover:from-blue-100 hover:to-cyan-100 dark:from-blue-900/20 dark:to-cyan-900/20 dark:hover:from-blue-900/30 dark:hover:to-cyan-900/30 border border-blue-200 dark:border-blue-700 rounded-xl text-xs font-semibold text-blue-700 dark:text-blue-300 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+          >
+            <ListOrdered size={14} />
+            <span>{rc.artifacts?.summarizeIdeas || 'Resume las ideas principales'}</span>
+          </button>
+        </div>
+
         <div className="flex items-end gap-2">
           <textarea
             ref={textareaRef}
