@@ -62,9 +62,11 @@ const FileGenerator: React.FC<FileGeneratorProps> = ({
         return;
       }
       
-      // Load RAG with sources
-      const ragData = await httpClient.get<any>(`/api/v1/rag-multimodal/${makerPath.rag.id}`);
+      // Load RAG with sources - ALWAYS fetch fresh data
+      const ragData = await httpClient.get<any>(`/api/v1/rag-multimodal/${makerPath.rag.id}?t=${Date.now()}`);
       const allSources = ragData.sources || [];
+      
+      console.log('[FileGenerator] Total RAG sources:', allSources.length);
       
       // Filter only HTML sources
       const htmlSources = allSources
@@ -75,10 +77,11 @@ const FileGenerator: React.FC<FileGeneratorProps> = ({
           type: s.type
         }));
       
+      console.log('[FileGenerator] Filtered HTML sources:', htmlSources.length);
       setSources(htmlSources);
       
       if (htmlSources.length === 0) {
-        setError('No hay fuentes HTML en el RAG. Agregue fuentes HTML en el paso anterior.');
+        setError('No hay fuentes HTML en el RAG. Agregue fuentes HTML en el paso anterior y recargue.');
       }
     } catch (err) {
       console.error('Error loading HTML sources:', err);

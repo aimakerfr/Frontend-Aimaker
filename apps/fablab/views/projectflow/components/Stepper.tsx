@@ -13,6 +13,7 @@ type Props = {
   productStatus?: string;
   onToggleProductStatus?: () => void;
   onGenerateProductLink?: () => void;
+  workflowType?: string;
 };
 
 const Stepper: React.FC<Props> = ({
@@ -26,6 +27,7 @@ const Stepper: React.FC<Props> = ({
   productStatus = 'private',
   onToggleProductStatus,
   onGenerateProductLink,
+  workflowType,
 }) => {
   // Keep stable ordering only for display numbering; selectability comes from parent
   const ordered = React.useMemo(() => [...steps].sort((a, b) => a.step_id - b.step_id), [steps]);
@@ -76,8 +78,8 @@ const Stepper: React.FC<Props> = ({
         </ol>
       </div>
 
-      {/* Product Management Section */}
-      {makerPathId && (
+      {/* Product Management Section - Only for rag_chat_maker */}
+      {makerPathId && workflowType === 'rag_chat_maker' && (
         <div className="border-t border-gray-200 dark:border-gray-700 p-4 bg-gray-50 dark:bg-gray-900">
           <h3 className="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider mb-3">
             Gestión de Producto

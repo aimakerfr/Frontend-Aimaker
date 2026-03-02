@@ -212,7 +212,12 @@ const RagSelectorStep: React.FC<RagSelectorStepProps> = ({
         }
       }
       
+      // Force immediate reload with cache-busting
       await loadRagForMakerPath();
+      
+      // Small delay to ensure backend has processed everything
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
       setSelectedObjects([]);
       setIsImportModalOpen(false);
       

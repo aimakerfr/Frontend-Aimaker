@@ -61,8 +61,12 @@ const ProductView: React.FC = () => {
           console.log('[ProductView] Loading content for source:', source.id);
           const sourceData = await getRagMultimodalSourceContent(source.id);
           
-          // Skip sources with empty content
-          if (!sourceData.content || sourceData.content.trim() === '') {
+          // For PDFs and DOCs, allow empty content - they may be processed on-demand by the backend
+          const isPdfOrDoc = sourceData.type === 'doc' || sourceData.type === 'PDF' || sourceData.type === 'DOC';
+          const hasContent = sourceData.content && sourceData.content.trim() !== '';
+          
+          // Skip sources with empty content UNLESS they are PDFs/DOCs (which may be processed on-demand)
+          if (!hasContent && !isPdfOrDoc) {
             console.warn('[ProductView] Skipping source with empty content:', {
               id: source.id,
               name: sourceData.name,
@@ -76,7 +80,7 @@ const ProductView: React.FC = () => {
             title: sourceData.name || `Source ${source.id}`,
             type: mapApiSourceType(sourceData.type),
             backendType: sourceData.type,
-            content: sourceData.content,  // CRITICAL: Load actual content
+            content: hasContent ? sourceData.content : `[${sourceData.name} - Documento pendiente de procesamiento]`,  // CRITICAL: Load actual content or placeholder
             url: source.filePath || '',  // Use filePath from original source
             previewUrl: source.filePath || '',  // Use filePath from original source
             dateAdded: source.createdAt ? new Date(source.createdAt) : new Date(),
@@ -156,15 +160,38 @@ const ProductView: React.FC = () => {
     }
   };
 
+  const saveChatHistory = async (makerPathId: number, messages: ChatMessage[]) => {
+    try {
+      // Save with real-time update - use same format as RagChatStep
+      await saveMakerPathStepProgress({
+        makerPathId,
+        stepId: RAG_CHAT_STEP_ID,
+        status: 'success',
+        resultText: {
+          conversation: messages,
+          messagesCount: messages.length,
+          lastMessageAt: new Date().toISOString()
+        },
+      });
+      console.log('[ProductView] Chat history saved with', messages.length, 'messages');
+    } catch (error) {
+      console.error('[ProductView] Error saving chat history:', error);
+    }
+  };
+
   const loadChatHistory = async (makerPathId: number) => {
-    try {console.log('[ProductView] Loading chat history for maker path:', makerPathId);
+    try {
+      console.log('[ProductView] Loading chat history for maker path:', makerPathId);
       const progress = await getMakerPathStepProgress(makerPathId);
+      
       // Load chat from step 2 (rag_chat step in maker_path flow)
-      const chatStep = progress.find(p => p.stepId === RAG_CHAT_STEP_ID);
+      let chatStep = progress.find(p => p.stepId === RAG_CHAT_STEP_ID && p.status === 'success');
+      if (!chatStep) {
+        chatStep = progress.find(p => p.stepId === RAG_CHAT_STEP_ID);
+      }
       
       if (chatStep && chatStep.resultText) {
         // Check if resultText has conversation property (RagChatStep format)
-        // or if it's directly an array (old ProductView format)
         let history: any[] = [];
         
         if (chatStep.resultText.conversation && Array.isArray(chatStep.resultText.conversation)) {
@@ -178,7 +205,7 @@ const ProductView: React.FC = () => {
         // Add IDs if they don't exist (for React rendering)
         const messagesWithIds = history.map((msg, idx) => ({
           ...msg,
-          id: msg.id || `${msg.role}-${idx}`
+          id: msg.id || `${msg.role}-${idx}-${Date.now()}`
         }));
         
         console.log('[ProductView] Chat history loaded:', messagesWithIds.length, 'messages');
@@ -188,24 +215,6 @@ const ProductView: React.FC = () => {
       }
     } catch (error) {
       console.error('[ProductView] Error loading chat history:', error);
-    }
-  };
-
-  const saveChatHistory = async (makerPathId: number, messages: ChatMessage[]) => {
-    try {
-      await saveMakerPathStepProgress({
-        makerPathId,
-        stepId: RAG_CHAT_STEP_ID,
-        status: 'success',
-        resultText: {
-          conversation: messages,
-          messagesCount: messages.length,
-          lastMessageAt: new Date().toISOString()
-        },
-      });
-      console.log('[ProductView] Chat history saved');
-    } catch (error) {
-      console.error('[ProductView] Error saving chat history:', error);
     }
   };
 
@@ -513,6 +522,7 @@ const ProductView: React.FC = () => {
             onDeleteSource={handleDeleteSourceAdapter}
             onOpenImportModal={() => {}} // No import in product view
             onOpenUploadModal={() => setIsUploadModalOpen(true)}
+            hideImportButton={true}
           />
         </aside>
 

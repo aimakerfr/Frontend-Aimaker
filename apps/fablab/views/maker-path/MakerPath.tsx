@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Route, Search, Plus, Trash2, Eye, CheckCircle2, Clock, FileText, Lock, Globe, ExternalLink } from 'lucide-react';
+import { Route, Search, Plus, Trash2, Eye, CheckCircle2, Clock, FileText, Lock, Globe } from 'lucide-react';
 import {
   getMakerPaths,
   createMakerPath,
@@ -96,10 +96,11 @@ const MakerPathView: React.FC = () => {
         data
       });
 
-      // Build the edition URL
+      // Build the edition URL with full domain
+      const baseUrl = import.meta.env.VITE_APP_URL || window.location.origin;
       const editionUrl = type === 'blank' 
-        ? `/dashboard/projectflow?id=${newPath.id}`
-        : `/dashboard/projectflow?maker_path_template=${type}&id=${newPath.id}`;
+        ? `${baseUrl}/dashboard/projectflow?id=${newPath.id}`
+        : `${baseUrl}/dashboard/projectflow?maker_path_template=${type}&id=${newPath.id}`;
 
       // Update the maker path with the edition URL
       await updateMakerPath(newPath.id, { editionUrl });

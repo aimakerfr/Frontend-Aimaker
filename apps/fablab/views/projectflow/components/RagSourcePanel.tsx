@@ -21,6 +21,7 @@ interface RagSourcePanelProps {
   onDeleteSource: (id: number) => void;
   onOpenImportModal: () => void;
   onOpenUploadModal: () => void;
+  hideImportButton?: boolean;
 }
 
 const RagSourcePanel: React.FC<RagSourcePanelProps> = ({ 
@@ -28,7 +29,8 @@ const RagSourcePanel: React.FC<RagSourcePanelProps> = ({
   onToggleSource, 
   onDeleteSource, 
   onOpenImportModal, 
-  onOpenUploadModal 
+  onOpenUploadModal,
+  hideImportButton = false
 }) => {
   const { t } = useLanguage();
   const tp = t.notebook.sourcePanel;
@@ -154,12 +156,14 @@ const RagSourcePanel: React.FC<RagSourcePanelProps> = ({
       {/* Action Buttons */}
       <div className="p-5 border-t border-gray-200/70 bg-white/95 backdrop-blur-sm shadow-[0_-12px_40px_-20px_rgba(79,70,229,0.4)] z-10">
         <div className="flex flex-col gap-3">
-          <button
-            onClick={onOpenImportModal}
-            className="w-full py-3.5 rounded-xl border-2 border-dashed border-indigo-200 text-indigo-700 bg-white text-xs font-black uppercase tracking-wider hover:border-indigo-400 hover:bg-indigo-50 active:scale-95 transition-all"
-          >
-            {tp.importButton}
-          </button>
+          {!hideImportButton && (
+            <button
+              onClick={onOpenImportModal}
+              className="w-full py-3.5 rounded-xl border-2 border-dashed border-indigo-200 text-indigo-700 bg-white text-xs font-black uppercase tracking-wider hover:border-indigo-400 hover:bg-indigo-50 active:scale-95 transition-all"
+            >
+              {tp.importButton}
+            </button>
+          )}
           <button
             onClick={onOpenUploadModal}
             className="w-full py-3.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-xs font-black uppercase tracking-wider shadow-xl shadow-indigo-200/50 hover:from-indigo-700 hover:to-purple-700 active:scale-95 transition-all flex items-center justify-center gap-2"

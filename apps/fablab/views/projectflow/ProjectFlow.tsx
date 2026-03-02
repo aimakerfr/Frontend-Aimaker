@@ -404,6 +404,7 @@ const ProjectFlow: React.FC = () => {
           productStatus={productStatus}
           onToggleProductStatus={handleToggleProductStatus}
           onGenerateProductLink={handleGenerateProductLink}
+          workflowType={template}
         />
 
         {/* Right – Workflow Canvas */}
