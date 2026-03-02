@@ -22,8 +22,12 @@ const ApplicationDeploymentSection: React.FC<Props> = ({ makerPathId, t }) => {
       try {
         setLoading(true);
         const data = await applicationDeploymentService.getDeploymentsByMakerPath(makerPathId);
-        // Normalize to camelCase for filesUrl while keeping original data shape
-        const normalized = data.map((d) => ({ ...(d as any), filesUrl: (d as any).filesUrl ?? (d as any).files_url ?? null }));
+        // Normalize to camelCase for filesUrl and deploymentUrl while keeping original data shape
+        const normalized = data.map((d) => ({
+          ...(d as any),
+          filesUrl: (d as any).filesUrl ?? (d as any).files_url ?? null,
+          deploymentUrl: (d as any).deploymentUrl ?? (d as any).deployment_url ?? null,
+        }));
         setDeployments(normalized as any);
       } catch {
         setDeployments([]);
@@ -38,7 +42,11 @@ const ApplicationDeploymentSection: React.FC<Props> = ({ makerPathId, t }) => {
     if (!makerPathId) return;
     try {
       const data = await applicationDeploymentService.getDeploymentsByMakerPath(makerPathId);
-      const normalized = data.map((d) => ({ ...(d as any), filesUrl: (d as any).filesUrl ?? (d as any).files_url ?? null }));
+      const normalized = data.map((d) => ({
+        ...(d as any),
+        filesUrl: (d as any).filesUrl ?? (d as any).files_url ?? null,
+        deploymentUrl: (d as any).deploymentUrl ?? (d as any).deployment_url ?? null,
+      }));
       setDeployments(normalized as any);
     } catch {
       // Silent
@@ -117,6 +125,7 @@ const ApplicationDeploymentSection: React.FC<Props> = ({ makerPathId, t }) => {
                 <thead className="text-gray-500 dark:text-gray-400">
                   <tr>
                     <th className="py-2 pr-4">{t?.projectFlow?.appName || 'App name'}</th>
+                    <th className="py-2 pr-4">{t?.projectFlow?.deploymentUrl || 'Deployment URL'}</th>
                     <th className="py-2">{t?.projectFlow?.actions || 'Actions'}</th>
                   </tr>
                 </thead>
@@ -124,6 +133,20 @@ const ApplicationDeploymentSection: React.FC<Props> = ({ makerPathId, t }) => {
                   {deployments.map((d) => (
                     <tr key={d.id} className="border-t border-gray-100 dark:border-gray-700">
                       <td className="py-2 pr-4">{d.app_name || '-'}</td>
+                      <td className="py-2 pr-4">
+                        {(d as any).deploymentUrl ? (
+                          <a
+                            href={(d as any).deploymentUrl as string}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:underline break-all"
+                          >
+                            {(d as any).deploymentUrl as string}
+                          </a>
+                        ) : (
+                          <span className="text-gray-400">-</span>
+                        )}
+                      </td>
                       <td className="py-2">
                         <div className="flex items-center gap-2">
                           <button
