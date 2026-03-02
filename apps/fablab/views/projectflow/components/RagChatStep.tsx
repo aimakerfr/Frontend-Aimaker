@@ -3,7 +3,7 @@ import { getMakerPathVariables, postMakerPathVariable } from '@core/maker-path-v
 import { saveMakerPathStepProgress, getMakerPathStepProgress } from '@core/maker-path-step-progress';
 import { getRagMultimodalSourceContent } from '@core/rag_multimodal';
 import { httpClient } from '@core/api/http.client';
-import { Bot, User, Send, Loader2, MessageSquare, Check, Wand2 } from 'lucide-react';
+import { Bot, User, Send, Loader2, MessageSquare, Check, Wand2, FileSearch, ListOrdered, RefreshCw } from 'lucide-react';
 import { generateChatResponse } from '../../rag_multimodal/services/geminiService';
 import type { Source } from '../../rag_multimodal/types';
 import { useLanguage } from '../../../language/useLanguage';
@@ -39,6 +39,7 @@ const RagChatStep: React.FC<RagChatStepProps> = ({
   const [isSavingPrompt, setIsSavingPrompt] = useState(false);
   const [savedPrompt, setSavedPrompt] = useState<string | null>(null);
   const [isStepCompleted, setIsStepCompleted] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -59,6 +60,36 @@ const RagChatStep: React.FC<RagChatStepProps> = ({
     }
   }, [inputValue]);
 
+  const saveConversation = async (conversationMessages: Message[]) => {
+    if (!makerPathId || !stepId) {
+      console.warn('[RagChatStep] Cannot save - missing makerPathId or stepId');
+      return;
+    }
+
+    try {
+      await saveMakerPathStepProgress({
+        makerPathId,
+        stepId,
+        status: 'success',
+        resultText: {
+          conversation: conversationMessages,
+          messagesCount: conversationMessages.length,
+          lastMessageAt: new Date().toISOString()
+        }
+      });
+      console.log('[RagChatStep] Conversation saved successfully with', conversationMessages.length, 'messages');
+      
+      // Auto-complete step on first message exchange
+      if (!isStepCompleted && onMarkStepComplete && stepId) {
+        onMarkStepComplete(stepId);
+        setIsStepCompleted(true);
+        console.log('[RagChatStep] Step auto-completed');
+      }
+    } catch (err) {
+      console.error('[RagChatStep] Error saving conversation:', err);
+    }
+  };
+
   const loadPreviousConversation = async () => {
     console.log('[RagChatStep] loadPreviousConversation called with:', { makerPathId, stepId });
     
@@ -71,22 +102,23 @@ const RagChatStep: React.FC<RagChatStepProps> = ({
       console.log('[RagChatStep] Fetching progress for makerPathId:', makerPathId);
       const progressData = await getMakerPathStepProgress(makerPathId);
       console.log('[RagChatStep] Received progress data:', progressData);
-      console.log('[RagChatStep] Progress data details:', JSON.stringify(progressData, null, 2));
       
-      const stepProgress = progressData.find(p => p.stepId === stepId && p.status === 'success');
-      console.log('[RagChatStep] Looking for stepId:', stepId, 'status: success');
+      // Find step progress (try both with and without status filter)
+      let stepProgress = progressData.find(p => p.stepId === stepId && p.status === 'success');
+      if (!stepProgress) {
+        stepProgress = progressData.find(p => p.stepId === stepId);
+      }
       console.log('[RagChatStep] Found step progress:', stepProgress);
       
-      if (stepProgress?.resultText?.conversation) {
+      if (stepProgress?.resultText?.conversation && Array.isArray(stepProgress.resultText.conversation)) {
         console.log('[RagChatStep] Loading previous conversation with', stepProgress.resultText.conversation.length, 'messages');
         setMessages(stepProgress.resultText.conversation);
-        // Mark step as already completed if progress exists
         setIsStepCompleted(true);
       } else {
         console.log('[RagChatStep] No conversation found in progress data');
       }
     } catch (err) {
-      console.error('[RagChat Step] Error loading previous conversation:', err);
+      console.error('[RagChatStep] Error loading previous conversation:', err);
     }
   };
 
@@ -107,21 +139,24 @@ const RagChatStep: React.FC<RagChatStepProps> = ({
       const makerPath = await httpClient.get<any>(`/api/v1/maker-paths/${makerPathId}`);
       
       if (!makerPath?.rag?.id) {
-        setError('No RAG library found for this project.');
+        setError('No se encontró biblioteca RAG. Complete el paso anterior primero.');
         setIsLoadingSources(false);
         return;
       }
 
       console.log('[RagChatStep] RAG ID:', makerPath.rag.id);
       
-      // Load RAG with sources
-      const ragData = await httpClient.get<any>(`/api/v1/rag-multimodal/${makerPath.rag.id}`);
+      // Load RAG with sources - ALWAYS fetch fresh data
+      const ragData = await httpClient.get<any>(`/api/v1/rag-multimodal/${makerPath.rag.id}?t=${Date.now()}`);
       const ragSources = ragData.sources || [];
       
+      console.log('[RagChatStep] RAG sources from API:', ragSources.length, 'sources');
+      
       if (ragSources.length === 0) {
-        // Show friendly message instead of error - chat is accessible but cannot function without sources
-        setError('No hay fuentes por analizar. Por favor agrega fuentes en el paso anterior para comenzar el chat.');
+        // Show friendly message - chat is accessible but cannot function without sources
+        setError('No se pudieron cargar fuentes con contenido válido. Por favor agrega fuentes en el paso anterior para comenzar el chat.');
         setIsLoadingSources(false);
+        setSources([]); // Clear sources
         return;
       }
 
@@ -129,11 +164,15 @@ const RagChatStep: React.FC<RagChatStepProps> = ({
       const loadedSources: Source[] = [];
       for (const source of ragSources) {
         try {
-          console.log('[RagChatStep] Loading source:', source.id);
+          console.log('[RagChatStep] Loading source:', source.id, source.name);
           const sourceData = await getRagMultimodalSourceContent(source.id);
           
-          // Skip sources with empty content (extraction may have failed during upload)
-          if (!sourceData.content || sourceData.content.trim() === '') {
+          // For PDFs and DOCs, allow empty content - they may be processed on-demand by the backend
+          const isPdfOrDoc = sourceData.type === 'doc' || sourceData.type === 'PDF' || sourceData.type === 'DOC';
+          const hasContent = sourceData.content && sourceData.content.trim() !== '';
+          
+          // Skip sources with empty content UNLESS they are PDFs/DOCs (which may be processed on-demand)
+          if (!hasContent && !isPdfOrDoc) {
             console.warn('[RagChatStep] Skipping source with empty content:', {
               id: source.id,
               name: sourceData.name,
@@ -142,32 +181,53 @@ const RagChatStep: React.FC<RagChatStepProps> = ({
             continue;
           }
           
+          // Map backend type to frontend type
+          const mapSourceType = (backendType: string): 'html' | 'text' | 'pdf' | 'url' => {
+            const normalized = backendType.toLowerCase();
+            if (normalized === 'pdf' || normalized === 'doc') return 'pdf';
+            if (normalized === 'html' || normalized === 'website') return 'html';
+            if (normalized === 'text') return 'text';
+            if (normalized === 'url') return 'url';
+            return 'html'; // default fallback
+          };
+
+          // Add source (even if PDF/DOC with empty content - backend will extract on-demand)
           loadedSources.push({
             id: source.id.toString(),
             title: sourceData.name || `Source ${source.id}`,
-            type: 'html' as const,
-            content: sourceData.content,
+            type: mapSourceType(sourceData.type),
+            content: hasContent ? sourceData.content : `[${sourceData.name} - Documento pendiente de procesamiento. El contenido se extraerá automáticamente cuando lo uses en el chat.]`,
             dateAdded: new Date(),
             selected: true,
           });
+          console.log('[RagChatStep] Successfully loaded source:', source.id, hasContent ? `(content length: ${sourceData.content.length})` : '(pending extraction)');
         } catch (err) {
           console.error(`[RagChatStep] Error loading source ${source.id}:`, err);
         }
       }
 
-      console.log('[RagChatStep] Loaded sources:', loadedSources.length);
+      console.log('[RagChatStep] Total loaded sources:', loadedSources.length, 'out of', ragSources.length);
+      
       if (loadedSources.length === 0) {
-        setError('No se pudieron cargar fuentes con contenido válido.');
+        setError(`Se encontraron ${ragSources.length} fuente(s) pero ninguna tiene contenido válido. Verifica que las fuentes se hayan procesado correctamente.`);
+        setSources([]);
       } else {
         setSources(loadedSources);
+        setError(null);
         console.log('[RagChatStep] Sources ready:', loadedSources.map(s => ({ id: s.id, title: s.title, contentLength: s.content.length })));
       }
     } catch (err) {
       console.error('[RagChatStep] Error loading RAG sources:', err);
-      setError('Error loading sources. Please try again.');
+      setError('Error al cargar fuentes. Por favor intenta de nuevo.');
     } finally {
       setIsLoadingSources(false);
     }
+  };
+
+  const handleRefreshSources = async () => {
+    setIsRefreshing(true);
+    await loadRagSources();
+    setIsRefreshing(false);
   };
 
   const handleSendMessage = async () => {
@@ -217,31 +277,8 @@ const RagChatStep: React.FC<RagChatStepProps> = ({
       const updatedMessages = [...messages, userMessage, botMessage];
       setMessages(updatedMessages);
       
-      // Auto-save conversation to database after each exchange
-      if (makerPathId && stepId) {
-        try {
-          await saveMakerPathStepProgress({
-            makerPathId,
-            stepId,
-            status: 'success',
-            resultText: {
-              conversation: updatedMessages,
-              messagesCount: updatedMessages.length,
-              lastMessageAt: new Date().toISOString()
-            }
-          });
-          console.log('[RagChatStep] Conversation auto-saved');
-          
-          // Auto-complete step on first message exchange
-          if (!isStepCompleted && onMarkStepComplete) {
-            onMarkStepComplete(stepId);
-            setIsStepCompleted(true);
-            console.log('[RagChatStep] Step auto-completed on first message');
-          }
-        } catch (err) {
-          console.error('[RagChatStep] Error auto-saving conversation:', err);
-        }
-      }
+      // Auto-save conversation to database after each exchange (real-time)
+      await saveConversation(updatedMessages);
     } catch (err) {
       console.error('Error sending message:', err);
       const errorMessage: Message = {
@@ -258,6 +295,62 @@ const RagChatStep: React.FC<RagChatStepProps> = ({
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSendMessage();
+    }
+  };
+
+  const handleArtifactClick = async (prompt: string) => {
+    if (isLoading || sources.length === 0) {
+      console.log('[RagChatStep] Cannot process artifact - isLoading:', isLoading, 'sourcesLength:', sources.length);
+      return;
+    }
+
+    const userMessage: Message = {
+      role: 'user',
+      content: prompt,
+    };
+    
+    setMessages((prev) => [...prev, userMessage]);
+    setInputValue('');
+    setIsLoading(true);
+
+    try {
+      const history = messages.map((m) => ({
+        role: m.role,
+        content: m.content,
+      }));
+
+      console.log('[RagChatStep] Sending artifact prompt:', prompt);
+      const response = await generateChatResponse(
+        history,
+        sources.filter((s) => s.selected),
+        prompt,
+        'es'
+      );
+
+      const modelMessage: Message = {
+        role: 'model',
+        content: response,
+      };
+
+      const updatedMessages = [...messages, userMessage, modelMessage];
+      setMessages(updatedMessages);
+      
+      // Save conversation with real-time update
+      await saveConversation(updatedMessages);
+      console.log('[RagChatStep] Artifact response completed successfully');
+    } catch (err) {
+      console.error('[RagChatStep] Error in artifact send:', err);
+      const errorMessage: Message = {
+        role: 'model',
+        content: 'Error al generar respuesta. Por favor intenta de nuevo.',
+      };
+      setMessages((prev) => [...prev, errorMessage]);
+      
+      // Save even error messages
+      const messagesWithError = [...messages, userMessage, errorMessage];
+      await saveConversation(messagesWithError);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -308,7 +401,7 @@ const RagChatStep: React.FC<RagChatStepProps> = ({
       // Mark step as complete after a short delay
       setIsStepCompleted(true);
       setTimeout(() => {
-        if (onMarkStepComplete) {
+        if (onMarkStepComplete && stepId) {
           onMarkStepComplete(stepId);
         }
       }, 500);
@@ -341,17 +434,22 @@ const RagChatStep: React.FC<RagChatStepProps> = ({
 
   if (error) {
     return (
-      <div className="text-center py-8 space-y-3">
+      <div className="text-center py-8 space-y-4">
         <MessageSquare size={48} className="mx-auto text-red-300 dark:text-red-600" />
-        <div>
+        <div className="space-y-2">
           <p className="text-red-600 dark:text-red-400 font-semibold text-sm">{error}</p>
-          <button
-            onClick={loadRagSources}
-            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700"
-          >
-            {rc.retry}
-          </button>
+          <p className="text-xs text-gray-500 dark:text-gray-400">
+            Asegúrate de agregar fuentes en el paso anterior, luego recarga aquí.
+          </p>
         </div>
+        <button
+          onClick={handleRefreshSources}
+          disabled={isRefreshing}
+          className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <RefreshCw size={16} className={isRefreshing ? 'animate-spin' : ''} />
+          {isRefreshing ? 'Recargando...' : rc.retry}
+        </button>
       </div>
     );
   }
@@ -364,8 +462,18 @@ const RagChatStep: React.FC<RagChatStepProps> = ({
           <Bot size={18} className="text-blue-600" />
           <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">{rc.title}</span>
         </div>
-        <div className="text-xs text-gray-500 dark:text-gray-400">
-          {sources.length} {rc.sourcesLoaded}
+        <div className="flex items-center gap-3">
+          <div className="text-xs text-gray-500 dark:text-gray-400">
+            {sources.length} {rc.sourcesLoaded}
+          </div>
+          <button
+            onClick={handleRefreshSources}
+            disabled={isRefreshing}
+            className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            title="Recargar fuentes del RAG"
+          >
+            <RefreshCw size={16} className={isRefreshing ? 'animate-spin' : ''} />
+          </button>
         </div>
       </div>
 
@@ -431,6 +539,28 @@ const RagChatStep: React.FC<RagChatStepProps> = ({
 
       {/* Input */}
       <div className="border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-3 space-y-3">
+        {/* Artifact Buttons */}
+        <div className="flex gap-2 items-center">
+          <button
+            type="button"
+            onClick={() => handleArtifactClick(rc.artifacts?.analyzeSources || 'Analiza las fuentes')}
+            disabled={isLoading || sources.length === 0}
+            className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-indigo-50 to-purple-50 hover:from-indigo-100 hover:to-purple-100 dark:from-indigo-900/20 dark:to-purple-900/20 dark:hover:from-indigo-900/30 dark:hover:to-purple-900/30 border border-indigo-200 dark:border-indigo-700 rounded-xl text-xs font-semibold text-indigo-700 dark:text-indigo-300 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+          >
+            <FileSearch size={14} />
+            <span>{rc.artifacts?.analyzeSources || 'Analiza las fuentes'}</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => handleArtifactClick(rc.artifacts?.summarizeIdeas || 'Resume las ideas principales')}
+            disabled={isLoading || sources.length === 0}
+            className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-blue-50 to-cyan-50 hover:from-blue-100 hover:to-cyan-100 dark:from-blue-900/20 dark:to-cyan-900/20 dark:hover:from-blue-900/30 dark:hover:to-cyan-900/30 border border-blue-200 dark:border-blue-700 rounded-xl text-xs font-semibold text-blue-700 dark:text-blue-300 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+          >
+            <ListOrdered size={14} />
+            <span>{rc.artifacts?.summarizeIdeas || 'Resume las ideas principales'}</span>
+          </button>
+        </div>
+
         <div className="flex items-end gap-2">
           <textarea
             ref={textareaRef}

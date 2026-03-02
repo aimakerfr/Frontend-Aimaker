@@ -166,8 +166,14 @@ const RagSelectorStep: React.FC<RagSelectorStepProps> = ({
       }
 
       console.log('[RagSelectorStep] Sending FormData to backend...');
-      await postRagMultimodalSource(formData);
+      const response = await postRagMultimodalSource(formData);
       console.log('[RagSelectorStep] Source added successfully, reloading...');
+      
+      // Check if response indicates duplicate
+      if ((response as any).duplicate) {
+        alert('⚠️ Advertencia: Esta fuente ya existe en el RAG con el mismo nombre y tipo.');
+      }
+      
       await loadRagForMakerPath();
       setIsUploadModalOpen(false);
       
@@ -188,17 +194,36 @@ const RagSelectorStep: React.FC<RagSelectorStepProps> = ({
 
     try {
       setIsImporting(true);
-      await Promise.all(
-        selectedObjects.map((object) =>
-          copyObjectToRag({
+      let duplicateCount = 0;
+      
+      for (const object of selectedObjects) {
+        try {
+          const response = await copyObjectToRag({
             object_id: Number(object.id),
             rag_id: ragMultimodal.id,
-          })
-        )
-      );
+          });
+          
+          // Check if response indicates duplicate
+          if ((response as any).duplicate) {
+            duplicateCount++;
+          }
+        } catch (err) {
+          console.error('Error importing object:', object.id, err);
+        }
+      }
+      
+      // Force immediate reload with cache-busting
       await loadRagForMakerPath();
+      
+      // Small delay to ensure backend has processed everything
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
       setSelectedObjects([]);
       setIsImportModalOpen(false);
+      
+      if (duplicateCount > 0) {
+        alert(`⚠️ Advertencia: ${duplicateCount} fuente(s) ya existían en el RAG y no se duplicaron.`);
+      }
       
       // Auto-complete step after importing sources
       await autoCompleteStep();

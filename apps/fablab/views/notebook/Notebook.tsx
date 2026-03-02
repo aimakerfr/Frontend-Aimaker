@@ -5,10 +5,10 @@ import SourcePanel from './components/SourcePanel.tsx';
 import ChatInterface from './components/ChatInterface.tsx';
 import { Source, ChatMessage, SourceType, StructuredSummary, Language } from './types.ts';
 import { generateChatResponse, generateSourceSummary } from './services/geminiService.ts';
-import { Layout, Menu, Globe, ChevronDown, ArrowLeft, Star, ExternalLink, Lock, AlertCircle, Blocks } from 'lucide-react';
-import { getNotebookSources, postNoteBookSource, deleteNotebookSource, type NotebookSourceItem } from '@core/notebooks';
+import { Layout, Menu, Globe, ChevronDown, ArrowLeft, Star, ExternalLink, Lock, AlertCircle } from 'lucide-react';
 import { getTool, updateTool } from '@core/creation-tools/creation-tools.service.ts';
 import { markToolAsSaved } from '@core/creation-tools/unsavedTools.service';
+import { getMakerPaths } from '@core/maker-path';
 import { useLanguage } from '../../language/useLanguage';
 
 enum Visibility {
@@ -45,7 +45,7 @@ const App: React.FC<NotebookProps> = ({ isPublicView = false }) => {
         category?: boolean;
     }>({});
     
-    const publicUrl = id ? `${window.location.origin}/public/notebook/${id}` : '';
+    const publicUrl = id ? `${window.location.origin}/product/notebook/${id}` : '';
 
     useEffect(() => {
         if (urlId) {
@@ -60,76 +60,33 @@ const App: React.FC<NotebookProps> = ({ isPublicView = false }) => {
         }
     }, [id]);
 
-    const mapApiSourceType = (type: string): SourceType => {
-        switch (type?.toUpperCase()) {
-            case 'DOC':
-            case 'PDF': // legacy fallback
-                return 'pdf';
-            case 'IMAGE':
-                return 'image';
-            case 'VIDEO':
-                return 'video';
-            case 'TEXT':
-                return 'text';
-            case 'CODE':
-                return 'code';
-            case 'WEBSITE':
-                return 'url';
-            case 'HTML':
-                return 'html';
-            case 'TRANSLATION':
-                return 'translation';
-            case 'CONFIG':
-                return 'config';
-            default:
-                return 'text';
-        }
-    };
-
-    const mapApiSourceToLocal = (apiSource: NotebookSourceItem): Source => {
-        const filePath = apiSource.filePath || undefined;
-        const content = (apiSource as any)?.text ?? filePath ?? '';
-
-        return {
-            id: apiSource.id.toString(),
-            title: apiSource.name,
-            type: mapApiSourceType(apiSource.type),
-            backendType: apiSource.type,
-            content,
-            url: filePath,
-            previewUrl: filePath,
-            dateAdded: apiSource.createdAt ? new Date(apiSource.createdAt) : new Date(),
-            selected: false,
-        };
-    };
-
-    const loadNotebookSources = async (notebookId: number) => {
-        try {
-            const apiSources = await getNotebookSources(notebookId);
-            const mappedSources = apiSources.map(mapApiSourceToLocal);
-
-            setSources((prev) => {
-                const existingIds = new Set(prev.map((s) => s.id));
-                const merged = [...prev];
-
-                mappedSources.forEach((source) => {
-                    if (!existingIds.has(source.id)) {
-                        merged.push(source);
-                    }
-                });
-
-                return merged;
-            });
-        } catch (error) {
-            console.error('Error cargando fuentes del notebook:', error);
-        }
-    };
-
+    // Redirect to ProductView if this notebook is part of a maker path (product)
     useEffect(() => {
-        if (!id) return;
-
-        loadNotebookSources(parseInt(id));
-    }, [id]);
+        const checkForMakerPath = async () => {
+            if (!id || id === 'new' || isNaN(parseInt(id))) return;
+            
+            try {
+                const makerPaths = await getMakerPaths();
+                const toolId = parseInt(id);
+                
+                // Find if any maker path has this tool associated
+                // Note: This assumes maker paths might have a collection of tools
+                // If there's a maker path, redirect to ProductView for full source + chat support
+                const makerPath = makerPaths.find((mp: any) => 
+                    mp.rag && mp.rag.tool && mp.rag.tool.id === toolId
+                );
+                
+                if (makerPath) {
+                    console.log('[Notebook] Found associated maker path, redirecting to ProductView:', makerPath.id);
+                    navigate(`/product/notebook/${makerPath.id}`, { replace: true });
+                }
+            } catch (error) {
+                console.error('[Notebook] Error checking for maker path:', error);
+            }
+        };
+        
+        checkForMakerPath();
+    }, [id, navigate]);
 
     const loadNotebookData = async (notebookId: number, fallbackTitle?: string | null) => {
         try {
@@ -261,107 +218,18 @@ const App: React.FC<NotebookProps> = ({ isPublicView = false }) => {
         }
     };
 
-    const uploadSource = async (apiType: string, title: string, file?: File, url?: string, text?: string) => {
-        if (!id) throw new Error('Notebook ID is missing');
-
-        // WEBSITE, HTML, TEXT, and VIDEO can be sent without a file
-        // TEXT can come from textarea (direct text input)
-        // VIDEO can come from YouTube URLs
-        const formData = new FormData();
-        formData.append('note_book_id', id.toString());
-        formData.append('name', title);
-        formData.append('type', apiType);
-        
-        // Include file only if provided (optional for WEBSITE, HTML, TEXT, VIDEO from URLs)
-        if (file) {
-            formData.append('stream_file', file);
-        }
-        
-        // Include URL if provided (for WEBSITE and VIDEO types)
-        if (url) {
-            formData.append('url', url);
-        }
-
-        // Include plain text content if provided (allowed in combination with file/url)
-        if (text) {
-            formData.append('text', text);
-        }
-        
-        return await postNoteBookSource(formData);
-    };
-
-    const processSourceLocally = (
-        response: any, 
-        type: SourceType, 
-        content: string, 
-        url?: string,
-        previewUrl?: string,
-        backendType?: string,
-    ) => {
-        const absoluteUrl = response?.filePath || previewUrl || url;
-        console.log('[Notebook] processSourceLocally - Creating new source:', { 
-            title: response.name, 
-            type, 
-            hasContent: !!content, 
-            contentLength: content?.length 
-        });
-        const newSource: Source = {
-            id: response.id.toString(),
-            title: response.name,
-            type,
-            backendType: response?.type || backendType || type.toUpperCase(),
-            content,
-            url: absoluteUrl,
-            previewUrl: absoluteUrl,
-            dateAdded: new Date(response.createdAt),
-            selected: true,
-        };
-        console.log('[Notebook] New source created:', newSource);
-        setSources(prev => {
-            console.log('[Notebook] Previous sources:', prev.length, 'Adding new source');
-            return [...prev, newSource];
-        });
-    };
-
-    const handleAddSource = async (type: SourceType, content: string, title: string, url?: string, previewUrl?: string, file?: File) => {
-        if (!id) return;
-
-        try {
-            // Map frontend types to backend types
-            let apiType = type.toUpperCase();
-            if (apiType === 'URL') apiType = 'WEBSITE';
-            // Map legacy PDF to DOC for API
-            if (apiType === 'PDF') apiType = 'DOC';
-            // Keep HTML, TEXT, VIDEO, IMAGE as is (already uppercase)
-
-            const response = await uploadSource(apiType, title, file, url, content);
-            processSourceLocally(response, type, content, url, previewUrl, apiType);
-        } catch (error) {
-            console.error('Error adding source to backend:', error);
-        }
+    // Note: Source management is now handled through ProductView (RAG system)
+    // Notebooks redirect to ProductView if they have an associated RAG module
+    const handleAddSource = async (_type: SourceType, _content: string, _title: string, _url?: string, _previewUrl?: string, _file?: File) => {
+        console.warn('[Notebook] Source management should be done through ProductView');
     };
 
     const handleToggleSource = (id: string) => {
         setSources(prev => prev.map(s => s.id === id ? { ...s, selected: !s.selected } : s));
     };
 
-    const handleDeleteSource = async (id: string) => {
-        try {
-            // Eliminar del backend primero
-            await deleteNotebookSource(parseInt(id));
-            
-            // Si fue exitoso, eliminar del estado local
-            setSources(prev => {
-                const source = prev.find(s => id === s.id);
-                if (source?.previewUrl?.startsWith('blob:')) {
-                    URL.revokeObjectURL(source.previewUrl);
-                }
-                return prev.filter(s => s.id !== id);
-            });
-        } catch (error) {
-            console.error('Error eliminando fuente:', error);
-            alert('Error al eliminar la fuente. Por favor intente de nuevo.');
-        }
+    const handleDeleteSource = async (_id: string) => {
+        console.warn('[Notebook] Source management should be done through ProductView');
     };
 
     const handleSendMessage = async (content: string) => {
@@ -392,15 +260,8 @@ const App: React.FC<NotebookProps> = ({ isPublicView = false }) => {
                         </button>
                         <div className="flex items-center gap-2.5 px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl text-white shadow-lg shadow-indigo-200">
                             <Layout size={16} />
-                            <span className="text-sm font-bold tracking-wide">RAG MULTIMODAL</span>
+                            <span className="text-sm font-bold tracking-wide">NOTEBOOK</span>
                         </div>
-                        <button
-                            onClick={() => navigate(`/dashboard/notebook/${id}/modules`)}
-                            className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-gray-600 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-all"
-                        >
-                            <Blocks size={16} />
-                            <span>Módulos</span>
-                        </button>
                     </div>
                     <button
                         onClick={() => setSidebarOpen(!sidebarOpen)}
@@ -416,7 +277,7 @@ const App: React.FC<NotebookProps> = ({ isPublicView = false }) => {
             </header>
 
             <div className="flex-1 flex overflow-hidden w-full">
-                {/* Sidebar de fuentes */}
+                {/* Sidebar - Basic notebook info (sources managed in ProductView if RAG enabled) */}
                 <aside className={`
                     ${sidebarOpen ? 'w-80 md:w-96 translate-x-0' : 'w-0 -translate-x-full opacity-0 pointer-events-none'} 
                     transition-all duration-300 ease-in-out flex-shrink-0 z-30 border-r border-gray-200/50

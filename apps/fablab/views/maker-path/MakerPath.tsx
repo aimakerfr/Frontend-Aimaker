@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Route, Search, Plus, Trash2, Eye, CheckCircle2, Clock, FileText } from 'lucide-react';
+import { Route, Search, Plus, Trash2, Eye, CheckCircle2, Clock, FileText, Lock, Globe } from 'lucide-react';
 import {
   getMakerPaths,
   createMakerPath,
@@ -96,10 +96,11 @@ const MakerPathView: React.FC = () => {
         data
       });
 
-      // Build the edition URL
+      // Build the edition URL with full domain
+      const baseUrl = import.meta.env.VITE_APP_URL || window.location.origin;
       const editionUrl = type === 'blank' 
-        ? `/dashboard/projectflow?id=${newPath.id}`
-        : `/dashboard/projectflow?maker_path_template=${type}&id=${newPath.id}`;
+        ? `${baseUrl}/dashboard/projectflow?id=${newPath.id}`
+        : `${baseUrl}/dashboard/projectflow?maker_path_template=${type}&id=${newPath.id}`;
 
       // Update the maker path with the edition URL
       await updateMakerPath(newPath.id, { editionUrl });
@@ -262,9 +263,10 @@ const handleRedirectToPlanner = (pathId: number) => {
           <div className="bg-gradient-to-r from-gray-50 to-blue-50/50 dark:from-gray-900 dark:to-blue-900/20 border-b border-gray-200 dark:border-gray-700">
             <div className="grid grid-cols-12 gap-4 px-6 py-4">
               <div className="col-span-1 text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider">{t.makerPathTranslations?.['text_21'] ?? 'Tipo'}</div>
-              <div className="col-span-4 text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider">{t.makerPathTranslations?.['text_22'] ?? 'Título y Descripción'}</div>
+              <div className="col-span-3 text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider">{t.makerPathTranslations?.['text_22'] ?? 'Título y Descripción'}</div>
               <div className="col-span-2 text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider">{t.makerPathTranslations?.['text_23'] ?? 'Estado'}</div>
               <div className="col-span-2 text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider">{t.makerPathTranslations?.['text_24'] ?? 'Fecha de Creación'}</div>
+              <div className="col-span-1 text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider text-center">Producto</div>
               <div className="col-span-3 text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider">{t.makerPathTranslations?.['text_25'] ?? 'Acciones'}</div>
             </div>
           </div>
@@ -297,7 +299,7 @@ const handleRedirectToPlanner = (pathId: number) => {
                   </div>
 
                   {/* Title & Description */}
-                  <div className="col-span-4">
+                  <div className="col-span-3">
                     <h3 className="font-bold text-gray-900 dark:text-white text-lg mb-1">
                       {path.title}
                     </h3>
@@ -321,6 +323,32 @@ const handleRedirectToPlanner = (pathId: number) => {
                     <p className="text-sm text-gray-600 dark:text-gray-400">
                       {new Date(path.createdAt).toLocaleDateString()}
                     </p>
+                  </div>
+
+                  {/* Product Status */}
+                  <div className="col-span-1 flex justify-center">
+                    {(path as any).productLink && (path as any).productStatus === 'public' ? (
+                      <a
+                        href={(path as any).productLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center justify-center p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                        title="Producto Público - Click para ver"
+                      >
+                        <Globe size={20} className="text-green-500" />
+                      </a>
+                    ) : (path as any).productLink ? (
+                      <div
+                        className="flex items-center justify-center p-2"
+                        title="Producto Privado - No disponible públicamente"
+                      >
+                        <Lock size={20} className="text-gray-400" />
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-center p-2" title="Sin producto">
+                        <Lock size={20} className="text-gray-300 dark:text-gray-600" />
+                      </div>
+                    )}
                   </div>
 
                   {/* Actions */}

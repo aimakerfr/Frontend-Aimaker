@@ -378,6 +378,10 @@ export interface Translations {
       sourcesLoaded: string;
       emptyTitle: string;
       emptySubtitle: string;
+      artifacts: {
+        analyzeSources: string;
+        summarizeIdeas: string;
+      };
     };
     imageGenerator: {
       title: string;

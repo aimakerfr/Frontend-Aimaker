@@ -907,6 +907,10 @@ export const es: Translations = {
         startSub: 'Analiza fuentes y obtén respuestas precisas en segundos.',
         synthesizing: 'SINTETIZANDO...',
         placeholder: 'Haz una pregunta estratégica sobre las fuentes...',
+        artifacts: {
+          analyzeSources: 'Analiza las fuentes',
+          summarizeIdeas: 'Resume las ideas principales',
+        },
       },
       publishModal: {
         makePrivate: '¿Hacer privado?',
@@ -1002,6 +1006,10 @@ export const es: Translations = {
         sourcesLoaded: 'fuentes cargadas',
         emptyTitle: 'Inicia una conversación',
         emptySubtitle: 'Haz preguntas sobre las fuentes de conocimiento seleccionadas',
+        artifacts: {
+          analyzeSources: 'Analiza las fuentes',
+          summarizeIdeas: 'Resume las ideas principales',
+        },
       },
       imageGenerator: {
         title: 'Generador de Imágenes con IA',
@@ -1125,6 +1133,20 @@ export const es: Translations = {
     'text_19': 'plantillas disponibles',
     'text_20': 'Inicio',
     'text_21': 'Cancelar',
+    'text_22': 'Nuevo Proyecto',
+    'text_23': 'Cuéntanos sobre tu proyecto',
+    'text_24': 'Título',
+    'text_25': 'Ingresa el título del proyecto',
+    'text_26': 'Intención',
+    'text_27': '¿Qué deseas crear?',
+    'text_28': 'Ej.: Un sitio web con header, body y footer | Generar una imagen de un atardecer | Traducir mis archivos JSX',
+    'text_29': 'Continuar',
+    'text_30': 'Maker Paths Sugeridos',
+    'text_31': 'Según tu intención, te recomendamos:',
+    'text_32': 'No se encontró plantilla coincidente',
+    'text_33': 'Tu intención no coincide con ninguno de nuestros Maker Paths. Puedes empezar desde cero:',
+    'text_34': 'Seleccionar esta ruta',
+    'text_35': 'Plantilla seleccionada',
   },
 
   // Auto-generated translations from Translation Maker

@@ -11,6 +11,7 @@ import { getRagMultimodalSources, postRagMultimodalSource, deleteRagMultimodalSo
 import { copyObjectToRag } from '@core/objects';
 import { getTool, updateTool } from '@core/creation-tools/creation-tools.service.ts';
 import { markToolAsSaved } from '@core/creation-tools/unsavedTools.service';
+import { getMakerPaths } from '@core/maker-path';
 import { useLanguage } from '../../language/useLanguage';
 import HeaderBar from './components/HeaderBar.tsx';
 import PublishModal from './components/PublishModal.tsx';
@@ -83,6 +84,32 @@ const RagMultimodal: React.FC<RagMultimodalProps> = ({ isPublicView = false }) =
             loadRagMultimodalData(parseInt(id), null);
         }
     }, [id]);
+
+    // Redirect to ProductView if this RAG is already part of a maker path (product)
+    useEffect(() => {
+        const checkForMakerPath = async () => {
+            if (!id || id === 'new' || isNaN(parseInt(id))) return;
+            
+            try {
+                const makerPaths = await getMakerPaths();
+                const ragId = parseInt(id);
+                
+                // Find if any maker path has this RAG associated
+                const makerPath = makerPaths.find((mp: any) => 
+                    mp.rag && mp.rag.id === ragId
+                );
+                
+                if (makerPath) {
+                    console.log('[RagMultimodal] Found associated maker path, redirecting to ProductView:', makerPath.id);
+                    navigate(`/product/notebook/${makerPath.id}`, { replace: true });
+                }
+            } catch (error) {
+                console.error('[RagMultimodal] Error checking for maker path:', error);
+            }
+        };
+        
+        checkForMakerPath();
+    }, [id, navigate]);
 
     const mapApiSourceType = (type: string): SourceType => {
         switch (type?.toUpperCase()) {

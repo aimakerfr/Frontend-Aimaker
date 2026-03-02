@@ -3,7 +3,6 @@ import { Routes, Route, useNavigate, useLocation, useParams } from 'react-router
 import { useAuth } from '@core/auth/useAuth';
 import ProjectFlow from './views/projectflow/ProjectFlow';
 import Notebook from '@apps/fablab/views/notebook/Notebook';
-import NotebookModulesView from '@apps/fablab/views/notebook/components/NotebookModulesView';
 import RagMultimodal from '@apps/fablab/views/rag_multimodal/RagMultimodal';
 import PerplexityIndex from './views/server-tools/PerplexityIndex';
 import PromptOptimize from './views/server-tools/PromptOptimize';
@@ -12,7 +11,7 @@ import Administration from './views/server-tools/Administration';
 import PromptView from './views/prompt/PromptView';
 import AssistantView from './views/assistant/AssistantView';
 import { ProjectView } from './views/project';
-import PublicNotebook from './views/public/PublicNotebook';
+import ProductView from './views/product/ProductView';
 import PublicPromptDetails from './views/public/prompt/PublicPromptDetails';
 import PublicAssistantDetails from './views/public/assistant/PublicAssistantDetails';
 import PublicProjectDetails from './views/public/project/PublicProjectDetails';
@@ -116,21 +115,20 @@ const App: React.FC = () => {
   return (
     <>
       <Routes>
+        {/* Rutas públicas - Sin autenticación requerida (PRIMERO para evitar conflictos) */}
+        <Route path="/product/notebook/:id" element={<ProductView />} />
+        <Route path="/public/prompt/:id" element={<PublicPromptWrapper />} />
+        <Route path="/public/assistant/:id" element={<PublicAssistantWrapper />} />
+        <Route path="/public/project/:id" element={<PublicProjectWrapper />} />
+        
         {/* Rutas privadas sin Sidebar (vista completa) */}
         <Route path="/notebook/:id" element={<Notebook isPublicView={false} />} />
-        <Route path="/notebook/:id/modules" element={<NotebookModulesView />} />
         <Route path="/rag-multimodal/:id" element={<RagMultimodal />} />
         <Route path="/prompt/:id" element={<PromptView />} />
         <Route path="/assistant/:id" element={<AssistantView />} />
         <Route path="/project/:id" element={<ProjectView />} />
         {/* ProjectFlow routes with query parameters */}
         <Route path="/projectflow" element={<ProjectFlow />} />
-        
-        {/* Rutas públicas - Sin autenticación requerida (vistas de configuración) */}
-        <Route path="/public/notebook/:id" element={<PublicNotebook />} />
-        <Route path="/public/prompt/:id" element={<PublicPromptWrapper />} />
-        <Route path="/public/assistant/:id" element={<PublicAssistantWrapper />} />
-        <Route path="/public/project/:id" element={<PublicProjectWrapper />} />
         
         {/* Server Tools Routes - Sin Sidebar */}
         <Route path="/perplexity-index" element={<PerplexityIndex />} />

@@ -2,7 +2,7 @@ import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Workflow } from 'lucide-react';
 import { useLanguage } from '../../language/useLanguage';
-import { getMakerPath } from '@core/maker-path';
+import { getMakerPath, updateMakerPath } from '@core/maker-path';
 import { getMakerPathStepProgress, saveMakerPathStepProgress } from '@core/maker-path-step-progress';
 import type { WorkflowStep, AvailablePath, WorkflowJSON } from './types';
 import ConfigurationPanel from './components/ConfigurationPanel';
@@ -71,6 +71,8 @@ const ProjectFlow: React.FC = () => {
   const [selectedStepId, setSelectedStepId] = useState<number | null>(null);
   // const [promptContents, setPromptContents] = useState<Record<number, string>>({});
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
+  const [productLink, setProductLink] = useState<string | null>(null);
+  const [productStatus, setProductStatus] = useState<string>('private');
 
   // ── Effects ───────────────────────────────────────────
 
@@ -81,7 +83,9 @@ const ProjectFlow: React.FC = () => {
         try {
           const project = await getMakerPath(makerPathId);
           console.log('ProjectFlow: Fetched project data:', project);
-          if (project && project.title) {
+           setProductLink((project as any).productLink || null);
+            setProductStatus((project as any).productStatus || 'private');
+             (project && project.title); {
             setWorkflowTitle(project.title);
             if (!project.data) {
                 console.warn('Project has no data field');
@@ -313,6 +317,41 @@ const ProjectFlow: React.FC = () => {
     [steps, makerPathId]
   );
 
+  // ── Product Management Handlers ────────────────────────
+  
+  const handleToggleProductStatus = useCallback(async () => {
+    if (!makerPathId) return;
+    
+    const newStatus = productStatus === 'public' ? 'private' : 'public';
+    try {
+      await updateMakerPath(makerPathId, { productStatus: newStatus });
+      setProductStatus(newStatus);
+    } catch (error) {
+      console.error('Error updating product status:', error);
+      alert('Error al cambiar el estado del producto');
+    }
+  }, [makerPathId, productStatus]);
+
+  const handleGenerateProductLink = useCallback(async () => {
+    if (!makerPathId) return;
+    
+    // Use environment variable for production URL, fallback to current origin for development
+    const appUrl = import.meta.env.VITE_APP_URL || window.location.origin;
+    const newLink = `${appUrl}/product/notebook/${makerPathId}`;
+    try {
+      await updateMakerPath(makerPathId, { 
+        productLink: newLink,
+        productStatus: 'public' // Auto set to public when generating link
+      });
+      setProductLink(newLink);
+      setProductStatus('public');
+      alert('✅ Producto publicado exitosamente. Ahora puedes compartir el enlace.');
+    } catch (error) {
+      console.error('Error generating product link:', error);
+      alert('Error al generar el enlace del producto');
+    }
+  }, [makerPathId]);
+
   // ── Render ─────────────────────────────────────────────
   return (
     <div className="h-screen flex flex-col bg-gray-50 dark:bg-gray-900 overflow-hidden">
@@ -361,6 +400,12 @@ const ProjectFlow: React.FC = () => {
           completedStepIds={completedSteps}
           selectableStepIds={selectableStepIds}
           onSelectStep={handleSelectStep}
+          makerPathId={makerPathId}
+          productLink={productLink}
+          productStatus={productStatus}
+          onToggleProductStatus={handleToggleProductStatus}
+          onGenerateProductLink={handleGenerateProductLink}
+          workflowType={template}
         />
 
         {/* Right – Workflow Canvas */}

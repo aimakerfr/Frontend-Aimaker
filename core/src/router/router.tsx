@@ -14,6 +14,7 @@ import { useAuth } from '../auth/useAuth';
 import AuthApp from '@apps/auth/AuthApp';
 import FabLabApp from '@apps/fablab/FabLabApp';
 import Notebook from '@apps/fablab/views/notebook/Notebook';
+import ProductView from '@apps/fablab/views/product/ProductView';
 import TemplateSelector from '@apps/frontend_template_visualizer/components/TemplateSelector';
 import PublicPromptDetails from '@apps/fablab/views/public/prompt/PublicPromptDetails';
 import PublicAssistantDetails from '@apps/fablab/views/public/assistant/PublicAssistantDetails';
@@ -149,8 +150,8 @@ export function AppRouter() {
               <Route key={route.path} path={route.path} element={route.element} />
           ))}
 
-        {/* Public Notebook - No auth required, read-only */}
-        <Route path="/public/notebook/:id" element={<Notebook isPublicView={true} />} />
+        {/* Public Notebook (Product View) - No auth required, read-only */}
+        <Route path="/product/notebook/:id" element={<ProductView />} />
         
         {/* Public Prompt - No auth required, read-only (config view) */}
         <Route path="/public/prompt/:id" element={<PublicPromptWrapper />} />

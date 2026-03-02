@@ -907,6 +907,10 @@ export const en: Translations = {
         startSub: 'Analyze sources and get accurate answers in seconds.',
         synthesizing: 'SYNTHESIZING...',
         placeholder: 'Ask a strategic question about the sources...',
+        artifacts: {
+          analyzeSources: 'Analyze the sources',
+          summarizeIdeas: 'Summarize the key ideas',
+        },
       },
       publishModal: {
         makePrivate: 'Make private?',
@@ -1002,6 +1006,10 @@ export const en: Translations = {
         sourcesLoaded: 'sources loaded',
         emptyTitle: 'Start a conversation',
         emptySubtitle: 'Ask questions about the selected knowledge sources',
+        artifacts: {
+          analyzeSources: 'Analyze the sources',
+          summarizeIdeas: 'Summarize the key ideas',
+        },
       },
       imageGenerator: {
         title: 'AI Image Generator',
@@ -1125,6 +1133,20 @@ export const en: Translations = {
     'text_19': 'available templates',
     'text_20': 'Home',
     'text_21': 'Cancel',
+    'text_22': 'New Project',
+    'text_23': 'Tell us about your project',
+    'text_24': 'Title',
+    'text_25': 'Enter project title',
+    'text_26': 'Intention',
+    'text_27': 'What do you want to create?',
+    'text_28': 'E.g.: A website with header, body and footer | Generate an image of a sunset | Translate my JSX files',
+    'text_29': 'Continue',
+    'text_30': 'Suggested Maker Paths',
+    'text_31': 'Based on your intention, we recommend:',
+    'text_32': 'No matching template found',
+    'text_33': 'Your intention doesn\'t match any of our Maker Paths. You can start from scratch:',
+    'text_34': 'Select this path',
+    'text_35': 'Template selected',
   },
 
   // Auto-generated translations from Translation Maker
