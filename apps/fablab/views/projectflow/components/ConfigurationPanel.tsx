@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link as LinkIcon, AlertCircle, Settings as SettingsIcon, X as CloseIcon } from 'lucide-react';
 import type { AvailablePath } from '../types';
+import ApplicationDeploymentSection from './ApplicationDeploymentSection';
 
 interface ConfigurationPanelProps {
   jsonInput: string;
@@ -11,6 +12,7 @@ interface ConfigurationPanelProps {
   selectedPathId: string | null;
   onSelectPath: (id: string) => void;
   t: any;
+  makerPathId?: number | null;
 }
 
 const ConfigurationPanel: React.FC<ConfigurationPanelProps> = ({
@@ -22,6 +24,7 @@ const ConfigurationPanel: React.FC<ConfigurationPanelProps> = ({
   selectedPathId,
   onSelectPath,
   t,
+  makerPathId,
 }) => {
   const [isJsonModalOpen, setIsJsonModalOpen] = useState(false);
 
@@ -35,7 +38,7 @@ const ConfigurationPanel: React.FC<ConfigurationPanelProps> = ({
       </div>
 
       {/* Content area */}
-      <div className="flex-1 flex flex-col overflow-y-auto p-4 space-y-3">
+      <div className="flex-1 flex flex-col overflow-y-auto p-4 space-y-3 pb-16">
         <div className="space-y-3">
           {availablePaths.length > 0 ? (
             <div className="space-y-3">
@@ -80,6 +83,11 @@ const ConfigurationPanel: React.FC<ConfigurationPanelProps> = ({
               <p className="text-xs mt-1 text-gray-400">{t.projectFlow.noPathsAvailable}</p>
             </div>
           )}
+        </div>
+
+        {/* Application Deployment (atomic) pinned to bottom */}
+        <div className="mt-auto">
+          <ApplicationDeploymentSection makerPathId={makerPathId} t={t} />
         </div>
       </div>
 

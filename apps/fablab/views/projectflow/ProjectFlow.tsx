@@ -350,6 +350,7 @@ const ProjectFlow: React.FC = () => {
             selectedPathId={selectedPathId}
             onSelectPath={handleSelectPath}
             t={t}
+            makerPathId={makerPathId}
           />
         )}
 
