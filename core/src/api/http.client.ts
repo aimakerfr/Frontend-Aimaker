@@ -84,14 +84,20 @@ class HttpClient {
   /**
    * Build headers for the request
    */
+  private isFormData(body: unknown): boolean {
+    return body instanceof FormData || (typeof body === 'object' && body !== null && body.constructor?.name === 'FormData');
+  }
+
   private buildHeaders(options: RequestOptions, method: string = 'GET'): HeadersInit {
     const headers: Record<string, string> = {
       Accept: 'application/json',
       ...options.headers,
     };
 
-    // Only set Content-Type if not already set and body is NOT FormData
-    if (!headers['Content-Type'] && !(options.body instanceof FormData)) {
+    // For FormData, remove Content-Type so the browser sets multipart/form-data with boundary
+    if (this.isFormData(options.body)) {
+      delete headers['Content-Type'];
+    } else if (!headers['Content-Type']) {
       // Symfony requires application/merge-patch+json for PATCH requests
       headers['Content-Type'] = method === 'PATCH' ? 'application/merge-patch+json' : 'application/json';
     }
@@ -227,8 +233,8 @@ class HttpClient {
 
     // Add body for non-GET requests
     if (options.body && method !== 'GET') {
-      fetchOptions.body = options.body instanceof FormData 
-        ? options.body 
+      fetchOptions.body = this.isFormData(options.body)
+        ? options.body as FormData
         : JSON.stringify(options.body);
     }
 

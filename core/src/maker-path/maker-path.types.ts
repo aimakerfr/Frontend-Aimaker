@@ -2,8 +2,17 @@
  * Maker Path Types
  */
 
-export type MakerPathType = 'architect_ai' | 'module_connector' | 'custom' | 'rag_chat_maker' | 'landing_page_maker' | 'image_generator_rag' | 'translation_maker';
-export type MakerPathStatus = 'draft' | 'in_progress' | 'completed';
+export type MakerPathType =
+  | 'architect_ai'
+  | 'module_connector'
+  | 'custom'
+  | 'rag_chat_maker'
+  | 'landing_page_maker'
+  | 'image_generator_rag'
+  | 'translation_maker'
+  | 'assembled';
+
+export type MakerPathStatus = 'draft' | 'in_progress' | 'completed' | 'configured' | 'published';
 
 export interface MakerPath {
   id: number;
@@ -12,6 +21,8 @@ export interface MakerPath {
   type: MakerPathType;
   status: MakerPathStatus;
   data: string | null;
+  templateSlug?: string | null;
+  customApiUrl?: string | null;
   projectType: string | null;
   projectName: string | null;
   projectMission: string | null;
@@ -38,6 +49,8 @@ export interface CreateMakerPathRequest {
   type?: MakerPathType;
   status?: MakerPathStatus;
   data?: string;
+  templateSlug?: string;
+  customApiUrl?: string;
   projectType?: string;
   projectName?: string;
   projectMission?: string;
@@ -52,6 +65,8 @@ export interface UpdateMakerPathRequest {
   type?: MakerPathType;
   status?: MakerPathStatus;
   data?: string;
+  templateSlug?: string;
+  customApiUrl?: string;
   productLink?: string;
   productStatus?: 'public' | 'private';
   editionUrl?: string;
