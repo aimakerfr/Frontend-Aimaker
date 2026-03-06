@@ -16,6 +16,7 @@ import type { MakerPath, MakerPathStatus } from '@core/maker-path';
 import { RouteTypeModal } from './components';
 import { useLanguage } from '../../language/useLanguage';
 import { getInitialMakerPaths } from '../projectflow/demoWorkflows';
+import { saveIdentityAssembler } from '@core/notebook-setup/notebook-setup.service';
 
 type FilterType = 'all' | 'architect_ai' | 'module_connector' | 'custom';
 type StatusFilter = 'all' | 'draft' | 'in_progress' | 'completed';
@@ -63,12 +64,46 @@ const MakerPathView: React.FC = () => {
   const handleCreate = async (
     type: 'blank' | 'landing_page_maker' | 'rag_chat_maker' | 'image_generator_rag' | 'translation_maker' = 'blank',
     customTitle?: string,
-    customDescription?: string
+    customDescription?: string,
+    options?: {
+      templateSlug?: string;
+      customApiUrl?: string;
+      systemPrompt?: string | null;
+    }
   ) => {
     try {
       let title = customTitle || t.makerPathTranslations?.['text_2'] || 'Proyecto sin título';
       let description = customDescription || t.makerPathTranslations?.['text_4'] || 'Creado desde el dashboard';
       let data = '';
+
+      if ((type as any) === 'assembled') {
+        // Minimal data to satisfy backend expectations
+        data = JSON.stringify({ assembled_project: { stage_name: 'assembled_project', description, output_type: 'OUTPUT', steps: [] } });
+
+        const newPath = await createMakerPath({
+          title,
+          description,
+          type: 'assembled' as any,
+          status: 'draft' as any,
+          data,
+          templateSlug: options?.templateSlug,
+          customApiUrl: options?.customApiUrl,
+        } as any);
+
+        if (options?.systemPrompt !== undefined) {
+          await saveIdentityAssembler({
+            makerPathId: newPath.id,
+            systemPrompt: options.systemPrompt,
+            modelName: 'gemini',
+            provider: 'google',
+            settings: { language: 'es' },
+          });
+        }
+
+        setShowRouteTypeModal(false);
+        navigate(`/dashboard/projectflow?id=${newPath.id}`);
+        return;
+      }
 
       if (type !== 'blank') {
         const paths = getInitialMakerPaths(t);
@@ -106,7 +141,11 @@ const MakerPathView: React.FC = () => {
       await updateMakerPath(newPath.id, { editionUrl });
 
       setShowRouteTypeModal(false);
-      navigate(editionUrl);
+      // navigate() expects a relative path, not a full URL
+      const relativePath = type === 'blank'
+        ? `/dashboard/projectflow?id=${newPath.id}`
+        : `/dashboard/projectflow?maker_path_template=${type}&id=${newPath.id}`;
+      navigate(relativePath);
 
   } catch (error) {
     console.error(
@@ -175,10 +214,12 @@ const handleRedirectToPlanner = (pathId: number) => {
   };
 
   const getStatusLabel = (status: MakerPathStatus) => {
-    const labels = {
+    const labels: Record<string, string> = {
       draft: t.makerPathTranslations?.['text_9'] ?? 'Borrador',
       in_progress: t.makerPathTranslations?.['text_10'] ?? 'En Progreso',
-      completed: t.makerPathTranslations?.['text_11'] ?? 'Completado'
+      completed: t.makerPathTranslations?.['text_11'] ?? 'Completado',
+      configured: 'Configurado',
+      published: 'Publicado',
     };
     return labels[status] || status;
   };
@@ -196,8 +237,8 @@ const handleRedirectToPlanner = (pathId: number) => {
       <RouteTypeModal
         isOpen={showRouteTypeModal}
         onClose={() => setShowRouteTypeModal(false)}
-        onSelect={(type, title, description) =>
-          handleCreate(type as any, title, description)
+        onSelect={(type, title, description, options) =>
+          handleCreate(type as any, title, description, options)
         }
       />
 

@@ -11,6 +11,7 @@ import PathCreationModules from '../path-creation-modules/App';
 import ExternalAccess from '../external-access/ExternalAccess';
 import AIChat from '../../components/AIChat';
 import ObjectsLibrary from '../objects/ObjectsLibrary';
+import AssemblerWizard from '../assembler/AssemblerWizard';
 import { UserProfile } from '../../types';
 
 type Props = {
@@ -68,6 +69,7 @@ const FabLabLayout: React.FC<Props> = ({
               {/* Rutas específicas para cada sección */}
               <Route path="/" element={<ProfileSection user={user} />} />
               <Route path="/library" element={<Library />} />
+              <Route path="/assembler/:id" element={<AssemblerWizard />} />
               {/* Home routes */}
               <Route path="/objects-library" element={<ObjectsLibrary />} />
 
