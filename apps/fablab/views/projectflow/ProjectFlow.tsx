@@ -3,7 +3,9 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Workflow } from 'lucide-react';
 import { useLanguage } from '../../language/useLanguage';
 import { getMakerPath, updateMakerPath } from '@core/maker-path';
+import { saveIdentityAssembler } from '@core/notebook-setup';
 import { getMakerPathStepProgress, saveMakerPathStepProgress } from '@core/maker-path-step-progress';
+import { downloadAssembledProduct } from '@core/assembler/assembler.service';
 import type { WorkflowStep, AvailablePath, WorkflowJSON } from './types';
 import ConfigurationPanel from './components/ConfigurationPanel';
 import WorkflowCanvas from './components/WorkflowCanvas';
@@ -94,6 +96,7 @@ const ProjectFlow: React.FC = () => {
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
   const [productLink, setProductLink] = useState<string | null>(null);
   const [productStatus, setProductStatus] = useState<string>('private');
+  const [makerPathType, setMakerPathType] = useState<string | null>(null);
 
   const [isBuilderOpen, setIsBuilderOpen] = useState(false);
   const [builderWorkflowId, setBuilderWorkflowId] = useState<string | null>(null);
@@ -107,40 +110,43 @@ const ProjectFlow: React.FC = () => {
         try {
           const project = await getMakerPath(makerPathId);
           console.log('ProjectFlow: Fetched project data:', project);
-           setProductLink((project as any).productLink || null);
-            setProductStatus((project as any).productStatus || 'private');
-             (project && project.title); {
+          setProductLink((project as any).productLink || null);
+          setProductStatus((project as any).productStatus || 'private');
+          setMakerPathType((project as any).type || null);
+
+          if (project && project.title) {
             setWorkflowTitle(project.title);
-            if (!project.data) {
-                console.warn('Project has no data field');
-                return;
-              }
+          }
 
-            let dataStr =
-              typeof project.data === 'string'
-                ? project.data
-                : JSON.stringify(project.data);
+          if (!project.data) {
+            console.warn('Project has no data field');
+            return;
+          }
 
-            setJsonInput(dataStr);
-            let parsed: WorkflowJSON;
+          let dataStr =
+            typeof project.data === 'string'
+              ? project.data
+              : JSON.stringify(project.data);
 
-            try {
-                parsed = JSON.parse(dataStr);
-            } catch (err) {
-              console.error('Invalid JSON in project.data');
-              return;
-            }
-            if (!parsed || typeof parsed !== 'object') {
-                console.warn('Parsed data is not valid');
-                return;
-            }
-            const workflowKey = Object.keys(parsed)[0];
-            if (workflowKey) {
-              const workflow = parsed[workflowKey];
-              setSteps(workflow.steps || []);
-              setOutputType(workflow.output_type || '');
-              setStageName(workflow.stage_name || workflowKey);
-            }
+          setJsonInput(dataStr);
+          let parsed: WorkflowJSON;
+
+          try {
+            parsed = JSON.parse(dataStr);
+          } catch (err) {
+            console.error('Invalid JSON in project.data');
+            return;
+          }
+          if (!parsed || typeof parsed !== 'object') {
+            console.warn('Parsed data is not valid');
+            return;
+          }
+          const workflowKey = Object.keys(parsed)[0];
+          if (workflowKey) {
+            const workflow = parsed[workflowKey];
+            setSteps(workflow.steps || []);
+            setOutputType(workflow.output_type || '');
+            setStageName(workflow.stage_name || workflowKey);
           }
 
           // Load completed steps from database
@@ -162,6 +168,23 @@ const ProjectFlow: React.FC = () => {
         }
       };
       loadProject();
+    }
+  }, [makerPathId]);
+
+  const handleDownloadAssembledProduct = useCallback(async () => {
+    if (!makerPathId) return;
+    try {
+      const blob = await downloadAssembledProduct(makerPathId);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `product-${makerPathId}.html`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      alert('Error descargando');
     }
   }, [makerPathId]);
 
@@ -408,9 +431,34 @@ const ProjectFlow: React.FC = () => {
         productLink: newLink,
         productStatus: 'public' // Auto set to public when generating link
       });
+
+      // Persist IdentityAssembler with default values (returns publicToken)
+      let externalUrl = '';
+      try {
+        const identityResult = await saveIdentityAssembler({
+          makerPathId,
+          systemPrompt: 'Eres un asistente basado en las fuentes RAG proporcionadas.',
+          modelName: 'gemini',
+          provider: 'google',
+          settings: { language: 'es', publishedAt: new Date().toISOString() },
+        });
+        console.log('ProjectFlow: RagChatIdentity saved for makerPathId:', makerPathId);
+        if (identityResult?.publicToken) {
+          const externalAppUrl = import.meta.env.VITE_EXTERNAL_NOTEBOOK_URL || 'http://localhost:5173';
+          externalUrl = `${externalAppUrl}/${identityResult.publicToken}`;
+          console.log('ProjectFlow: External notebook URL:', externalUrl);
+        }
+      } catch (identityError) {
+        console.error('Error saving RagChatIdentity:', identityError);
+      }
+
       setProductLink(newLink);
       setProductStatus('public');
-      alert('✅ Producto publicado exitosamente. Ahora puedes compartir el enlace.');
+      
+      const msg = externalUrl
+        ? `Producto publicado exitosamente.\n\nEnlace interno:\n${newLink}\n\nEnlace externo (notebook):\n${externalUrl}`
+        : `Producto publicado exitosamente.\n\nEnlace:\n${newLink}`;
+      alert(msg);
     } catch (error) {
       console.error('Error generating product link:', error);
       alert('Error al generar el enlace del producto');
@@ -476,7 +524,8 @@ const ProjectFlow: React.FC = () => {
           productStatus={productStatus}
           onToggleProductStatus={handleToggleProductStatus}
           onGenerateProductLink={handleGenerateProductLink}
-          workflowType={template}
+          onDownloadAssembledProduct={makerPathType === 'assembled' ? handleDownloadAssembledProduct : undefined}
+          workflowType={makerPathType || template}
         />
 
         {/* Right – Workflow Canvas */}
