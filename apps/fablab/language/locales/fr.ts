@@ -76,6 +76,28 @@ export const fr: Translations = {
       confirmDelete: 'Êtes-vous sûr de vouloir supprimer cet élément?',
       authorFallback: 'Utilisateur',
     },
+    products: {
+      title: 'Produits',
+      subtitle: 'Gérez vos instances de produits créées à partir de modèles.',
+      searchPlaceholder: 'Rechercher des produits...',
+      noResults: 'Aucun produit trouvé',
+      confirmDelete: 'Êtes-vous sûr de vouloir supprimer ce produit?',
+      filters: {
+        all: 'Tous',
+      },
+      tableHeaders: {
+        type: 'Type',
+        nameDescription: 'Nom et Description',
+        template: 'Modèle',
+        action: 'Action',
+        status: 'Statut',
+        createdAt: 'Créé',
+      },
+      buttons: {
+        view: 'VOIR',
+        delete: 'Supprimer',
+      },
+    },
     externalAccess: {
       title: 'Accès Externe',
       subtitle: 'Gérez vos liens externes et outils de codage.',

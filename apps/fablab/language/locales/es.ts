@@ -76,6 +76,28 @@ export const es: Translations = {
       confirmDelete: '¿Estás seguro de eliminar este elemento?',
       authorFallback: 'Usuario',
     },
+    products: {
+      title: 'Productos',
+      subtitle: 'Gestiona tus instancias de productos creadas desde plantillas.',
+      searchPlaceholder: 'Buscar productos...',
+      noResults: 'No se encontraron productos',
+      confirmDelete: '¿Estás seguro de eliminar este producto?',
+      filters: {
+        all: 'Todos',
+      },
+      tableHeaders: {
+        type: 'Tipo',
+        nameDescription: 'Nombre y Descripción',
+        template: 'Plantilla',
+        action: 'Acción',
+        status: 'Estado',
+        createdAt: 'Creado',
+      },
+      buttons: {
+        view: 'VER',
+        delete: 'Eliminar',
+      },
+    },
     externalAccess: {
       title: 'Acceso Externo',
       subtitle: 'Gestiona tus enlaces externos y herramientas de código.',
