@@ -350,16 +350,16 @@ const LibraryView: React.FC<LibraryViewProps> = ({
                               let urlType: string;
                               switch (item.type) {
                                 case 'note_books':
-                                  urlType = 'notebook';
+                                  urlType = 'product/notebook';
+                                  break;
+                                case 'rag_multimodal':
+                                  urlType = 'product/rag-multimodal';
                                   break;
                                 case 'prompt':
                                   urlType = 'prompt';
                                   break;
                                 case 'project':
                                   urlType = 'project';
-                                  break;
-                                case 'rag_multimodal':
-                                  urlType = 'rag-multimodal';
                                   break;
                                 default:
                                   urlType = item.type;

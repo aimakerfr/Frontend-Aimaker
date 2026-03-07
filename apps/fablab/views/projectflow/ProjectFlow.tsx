@@ -10,6 +10,7 @@ import WorkflowCanvas from './components/WorkflowCanvas';
 // import NodeConfigPanel from './components/NodeConfigPanel';
 import { getInitialMakerPaths } from './demoWorkflows';
 import Stepper from './components/Stepper';
+import ApiConfigView from '../api-config/ApiConfigView';
 
 /** Example workflows for the RAG Library / demo moved to a separate module */
 
@@ -18,7 +19,6 @@ const ProjectFlow: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [workflowTitle, setWorkflowTitle] = useState<string>('Proyecto desde Cero');
-  
 
   // Extract template and ID from query parameters
   const template = searchParams.get('maker_path_template') || undefined;
@@ -353,6 +353,21 @@ const ProjectFlow: React.FC = () => {
   }, [makerPathId]);
 
   // ── Render ─────────────────────────────────────────────
+  // Dev preview: ?view=ApiConfigView renders the module in isolation (hooks-safe)
+  if (searchParams.get('view') === 'ApiConfigView') {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-950 p-6">
+        <button
+          onClick={() => navigate(-1)}
+          className="mb-4 flex items-center gap-2 text-sm text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 transition-colors"
+        >
+          <ArrowLeft size={16} /> Volver
+        </button>
+        <ApiConfigView />
+      </div>
+    );
+  }
+
   return (
     <div className="h-screen flex flex-col bg-gray-50 dark:bg-gray-900 overflow-hidden">
       {/* Top bar */}

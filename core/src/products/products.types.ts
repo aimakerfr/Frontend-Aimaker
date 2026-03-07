@@ -1,0 +1,50 @@
+/**
+ * Product Types
+ */
+
+export type ProductType = 'architect_ai' | 'module_connector' | 'custom' | 'rag_chat_maker' | 'landing_page_maker' | 'image_generator_rag' | 'translation_maker';
+export type ProductStatus = 'active' | 'archived';
+
+export interface Product {
+  id: number;
+  title: string;
+  description: string;
+  data: string | null;
+  type: ProductType;
+  status: ProductStatus;
+  isPublic: boolean;
+  productLink: string | null;
+  createdAt: string;
+  updatedAt: string | null;
+  userId: number;
+  templateId: number | null;
+  template?: {
+    id: number;
+    title: string;
+    type: string;
+  } | null;
+  rag?: {
+    id: number;
+    cag: string;
+    tool: {
+      id: number;
+      title: string;
+    } | null;
+  } | null;
+}
+
+export interface ProductsParams {
+  type?: ProductType;
+}
+
+export interface ForkProductRequest {
+  makerPathId: number;
+}
+
+export interface UpdateProductRequest {
+  title?: string;
+  description?: string;
+  data?: string;
+  status?: ProductStatus;
+  isPublic?: boolean;
+}
