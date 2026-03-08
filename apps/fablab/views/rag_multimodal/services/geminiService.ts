@@ -156,8 +156,10 @@ export const generateSourceSummary = async (sources: Source[], lang: Language): 
 
 /**
  * Genera una respuesta de chat con contexto de fuentes
+ * @param systemInstruction Instrucción personalizada extraída de un JSON externo. Si se provee,
+ *                          reemplaza el system prompt interno del backend.
  */
-export const generateChatResponse = async (history: any[], sources: Source[], message: string, lang: Language): Promise<string> => {
+export const generateChatResponse = async (history: any[], sources: Source[], message: string, lang: Language, systemInstruction?: string): Promise<string> => {
   try {
     // Filtrar solo fuentes seleccionadas con contenido
     const validSources = sources
@@ -185,7 +187,8 @@ export const generateChatResponse = async (history: any[], sources: Source[], me
         history, 
         sources: validSources, 
         message, 
-        language: lang 
+        language: lang,
+        ...(systemInstruction ? { systemInstruction } : {})
       }
     );
     

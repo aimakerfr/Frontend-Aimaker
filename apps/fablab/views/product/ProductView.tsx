@@ -7,35 +7,20 @@ import UploadSourceModal from '../rag_multimodal/components/UploadSourceModal.ts
 import { Source, SourceType } from '../rag_multimodal/types';
 import { ChatMessage } from '../notebook/types.ts';
 import { generateChatResponse } from '../notebook/services/geminiService.ts';
-import { getMakerPath, updateMakerPath } from '@core/maker-path';
-import { getMakerPathStepProgress, saveMakerPathStepProgress } from '@core/maker-path-step-progress';
+import { getPublicProduct, updateProduct, type Product } from '@core/products';
+import { getProductStepProgress, updateProductStepProgress } from '@core/product-step-progress';
 import { getRagMultimodalSources, postRagMultimodalSource, deleteRagMultimodalSource, getRagMultimodalSourceContent } from '@core/rag_multimodal';
 import { useLanguage } from '../../language/useLanguage';
 
-// Step IDs for maker_path steps (matching the workflow configuration)
+// Step IDs for product steps (matching the workflow configuration)
 // const RAG_SELECTOR_STEP_ID = 1; // Sources selection (not used in ProductView)
 const RAG_CHAT_STEP_ID = 2;     // Chat conversation
-
-interface MakerPath {
-  id: number;
-  title: string;
-  description: string;
-  productLink?: string;
-  productStatus: 'public' | 'private';
-  rag?: {
-    id: number;
-    tool: {
-      id: number;
-      title: string;
-    };
-  };
-}
 
 const ProductView: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { t } = useLanguage();
-  const [makerPath, setMakerPath] = useState<MakerPath | null>(null);
+  const [product, setProduct] = useState<Product | null>(null);
   const [sources, setSources] = useState<Source[]>([]);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [chatLoading, setChatLoading] = useState(false);
@@ -124,8 +109,8 @@ const ProductView: React.FC = () => {
   };
 
   const handleAddSource = async (type: SourceType, content: string, title: string, url?: string, _previewUrl?: string, file?: File) => {
-    if (!makerPath?.rag?.id) {
-      console.error('[ProductView] No RAG associated with this maker path');
+    if (!product?.rag?.id) {
+      console.error('[ProductView] No RAG associated with this product');
       return;
     }
 
@@ -134,10 +119,10 @@ const ProductView: React.FC = () => {
       if (apiType === 'URL') apiType = 'WEBSITE';
       if (apiType === 'PDF') apiType = 'DOC';
 
-      await uploadSource(makerPath.rag.id, apiType, title, file, url, content);
+      await uploadSource(product.rag.id, apiType, title, file, url, content);
       
       // Reload all sources with content from database (ensures consistency)
-      await loadRagSources(makerPath.rag.id);
+      await loadRagSources(product.rag.id);
       console.log('[ProductView] Source added and reloaded');
     } catch (error) {
       console.error('[ProductView] Error adding source:', error);
@@ -146,13 +131,13 @@ const ProductView: React.FC = () => {
   };
 
   const handleDeleteSource = async (sourceId: string) => {
-    if (!makerPath?.rag?.id) return;
+    if (!product?.rag?.id) return;
     
     try {
       await deleteRagMultimodalSource(parseInt(sourceId));
       
       // Reload all sources from database (ensures consistency)
-      await loadRagSources(makerPath.rag.id);
+      await loadRagSources(product.rag.id);
       console.log('[ProductView] Source deleted and reloaded');
     } catch (error) {
       console.error('[ProductView] Error deleting source:', error);
@@ -160,11 +145,11 @@ const ProductView: React.FC = () => {
     }
   };
 
-  const saveChatHistory = async (makerPathId: number, messages: ChatMessage[]) => {
+  const saveChatHistory = async (productId: number, messages: ChatMessage[]) => {
     try {
       // Save with real-time update - use same format as RagChatStep
-      await saveMakerPathStepProgress({
-        makerPathId,
+      await updateProductStepProgress({
+        productId,
         stepId: RAG_CHAT_STEP_ID,
         status: 'success',
         resultText: {
@@ -179,10 +164,10 @@ const ProductView: React.FC = () => {
     }
   };
 
-  const loadChatHistory = async (makerPathId: number) => {
+  const loadChatHistory = async (productId: number) => {
     try {
-      console.log('[ProductView] Loading chat history for maker path:', makerPathId);
-      const progress = await getMakerPathStepProgress(makerPathId);
+      console.log('[ProductView] Loading chat history for product:', productId);
+      const progress = await getProductStepProgress(productId);
       
       // Load chat from step 2 (rag_chat step in maker_path flow)
       let chatStep = progress.find(p => p.stepId === RAG_CHAT_STEP_ID && p.status === 'success');
@@ -225,26 +210,24 @@ const ProductView: React.FC = () => {
     const loadProductData = async () => {
       try {
         setIsLoading(true);
-        console.log('[ProductView] Loading maker path for ID:', id);
-        const path = await getMakerPath(parseInt(id));
-        console.log('[ProductView] Maker path loaded:', path);
-        console.log('[ProductView] - Title:', path.title);
-        console.log('[ProductView] - Description:', path.description);
-        console.log('[ProductView] - Product Link:', (path as any).productLink);
-        console.log('[ProductView] - Product Status:', (path as any).productStatus);
-        console.log('[ProductView] - RAG:', (path as any).rag);
+        console.log('[ProductView] Loading product for ID:', id);
+        const productData = await getPublicProduct(parseInt(id));
+        console.log('[ProductView] Product loaded:', productData);
+        console.log('[ProductView] - Title:', productData.title);
+        console.log('[ProductView] - Description:', productData.description);
+        console.log('[ProductView] - RAG:', productData.rag);
         
-        setMakerPath(path as any); // Type assertion since API response includes rag
+        setProduct(productData);
 
-        // Load chat history
+        // Load chat history from product_step_progress
         await loadChatHistory(parseInt(id));
 
         // Load RAG sources if available
-        if ((path as any).rag?.id) {
-          console.log('[ProductView] RAG ID found:', (path as any).rag.id);
-          await loadRagSources((path as any).rag.id);
+        if (productData.rag?.id) {
+          console.log('[ProductView] RAG ID found:', productData.rag.id);
+          await loadRagSources(productData.rag.id);
         } else {
-          console.warn('[ProductView] No RAG associated with this maker path');
+          console.warn('[ProductView] No RAG associated with this product');
         }
       } catch (error) {
         console.error('[ProductView] Error loading product:', error);
@@ -281,7 +264,7 @@ const ProductView: React.FC = () => {
   };
 
   const handleSendMessage = async (message: string) => {
-    if (!message.trim() || chatLoading || !makerPath) return;
+    if (!message.trim() || chatLoading || !product) return;
 
     // Use sources with content (already loaded and selected)
     const selectedSources = sources.filter((s) => s.selected);
@@ -320,9 +303,9 @@ const ProductView: React.FC = () => {
       const finalMessages = [...updatedMessages, assistantMessage];
       setMessages(finalMessages);
       
-      // Save chat history to maker_path_step_progress (same format as RagChatStep - without IDs)
+      // Save chat history to product_step_progress (same format as RagChatStep - without IDs)
       const messagesToSave = finalMessages.map(({ role, content }) => ({ role, content }));
-      await saveChatHistory(makerPath.id, messagesToSave);
+      await saveChatHistory(product.id, messagesToSave);
     } catch (error) {
       console.error('[ProductView] Error generating response:', error);
       const errorMessage: ChatMessage = {
@@ -333,7 +316,7 @@ const ProductView: React.FC = () => {
       const finalMessages = [...updatedMessages, errorMessage];
       setMessages(finalMessages);
       const messagesToSave = finalMessages.map(({ role, content }) => ({ role, content }));
-      await saveChatHistory(makerPath.id, messagesToSave);
+      await saveChatHistory(product.id, messagesToSave);
     } finally {
       setChatLoading(false);
     }
@@ -346,11 +329,10 @@ const ProductView: React.FC = () => {
   };
 
   const handleCopyUrl = () => {
-    if (makerPath?.productLink) {
-      navigator.clipboard.writeText(makerPath.productLink);
-      setUrlCopied(true);
-      setTimeout(() => setUrlCopied(false), 2000);
-    }
+    const productUrl = window.location.origin + `/product/notebook/${product?.id}`;
+    navigator.clipboard.writeText(productUrl);
+    setUrlCopied(true);
+    setTimeout(() => setUrlCopied(false), 2000);
   };
 
   // Convert Source to RagSource for RagSourcePanel compatibility
@@ -375,32 +357,32 @@ const ProductView: React.FC = () => {
   };
 
   const handleTitleChange = (newTitle: string) => {
-    if (!makerPath) return;
+    if (!product) return;
     // Solo actualizar el estado local en onChange
-    setMakerPath({ ...makerPath, title: newTitle });
+    setProduct({ ...product, title: newTitle });
   };
 
   const handleTitleBlur = async () => {
-    if (!makerPath) return;
+    if (!product) return;
     try {
       // Guardar a la BD solo cuando pierde el foco
-      await updateMakerPath(makerPath.id, { title: makerPath.title });
+      await updateProduct(product.id, { title: product.title });
     } catch (error) {
       console.error('Error updating title:', error);
     }
   };
 
   const handleDescriptionChange = (newDescription: string) => {
-    if (!makerPath) return;
+    if (!product) return;
     // Solo actualizar el estado local en onChange
-    setMakerPath({ ...makerPath, description: newDescription });
+    setProduct({ ...product, description: newDescription });
   };
 
   const handleDescriptionBlur = async () => {
-    if (!makerPath) return;
+    if (!product) return;
     try {
       // Guardar a la BD solo cuando pierde el foco
-      await updateMakerPath(makerPath.id, { description: makerPath.description });
+      await updateProduct(product.id, { description: product.description });
     } catch (error) {
       console.error('Error updating description:', error);
     }
@@ -414,16 +396,16 @@ const ProductView: React.FC = () => {
     );
   }
 
-  if (!makerPath) {
+  if (!product) {
     return (
       <div className="h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
         <div className="text-center">
-          <p className="text-red-500 text-lg mb-4">Producto no encontrado</p>
+          <p className="text-red-500 text-lg mb-4">Producto no encontrado o no es público</p>
           <button
-            onClick={() => navigate('/dashboard')}
+            onClick={() => window.history.back()}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
           >
-            Volver al Dashboard
+            Volver
           </button>
         </div>
       </div>
@@ -454,17 +436,19 @@ const ProductView: React.FC = () => {
             <div className="flex-1">
               <input
                 type="text"
-                value={makerPath.title || ''}
+                value={product.title || ''}
                 onChange={(e) => handleTitleChange(e.target.value)}
                 onBlur={handleTitleBlur}
                 className="text-xl font-bold text-gray-900 dark:text-white bg-transparent border-none outline-none focus:ring-2 focus:ring-blue-500 rounded px-2 py-1 w-full"
                 placeholder="Título del producto"
+                disabled
               />
               <input
                 type="text"
-                value={makerPath.description || ''}
+                value={product.description || ''}
                 onChange={(e) => handleDescriptionChange(e.target.value)}
                 onBlur={handleDescriptionBlur}
+                disabled
                 className="text-sm text-gray-600 dark:text-gray-400 bg-transparent border-none outline-none focus:ring-2 focus:ring-blue-500 rounded px-2 py-1 w-full mt-1"
                 placeholder="Descripción del producto"
               />
@@ -483,18 +467,12 @@ const ProductView: React.FC = () => {
         </div>
 
         {/* Bottom Row - Product Link with Copy */}
-        {makerPath.productLink && (
-          <div className="px-6 pb-4">
-            <div className="flex items-center gap-2 max-w-3xl">
-              <div className="flex-1 flex items-center gap-2 px-4 py-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-                <a
-                  href={makerPath.productLink}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex-1 text-sm text-blue-600 dark:text-blue-400 hover:underline truncate"
-                >
-                  {makerPath.productLink}
-                </a>
+        <div className="px-6 pb-4">
+          <div className="flex items-center gap-2 max-w-3xl">
+            <div className="flex-1 flex items-center gap-2 px-4 py-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+              <span className="flex-1 text-sm text-blue-600 dark:text-blue-400 truncate">
+                {window.location.href}
+              </span>
                 <button
                   onClick={handleCopyUrl}
                   className="p-1.5 hover:bg-blue-100 dark:hover:bg-blue-900/40 rounded transition-colors flex-shrink-0"
@@ -509,7 +487,7 @@ const ProductView: React.FC = () => {
               </div>
             </div>
           </div>
-        )}
+        )
       </header>
 
       {/* Main Content */}

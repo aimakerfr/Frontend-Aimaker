@@ -76,6 +76,28 @@ export const en: Translations = {
       confirmDelete: 'Are you sure you want to delete this item?',
       authorFallback: 'User',
     },
+    products: {
+      title: 'Products',
+      subtitle: 'Manage your product instances created from templates.',
+      searchPlaceholder: 'Search products...',
+      noResults: 'No products found',
+      confirmDelete: 'Are you sure you want to delete this product?',
+      filters: {
+        all: 'All',
+      },
+      tableHeaders: {
+        type: 'Type',
+        nameDescription: 'Name & Description',
+        template: 'Template',
+        action: 'Action',
+        status: 'Status',
+        createdAt: 'Created',
+      },
+      buttons: {
+        view: 'VIEW',
+        delete: 'Delete',
+      },
+    },
     externalAccess: {
       title: 'External Access',
       subtitle: 'Manage your external links and coding tools.',

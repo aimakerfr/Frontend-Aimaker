@@ -4,12 +4,14 @@ import { ArrowLeft, Workflow } from 'lucide-react';
 import { useLanguage } from '../../language/useLanguage';
 import { getMakerPath, updateMakerPath } from '@core/maker-path';
 import { getMakerPathStepProgress, saveMakerPathStepProgress } from '@core/maker-path-step-progress';
+import { forkProduct, checkPublishedProduct } from '@core/products';
 import type { WorkflowStep, AvailablePath, WorkflowJSON } from './types';
 import ConfigurationPanel from './components/ConfigurationPanel';
 import WorkflowCanvas from './components/WorkflowCanvas';
 // import NodeConfigPanel from './components/NodeConfigPanel';
 import { getInitialMakerPaths } from './demoWorkflows';
 import Stepper from './components/Stepper';
+import ApiConfigView from '../api-config/ApiConfigView';
 
 /** Example workflows for the RAG Library / demo moved to a separate module */
 
@@ -18,7 +20,7 @@ const ProjectFlow: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [workflowTitle, setWorkflowTitle] = useState<string>('Proyecto desde Cero');
-  
+  const [workflowDescription, setWorkflowDescription] = useState<string>('');
 
   // Extract template and ID from query parameters
   const template = searchParams.get('maker_path_template') || undefined;
@@ -71,8 +73,8 @@ const ProjectFlow: React.FC = () => {
   const [selectedStepId, setSelectedStepId] = useState<number | null>(null);
   // const [promptContents, setPromptContents] = useState<Record<number, string>>({});
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
+  const [publishedProductId, setPublishedProductId] = useState<number | null>(null);
   const [productLink, setProductLink] = useState<string | null>(null);
-  const [productStatus, setProductStatus] = useState<string>('private');
 
   // ── Effects ───────────────────────────────────────────
 
@@ -83,10 +85,9 @@ const ProjectFlow: React.FC = () => {
         try {
           const project = await getMakerPath(makerPathId);
           console.log('ProjectFlow: Fetched project data:', project);
-           setProductLink((project as any).productLink || null);
-            setProductStatus((project as any).productStatus || 'private');
-             (project && project.title); {
+           (project && project.title); {
             setWorkflowTitle(project.title);
+            setWorkflowDescription(project.description || '');
             if (!project.data) {
                 console.warn('Project has no data field');
                 return;
@@ -132,6 +133,20 @@ const ProjectFlow: React.FC = () => {
           } catch (err) {
             console.error('[ProjectFlow] Error loading step progress:', err);
             setCompletedSteps(new Set());
+          }
+
+          // Check if product has already been published
+          try {
+            const existingProduct = await checkPublishedProduct(makerPathId);
+            if (existingProduct) {
+              console.log('[ProjectFlow] Found existing published product:', existingProduct);
+              setPublishedProductId(existingProduct.id);
+              setProductLink(existingProduct.productLink || null);
+            } else {
+              console.log('[ProjectFlow] No published product found yet');
+            }
+          } catch (err) {
+            console.error('[ProjectFlow] Error checking published product:', err);
           }
         } catch (error) {
           console.error('Error fetching project data in ProjectFlow:', error);
@@ -318,41 +333,70 @@ const ProjectFlow: React.FC = () => {
   );
 
   // ── Product Management Handlers ────────────────────────
-  
-  const handleToggleProductStatus = useCallback(async () => {
-    if (!makerPathId) return;
-    
-    const newStatus = productStatus === 'public' ? 'private' : 'public';
-    try {
-      await updateMakerPath(makerPathId, { productStatus: newStatus });
-      setProductStatus(newStatus);
-    } catch (error) {
-      console.error('Error updating product status:', error);
-      alert('Error al cambiar el estado del producto');
-    }
-  }, [makerPathId, productStatus]);
 
   const handleGenerateProductLink = useCallback(async () => {
     if (!makerPathId) return;
     
-    // Use environment variable for production URL, fallback to current origin for development
-    const appUrl = import.meta.env.VITE_APP_URL || window.location.origin;
-    const newLink = `${appUrl}/product/notebook/${makerPathId}`;
     try {
-      await updateMakerPath(makerPathId, { 
-        productLink: newLink,
-        productStatus: 'public' // Auto set to public when generating link
-      });
-      setProductLink(newLink);
-      setProductStatus('public');
-      alert('✅ Producto publicado exitosamente. Ahora puedes compartir el enlace.');
+      // Fork the maker_path into a new product instance
+      const newProduct = await forkProduct(makerPathId);
+      
+      // Save product ID and construct URL
+      setPublishedProductId(newProduct.id);
+      const productUrl = `${window.location.origin}/product/notebook/${newProduct.id}`;
+      setProductLink(productUrl);
+      
+      alert(`✅ Producto publicado exitosamente!\n\nURL pública: ${productUrl}`);
     } catch (error) {
-      console.error('Error generating product link:', error);
-      alert('Error al generar el enlace del producto');
+      console.error('Error creating product from template:', error);
+      alert('❌ Error al crear el producto. Por favor intenta de nuevo.');
     }
   }, [makerPathId]);
 
+  // ── Title and Description Handlers ────────────────────
+  
+  const handleTitleChange = useCallback((newTitle: string) => {
+    setWorkflowTitle(newTitle);
+  }, []);
+
+  const handleTitleBlur = useCallback(async () => {
+    if (!makerPathId || !workflowTitle) return;
+    try {
+      await updateMakerPath(makerPathId, { title: workflowTitle });
+    } catch (error) {
+      console.error('Error updating title:', error);
+    }
+  }, [makerPathId, workflowTitle]);
+
+  const handleDescriptionChange = useCallback((newDescription: string) => {
+    setWorkflowDescription(newDescription);
+  }, []);
+
+  const handleDescriptionBlur = useCallback(async () => {
+    if (!makerPathId) return;
+    try {
+      await updateMakerPath(makerPathId, { description: workflowDescription });
+    } catch (error) {
+      console.error('Error updating description:', error);
+    }
+  }, [makerPathId, workflowDescription]);
+
   // ── Render ─────────────────────────────────────────────
+  // Dev preview: ?view=ApiConfigView renders the module in isolation (hooks-safe)
+  if (searchParams.get('view') === 'ApiConfigView') {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-950 p-6">
+        <button
+          onClick={() => navigate(-1)}
+          className="mb-4 flex items-center gap-2 text-sm text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 transition-colors"
+        >
+          <ArrowLeft size={16} /> Volver
+        </button>
+        <ApiConfigView />
+      </div>
+    );
+  }
+
   return (
     <div className="h-screen flex flex-col bg-gray-50 dark:bg-gray-900 overflow-hidden">
       {/* Top bar */}
@@ -401,9 +445,14 @@ const ProjectFlow: React.FC = () => {
           selectableStepIds={selectableStepIds}
           onSelectStep={handleSelectStep}
           makerPathId={makerPathId}
+          publishedProductId={publishedProductId}
           productLink={productLink}
-          productStatus={productStatus}
-          onToggleProductStatus={handleToggleProductStatus}
+          projectTitle={workflowTitle}
+          projectDescription={workflowDescription}
+          onTitleChange={handleTitleChange}
+          onTitleBlur={handleTitleBlur}
+          onDescriptionChange={handleDescriptionChange}
+          onDescriptionBlur={handleDescriptionBlur}
           onGenerateProductLink={handleGenerateProductLink}
           workflowType={template}
         />

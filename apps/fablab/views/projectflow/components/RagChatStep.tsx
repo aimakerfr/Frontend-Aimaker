@@ -3,7 +3,7 @@ import { getMakerPathVariables, postMakerPathVariable } from '@core/maker-path-v
 import { saveMakerPathStepProgress, getMakerPathStepProgress } from '@core/maker-path-step-progress';
 import { getRagMultimodalSourceContent } from '@core/rag_multimodal';
 import { httpClient } from '@core/api/http.client';
-import { Bot, User, Send, Loader2, MessageSquare, Check, Wand2, FileSearch, ListOrdered, RefreshCw } from 'lucide-react';
+import { Bot, User, Send, Loader2, MessageSquare, Check, Wand2, FileSearch, ListOrdered, RefreshCw, Code2, X, Upload } from 'lucide-react';
 import { generateChatResponse } from '../../rag_multimodal/services/geminiService';
 import type { Source } from '../../rag_multimodal/types';
 import { useLanguage } from '../../../language/useLanguage';
@@ -40,7 +40,15 @@ const RagChatStep: React.FC<RagChatStepProps> = ({
   const [savedPrompt, setSavedPrompt] = useState<string | null>(null);
   const [isStepCompleted, setIsStepCompleted] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  
+
+  // ─── Instruction from RAG source ─────────────────────────────────────────
+  const [showInstructionPanel, setShowInstructionPanel] = useState(false);
+  const [showSourcePickerModal, setShowSourcePickerModal] = useState(false);
+  const [instructionFileName, setInstructionFileName] = useState<string | null>(null);
+  const [parsedInstruction, setParsedInstruction] = useState<string | null>(null);
+  const [instructionError, setInstructionError] = useState<string | null>(null);
+  // ─────────────────────────────────────────────────────────────────────────
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -196,6 +204,7 @@ const RagChatStep: React.FC<RagChatStepProps> = ({
             id: source.id.toString(),
             title: sourceData.name || `Source ${source.id}`,
             type: mapSourceType(sourceData.type),
+            backendType: sourceData.type,   // Keep original backend type for filters
             content: hasContent ? sourceData.content : `[${sourceData.name} - Documento pendiente de procesamiento. El contenido se extraerá automáticamente cuando lo uses en el chat.]`,
             dateAdded: new Date(),
             selected: true,
@@ -222,6 +231,77 @@ const RagChatStep: React.FC<RagChatStepProps> = ({
     } finally {
       setIsLoadingSources(false);
     }
+  };
+
+  /**
+   * RAG sources that can be used as instruction (JSON / TXT / plain text).
+   *
+   * How it works:
+   * 1. The RAG already loaded all sources and stored them in `sources` (with their content).
+   * 2. We filter by title extension (.json / .txt) OR by backendType
+   *    (text, txt, json, code, config — in any casing).
+   * 3. The user picks one from the modal → its content is read from memory (no extra fetch).
+   * 4. If the source is JSON, we parse it and extract the instruction key.
+   *    If it’s TXT/text, the whole content becomes the instruction.
+   * 5. The instruction is sent to the backend on every chat call as `systemInstruction`,
+   *    replacing the default hardcoded system prompt in GeminiService.php.
+   */
+  const INSTRUCTION_TYPES = new Set(['text', 'txt', 'json', 'code', 'config']);
+  const instructionSources = sources.filter((s) => {
+    const name  = s.title.toLowerCase();
+    const btype = (s.backendType ?? s.type ?? '').toLowerCase();
+    return (
+      name.endsWith('.json') ||
+      name.endsWith('.txt')  ||
+      s.type === 'text'      ||
+      s.type === 'code'      ||
+      s.type === 'config'    ||
+      INSTRUCTION_TYPES.has(btype)
+    );
+  });
+
+  /** Extract instruction text from a source's content based on title extension. */
+  const extractInstructionFromContent = (content: string, title: string): string | null => {
+    const name = title.toLowerCase();
+    // Plain text: use content as-is
+    if (!name.endsWith('.json')) {
+      const trimmed = content.trim();
+      return trimmed.length > 0 ? trimmed : null;
+    }
+    // JSON: look for known instruction keys
+    try {
+      const parsed = JSON.parse(content);
+      const keys = ['instruction', 'systemInstruction', 'system_instruction', 'prompt', 'text', 'content'];
+      for (const key of keys) {
+        if (parsed[key] && typeof parsed[key] === 'string' && parsed[key].trim() !== '') {
+          return parsed[key].trim();
+        }
+      }
+      return null;
+    } catch {
+      // Not valid JSON — try using the raw content
+      const trimmed = content.trim();
+      return trimmed.length > 0 ? trimmed : null;
+    }
+  };
+
+  const handleSelectSource = (source: Source) => {
+    setInstructionError(null);
+    const extracted = extractInstructionFromContent(source.content, source.title);
+    if (extracted) {
+      setParsedInstruction(extracted);
+      setInstructionFileName(source.title);
+      setInstructionError(null);
+    } else {
+      setInstructionError(`No se encontró instrucción en "${source.title}". Verifica que el contenido sea válido.`);
+    }
+    setShowSourcePickerModal(false);
+  };
+
+  const handleClearInstruction = () => {
+    setParsedInstruction(null);
+    setInstructionFileName(null);
+    setInstructionError(null);
   };
 
   const handleRefreshSources = async () => {
@@ -266,7 +346,8 @@ const RagChatStep: React.FC<RagChatStepProps> = ({
         history,
         sources,
         userMessage.content,
-        'es'
+        'es',
+        parsedInstruction ?? undefined
       );
 
       const botMessage: Message = {
@@ -324,7 +405,8 @@ const RagChatStep: React.FC<RagChatStepProps> = ({
         history,
         sources.filter((s) => s.selected),
         prompt,
-        'es'
+        'es',
+        parsedInstruction ?? undefined
       );
 
       const modelMessage: Message = {
@@ -461,11 +543,28 @@ const RagChatStep: React.FC<RagChatStepProps> = ({
         <div className="flex items-center gap-2">
           <Bot size={18} className="text-blue-600" />
           <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">{rc.title}</span>
+          {parsedInstruction && (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-xs font-medium text-emerald-700 dark:text-emerald-300">
+              <Code2 size={10} />
+              Instrucción activa
+            </span>
+          )}
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <div className="text-xs text-gray-500 dark:text-gray-400">
             {sources.length} {rc.sourcesLoaded}
           </div>
+          <button
+            onClick={() => setShowInstructionPanel((v) => !v)}
+            title="Cargar instrucción desde archivo (.json / .txt)"
+            className={`p-1.5 rounded-lg transition-all ${
+              showInstructionPanel
+                ? 'bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400'
+                : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400'
+            }`}
+          >
+            <Code2 size={16} />
+          </button>
           <button
             onClick={handleRefreshSources}
             disabled={isRefreshing}
@@ -476,6 +575,128 @@ const RagChatStep: React.FC<RagChatStepProps> = ({
           </button>
         </div>
       </div>
+
+      {/* Instruction from RAG Panel */}
+      {showInstructionPanel && (
+        <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-indigo-50 dark:bg-indigo-950/30">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <Code2 size={14} className="text-indigo-600 dark:text-indigo-400" />
+              <span className="text-xs font-semibold text-indigo-700 dark:text-indigo-300">
+                Instrucción desde RAG
+              </span>
+            </div>
+            <button
+              onClick={() => setShowInstructionPanel(false)}
+              className="p-0.5 rounded text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+            >
+              <X size={14} />
+            </button>
+          </div>
+
+          {!parsedInstruction ? (
+            <div>
+              <p className="text-xs text-indigo-500 dark:text-indigo-400 mb-2">
+                Elige una fuente de tipo <strong>texto / JSON</strong> del RAG actual para usarla como instrucción del sistema.
+              </p>
+              <button
+                onClick={() => setShowSourcePickerModal(true)}
+                disabled={instructionSources.length === 0}
+                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border-2 border-dashed border-indigo-300 dark:border-indigo-700 text-indigo-600 dark:text-indigo-400 text-xs font-semibold hover:border-indigo-500 hover:bg-indigo-100/60 dark:hover:bg-indigo-900/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Upload size={16} />
+                {instructionSources.length === 0
+                  ? 'No hay fuentes .json / .txt en este RAG'
+                  : `Elegir fuente (${instructionSources.length} disponible${instructionSources.length > 1 ? 's' : ''})`}
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-start gap-2 p-2 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800/30">
+              <Check size={14} className="text-emerald-600 dark:text-emerald-400 mt-0.5 flex-shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-300 truncate">{instructionFileName}</p>
+                <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-0.5 line-clamp-2 whitespace-pre-wrap">{parsedInstruction}</p>
+              </div>
+              <button
+                onClick={handleClearInstruction}
+                className="flex-shrink-0 p-0.5 rounded text-emerald-500 hover:text-red-500 transition-colors"
+                title="Quitar instrucción"
+              >
+                <X size={13} />
+              </button>
+            </div>
+          )}
+
+          {instructionError && (
+            <p className="mt-2 text-xs text-red-600 dark:text-red-400">{instructionError}</p>
+          )}
+
+          {parsedInstruction && (
+            <button
+              onClick={() => setShowSourcePickerModal(true)}
+              className="mt-2 w-full py-1.5 rounded-lg border border-indigo-300 dark:border-indigo-700 text-indigo-600 dark:text-indigo-400 text-xs font-semibold hover:bg-indigo-100 dark:hover:bg-indigo-900/30 transition-all"
+            >
+              Cambiar fuente
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Source Picker Modal */}
+      {showSourcePickerModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200 dark:border-gray-700">
+              <div className="flex items-center gap-2">
+                <Code2 size={16} className="text-indigo-600" />
+                <span className="font-semibold text-sm text-gray-900 dark:text-gray-100">
+                  Elegir fuente de instrucción
+                </span>
+              </div>
+              <button
+                onClick={() => setShowSourcePickerModal(false)}
+                className="p-1 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="px-5 py-3">
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                Fuentes disponibles en este RAG ({instructionSources.length}). Elige la que contiene la instrucción del sistema.
+              </p>
+            </div>
+
+            <div className="max-h-64 overflow-y-auto px-5 pb-4 space-y-2">
+              {instructionSources.length === 0 ? (
+                <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-6">
+                  No hay fuentes .json, .txt o de tipo texto en este RAG.
+                </p>
+              ) : (
+                instructionSources.map((s) => (
+                  <button
+                    key={s.id}
+                    onClick={() => handleSelectSource(s)}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-all text-left group"
+                  >
+                    <div className="flex-shrink-0 w-7 h-7 rounded-lg bg-indigo-100 dark:bg-indigo-900/40 flex items-center justify-center">
+                      <Code2 size={13} className="text-indigo-600 dark:text-indigo-400" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-semibold text-gray-800 dark:text-gray-200 truncate group-hover:text-indigo-700 dark:group-hover:text-indigo-300">
+                        {s.title}
+                      </p>
+                      <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+                        {s.type} · {s.content.length} chars
+                      </p>
+                    </div>
+                  </button>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4 bg-gray-50 dark:bg-gray-900">
