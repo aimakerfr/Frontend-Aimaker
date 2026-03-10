@@ -7,6 +7,8 @@ import {
 } from 'lucide-react';
 import { useLanguage } from '../../../language/useLanguage';
 import { analyzeIntention, type MakerPathId } from '../utils/intentionAnalyzer';
+import { getAssemblerTemplates } from '@core/assembler/assembler.service';
+import type { AssemblerTemplate } from '@core/assembler/assembler.types';
 
 interface RouteTypeModalProps {
   isOpen: boolean;
@@ -14,18 +16,35 @@ interface RouteTypeModalProps {
   onSelect: (
     type: string,
     title: string,
-    description: string
+    description: string,
+    options?: {
+      templateSlug?: string;
+      customApiUrl?: string;
+      systemPrompt?: string | null;
+    }
   ) => void;
 }
 
 export const RouteTypeModal: React.FC<RouteTypeModalProps> = ({ isOpen, onClose, onSelect }) => {
   const { t } = useLanguage();
-  const [view, setView] = useState<'initial' | 'suggested' | 'default' | 'templates' | 'create'>('initial');
+  const [view, setView] = useState<'initial' | 'assembler' | 'suggested' | 'default' | 'templates' | 'create'>('initial');
   const [formData, setFormData] = useState({
     title: '',
     intention: ''
   });
   const [suggestedPaths, setSuggestedPaths] = useState<MakerPathId[]>([]);
+
+  const [assemblerTemplates, setAssemblerTemplates] = useState<AssemblerTemplate[]>([]);
+  const [assemblerStep, setAssemblerStep] = useState<0 | 1 | 2>(0);
+  const [assemblerTransitioning, setAssemblerTransitioning] = useState(false);
+  const [assemblerOptions, setAssemblerOptions] = useState({
+    systemPromptEnabled: true,
+    systemPrompt: 'Eres un asistente basado en las fuentes RAG proporcionadas.',
+    customApiEnabled: false,
+    customApiUrl: '',
+    templateMode: 'predefined' as 'predefined' | 'custom',
+    templateSlug: 'notebook-v1',
+  });
 
   // Reset modal state when opening
   useEffect(() => {
@@ -37,6 +56,32 @@ export const RouteTypeModal: React.FC<RouteTypeModalProps> = ({ isOpen, onClose,
         intention: ''
       });
       setSuggestedPaths([]);
+
+      setAssemblerStep(0);
+      setAssemblerTransitioning(false);
+
+      setAssemblerOptions({
+        systemPromptEnabled: true,
+        systemPrompt: 'Eres un asistente basado en las fuentes RAG proporcionadas.',
+        customApiEnabled: false,
+        customApiUrl: '',
+        templateMode: 'predefined',
+        templateSlug: 'notebook-v1',
+      });
+
+      getAssemblerTemplates()
+        .then((tpl) => {
+          setAssemblerTemplates(tpl);
+          if (tpl?.length) {
+            setAssemblerOptions((prev) => ({
+              ...prev,
+              templateSlug: prev.templateSlug || tpl[0].slug,
+            }));
+          }
+        })
+        .catch(() => {
+          setAssemblerTemplates([]);
+        });
     }
   }, [isOpen]);
 
@@ -87,17 +132,41 @@ export const RouteTypeModal: React.FC<RouteTypeModalProps> = ({ isOpen, onClose,
 
   const handleContinueFromInitial = () => {
     if (!formData.title.trim() || !formData.intention.trim()) return;
-    
-    // Analyze intention
+
+    // Keep analysis (can be used later), but move directly to assembler questions.
     const matches = analyzeIntention(formData.intention);
     setSuggestedPaths(matches);
-    
-    // If matches found, show suggested view; otherwise show default with blank option
-    if (matches.length > 0) {
-      setView('suggested');
-    } else {
-      setView('default');
+    setAssemblerStep(0);
+    setView('assembler');
+  };
+
+  const handleAssemblerBack = () => {
+    if (assemblerTransitioning) return;
+    if (assemblerStep === 0) {
+      setView('initial');
+      return;
     }
+    setAssemblerStep((s) => (s === 2 ? 1 : 0));
+  };
+
+  const handleAssemblerNext = () => {
+    if (assemblerTransitioning) return;
+
+    setAssemblerTransitioning(true);
+    window.setTimeout(() => {
+      if (assemblerStep === 2) {
+        onSelect('assembled', formData.title, formData.intention, {
+          templateSlug: assemblerOptions.templateMode === 'predefined' ? assemblerOptions.templateSlug : undefined,
+          customApiUrl: assemblerOptions.customApiEnabled ? assemblerOptions.customApiUrl : undefined,
+          systemPrompt: assemblerOptions.systemPromptEnabled ? assemblerOptions.systemPrompt : null,
+        });
+        setAssemblerTransitioning(false);
+        return;
+      }
+
+      setAssemblerStep((s) => (s === 0 ? 1 : 2));
+      setAssemblerTransitioning(false);
+    }, 2000);
   };
 
   const getSuggestedTemplates = () => {
@@ -135,6 +204,7 @@ export const RouteTypeModal: React.FC<RouteTypeModalProps> = ({ isOpen, onClose,
               <div>
                 <h2 className="text-3xl font-black text-gray-900 dark:text-white tracking-tight transition-all duration-300">
                   {view === 'initial' && (t.RouteTypeModalTranslations?.['text_22'] ?? 'New Project')}
+                  {view === 'assembler' && (t.RouteTypeModalTranslations?.['text_11'] ?? 'Select Project')}
                   {view === 'suggested' && (t.RouteTypeModalTranslations?.['text_30'] ?? 'Suggested Maker Paths')}
                   {view === 'templates' && (t.RouteTypeModalTranslations?.['text_10'] ?? 'Maker Paths')}
                   {view === 'default' && (t.RouteTypeModalTranslations?.['text_11'] ?? 'Select Project')}
@@ -142,6 +212,7 @@ export const RouteTypeModal: React.FC<RouteTypeModalProps> = ({ isOpen, onClose,
                 </h2>
                 <p className="text-gray-500 dark:text-gray-400 mt-1 text-base transition-all duration-300">
                   {view === 'initial' && (t.RouteTypeModalTranslations?.['text_23'] ?? 'Tell us about your project')}
+                  {view === 'assembler' && (t.RouteTypeModalTranslations?.['text_12'] ?? 'Choose the template that best suits your workflow.')}
                   {view === 'suggested' && (t.RouteTypeModalTranslations?.['text_31'] ?? 'Based on your intention, we recommend:')}
                   {view === 'templates' && (t.RouteTypeModalTranslations?.['text_12'] ?? 'Choose the template that best suits your workflow.')}
                   {view === 'default' && (t.RouteTypeModalTranslations?.['text_33'] ?? 'Your intention doesn\'t match any of our Maker Paths. You can start from scratch:')}
@@ -210,6 +281,183 @@ export const RouteTypeModal: React.FC<RouteTypeModalProps> = ({ isOpen, onClose,
                   className="px-8 py-3 bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-bold rounded-xl transition-all"
                 >
                   {t.RouteTypeModalTranslations?.['text_29'] ?? 'Continue'}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* ── Vista assembler: preguntas Sí/No (reemplaza Seleccionar Proyecto) ── */}
+          {view === 'assembler' && (
+            <div className="animate-in fade-in slide-in-from-right-4 duration-300 space-y-6">
+              {assemblerTransitioning && (
+                <div className="flex items-center gap-3 p-4 rounded-2xl border border-gray-200 dark:border-gray-700 bg-white/80 dark:bg-gray-800/80">
+                  <div className="w-5 h-5 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+                  <div className="text-sm text-gray-600 dark:text-gray-300">Preparando siguiente paso...</div>
+                </div>
+              )}
+
+              {/* Paso 1 */}
+              {assemblerStep === 0 && (
+                <div className="space-y-4">
+                  <div className="p-5 rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+                    <h4 className="font-bold text-gray-900 dark:text-white mb-2">¿Quieres aplicar manualmente una descripción o reglas de uso?</h4>
+                    <div className="flex gap-3">
+                      <button
+                        onClick={() => setAssemblerOptions((p) => ({ ...p, systemPromptEnabled: true }))}
+                        className={`px-4 py-2 rounded-xl border transition-all ${assemblerOptions.systemPromptEnabled
+                          ? 'bg-indigo-600 border-indigo-600 text-white'
+                          : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300'
+                          }`}
+                      >
+                        Sí
+                      </button>
+                      <button
+                        onClick={() => setAssemblerOptions((p) => ({ ...p, systemPromptEnabled: false }))}
+                        className={`px-4 py-2 rounded-xl border transition-all ${!assemblerOptions.systemPromptEnabled
+                          ? 'bg-indigo-600 border-indigo-600 text-white'
+                          : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300'
+                          }`}
+                      >
+                        No
+                      </button>
+                    </div>
+
+                    {assemblerOptions.systemPromptEnabled && (
+                      <div className="mt-4">
+                        <textarea
+                          value={assemblerOptions.systemPrompt}
+                          onChange={(e) => setAssemblerOptions((p) => ({ ...p, systemPrompt: e.target.value }))}
+                          rows={5}
+                          className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none resize-none"
+                        />
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Paso 2 */}
+              {assemblerStep === 1 && (
+                <div className="space-y-4">
+                  <div className="p-5 rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+                    <h4 className="font-bold text-gray-900 dark:text-white mb-2">¿Vas a usar una API propia?</h4>
+                    <div className="flex gap-3">
+                      <button
+                        onClick={() => setAssemblerOptions((p) => ({ ...p, customApiEnabled: true }))}
+                        className={`px-4 py-2 rounded-xl border transition-all ${assemblerOptions.customApiEnabled
+                          ? 'bg-indigo-600 border-indigo-600 text-white'
+                          : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300'
+                          }`}
+                      >
+                        Sí
+                      </button>
+                      <button
+                        onClick={() => setAssemblerOptions((p) => ({ ...p, customApiEnabled: false }))}
+                        className={`px-4 py-2 rounded-xl border transition-all ${!assemblerOptions.customApiEnabled
+                          ? 'bg-indigo-600 border-indigo-600 text-white'
+                          : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300'
+                          }`}
+                      >
+                        No
+                      </button>
+                    </div>
+
+                    {assemblerOptions.customApiEnabled && (
+                      <div className="mt-4">
+                        <input
+                          value={assemblerOptions.customApiUrl}
+                          onChange={(e) => setAssemblerOptions((p) => ({ ...p, customApiUrl: e.target.value }))}
+                          placeholder="https://..."
+                          className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none"
+                        />
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Paso 3 */}
+              {assemblerStep === 2 && (
+                <div className="space-y-4">
+                  <div className="p-5 rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+                    <h4 className="font-bold text-gray-900 dark:text-white mb-2">¿Quieres usar un template predefinido o insertar uno propio?</h4>
+                    <div className="flex gap-3">
+                      <button
+                        onClick={() => setAssemblerOptions((p) => ({ ...p, templateMode: 'predefined' }))}
+                        className={`px-4 py-2 rounded-xl border transition-all ${assemblerOptions.templateMode === 'predefined'
+                          ? 'bg-indigo-600 border-indigo-600 text-white'
+                          : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300'
+                          }`}
+                      >
+                        Predefinido
+                      </button>
+                      <button
+                        onClick={() => setAssemblerOptions((p) => ({ ...p, templateMode: 'custom' }))}
+                        className={`px-4 py-2 rounded-xl border transition-all ${assemblerOptions.templateMode === 'custom'
+                          ? 'bg-indigo-600 border-indigo-600 text-white'
+                          : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300'
+                          }`}
+                      >
+                        Propio
+                      </button>
+                    </div>
+
+                    {assemblerOptions.templateMode === 'custom' && (
+                      <div className="mt-4 p-4 rounded-xl border border-dashed border-gray-300 dark:border-gray-600 text-sm text-gray-600 dark:text-gray-300">
+                        Aún no está implementado el ingreso de template propio en el backend. Por ahora puedes continuar sin template visual.
+                      </div>
+                    )}
+
+                    {assemblerOptions.templateMode === 'predefined' && (
+                      <div className="mt-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                          {(assemblerTemplates?.length
+                            ? assemblerTemplates
+                            : [{ slug: 'notebook-v1', name: 'Notebook IA', description: null, version: '1.0', hasPreview: false }]
+                          ).map((tpl) => {
+                            const selected = assemblerOptions.templateSlug === tpl.slug;
+                            return (
+                              <button
+                                key={tpl.slug}
+                                type="button"
+                                onClick={() => setAssemblerOptions((p) => ({ ...p, templateSlug: tpl.slug }))}
+                                className={
+                                  'text-left p-3 rounded-xl border transition-all ' +
+                                  (selected
+                                    ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20'
+                                    : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-indigo-300')
+                                }
+                              >
+                                <div className="h-14 w-full rounded-lg bg-gray-100 dark:bg-gray-700 mb-2" />
+                                <div className="font-bold text-sm text-gray-900 dark:text-white">
+                                  {tpl.name ?? tpl.slug}
+                                </div>
+                                <div className="text-xs text-gray-600 dark:text-gray-300 mt-0.5">
+                                  {tpl.description ?? ''}
+                                </div>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              <div className="flex justify-end gap-3">
+                <button
+                  onClick={handleAssemblerBack}
+                  className="px-8 py-3 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 font-bold rounded-xl transition-all"
+                >
+                  {t.RouteTypeModalTranslations?.['text_9'] ?? 'Back'}
+                </button>
+                <button
+                  onClick={handleAssemblerNext}
+                  disabled={!formData.title.trim() || !formData.intention.trim()}
+                  className="px-8 py-3 bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-bold rounded-xl transition-all"
+                >
+                  {assemblerTransitioning ? 'Cargando...' : (assemblerStep === 2 ? 'Crear' : 'Siguiente')}
                 </button>
               </div>
             </div>

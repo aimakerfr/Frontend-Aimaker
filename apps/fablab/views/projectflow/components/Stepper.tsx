@@ -18,6 +18,7 @@ type Props = {
   onDescriptionChange?: (description: string) => void;
   onDescriptionBlur?: () => void;
   onGenerateProductLink?: () => void;
+  onDownloadAssembledProduct?: () => void;
   workflowType?: string;
 };
 
@@ -37,6 +38,7 @@ const Stepper: React.FC<Props> = ({
   onDescriptionChange,
   onDescriptionBlur,
   onGenerateProductLink,
+  onDownloadAssembledProduct,
   workflowType,
 }) => {
   // Keep stable ordering only for display numbering; selectability comes from parent
@@ -167,6 +169,21 @@ const Stepper: React.FC<Props> = ({
               </div>
             )}
           </div>
+        </div>
+      )}
+
+      {/* Download Section - Only for assembled */}
+      {makerPathId && workflowType === 'assembled' && (
+        <div className="border-t border-gray-200 dark:border-gray-700 p-4 bg-gray-50 dark:bg-gray-900">
+          <h3 className="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider mb-3">
+            Producto
+          </h3>
+          <button
+            onClick={onDownloadAssembledProduct}
+            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white text-sm font-medium transition-all shadow-sm"
+          >
+            Descargar
+          </button>
         </div>
       )}
     </div>
