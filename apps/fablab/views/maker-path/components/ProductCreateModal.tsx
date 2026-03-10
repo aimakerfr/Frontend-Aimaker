@@ -13,7 +13,7 @@ interface ProductCreateModalProps {
 export const ProductCreateModal: React.FC<ProductCreateModalProps> = ({
   isOpen,
   onClose,
-  templateType,
+  templateType: _templateType,
   templateTitle,
   onSubmit,
 }) => {
