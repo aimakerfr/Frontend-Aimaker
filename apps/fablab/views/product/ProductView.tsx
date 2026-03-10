@@ -8,11 +8,10 @@ import UploadSourceModal from '../rag_multimodal/components/UploadSourceModal.ts
 import { Source, SourceType } from '../rag_multimodal/types';
 import { ChatMessage } from '../notebook/types.ts';
 import { generateChatResponse } from '../notebook/services/geminiService.ts';
-import { getProduct, getPublicProduct, updateProduct, type Product } from '@core/products';
-import { getProductStepProgress, updateProductStepProgress } from '@core/product-step-progress';
+import { updateProduct, type Product } from '@core/products';
+import { updateProductStepProgress } from '@core/product-step-progress';
 import { getRagMultimodalSources, postRagMultimodalSource, deleteRagMultimodalSource, getRagMultimodalSourceContent } from '@core/rag_multimodal';
-import { copyObjectToRag, type ObjectItem } from '@core/objects';
-import { tokenStorage } from '@core/api/http.client';
+import { getNotebookSetup } from '@core/notebook-setup';
 import { useLanguage } from '../../language/useLanguage';
 
 // Step IDs for product steps (matching the workflow configuration)
@@ -29,6 +28,8 @@ const ProductView: React.FC = () => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [chatLoading, setChatLoading] = useState(false);
   const [urlCopied, setUrlCopied] = useState(false);
+  const [externalUrlCopied, setExternalUrlCopied] = useState(false);
+  const [externalUrl, setExternalUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
@@ -68,7 +69,7 @@ const ProductView: React.FC = () => {
             });
             continue;
           }
-          
+
           loadedSources.push({
             id: source.id.toString(),
             title: sourceData.name || `Source ${source.id}`,
@@ -173,90 +174,75 @@ const ProductView: React.FC = () => {
     }
   };
 
-  const loadChatHistory = async (productId: number) => {
-    try {
-      console.log('[ProductView] Loading chat history for product:', productId);
-      const progress = await getProductStepProgress(productId);
-      
-      // Load chat from step 2 (rag_chat step in maker_path flow)
-      let chatStep = progress.find(p => p.stepId === RAG_CHAT_STEP_ID && p.status === 'success');
-      if (!chatStep) {
-        chatStep = progress.find(p => p.stepId === RAG_CHAT_STEP_ID);
-      }
-      
-      if (chatStep && chatStep.resultText) {
-        // Check if resultText has conversation property (RagChatStep format)
-        let history: any[] = [];
-        
-        if (chatStep.resultText.conversation && Array.isArray(chatStep.resultText.conversation)) {
-          history = chatStep.resultText.conversation;
-        } else if (Array.isArray(chatStep.resultText)) {
-          history = chatStep.resultText;
-        } else if (chatStep.resultText.messages && Array.isArray(chatStep.resultText.messages)) {
-          history = chatStep.resultText.messages;
-        }
-        
-        // Add IDs if they don't exist (for React rendering)
-        const messagesWithIds = history.map((msg, idx) => ({
-          ...msg,
-          id: msg.id || `${msg.role}-${idx}-${Date.now()}`
-        }));
-        
-        console.log('[ProductView] Chat history loaded:', messagesWithIds.length, 'messages');
-        setMessages(messagesWithIds);
-      } else {
-        console.log('[ProductView] No chat history found');
-      }
-    } catch (error) {
-      console.error('[ProductView] Error loading chat history:', error);
-    }
-  };
-
-  // Load maker path and RAG data
+  // Load product data via consolidated notebook setup endpoint
   useEffect(() => {
     if (!id) return;
 
     const loadProductData = async () => {
       try {
         setIsLoading(true);
-        console.log('[ProductView] Loading product for ID:', id, '| isAuthenticated:', isAuthenticated);
-        
-        let productData: Product;
-        
-        if (isAuthenticated) {
-          // User has token → use authenticated endpoint (lets owner see private products)
-          try {
-            productData = await getProduct(parseInt(id));
-            // Determine if API response indicates ownership
-            // Backend grants access if owner OR if public, so if both public==false and we got it, we are owner
-            setIsOwner(true);
-          } catch (authError: any) {
-            // Token expired or forbidden → fall back to public endpoint
-            console.warn('[ProductView] Auth fetch failed, trying public endpoint:', authError.message);
-            productData = await getPublicProduct(parseInt(id));
-            setIsOwner(false);
-          }
+        const numericId = parseInt(id);
+        console.log('[ProductView] Loading notebook setup for ID:', numericId);
+
+        const setup = await getNotebookSetup(numericId);
+        console.log('[ProductView] Notebook setup loaded:', setup);
+
+        // Hydrate product state from setup response
+        setProduct({
+          id: setup.makerPath.id,
+          title: setup.makerPath.title,
+          description: setup.makerPath.description || '',
+          data: setup.makerPath.data,
+          type: setup.makerPath.type as any,
+          status: (setup.makerPath.status as any) || 'active',
+          isPublic: setup.makerPath.productStatus === 'public',
+          productLink: setup.makerPath.productLink ?? null,
+          createdAt: setup.makerPath.createdAt || new Date().toISOString(),
+          updatedAt: setup.makerPath.updatedAt ?? null,
+          userId: 0, // Not provided by setup
+          templateId: null,
+          rag: setup.rag ? {
+            id: setup.rag.id,
+            cag: setup.rag.cag || '',
+            tool: setup.rag.tool ? { id: setup.rag.tool.id, title: setup.rag.tool.title } : null,
+          } : undefined,
+        });
+
+        if (setup.identity?.publicToken) {
+          const externalBase = import.meta.env.VITE_EXTERNAL_NOTEBOOK_URL || 'http://localhost:5173';
+          setExternalUrl(`${externalBase}/${setup.identity.publicToken}`);
         } else {
-          // No token → use public endpoint (only works for public products)
-          productData = await getPublicProduct(parseInt(id));
-          setIsOwner(false);
+          setExternalUrl(null);
         }
-        
-        console.log('[ProductView] Product loaded:', productData.title, '| isPublic:', productData.isPublic);
-        setProduct(productData);
 
-        // Load chat history from product_step_progress
-        await loadChatHistory(parseInt(id));
+        // Restore chat history from steps (step 2 = rag_chat)
+        const chatStep = setup.steps.find(s => s.stepId === RAG_CHAT_STEP_ID && s.status === 'success')
+          || setup.steps.find(s => s.stepId === RAG_CHAT_STEP_ID);
+        if (chatStep?.resultText) {
+          let history: any[] = [];
+          if (chatStep.resultText.conversation && Array.isArray(chatStep.resultText.conversation)) {
+            history = chatStep.resultText.conversation;
+          } else if (Array.isArray(chatStep.resultText)) {
+            history = chatStep.resultText;
+          } else if (chatStep.resultText.messages && Array.isArray(chatStep.resultText.messages)) {
+            history = chatStep.resultText.messages;
+          }
+          const messagesWithIds = history.map((msg: any, idx: number) => ({
+            ...msg,
+            id: msg.id || `${msg.role}-${idx}-${Date.now()}`
+          }));
+          console.log('[ProductView] Chat history loaded from setup:', messagesWithIds.length, 'messages');
+          setMessages(messagesWithIds);
+        }
 
-        // Load RAG sources if available
-        if (productData.rag?.id) {
-          console.log('[ProductView] RAG ID found:', productData.rag.id);
-          await loadRagSources(productData.rag.id);
+        // Load RAG sources with content (setup gives metadata, we still need content)
+        if (setup.rag?.id) {
+          await loadRagSources(setup.rag.id);
         } else {
           console.warn('[ProductView] No RAG associated with this product');
         }
       } catch (error) {
-        console.error('[ProductView] Error loading product:', error);
+        console.error('[ProductView] Error loading product via notebook setup:', error);
       } finally {
         setIsLoading(false);
       }
@@ -361,29 +347,33 @@ const ProductView: React.FC = () => {
     setTimeout(() => setUrlCopied(false), 2000);
   };
 
-  const handleImportObjects = async () => {
-    if (!product?.rag?.id || !selectedObjects.length) {
-      setIsImportModalOpen(false);
-      return;
+  const handleCopyExternalUrl = () => {
+    if (externalUrl) {
+      navigator.clipboard.writeText(externalUrl);
+      setExternalUrlCopied(true);
+      setTimeout(() => setExternalUrlCopied(false), 2000);
     }
-    try {
-      setIsImporting(true);
-      await Promise.all(
-        selectedObjects.map((object) =>
-          copyObjectToRag({
-            object_id: Number(object.id),
-            rag_id: product.rag!.id,
-          })
-        )
-      );
-      await loadRagSources(product.rag.id);
-      setSelectedObjects([]);
-      setIsImportModalOpen(false);
-    } catch (error) {
-      console.error('[ProductView] Error importing objects:', error);
-    } finally {
-      setIsImporting(false);
-    }
+  };
+
+  // Convert Source to RagSource for RagSourcePanel compatibility
+  const convertToRagSources = (sources: Source[]): RagSource[] => {
+    return sources.map(source => ({
+      id: parseInt(source.id),
+      name: source.title,
+      type: source.backendType || source.type,
+      createdAt: source.dateAdded.toISOString(),
+      selected: source.selected,
+      url: source.url,
+    }));
+  };
+
+  // Adapter handlers for RagSourcePanel (number ID -> string ID)
+  const handleToggleSourceAdapter = (id: number) => {
+    handleToggleSource(id.toString());
+  };
+
+  const handleDeleteSourceAdapter = (id: number) => {
+    handleDeleteSource(id.toString());
   };
 
   const handleTitleChange = (newTitle: string) => {
@@ -503,27 +493,64 @@ const ProductView: React.FC = () => {
           </div>
         </div>
 
-        {/* Bottom Row - Product Link with Copy */}
-        <div className="px-6 pb-4">
-          <div className="flex items-center gap-2 max-w-3xl">
-            <div className="flex-1 flex items-center gap-2 px-4 py-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-              <span className="flex-1 text-sm text-blue-600 dark:text-blue-400 truncate">
-                {window.location.origin}/product/notebook/{product.id}
-              </span>
-              <button
-                onClick={handleCopyUrl}
-                className="p-1.5 hover:bg-blue-100 dark:hover:bg-blue-900/40 rounded transition-colors flex-shrink-0"
-                title="Copiar URL"
-              >
-                {urlCopied ? (
-                  <Check size={16} className="text-green-600" />
-                ) : (
-                  <Copy size={16} className="text-blue-600 dark:text-blue-400" />
-                )}
-              </button>
-            </div>
+        {/* Bottom Row - Links */}
+        {(product?.productLink || externalUrl) && (
+          <div className="px-6 pb-4 space-y-3">
+            {product?.productLink && (
+              <div className="flex items-center gap-2 max-w-3xl">
+                <div className="flex-1 flex items-center gap-2 px-4 py-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                  <span className="text-xs font-semibold text-blue-700 dark:text-blue-300 uppercase tracking-wider">Enlace interno</span>
+                  <a
+                    href={product.productLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex-1 text-sm text-blue-600 dark:text-blue-400 hover:underline truncate"
+                  >
+                    {product.productLink}
+                  </a>
+                  <button
+                    onClick={handleCopyUrl}
+                    className="p-1.5 hover:bg-blue-100 dark:hover:bg-blue-900/40 rounded transition-colors flex-shrink-0"
+                    title="Copiar URL interna"
+                  >
+                    {urlCopied ? (
+                      <Check size={16} className="text-green-600" />
+                    ) : (
+                      <Copy size={16} className="text-blue-600 dark:text-blue-400" />
+                    )}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {externalUrl && (
+              <div className="flex items-center gap-2 max-w-3xl">
+                <div className="flex-1 flex items-center gap-2 px-4 py-2 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg">
+                  <span className="text-xs font-semibold text-purple-700 dark:text-purple-300 uppercase tracking-wider">Enlace externo</span>
+                  <a
+                    href={externalUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex-1 text-sm text-purple-700 dark:text-purple-300 hover:underline truncate"
+                  >
+                    {externalUrl}
+                  </a>
+                  <button
+                    onClick={handleCopyExternalUrl}
+                    className="p-1.5 hover:bg-purple-100 dark:hover:bg-purple-900/40 rounded transition-colors flex-shrink-0"
+                    title="Copiar URL externa"
+                  >
+                    {externalUrlCopied ? (
+                      <Check size={16} className="text-green-600" />
+                    ) : (
+                      <Copy size={16} className="text-purple-600 dark:text-purple-300" />
+                    )}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
-        </div>
+        )}
       </header>
 
       {/* Main Content */}

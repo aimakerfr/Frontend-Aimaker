@@ -11,6 +11,10 @@ interface ConfigurationPanelProps {
   availablePaths: AvailablePath[];
   selectedPathId: string | null;
   onSelectPath: (id: string) => void;
+  onCreateWorkflow?: () => void;
+  onEditWorkflow?: (id: string) => void;
+  onDeleteWorkflow?: () => void;
+  canEditSelectedWorkflow?: boolean;
   t: any;
   makerPathId?: number | null;
 }
@@ -23,6 +27,10 @@ const ConfigurationPanel: React.FC<ConfigurationPanelProps> = ({
   availablePaths,
   selectedPathId,
   onSelectPath,
+  onCreateWorkflow,
+  onEditWorkflow,
+  onDeleteWorkflow,
+  canEditSelectedWorkflow,
   t,
   makerPathId,
 }) => {
@@ -32,9 +40,39 @@ const ConfigurationPanel: React.FC<ConfigurationPanelProps> = ({
     <div className="relative w-72 flex-shrink-0 border-r border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 flex flex-col overflow-hidden">
       {/* Header */}
       <div className="px-5 py-4 border-b border-gray-200 dark:border-gray-700">
-        <h2 className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">
-          {t.projectFlow.configuration}
-        </h2>
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">
+            {t.projectFlow.configuration}
+          </h2>
+          <div className="flex items-center gap-2">
+            {onCreateWorkflow && (
+              <button
+                onClick={onCreateWorkflow}
+                className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider rounded bg-blue-600 text-white hover:bg-blue-700"
+              >
+                {t?.common?.create || 'Create'}
+              </button>
+            )}
+            {selectedPathId && onEditWorkflow && (
+              <button
+                onClick={() => onEditWorkflow(selectedPathId)}
+                className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider rounded bg-gray-900 text-white dark:bg-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100"
+                disabled={canEditSelectedWorkflow === false}
+              >
+                {t?.common?.edit || 'Edit'}
+              </button>
+            )}
+            {selectedPathId && onDeleteWorkflow && (
+              <button
+                onClick={onDeleteWorkflow}
+                className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider rounded bg-red-600 text-white hover:bg-red-700"
+                disabled={canEditSelectedWorkflow === false}
+              >
+                {t?.common?.delete || 'Delete'}
+              </button>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Content area */}
