@@ -7,8 +7,8 @@ import UploadSourceModal from '../rag_multimodal/components/UploadSourceModal.ts
 import { Source, SourceType } from '../rag_multimodal/types';
 import { ChatMessage } from '../notebook/types.ts';
 import { generateChatResponse } from '../notebook/services/geminiService.ts';
-import { getPublicProduct, updateProduct, type Product } from '@core/products';
-import { getProductStepProgress, updateProductStepProgress } from '@core/product-step-progress';
+import { updateProduct, type Product } from '@core/products';
+import { updateProductStepProgress } from '@core/product-step-progress';
 import { getRagMultimodalSources, postRagMultimodalSource, deleteRagMultimodalSource, getRagMultimodalSourceContent } from '@core/rag_multimodal';
 import { getNotebookSetup } from '@core/notebook-setup';
 import { useLanguage } from '../../language/useLanguage';
@@ -167,46 +167,7 @@ const ProductView: React.FC = () => {
     }
   };
 
-  const loadChatHistory = async (productId: number) => {
-    try {
-      console.log('[ProductView] Loading chat history for product:', productId);
-      const progress = await getProductStepProgress(productId);
-      
-      // Load chat from step 2 (rag_chat step in maker_path flow)
-      let chatStep = progress.find(p => p.stepId === RAG_CHAT_STEP_ID && p.status === 'success');
-      if (!chatStep) {
-        chatStep = progress.find(p => p.stepId === RAG_CHAT_STEP_ID);
-      }
-      
-      if (chatStep && chatStep.resultText) {
-        // Check if resultText has conversation property (RagChatStep format)
-        let history: any[] = [];
-        
-        if (chatStep.resultText.conversation && Array.isArray(chatStep.resultText.conversation)) {
-          history = chatStep.resultText.conversation;
-        } else if (Array.isArray(chatStep.resultText)) {
-          history = chatStep.resultText;
-        } else if (chatStep.resultText.messages && Array.isArray(chatStep.resultText.messages)) {
-          history = chatStep.resultText.messages;
-        }
-        
-        // Add IDs if they don't exist (for React rendering)
-        const messagesWithIds = history.map((msg, idx) => ({
-          ...msg,
-          id: msg.id || `${msg.role}-${idx}-${Date.now()}`
-        }));
-        
-        console.log('[ProductView] Chat history loaded:', messagesWithIds.length, 'messages');
-        setMessages(messagesWithIds);
-      } else {
-        console.log('[ProductView] No chat history found');
-      }
-    } catch (error) {
-      console.error('[ProductView] Error loading chat history:', error);
-    }
-  };
-
-  // Load maker path and RAG data via consolidated notebook setup endpoint
+  // Load product data via consolidated notebook setup endpoint
   useEffect(() => {
     if (!id) return;
 
@@ -219,16 +180,24 @@ const ProductView: React.FC = () => {
         const setup = await getNotebookSetup(numericId);
         console.log('[ProductView] Notebook setup loaded:', setup);
 
-        // Hydrate maker path state from setup response
-        setMakerPath({
+        // Hydrate product state from setup response
+        setProduct({
           id: setup.makerPath.id,
           title: setup.makerPath.title,
-          description: setup.makerPath.description,
-          productLink: setup.makerPath.productLink ?? undefined,
-          productStatus: (setup.makerPath.productStatus as 'public' | 'private') || 'private',
+          description: setup.makerPath.description || '',
+          data: setup.makerPath.data,
+          type: setup.makerPath.type as any,
+          status: (setup.makerPath.status as any) || 'active',
+          isPublic: setup.makerPath.productStatus === 'public',
+          productLink: setup.makerPath.productLink ?? null,
+          createdAt: setup.makerPath.createdAt || new Date().toISOString(),
+          updatedAt: setup.makerPath.updatedAt ?? null,
+          userId: 0, // Not provided by setup
+          templateId: null,
           rag: setup.rag ? {
             id: setup.rag.id,
-            tool: setup.rag.tool ? { id: setup.rag.tool.id, title: setup.rag.tool.title } : { id: 0, title: '' },
+            cag: setup.rag.cag || '',
+            tool: setup.rag.tool ? { id: setup.rag.tool.id, title: setup.rag.tool.title } : null,
           } : undefined,
         });
 
@@ -267,18 +236,6 @@ const ProductView: React.FC = () => {
         }
       } catch (error) {
         console.error('[ProductView] Error loading product via notebook setup:', error);
-        // Fallback: try loading with individual calls
-        try {
-          const path = await getMakerPath(parseInt(id));
-          setMakerPath(path as any);
-          setExternalUrl(null);
-          await loadChatHistory(parseInt(id));
-          if ((path as any).rag?.id) {
-            await loadRagSources((path as any).rag.id);
-          }
-        } catch (fallbackError) {
-          console.error('[ProductView] Fallback loading also failed:', fallbackError);
-        }
       } finally {
         setIsLoading(false);
       }
@@ -523,19 +480,19 @@ const ProductView: React.FC = () => {
         </div>
 
         {/* Bottom Row - Links */}
-        {(makerPath.productLink || externalUrl) && (
+        {(product?.productLink || externalUrl) && (
           <div className="px-6 pb-4 space-y-3">
-            {makerPath.productLink && (
+            {product?.productLink && (
               <div className="flex items-center gap-2 max-w-3xl">
                 <div className="flex-1 flex items-center gap-2 px-4 py-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
                   <span className="text-xs font-semibold text-blue-700 dark:text-blue-300 uppercase tracking-wider">Enlace interno</span>
                   <a
-                    href={makerPath.productLink}
+                    href={product.productLink}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex-1 text-sm text-blue-600 dark:text-blue-400 hover:underline truncate"
                   >
-                    {makerPath.productLink}
+                    {product.productLink}
                   </a>
                   <button
                     onClick={handleCopyUrl}
@@ -579,7 +536,7 @@ const ProductView: React.FC = () => {
               </div>
             )}
           </div>
-        )
+        )}
       </header>
 
       {/* Main Content */}
