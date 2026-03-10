@@ -15,6 +15,7 @@ import ProductView from './views/product/ProductView';
 import PublicPromptDetails from './views/public/prompt/PublicPromptDetails';
 import PublicAssistantDetails from './views/public/assistant/PublicAssistantDetails';
 import PublicProjectDetails from './views/public/project/PublicProjectDetails';
+import RagChatPage from './views/rag-chat/RagChatPage';
 import { UserProfile } from './types';
 import FabLabLayout from '@apps/fablab/views/fablab_layout/FabLabLayout';
 import { initializeLanguages } from './language';
@@ -117,6 +118,7 @@ const App: React.FC = () => {
       <Routes>
         {/* Rutas públicas - Sin autenticación requerida (PRIMERO para evitar conflictos) */}
         <Route path="/product/notebook/:id" element={<ProductView />} />
+        <Route path="/product/rag-multimodal/:id" element={<ProductView />} />
         <Route path="/public/prompt/:id" element={<PublicPromptWrapper />} />
         <Route path="/public/assistant/:id" element={<PublicAssistantWrapper />} />
         <Route path="/public/project/:id" element={<PublicProjectWrapper />} />
@@ -129,6 +131,8 @@ const App: React.FC = () => {
         <Route path="/project/:id" element={<ProjectView />} />
         {/* ProjectFlow routes with query parameters */}
         <Route path="/projectflow" element={<ProjectFlow />} />
+        {/* Standalone RAG Chat - without sidebar */}
+        <Route path="/rag-chat" element={<RagChatPage />} />
         
         {/* Server Tools Routes - Sin Sidebar */}
         <Route path="/perplexity-index" element={<PerplexityIndex />} />

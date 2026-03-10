@@ -12,6 +12,7 @@ import ExternalAccess from '../external-access/ExternalAccess';
 import AIChat from '../../components/AIChat';
 import ObjectsLibrary from '../objects/ObjectsLibrary';
 import AssemblerWizard from '../assembler/AssemblerWizard';
+import Products from '../products/Products';
 import { UserProfile } from '../../types';
 
 type Props = {
@@ -78,6 +79,7 @@ const FabLabLayout: React.FC<Props> = ({
               <Route path="/maker-path" element={<MakerPathView />} />
               <Route path="/maker-path/:id" element={<ProjectPlanner />} />
               <Route path="/maker-path/modules/:id" element={<PathCreationModules />} />
+              <Route path="/products" element={<Products />} />
               <Route path="/tools" element={<ExternalAccess />} />
             </Routes>
           </div>
