@@ -74,6 +74,22 @@ export const forkProduct = async (makerPathId: number): Promise<Product> => {
 };
 
 /**
+ * POST /api/v1/products/create-from-template
+ * Create a product directly from a template type without requiring a maker_path
+ */
+export const createProductFromTemplate = async (
+  type: string,
+  title: string,
+  description?: string
+): Promise<Product> => {
+  return httpClient.post<Product>(`${ENDPOINT}/create-from-template`, {
+    type,
+    title,
+    description: description || '',
+  });
+};
+
+/**
  * PATCH /api/v1/products/{id}
  * Update an existing product (partial update)
  * Requires authentication (Bearer JWT)

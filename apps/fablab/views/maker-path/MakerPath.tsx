@@ -13,7 +13,8 @@ import {
   deleteMakerPath
 } from '@core/maker-path';
 import type { MakerPath, MakerPathStatus } from '@core/maker-path';
-import { RouteTypeModal } from './components';
+import { createProductFromTemplate } from '@core/products';
+import { RouteTypeModal, ProductCreateModal } from './components';
 import { useLanguage } from '../../language/useLanguage';
 import { getInitialMakerPaths } from '../projectflow/demoWorkflows';
 
@@ -30,6 +31,11 @@ const MakerPathView: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [showRouteTypeModal, setShowRouteTypeModal] = useState(false);
+  const [showProductModal, setShowProductModal] = useState(false);
+  const [selectedTemplate, setSelectedTemplate] = useState<{
+    type: string;
+    title: string;
+  } | null>(null);
 
   useEffect(() => {
     loadPaths();
@@ -66,53 +72,53 @@ const MakerPathView: React.FC = () => {
     customDescription?: string
   ) => {
     try {
-      let title = customTitle || t.makerPathTranslations?.['text_2'] || 'Proyecto sin título';
-      let description = customDescription || t.makerPathTranslations?.['text_4'] || 'Creado desde el dashboard';
-      let data = '';
+      // Get template title for display
+      const templateTitles = {
+        'rag_chat_maker': t.RouteTypeModalTranslations?.['text_3'] ?? 'Notebook',
+        'landing_page_maker': t.RouteTypeModalTranslations?.['text_1'] ?? 'Landing Page Maker',
+        'image_generator_rag': t.RouteTypeModalTranslations?.['text_5'] ?? 'RAG Image Generator',
+        'translation_maker': t.RouteTypeModalTranslations?.['text_7'] ?? 'Translation Maker',
+        'blank': t.RouteTypeModalTranslations?.['text_14'] ?? 'Blank Project'
+      };
 
-      if (type !== 'blank') {
-        const paths = getInitialMakerPaths(t);
-        const template = paths[type];
-        if (template) {
-          data = JSON.stringify(template.json);
-        }
-      } else {
-        // Enviar un JSON mínimo para proyectos en blanco
-        data = JSON.stringify({
-          blank_project: {
-            stage_name: 'blank_project',
-            description: t.makerPathTranslations?.['text_3'] || 'Un nuevo proyecto desde cero.',
-            output_type: 'OUTPUT',
-            steps: []
-          }
-        });
-      }
-
-      const newPath = await createMakerPath({
-        title,
-        description,
-        type: type !== 'blank' ? type : 'custom',
-        status: 'draft',
-        data
-      });
-
-      // Build the edition URL with full domain
-      const baseUrl = import.meta.env.VITE_APP_URL || window.location.origin;
-      const editionUrl = type === 'blank' 
-        ? `${baseUrl}/dashboard/projectflow?id=${newPath.id}`
-        : `${baseUrl}/dashboard/projectflow?maker_path_template=${type}&id=${newPath.id}`;
-
-      // Update the maker path with the edition URL
-      await updateMakerPath(newPath.id, { editionUrl });
-
+      // Close route type modal
       setShowRouteTypeModal(false);
-      navigate(editionUrl);
+      
+      // Show product creation modal
+      setSelectedTemplate({
+        type: type === 'blank' ? 'custom' : type,
+        title: templateTitles[type] || 'Custom Project'
+      });
+      setShowProductModal(true);
+    } catch (error) {
+      console.error('Error preparing product creation:', error);
+    }
+  };
 
-  } catch (error) {
-    console.error(
-      t.makerPathTranslations?.['text_5'] || 'Error al crear el proyecto:',
-      error
-    );
+  const handleCreateProduct = async (title: string, description: string) => {
+    if (!selectedTemplate) return;
+
+    try {
+      console.log('[MakerPath] Creating product from template:', selectedTemplate.type);
+      
+      // Create product directly from template
+      const newProduct = await createProductFromTemplate(
+        selectedTemplate.type,
+        title,
+        description
+      );
+
+      console.log('[MakerPath] Product created:', newProduct);
+
+      // Close modal
+      setShowProductModal(false);
+      setSelectedTemplate(null);
+
+      // Navigate to product view
+      navigate(`/product/notebook/${newProduct.id}`);
+    } catch (error) {
+      console.error('[MakerPath] Error creating product:', error);
+      throw error; // Re-throw to show error in modal
     }
   };
 
@@ -200,6 +206,20 @@ const handleRedirectToPlanner = (pathId: number) => {
           handleCreate(type as any, title, description)
         }
       />
+
+      {/* Modal de creación de producto */}
+      {selectedTemplate && (
+        <ProductCreateModal
+          isOpen={showProductModal}
+          onClose={() => {
+            setShowProductModal(false);
+            setSelectedTemplate(null);
+          }}
+          templateType={selectedTemplate.type}
+          templateTitle={selectedTemplate.title}
+          onSubmit={handleCreateProduct}
+        />
+      )}
 
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}

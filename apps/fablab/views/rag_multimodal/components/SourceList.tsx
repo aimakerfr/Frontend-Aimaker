@@ -11,9 +11,10 @@ interface SourceListProps {
     onToggleSource: (id: string) => void;
     onDeleteSource: (id: string) => void;
     onOpenPreview: (source: Source) => void;
+    hideDeleteButton?: boolean;
 }
 
-const SourceList: React.FC<SourceListProps> = ({ sources, tp, t, onToggleSource, onDeleteSource, onOpenPreview }) => {
+const SourceList: React.FC<SourceListProps> = ({ sources, tp, t, onToggleSource, onDeleteSource, onOpenPreview, hideDeleteButton = false }) => {
     const getSourceIcon = (type: string) => {
         switch (type) {
             case 'pdf': return <FileText size={16} />;
@@ -93,16 +94,18 @@ const SourceList: React.FC<SourceListProps> = ({ sources, tp, t, onToggleSource,
                                         >
                                             <Eye size={14} />
                                         </button>
-                                        <button
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                onDeleteSource(source.id);
-                                            }}
-                                            className="p-1.5 rounded-lg bg-white/80 text-gray-400 hover:text-red-600 hover:bg-white hover:shadow-sm transition-all shrink-0"
-                                            title="Eliminar"
-                                        >
-                                            <Trash2 size={14} />
-                                        </button>
+                                        {!hideDeleteButton && (
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    onDeleteSource(source.id);
+                                                }}
+                                                className="p-1.5 rounded-lg bg-white/80 text-gray-400 hover:text-red-600 hover:bg-white hover:shadow-sm transition-all shrink-0"
+                                                title="Eliminar"
+                                            >
+                                                <Trash2 size={14} />
+                                            </button>
+                                        )}
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-2">

@@ -1,15 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Globe, Copy, Check, ArrowLeft, BookOpen } from 'lucide-react';
-import RagSourcePanel, { type RagSource } from '../projectflow/components/RagSourcePanel';
+import { Globe, Lock, Copy, Check, ArrowLeft, BookOpen } from 'lucide-react';
+import SourcePanel from '../rag_multimodal/components/SourcePanel.tsx';
+import ImportSourceModal from '../rag_multimodal/components/ImportSourceModal.tsx';
 import ChatInterface from '../notebook/components/ChatInterface.tsx';
 import UploadSourceModal from '../rag_multimodal/components/UploadSourceModal.tsx';
 import { Source, SourceType } from '../rag_multimodal/types';
 import { ChatMessage } from '../notebook/types.ts';
 import { generateChatResponse } from '../notebook/services/geminiService.ts';
-import { getPublicProduct, updateProduct, type Product } from '@core/products';
+import { getProduct, getPublicProduct, updateProduct, type Product } from '@core/products';
 import { getProductStepProgress, updateProductStepProgress } from '@core/product-step-progress';
 import { getRagMultimodalSources, postRagMultimodalSource, deleteRagMultimodalSource, getRagMultimodalSourceContent } from '@core/rag_multimodal';
+import { copyObjectToRag, type ObjectItem } from '@core/objects';
+import { tokenStorage } from '@core/api/http.client';
 import { useLanguage } from '../../language/useLanguage';
 
 // Step IDs for product steps (matching the workflow configuration)
@@ -20,6 +23,7 @@ const ProductView: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { t } = useLanguage();
+  const isAuthenticated = !!tokenStorage.get();
   const [product, setProduct] = useState<Product | null>(null);
   const [sources, setSources] = useState<Source[]>([]);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -27,6 +31,11 @@ const ProductView: React.FC = () => {
   const [urlCopied, setUrlCopied] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [selectedObjects, setSelectedObjects] = useState<ObjectItem[]>([]);
+  const [isImporting, setIsImporting] = useState(false);
+  // isOwner is true when the logged-in user is the owner of the product
+  const [isOwner, setIsOwner] = useState(false);
 
   const loadRagSources = async (ragId: number) => {
     try {
@@ -210,13 +219,30 @@ const ProductView: React.FC = () => {
     const loadProductData = async () => {
       try {
         setIsLoading(true);
-        console.log('[ProductView] Loading product for ID:', id);
-        const productData = await getPublicProduct(parseInt(id));
-        console.log('[ProductView] Product loaded:', productData);
-        console.log('[ProductView] - Title:', productData.title);
-        console.log('[ProductView] - Description:', productData.description);
-        console.log('[ProductView] - RAG:', productData.rag);
+        console.log('[ProductView] Loading product for ID:', id, '| isAuthenticated:', isAuthenticated);
         
+        let productData: Product;
+        
+        if (isAuthenticated) {
+          // User has token → use authenticated endpoint (lets owner see private products)
+          try {
+            productData = await getProduct(parseInt(id));
+            // Determine if API response indicates ownership
+            // Backend grants access if owner OR if public, so if both public==false and we got it, we are owner
+            setIsOwner(true);
+          } catch (authError: any) {
+            // Token expired or forbidden → fall back to public endpoint
+            console.warn('[ProductView] Auth fetch failed, trying public endpoint:', authError.message);
+            productData = await getPublicProduct(parseInt(id));
+            setIsOwner(false);
+          }
+        } else {
+          // No token → use public endpoint (only works for public products)
+          productData = await getPublicProduct(parseInt(id));
+          setIsOwner(false);
+        }
+        
+        console.log('[ProductView] Product loaded:', productData.title, '| isPublic:', productData.isPublic);
         setProduct(productData);
 
         // Load chat history from product_step_progress
@@ -335,37 +361,39 @@ const ProductView: React.FC = () => {
     setTimeout(() => setUrlCopied(false), 2000);
   };
 
-  // Convert Source to RagSource for RagSourcePanel compatibility
-  const convertToRagSources = (sources: Source[]): RagSource[] => {
-    return sources.map(source => ({
-      id: parseInt(source.id),
-      name: source.title,
-      type: source.backendType || source.type,
-      createdAt: source.dateAdded.toISOString(),
-      selected: source.selected,
-      url: source.url,
-    }));
-  };
-
-  // Adapter handlers for RagSourcePanel (number ID -> string ID)
-  const handleToggleSourceAdapter = (id: number) => {
-    handleToggleSource(id.toString());
-  };
-
-  const handleDeleteSourceAdapter = (id: number) => {
-    handleDeleteSource(id.toString());
+  const handleImportObjects = async () => {
+    if (!product?.rag?.id || !selectedObjects.length) {
+      setIsImportModalOpen(false);
+      return;
+    }
+    try {
+      setIsImporting(true);
+      await Promise.all(
+        selectedObjects.map((object) =>
+          copyObjectToRag({
+            object_id: Number(object.id),
+            rag_id: product.rag!.id,
+          })
+        )
+      );
+      await loadRagSources(product.rag.id);
+      setSelectedObjects([]);
+      setIsImportModalOpen(false);
+    } catch (error) {
+      console.error('[ProductView] Error importing objects:', error);
+    } finally {
+      setIsImporting(false);
+    }
   };
 
   const handleTitleChange = (newTitle: string) => {
-    if (!product) return;
-    // Solo actualizar el estado local en onChange
+    if (!product || !isOwner) return;
     setProduct({ ...product, title: newTitle });
   };
 
   const handleTitleBlur = async () => {
-    if (!product) return;
+    if (!product || !isOwner) return;
     try {
-      // Guardar a la BD solo cuando pierde el foco
       await updateProduct(product.id, { title: product.title });
     } catch (error) {
       console.error('Error updating title:', error);
@@ -373,15 +401,13 @@ const ProductView: React.FC = () => {
   };
 
   const handleDescriptionChange = (newDescription: string) => {
-    if (!product) return;
-    // Solo actualizar el estado local en onChange
+    if (!product || !isOwner) return;
     setProduct({ ...product, description: newDescription });
   };
 
   const handleDescriptionBlur = async () => {
-    if (!product) return;
+    if (!product || !isOwner) return;
     try {
-      // Guardar a la BD solo cuando pierde el foco
       await updateProduct(product.id, { description: product.description });
     } catch (error) {
       console.error('Error updating description:', error);
@@ -420,13 +446,15 @@ const ProductView: React.FC = () => {
         <div className="px-6 py-4 flex items-start justify-between gap-4">
           {/* Left side - Back button + Notebook icon + Title and Description */}
           <div className="flex-1 flex items-start gap-4">
-            <button
-              onClick={() => navigate('/dashboard/maker-path')}
-              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors flex-shrink-0 mt-1"
-              title="Volver"
-            >
-              <ArrowLeft size={18} className="text-gray-500 dark:text-gray-400" />
-            </button>
+            {isOwner && (
+              <button
+                onClick={() => navigate('/dashboard/maker-path')}
+                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors flex-shrink-0 mt-1"
+                title="Volver"
+              >
+                <ArrowLeft size={18} className="text-gray-500 dark:text-gray-400" />
+              </button>
+            )}
             
             {/* Notebook Icon Indicator */}
             <div className="p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg flex-shrink-0 mt-1" title="Vista de Notebook">
@@ -441,14 +469,14 @@ const ProductView: React.FC = () => {
                 onBlur={handleTitleBlur}
                 className="text-xl font-bold text-gray-900 dark:text-white bg-transparent border-none outline-none focus:ring-2 focus:ring-blue-500 rounded px-2 py-1 w-full"
                 placeholder="Título del producto"
-                disabled
+                disabled={!isOwner}
               />
               <input
                 type="text"
                 value={product.description || ''}
                 onChange={(e) => handleDescriptionChange(e.target.value)}
                 onBlur={handleDescriptionBlur}
-                disabled
+                disabled={!isOwner}
                 className="text-sm text-gray-600 dark:text-gray-400 bg-transparent border-none outline-none focus:ring-2 focus:ring-blue-500 rounded px-2 py-1 w-full mt-1"
                 placeholder="Descripción del producto"
               />
@@ -457,12 +485,21 @@ const ProductView: React.FC = () => {
 
           {/* Right side - Status Badge */}
           <div className="flex-shrink-0">
-            <div className="flex items-center gap-2 px-4 py-2 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
-              <Globe size={18} className="text-green-600 dark:text-green-400" />
-              <span className="text-sm font-semibold text-green-700 dark:text-green-400">
-                Producto Público
-              </span>
-            </div>
+            {product.isPublic ? (
+              <div className="flex items-center gap-2 px-4 py-2 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+                <Globe size={18} className="text-green-600 dark:text-green-400" />
+                <span className="text-sm font-semibold text-green-700 dark:text-green-400">
+                  Producto Público
+                </span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg">
+                <Lock size={18} className="text-gray-500 dark:text-gray-400" />
+                <span className="text-sm font-semibold text-gray-600 dark:text-gray-300">
+                  Producto Privado
+                </span>
+              </div>
+            )}
           </div>
         </div>
 
@@ -471,36 +508,36 @@ const ProductView: React.FC = () => {
           <div className="flex items-center gap-2 max-w-3xl">
             <div className="flex-1 flex items-center gap-2 px-4 py-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
               <span className="flex-1 text-sm text-blue-600 dark:text-blue-400 truncate">
-                {window.location.href}
+                {window.location.origin}/product/notebook/{product.id}
               </span>
-                <button
-                  onClick={handleCopyUrl}
-                  className="p-1.5 hover:bg-blue-100 dark:hover:bg-blue-900/40 rounded transition-colors flex-shrink-0"
-                  title="Copiar URL"
-                >
-                  {urlCopied ? (
-                    <Check size={16} className="text-green-600" />
-                  ) : (
-                    <Copy size={16} className="text-blue-600 dark:text-blue-400" />
-                  )}
-                </button>
-              </div>
+              <button
+                onClick={handleCopyUrl}
+                className="p-1.5 hover:bg-blue-100 dark:hover:bg-blue-900/40 rounded transition-colors flex-shrink-0"
+                title="Copiar URL"
+              >
+                {urlCopied ? (
+                  <Check size={16} className="text-green-600" />
+                ) : (
+                  <Copy size={16} className="text-blue-600 dark:text-blue-400" />
+                )}
+              </button>
             </div>
           </div>
-        )
+        </div>
       </header>
 
       {/* Main Content */}
       <div className="flex flex-1 overflow-hidden">
         {/* Left Sidebar - Sources */}
         <aside className="w-80 flex-shrink-0 border-r border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-y-auto">
-          <RagSourcePanel
-            sources={convertToRagSources(sources)}
-            onToggleSource={handleToggleSourceAdapter}
-            onDeleteSource={handleDeleteSourceAdapter}
-            onOpenImportModal={() => {}} // No import in product view
+          <SourcePanel
+            sources={sources}
+            onToggleSource={handleToggleSource}
+            onDeleteSource={handleDeleteSource}
+            onOpenImportModal={() => setIsImportModalOpen(true)}
             onOpenUploadModal={() => setIsUploadModalOpen(true)}
-            hideImportButton={true}
+            hideImportButton={!isOwner}
+            hideUploadButton={!isOwner}
           />
         </aside>
 
@@ -517,13 +554,27 @@ const ProductView: React.FC = () => {
       </div>
 
       {/* Modals */}
-      <UploadSourceModal
-        isOpen={isUploadModalOpen}
-        onClose={() => setIsUploadModalOpen(false)}
-        onAddSource={handleAddSource}
-        tp={t.notebook.sourcePanel}
-        t={t}
-      />
+      {isOwner && (
+        <>
+          <UploadSourceModal
+            isOpen={isUploadModalOpen}
+            onClose={() => setIsUploadModalOpen(false)}
+            onAddSource={handleAddSource}
+            tp={t.notebook.sourcePanel}
+            t={t}
+          />
+          <ImportSourceModal
+            isOpen={isImportModalOpen}
+            onClose={() => setIsImportModalOpen(false)}
+            onImport={handleImportObjects}
+            selectedObjects={selectedObjects}
+            onSelectionChange={setSelectedObjects}
+            isImporting={isImporting}
+            tp={t.notebook.sourcePanel}
+            t={t}
+          />
+        </>
+      )}
     </div>
   );
 };

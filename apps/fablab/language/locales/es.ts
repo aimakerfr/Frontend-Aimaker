@@ -96,7 +96,24 @@ export const es: Translations = {
       buttons: {
         view: 'VER',
         delete: 'Eliminar',
+        makePublic: 'Hacer público',
+        makePrivate: 'Hacer privado',
       },
+      status: {
+        public: 'Público',
+        private: 'Privado',
+      },
+    },
+    productModal: {
+      createProduct: 'Crear Producto',
+      title: 'Título',
+      titleRequired: 'El título es requerido',
+      titlePlaceholder: 'Ingresa un título para tu producto',
+      description: 'Descripción',
+      descriptionPlaceholder: 'Describe tu producto (opcional)',
+      cancel: 'Cancelar',
+      create: 'Crear',
+      creating: 'Creando...',
     },
     externalAccess: {
       title: 'Acceso Externo',

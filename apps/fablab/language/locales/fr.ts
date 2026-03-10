@@ -96,7 +96,24 @@ export const fr: Translations = {
       buttons: {
         view: 'VOIR',
         delete: 'Supprimer',
+        makePublic: 'Rendre public',
+        makePrivate: 'Rendre privé',
       },
+      status: {
+        public: 'Public',
+        private: 'Privé',
+      },
+    },
+    productModal: {
+      createProduct: 'Créer un Produit',
+      title: 'Titre',
+      titleRequired: 'Le titre est requis',
+      titlePlaceholder: 'Entrez un titre pour votre produit',
+      description: 'Description',
+      descriptionPlaceholder: 'Décrivez votre produit (optionnel)',
+      cancel: 'Annuler',
+      create: 'Créer',
+      creating: 'Création...',
     },
     externalAccess: {
       title: 'Accès Externe',

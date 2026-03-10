@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Package, Eye, Search, Trash2 } from 'lucide-react';
+import { Package, Eye, Search, Trash2, Globe, Lock } from 'lucide-react';
 import { useLanguage } from '../../language/useLanguage';
 import { 
   getProducts, 
   deleteProduct,
+  updateProduct,
   type Product
 } from '@core/products';
 
@@ -13,6 +14,7 @@ type FilterType = 'all' | 'favorites';
 interface ProductsViewProps {
   items?: Product[];
   onDelete?: (itemId: number) => void;
+  onTogglePublic?: (itemId: number, isPublic: boolean) => Promise<void>;
   isLoading?: boolean;
   activeFilter?: FilterType;
   setActiveFilter?: (filter: FilterType) => void;
@@ -21,6 +23,7 @@ interface ProductsViewProps {
 const ProductsView: React.FC<ProductsViewProps> = ({
   items = [],
   onDelete,
+  onTogglePublic,
   isLoading = false,
   activeFilter: activeFilterProp,
   setActiveFilter: setActiveFilterProp
@@ -199,18 +202,40 @@ const ProductsView: React.FC<ProductsViewProps> = ({
                       </div>
 
                       <div className="col-span-2">
-                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${
-                          item.status === 'active' 
-                            ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' 
-                            : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
-                        }`}>
-                          {item.status}
-                        </span>
-                        {item.isPublic && (
-                          <span className="ml-2 inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400">
-                            Public
+                        <div className="flex flex-col gap-2">
+                          <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${
+                            item.status === 'active' 
+                              ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' 
+                              : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
+                          }`}>
+                            {item.status}
                           </span>
-                        )}
+                          
+                          {/* Toggle Public/Private Button */}
+                          {onTogglePublic && (
+                            <button
+                              onClick={() => onTogglePublic(item.id, !item.isPublic)}
+                              className={`inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${
+                                item.isPublic
+                                  ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 hover:bg-blue-200 dark:hover:bg-blue-900/40'
+                                  : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'
+                              }`}
+                              title={item.isPublic ? t.products.buttons.makePrivate : t.products.buttons.makePublic}
+                            >
+                              {item.isPublic ? (
+                                <>
+                                  <Globe size={12} />
+                                  {t.products.status.public}
+                                </>
+                              ) : (
+                                <>
+                                  <Lock size={12} />
+                                  {t.products.status.private}
+                                </>
+                              )}
+                            </button>
+                          )}
+                        </div>
                       </div>
 
                       <div className="col-span-1">
@@ -273,6 +298,27 @@ const Products = () => {
     }
   };
 
+  const handleTogglePublic = async (itemId: number, isPublic: boolean) => {
+    try {
+      console.log('[Products] Toggling public status:', itemId, isPublic);
+      
+      // Optimistic update
+      setItems(prev => prev.map(item => 
+        item.id === itemId ? { ...item, isPublic } : item
+      ));
+
+      // Update in backend
+      await updateProduct(itemId, { isPublic });
+      
+      console.log('[Products] Public status updated successfully');
+    } catch (err) {
+      console.error('[Products] Error toggling public status:', err);
+      // Revert optimistic update
+      await loadProducts();
+      setError(t.common.errorUpdating || 'Error al actualizar el producto');
+    }
+  };
+
   if (error && items.length === 0) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50/30 p-6 flex items-center justify-center">
@@ -294,6 +340,7 @@ const Products = () => {
       items={items} 
       isLoading={isLoading}
       onDelete={handleDelete}
+      onTogglePublic={handleTogglePublic}
       activeFilter={activeFilter}
       setActiveFilter={setActiveFilter}
     />
