@@ -48,7 +48,12 @@ const MakerPathView: React.FC = () => {
   }
 
   if (activeView === 'assembly') {
-    return <AssemblyObjects onBack={() => setActiveView('hub')} />;
+    return (
+      <AssemblyObjects
+        onBack={() => setActiveView('hub')}
+        onProductCreated={handleProductCreated}
+      />
+    );
   }
 
   return (
