@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Globe, Lock, Copy, Check, ArrowLeft, BookOpen } from 'lucide-react';
+import { Globe, Lock, Copy, Check, ArrowLeft, BookOpen, Download } from 'lucide-react';
 import SourcePanel from '../rag_multimodal/components/SourcePanel.tsx';
 import ImportSourceModal from '../rag_multimodal/components/ImportSourceModal.tsx';
 import ChatInterface from '../notebook/components/ChatInterface.tsx';
@@ -13,6 +13,7 @@ import { getProductStepProgress, updateProductStepProgress } from '@core/product
 import { getRagMultimodalSources, postRagMultimodalSource, deleteRagMultimodalSource, getRagMultimodalSourceContent } from '@core/rag_multimodal';
 import { copyObjectToRag, type ObjectItem } from '@core/objects';
 import { tokenStorage } from '@core/api/http.client';
+import { downloadAssembledProject } from '@core/assembler-identity';
 import { useLanguage } from '../../language/useLanguage';
 
 // Step IDs for product steps (matching the workflow configuration)
@@ -414,6 +415,24 @@ const ProductView: React.FC = () => {
     }
   };
 
+  const handleDownloadProject = async () => {
+    if (!product) return;
+
+    const makerPathId = product.templateId;
+    if (!makerPathId) {
+      console.error('[ProductView] No templateId (makerPathId) found on product');
+      alert('No se puede descargar: el producto no tiene un MakerPath asociado.');
+      return;
+    }
+
+    try {
+      await downloadAssembledProject(makerPathId);
+    } catch (error) {
+      console.error('[ProductView] Error downloading project:', error);
+      alert('Error al descargar el proyecto. Por favor intente de nuevo.');
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
@@ -483,8 +502,18 @@ const ProductView: React.FC = () => {
             </div>
           </div>
 
-          {/* Right side - Status Badge */}
-          <div className="flex-shrink-0">
+          {/* Right side - Download Button + Status Badge */}
+          <div className="flex-shrink-0 flex items-center gap-3">
+            {isOwner && (
+              <button
+                onClick={handleDownloadProject}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm font-semibold shadow-sm"
+                title="Descargar proyecto como index.html"
+              >
+                <Download size={16} />
+                Descargar proyecto
+              </button>
+            )}
             {product.isPublic ? (
               <div className="flex items-center gap-2 px-4 py-2 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
                 <Globe size={18} className="text-green-600 dark:text-green-400" />

@@ -85,7 +85,7 @@ const ProjectFlow: React.FC = () => {
         try {
           const project = await getMakerPath(makerPathId);
           console.log('ProjectFlow: Fetched project data:', project);
-           (project && project.title); {
+          if (project && project.title) {
             setWorkflowTitle(project.title);
             setWorkflowDescription(project.description || '');
             if (!project.data) {
