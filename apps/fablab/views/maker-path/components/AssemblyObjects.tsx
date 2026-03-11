@@ -88,11 +88,11 @@ export const AssemblyObjects: React.FC<AssemblyObjectsProps> = ({ onBack, onProd
   const [error, setError] = useState<string | null>(null);
 
   // API Key toggle
-  const [wantsApiKey, setWantsApiKey] = useState(false);
+  const [wantsApiKey, setWantsApiKey] = useState(true);
   const [apiKey, setApiKey] = useState('');
 
   // Template toggle: 'predefined' | 'custom'
-  const [templateMode, setTemplateMode] = useState<'predefined' | 'custom'>('predefined');
+  const [templateMode, setTemplateMode] = useState<'predefined' | 'custom'>('custom');
   const [customTemplateFile, setCustomTemplateFile] = useState<File | null>(null);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
 
