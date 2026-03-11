@@ -1,6 +1,4 @@
 import React, { useState } from 'react';
-import { ArrowLeft, Plus } from 'lucide-react';
-import { useLanguage } from '../../../language/useLanguage';
 import {
   ArrowLeft,
   Plus,
@@ -24,7 +22,7 @@ import { useAuth } from '@core/auth/useAuth';
 
 interface AssemblyObjectsProps {
   onBack: () => void;
-  onProductCreated: (makerPathId: number) => void;
+  onProductCreated: (productId: number, templateId: string) => void;
 }
 
 interface AttachedSource {
@@ -57,22 +55,6 @@ const OBJECT_FALLBACKS: Record<string, string> = {
   external_link_connector: 'Cargar external_link_conector',
   app_deployment: 'Cargar app_deployment',
 };
-
-export const AssemblyObjects: React.FC<AssemblyObjectsProps> = ({ onBack }) => {
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [selectedObjects, setSelectedObjects] = useState<string[]>([]);
-  const { t } = useLanguage();
-  const tr = t.assemblyObjectsTranslations;
-  { id: 'rag_module', label: 'Cargar modulo RAG', enabled: true },
-  // { id: 'api_module', label: 'Cargar modulo API', enabled: false },
-  // { id: 'view_module', label: 'Cargar modulo vista', enabled: false },
-  // { id: 'assistant_module', label: 'Cargar modulo asistente', enabled: false },
-  // { id: 'assistant_instruction', label: 'Cargar instrucción de asistente', enabled: false },
-  // { id: 'html_connector', label: 'Cargar html conector', enabled: false },
-  // { id: 'external_link_connector', label: 'Cargar external_link_conector', enabled: false },
-  // { id: 'app_deployment', label: 'Cargar app_deployment', enabled: false },
-];
 
 const PREDEFINED_TEMPLATES = [
   {
@@ -107,6 +89,7 @@ const PREDEFINED_TEMPLATES = [
 
 export const AssemblyObjects: React.FC<AssemblyObjectsProps> = ({ onBack, onProductCreated }) => {
   const { t } = useLanguage();
+  const tr = t.assemblyObjectsTranslations ?? {};
   const { user } = useAuth();
   const isAdmin = user?.roles?.includes('ROLE_ADMIN') || false;
 
@@ -251,7 +234,10 @@ export const AssemblyObjects: React.FC<AssemblyObjectsProps> = ({ onBack, onProd
 
       // Create a Product record from the MakerPath so ProductView can load it
       const product = await forkProduct(makerPath.id);
-      onProductCreated(product.id);
+      const templateKey = templateMode === 'predefined'
+        ? selectedTemplateId ?? 'architect_ai'
+        : 'custom';
+      onProductCreated(product.id, templateKey);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Error al crear el proyecto';
       setError(message);
@@ -269,9 +255,9 @@ export const AssemblyObjects: React.FC<AssemblyObjectsProps> = ({ onBack, onProd
             onClick={onBack}
             className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors mb-4"
           >
-            <ArrowLeft size={16} /> {tr?.backBtn ?? 'Volver al inicio'}
+            <ArrowLeft size={16} /> {tr.backBtn ?? 'Volver al inicio'}
           </button>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{tr?.title ?? 'Ensamblador de Objetos'}</h1>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{tr.title ?? 'Ensamblador de Objetos'}</h1>
         </div>
 
         {/* Formulario */}
@@ -279,7 +265,7 @@ export const AssemblyObjects: React.FC<AssemblyObjectsProps> = ({ onBack, onProd
           <div>
             <input
               type="text"
-              placeholder={tr?.titlePlaceholder ?? 'Título del proyecto'}
+              placeholder={tr.titlePlaceholder ?? 'Título del proyecto'}
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none text-sm"
@@ -288,8 +274,7 @@ export const AssemblyObjects: React.FC<AssemblyObjectsProps> = ({ onBack, onProd
 
           <div>
             <textarea
-              placeholder={tr?.descPlaceholder ?? 'Descripción del proyecto'}
-              placeholder="Descripción del proyecto (instrucciones para el asistente)"
+              placeholder={tr.descPlaceholder ?? 'Descripción del proyecto'}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={4}
@@ -427,7 +412,7 @@ export const AssemblyObjects: React.FC<AssemblyObjectsProps> = ({ onBack, onProd
           {/* Selección de objetos */}
           <div>
             <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
-              {tr?.selectObjects ?? 'Seleccionar Objetos:'}
+              {tr.selectObjects ?? 'Seleccionar Objetos:'}
             </p>
             <div className="grid grid-cols-2 gap-2">
               {AVAILABLE_OBJECTS.map((obj) => {
@@ -446,7 +431,7 @@ export const AssemblyObjects: React.FC<AssemblyObjectsProps> = ({ onBack, onProd
                       size={14}
                       className={isSelected ? 'text-blue-500 rotate-45 transition-transform' : 'text-gray-400'}
                     />
-                    {tr?.objects?.[obj.id] ?? OBJECT_FALLBACKS[obj.id]}
+                    {tr.objects?.[obj.id] ?? OBJECT_FALLBACKS[obj.id]}
                   </button>
                 );
               })}
@@ -497,18 +482,15 @@ export const AssemblyObjects: React.FC<AssemblyObjectsProps> = ({ onBack, onProd
             onClick={handleAssemble}
             className="w-full py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed text-white font-bold rounded-xl transition-colors text-sm flex items-center justify-center gap-2"
           >
-            {tr?.assembleBtn ?? 'Ensamblar'}
+            {loading && <Loader2 size={16} className="animate-spin" />}
+            {loading ? tr.assembling ?? 'Ensamblando...' : tr.assembleBtn ?? 'Ensamblar'}
           </button>
         </div>
 
         {/* Aviso sin lógica */}
         <p className="text-xs text-gray-400 dark:text-gray-500 text-center mt-4">
-          {tr?.comingSoon ?? 'Esta funcionalidad estará disponible próximamente.'}
+          {tr.comingSoon ?? 'Esta funcionalidad estará disponible próximamente.'}
         </p>
-            {loading && <Loader2 size={16} className="animate-spin" />}
-            {loading ? 'Ensamblando...' : 'Ensamblar'}
-          </button>
-        </div>
       </div>
 
       {/* Upload Source Modal */}
