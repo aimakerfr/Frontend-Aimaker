@@ -34,6 +34,21 @@ const ProductsView: React.FC<ProductsViewProps> = ({
   const [localActiveFilter, setLocalActiveFilter] = useState<FilterType>('all');
   const [searchQuery, setSearchQuery] = useState('');
   
+  // Function to get the correct route based on product type
+  const getProductRoute = (type: string, id: number): string => {
+    const routeMap: Record<string, string> = {
+      'rag_chat_maker': 'notebook',
+      'landing_page_maker': 'landing-page',
+      'image_generator_rag': 'image-generator',
+      'translation_maker': 'notebook', // Default to notebook until specific route is created
+      'architect_ai': 'notebook', // Default to notebook until specific route is created
+      'module_connector': 'notebook', // Default to notebook until specific route is created
+      'custom': 'notebook' // Default
+    };
+    const route = routeMap[type] || 'notebook';
+    return `/product/${route}/${id}`;
+  };
+  
   const activeFilter = activeFilterProp ?? localActiveFilter;
   const setActiveFilter = setActiveFilterProp ?? setLocalActiveFilter;
 
@@ -185,8 +200,9 @@ const ProductsView: React.FC<ProductsViewProps> = ({
                       <div className="col-span-2">
                         <div className="flex gap-2">
                           <button
-                            onClick={() => navigate(`/product/notebook/${item.id}`)}
+                            onClick={() => navigate(getProductRoute(item.type, item.id))}
                             className="inline-flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 border-2 border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-xl font-semibold transition-all text-sm hover:scale-105"
+                            title={`${t.products.buttons.view} - ${getTypeLabel(item.type)}`}
                           >
                             <Eye size={16} />
                             {t.products.buttons.view}

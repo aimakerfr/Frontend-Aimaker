@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { ArrowLeft, Plus } from 'lucide-react';
+import { useLanguage } from '../../../language/useLanguage';
 import {
   ArrowLeft,
   Plus,
@@ -35,6 +37,33 @@ interface AttachedSource {
 }
 
 const AVAILABLE_OBJECTS = [
+  { id: 'rag_module' },
+  { id: 'api_module' },
+  { id: 'view_module' },
+  { id: 'assistant_module' },
+  { id: 'assistant_instruction' },
+  { id: 'html_connector' },
+  { id: 'external_link_connector' },
+  { id: 'app_deployment' },
+];
+
+const OBJECT_FALLBACKS: Record<string, string> = {
+  rag_module: 'Cargar modulo RAG',
+  api_module: 'Cargar modulo API',
+  view_module: 'Cargar modulo vista',
+  assistant_module: 'Cargar modulo asistente',
+  assistant_instruction: 'Cargar instrucción de asistente',
+  html_connector: 'Cargar html conector',
+  external_link_connector: 'Cargar external_link_conector',
+  app_deployment: 'Cargar app_deployment',
+};
+
+export const AssemblyObjects: React.FC<AssemblyObjectsProps> = ({ onBack }) => {
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [selectedObjects, setSelectedObjects] = useState<string[]>([]);
+  const { t } = useLanguage();
+  const tr = t.assemblyObjectsTranslations;
   { id: 'rag_module', label: 'Cargar modulo RAG', enabled: true },
   // { id: 'api_module', label: 'Cargar modulo API', enabled: false },
   // { id: 'view_module', label: 'Cargar modulo vista', enabled: false },
@@ -240,9 +269,9 @@ export const AssemblyObjects: React.FC<AssemblyObjectsProps> = ({ onBack, onProd
             onClick={onBack}
             className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors mb-4"
           >
-            <ArrowLeft size={16} /> Volver al inicio
+            <ArrowLeft size={16} /> {tr?.backBtn ?? 'Volver al inicio'}
           </button>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Ensamblador de Objetos</h1>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{tr?.title ?? 'Ensamblador de Objetos'}</h1>
         </div>
 
         {/* Formulario */}
@@ -250,7 +279,7 @@ export const AssemblyObjects: React.FC<AssemblyObjectsProps> = ({ onBack, onProd
           <div>
             <input
               type="text"
-              placeholder="Título del proyecto"
+              placeholder={tr?.titlePlaceholder ?? 'Título del proyecto'}
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none text-sm"
@@ -259,6 +288,7 @@ export const AssemblyObjects: React.FC<AssemblyObjectsProps> = ({ onBack, onProd
 
           <div>
             <textarea
+              placeholder={tr?.descPlaceholder ?? 'Descripción del proyecto'}
               placeholder="Descripción del proyecto (instrucciones para el asistente)"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
@@ -397,7 +427,7 @@ export const AssemblyObjects: React.FC<AssemblyObjectsProps> = ({ onBack, onProd
           {/* Selección de objetos */}
           <div>
             <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
-              Seleccionar Objetos:
+              {tr?.selectObjects ?? 'Seleccionar Objetos:'}
             </p>
             <div className="grid grid-cols-2 gap-2">
               {AVAILABLE_OBJECTS.map((obj) => {
@@ -416,7 +446,7 @@ export const AssemblyObjects: React.FC<AssemblyObjectsProps> = ({ onBack, onProd
                       size={14}
                       className={isSelected ? 'text-blue-500 rotate-45 transition-transform' : 'text-gray-400'}
                     />
-                    {obj.label}
+                    {tr?.objects?.[obj.id] ?? OBJECT_FALLBACKS[obj.id]}
                   </button>
                 );
               })}
@@ -467,6 +497,14 @@ export const AssemblyObjects: React.FC<AssemblyObjectsProps> = ({ onBack, onProd
             onClick={handleAssemble}
             className="w-full py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed text-white font-bold rounded-xl transition-colors text-sm flex items-center justify-center gap-2"
           >
+            {tr?.assembleBtn ?? 'Ensamblar'}
+          </button>
+        </div>
+
+        {/* Aviso sin lógica */}
+        <p className="text-xs text-gray-400 dark:text-gray-500 text-center mt-4">
+          {tr?.comingSoon ?? 'Esta funcionalidad estará disponible próximamente.'}
+        </p>
             {loading && <Loader2 size={16} className="animate-spin" />}
             {loading ? 'Ensamblando...' : 'Ensamblar'}
           </button>

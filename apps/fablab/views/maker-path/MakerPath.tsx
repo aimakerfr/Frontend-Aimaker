@@ -17,8 +17,20 @@ const MakerPathView: React.FC = () => {
     setActiveView('template');
   };
 
-  const handleProductCreated = (productId: number) => {
-    navigate(`/product/notebook/${productId}`);
+  const handleProductCreated = (productId: number, templateId: string) => {
+    // Map template types to their corresponding routes
+    const routeMap: Record<string, string> = {
+      'rag_chat_maker': 'notebook',
+      'landing_page_maker': 'landing-page',
+      'image_generator_rag': 'image-generator',
+      'translation_maker': 'notebook', // Default to notebook until specific route is created
+      'architect_ai': 'notebook', // Default to notebook until specific route is created
+      'module_connector': 'notebook', // Default to notebook until specific route is created
+      'custom': 'notebook' // Default
+    };
+    
+    const route = routeMap[templateId] || 'notebook';
+    navigate(`/product/${route}/${productId}`);
   };
 
   if (activeView === 'template') {

@@ -1,8 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { httpClient } from '@core/api/http.client';
 import { getRagMultimodalSourceContent } from '@core/rag_multimodal';
-import { postMakerPathVariable, getMakerPathVariables } from '@core/maker-path-variables/maker-path-variables.service';
-import { saveMakerPathStepProgress } from '@core/maker-path-step-progress/maker-path-step-progress.service';
+import { getProductStepProgress, updateProductStepProgress } from '@core/product-step-progress';
 import { Download, FileCode, ChevronDown } from 'lucide-react';
 
 type ModuleType = 'HEADER' | 'BODY' | 'FOOTER';
@@ -15,6 +14,7 @@ interface HTMLSource {
 
 interface FileGeneratorProps {
   makerPathId?: number;
+  productId?: number; // Add productId for product_step_progress
   stepId?: number;
   onMarkStepComplete?: (stepId: number) => void;
   onMarkComplete?: () => void;
@@ -27,7 +27,8 @@ const MODULE_TYPES: Array<{ type: ModuleType; label: string; color: string; icon
 ];
 
 const FileGenerator: React.FC<FileGeneratorProps> = ({ 
-  makerPathId, 
+  makerPathId,
+  productId, 
   stepId, 
   onMarkStepComplete,
   onMarkComplete 
@@ -92,19 +93,34 @@ const FileGenerator: React.FC<FileGeneratorProps> = ({
   };
 
   const loadPreviousSelections = async () => {
-    if (!makerPathId) return;
+    // Use productId if available (new way), fallback to makerPathId (legacy)
+    const targetId = productId || makerPathId;
+    if (!targetId || !stepId) return;
     
     try {
-      const variables = await getMakerPathVariables(makerPathId);
-      
-      // Look for saved selections (variable_index_number 2 for this step)
-      const savedSelections = variables.find(v => v.variableIndexNumber === 2);
-      
-      if (savedSelections?.variableValue) {
-        const value = savedSelections.variableValue as any;
-        if (value.headerSourceId) setSelectedHeader(value.headerSourceId);
-        if (value.bodySourceId) setSelectedBody(value.bodySourceId);
-        if (value.footerSourceId) setSelectedFooter(value.footerSourceId);
+      if (productId) {
+        // New way: Use product_step_progress
+        const progressData = await getProductStepProgress(productId);
+        const stepProgress = progressData.find(p => p.stepId === stepId);
+        
+        if (stepProgress?.resultText) {
+          const value = stepProgress.resultText;
+          if (value.headerSourceId) setSelectedHeader(value.headerSourceId);
+          if (value.bodySourceId) setSelectedBody(value.bodySourceId);
+          if (value.footerSourceId) setSelectedFooter(value.footerSourceId);
+        }
+      } else if (makerPathId) {
+        // Legacy way: Use maker_path_variables (for backward compatibility)
+        const { getMakerPathVariables } = await import('@core/maker-path-variables/maker-path-variables.service');
+        const variables = await getMakerPathVariables(makerPathId);
+        const savedSelections = variables.find(v => v.variableIndexNumber === 2);
+        
+        if (savedSelections?.variableValue) {
+          const value = savedSelections.variableValue as any;
+          if (value.headerSourceId) setSelectedHeader(value.headerSourceId);
+          if (value.bodySourceId) setSelectedBody(value.bodySourceId);
+          if (value.footerSourceId) setSelectedFooter(value.footerSourceId);
+        }
       }
     } catch (err) {
       console.error('Error loading previous selections:', err);
@@ -112,19 +128,34 @@ const FileGenerator: React.FC<FileGeneratorProps> = ({
   };
 
   const saveSelections = async () => {
-    if (!makerPathId) return;
+    const targetId = productId || makerPathId;
+    if (!targetId || !stepId) return;
     
     try {
-      await postMakerPathVariable({
-        makerPathId,
-        variableIndexNumber: 2,
-        variableName: 'html_module_selections',
-        variableValue: {
-          headerSourceId: selectedHeader,
-          bodySourceId: selectedBody,
-          footerSourceId: selectedFooter
-        }
-      });
+      const selectionData = {
+        headerSourceId: selectedHeader,
+        bodySourceId: selectedBody,
+        footerSourceId: selectedFooter
+      };
+
+      if (productId) {
+        // New way: Use product_step_progress
+        await updateProductStepProgress({
+          productId,
+          stepId,
+          resultText: selectionData,
+          status: 'success'
+        });
+      } else if (makerPathId) {
+        // Legacy way: Use maker_path_variables (for backward compatibility)
+        const { postMakerPathVariable } = await import('@core/maker-path-variables/maker-path-variables.service');
+        await postMakerPathVariable({
+          makerPathId,
+          variableIndexNumber: 2,
+          variableName: 'html_module_selections',
+          variableValue: selectionData
+        });
+      }
     } catch (err) {
       console.error('Error saving selections:', err);
     }
@@ -169,17 +200,31 @@ const FileGenerator: React.FC<FileGeneratorProps> = ({
 
       // Save progress
       if (stepId) {
-        await saveMakerPathStepProgress({
-          makerPathId,
-          stepId,
-          status: 'success',
-          resultText: {
-            fileName: `maker-path-${makerPathId}-index.html`,
-            headerSourceId: selectedHeader,
-            bodySourceId: selectedBody,
-            footerSourceId: selectedFooter
-          }
-        });
+        const progressData = {
+          fileName: `maker-path-${makerPathId || productId}-index.html`,
+          headerSourceId: selectedHeader,
+          bodySourceId: selectedBody,
+          footerSourceId: selectedFooter
+        };
+
+        if (productId) {
+          // New way: Use product_step_progress
+          await updateProductStepProgress({
+            productId,
+            stepId,
+            status: 'success',
+            resultText: progressData
+          });
+        } else if (makerPathId) {
+          // Legacy way: Use maker_path_step_progress (for backward compatibility)
+          const { saveMakerPathStepProgress } = await import('@core/maker-path-step-progress/maker-path-step-progress.service');
+          await saveMakerPathStepProgress({
+            makerPathId,
+            stepId,
+            status: 'success',
+            resultText: progressData
+          });
+        }
       }
 
       // Mark complete

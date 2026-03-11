@@ -17,7 +17,6 @@ const Sidebar: React.FC<SidebarProps> = ({ onLogout }) => {
     // Second position: Objects Library
     { path: '/dashboard/objects-library', label: (t as any).sidebar?.objectsLibrary ?? 'Objects Library', icon: <Boxes size={20} /> },
     // Library section labeled as RAGs
-    { path: '/dashboard/library', label: (t as any).sidebar?.rags ?? 'RAGs', icon: <LibraryIcon size={20} /> },
     // Rename "Chemin du Maker" to "Projects" and place it in 4th position
     { path: '/dashboard/maker-path', label: (t as any).sidebar?.projects ?? 'Projects', icon: <Route size={20} /> },
     // Products section - NEW
