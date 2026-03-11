@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { ArrowRight, BookOpen, Rocket, Box } from 'lucide-react';
+import { useLanguage } from '../../../language/useLanguage';
 
 interface ProjectsHubProps {
   onGoToTemplates: (intention: string) => void;
@@ -13,14 +14,16 @@ export const ProjectsHub: React.FC<ProjectsHubProps> = ({
   onGoToAssembly,
 }) => {
   const [intention, setIntention] = useState('');
+  const { t } = useLanguage();
+  const tr = t.projectsHubTranslations;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50/30 dark:from-gray-900 dark:to-blue-900/10 p-8">
       <div className="max-w-5xl mx-auto">
         {/* Encabezado */}
         <div className="mb-10">
-          <h1 className="text-4xl font-bold text-gray-900 dark:text-white">Proyectos</h1>
-          <p className="text-gray-500 dark:text-gray-400 mt-1">Gestiona y crea tus flujos de trabajo</p>
+          <h1 className="text-4xl font-bold text-gray-900 dark:text-white">{tr?.title ?? 'Proyectos'}</h1>
+          <p className="text-gray-500 dark:text-gray-400 mt-1">{tr?.subtitle ?? 'Gestiona y crea tus flujos de trabajo'}</p>
         </div>
 
         {/* Tres cajitas */}
@@ -29,7 +32,7 @@ export const ProjectsHub: React.FC<ProjectsHubProps> = ({
           {/* Caja 1: Usar una plantilla */}
           <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm p-6 flex flex-col gap-4">
             <p className="text-sm font-semibold text-blue-600 dark:text-blue-400 text-center leading-snug">
-              ¿Quieres clonar y usar un proyecto existente?
+              {tr?.card1Question ?? '¿Quieres clonar y usar un proyecto existente?'}
             </p>
             <div className="flex-1 flex flex-col gap-3">
               <div className="flex items-center gap-2">
@@ -37,13 +40,13 @@ export const ProjectsHub: React.FC<ProjectsHubProps> = ({
                   <BookOpen size={18} className="text-blue-600 dark:text-blue-400" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-gray-900 dark:text-white text-sm">Usar una plantilla</h3>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">Comienza desde una estructura predefinida.</p>
+                  <h3 className="font-bold text-gray-900 dark:text-white text-sm">{tr?.card1Title ?? 'Usar una plantilla'}</h3>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">{tr?.card1Desc ?? 'Comienza desde una estructura predefinida.'}</p>
                 </div>
               </div>
               <input
                 type="text"
-                placeholder="¿Qué quieres crear?"
+                placeholder={tr?.card1Input ?? '¿Qué quieres crear?'}
                 value={intention}
                 onChange={(e) => setIntention(e.target.value)}
                 onKeyDown={(e) => {
@@ -58,14 +61,14 @@ export const ProjectsHub: React.FC<ProjectsHubProps> = ({
               onClick={() => onGoToTemplates(intention.trim())}
               className="w-full flex items-center justify-center gap-2 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-colors text-sm"
             >
-              Continuar <ArrowRight size={16} />
+              {tr?.continueBtn ?? 'Continuar'} <ArrowRight size={16} />
             </button>
           </div>
 
           {/* Caja 2: Desplegar proyecto */}
           <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm p-6 flex flex-col gap-4">
             <p className="text-sm font-semibold text-blue-600 dark:text-blue-400 text-center leading-snug">
-              ¿Ya tienes un proyecto y quieres desplegarlo?
+              {tr?.card2Question ?? '¿Ya tienes un proyecto y quieres desplegarlo?'}
             </p>
             <div className="flex-1 flex flex-col gap-3">
               <div className="flex items-center gap-2">
@@ -73,8 +76,8 @@ export const ProjectsHub: React.FC<ProjectsHubProps> = ({
                   <Rocket size={18} className="text-gray-600 dark:text-gray-400" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-gray-900 dark:text-white text-sm">Desplegar un proyecto</h3>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">Conecta y despliega tu código existente.</p>
+                  <h3 className="font-bold text-gray-900 dark:text-white text-sm">{tr?.card2Title ?? 'Desplegar un proyecto'}</h3>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">{tr?.card2Desc ?? 'Conecta y despliega tu código existente.'}</p>
                 </div>
               </div>
             </div>
@@ -82,14 +85,14 @@ export const ProjectsHub: React.FC<ProjectsHubProps> = ({
               onClick={onGoToDeploy}
               className="w-full flex items-center justify-center gap-2 py-2.5 bg-gray-900 dark:bg-gray-700 hover:bg-gray-800 dark:hover:bg-gray-600 text-white font-semibold rounded-xl transition-colors text-sm"
             >
-              Continuar <ArrowRight size={16} />
+              {tr?.continueBtn ?? 'Continuar'} <ArrowRight size={16} />
             </button>
           </div>
 
           {/* Caja 3: Ensamblador de objetos */}
           <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm p-6 flex flex-col gap-4">
             <p className="text-sm font-semibold text-blue-600 dark:text-blue-400 text-center leading-snug">
-              ¿Quieres crear tu proyecto con módulos de tu biblioteca de objetos?
+              {tr?.card3Question ?? '¿Quieres crear tu proyecto con módulos de tu biblioteca de objetos?'}
             </p>
             <div className="flex-1 flex flex-col gap-3">
               <div className="flex items-center gap-2">
@@ -97,8 +100,8 @@ export const ProjectsHub: React.FC<ProjectsHubProps> = ({
                   <Box size={18} className="text-gray-600 dark:text-gray-400" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-gray-900 dark:text-white text-sm">Ensamblador de objetos</h3>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">Ensambla componentes de tu biblioteca.</p>
+                  <h3 className="font-bold text-gray-900 dark:text-white text-sm">{tr?.card3Title ?? 'Ensamblador de objetos'}</h3>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">{tr?.card3Desc ?? 'Ensambla componentes de tu biblioteca.'}</p>
                 </div>
               </div>
             </div>
@@ -106,7 +109,7 @@ export const ProjectsHub: React.FC<ProjectsHubProps> = ({
               onClick={onGoToAssembly}
               className="w-full flex items-center justify-center gap-2 py-2.5 bg-gray-900 dark:bg-gray-700 hover:bg-gray-800 dark:hover:bg-gray-600 text-white font-semibold rounded-xl transition-colors text-sm"
             >
-              Continuar <ArrowRight size={16} />
+              {tr?.continueBtn ?? 'Continuar'} <ArrowRight size={16} />
             </button>
           </div>
 

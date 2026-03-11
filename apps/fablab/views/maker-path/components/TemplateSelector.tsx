@@ -5,19 +5,22 @@ import {
 } from 'lucide-react';
 import { analyzeIntention, type MakerPathId } from '../utils/intentionAnalyzer';
 import { ProductCreateModal } from './ProductCreateModal';
+import { useLanguage } from '../../../language/useLanguage';
 
 interface TemplateSelectorProps {
   /** Intención que el usuario escribió en la tarjeta principal */
   intention: string;
   onBack: () => void;
-  onProductCreated: (productId: number) => void;
+  onProductCreated: (productId: number, templateId: string) => void;
 }
 
 const TEMPLATES = [
   {
     id: 'rag_chat_maker' as MakerPathId,
-    title: 'Notebook',
-    description: 'Chat inteligente conectado a tus fuentes de datos.',
+    titleKey: 'templateNotebook' as const,
+    descKey: 'templateNotebookDesc' as const,
+    titleFallback: 'Notebook',
+    descFallback: 'Chat inteligente conectado a tus fuentes de datos.',
     icon: MessageSquare,
     color: 'from-purple-500 to-pink-600',
     bgColor: 'from-purple-50 to-pink-50',
@@ -26,8 +29,10 @@ const TEMPLATES = [
   },
   {
     id: 'landing_page_maker' as MakerPathId,
-    title: 'Landing Page',
-    description: 'Crea páginas de aterrizaje optimizadas con RAG.',
+    titleKey: 'templateLanding' as const,
+    descKey: 'templateLandingDesc' as const,
+    titleFallback: 'Landing Page',
+    descFallback: 'Crea páginas de aterrizaje optimizadas con RAG.',
     icon: Layout,
     color: 'from-blue-500 to-indigo-600',
     bgColor: 'from-blue-50 to-indigo-50',
@@ -36,8 +41,10 @@ const TEMPLATES = [
   },
   {
     id: 'image_generator_rag' as MakerPathId,
-    title: 'Generador de imágenes',
-    description: 'Generación de imágenes basada en contextos RAG.',
+    titleKey: 'templateImage' as const,
+    descKey: 'templateImageDesc' as const,
+    titleFallback: 'Generador de imágenes',
+    descFallback: 'Generación de imágenes basada en contextos RAG.',
     icon: ImageIcon,
     color: 'from-emerald-500 to-teal-600',
     bgColor: 'from-emerald-50 to-teal-50',
@@ -46,8 +53,10 @@ const TEMPLATES = [
   },
   {
     id: 'translation_maker' as MakerPathId,
-    title: 'Translation Maker',
-    description: 'Detecta y traduce textos de archivos JSX/TSX automáticamente.',
+    titleKey: 'templateTranslation' as const,
+    descKey: 'templateTranslationDesc' as const,
+    titleFallback: 'Translation Maker',
+    descFallback: 'Detecta y traduce textos de archivos JSX/TSX automáticamente.',
     icon: Languages,
     color: 'from-orange-500 to-red-600',
     bgColor: 'from-orange-50 to-red-50',
@@ -66,6 +75,8 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({
     title: string;
   } | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const { t } = useLanguage();
+  const tr = t.templateSelectorTranslations;
 
   // Si hay intención analiza y filtra sugeridos, si no muestra todos
   const suggestedIds = intention ? analyzeIntention(intention) : [];
@@ -77,7 +88,7 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({
     : [];
 
   const handleSelectTemplate = (template: typeof TEMPLATES[0]) => {
-    setSelectedTemplate({ id: template.id, title: template.title });
+    setSelectedTemplate({ id: template.id, title: tr?.[template.titleKey] ?? template.titleFallback });
     setShowCreateModal(true);
   };
 
@@ -91,10 +102,10 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({
       </div>
       <div className="ml-5 min-w-0 flex-1 text-left">
         <h4 className="font-bold text-gray-900 dark:text-white text-base leading-tight">
-          {template.title}
+          {tr?.[template.titleKey] ?? template.titleFallback}
         </h4>
         <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-          {template.description}
+          {tr?.[template.descKey] ?? template.descFallback}
         </p>
       </div>
       <div className="ml-4 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -112,14 +123,14 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({
             onClick={onBack}
             className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors mb-4"
           >
-            <ArrowLeft size={16} /> Volver al inicio
+            <ArrowLeft size={16} /> {tr?.backBtn ?? 'Volver al inicio'}
           </button>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-            Selecciona una plantilla
+            {tr?.title ?? 'Selecciona una plantilla'}
           </h1>
           {intention && (
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-              Basado en tu intención: <span className="font-medium text-indigo-600 dark:text-indigo-400">"{intention}"</span>
+              {tr?.intentionLabel ?? 'Basado en tu intención:'} <span className="font-medium text-indigo-600 dark:text-indigo-400">"{intention}"</span>
             </p>
           )}
         </div>
@@ -128,7 +139,7 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({
         <div className="space-y-3">
           {suggestedIds.length > 0 && (
             <p className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider mb-2">
-              {suggested.length === 1 ? 'Plantilla sugerida' : 'Plantillas sugeridas'}
+              {suggested.length === 1 ? (tr?.suggestedSingle ?? 'Plantilla sugerida') : (tr?.suggestedMultiple ?? 'Plantillas sugeridas')}
             </p>
           )}
           {suggested.map(t => <TemplateCard key={t.id} template={t} />)}
@@ -139,7 +150,7 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({
           <div className="mt-8 space-y-3">
             <div className="flex items-center gap-3 mb-2">
               <div className="flex-1 h-px bg-gray-200 dark:bg-gray-700" />
-              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Todas las plantillas</p>
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">{tr?.allTemplates ?? 'Todas las plantillas'}</p>
               <div className="flex-1 h-px bg-gray-200 dark:bg-gray-700" />
             </div>
             {rest.map(t => <TemplateCard key={t.id} template={t} />)}
@@ -162,7 +173,7 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({
             const product = await createProductFromTemplate(selectedTemplate.id, title, description);
             setShowCreateModal(false);
             setSelectedTemplate(null);
-            onProductCreated(product.id);
+            onProductCreated(product.id, selectedTemplate.id);
           }}
         />
       )}

@@ -15,6 +15,8 @@ import AuthApp from '@apps/auth/AuthApp';
 import FabLabApp from '@apps/fablab/FabLabApp';
 import Notebook from '@apps/fablab/views/notebook/Notebook';
 import ProductView from '@apps/fablab/views/product/ProductView';
+import LandingPageView from '@apps/fablab/views/product/LandingPageView';
+import ImageGeneratorView from '@apps/fablab/views/product/ImageGeneratorView';
 import TemplateSelector from '@apps/frontend_template_visualizer/components/TemplateSelector';
 import PublicPromptDetails from '@apps/fablab/views/public/prompt/PublicPromptDetails';
 import PublicAssistantDetails from '@apps/fablab/views/public/assistant/PublicAssistantDetails';
@@ -152,6 +154,12 @@ export function AppRouter() {
 
         {/* Public Notebook (Product View) - No auth required, read-only */}
         <Route path="/product/notebook/:id" element={<ProductView />} />
+        
+        {/* Public Landing Page Product View */}
+        <Route path="/product/landing-page/:id" element={<LandingPageView />} />
+        
+        {/* Public Image Generator Product View */}
+        <Route path="/product/image-generator/:id" element={<ImageGeneratorView />} />
         
         {/* Public Prompt - No auth required, read-only (config view) */}
         <Route path="/public/prompt/:id" element={<PublicPromptWrapper />} />

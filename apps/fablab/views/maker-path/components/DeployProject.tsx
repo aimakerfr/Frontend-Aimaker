@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { ArrowLeft, Upload } from 'lucide-react';
+import { useLanguage } from '../../../language/useLanguage';
 
 interface DeployProjectProps {
   onBack: () => void;
@@ -9,6 +10,8 @@ export const DeployProject: React.FC<DeployProjectProps> = ({ onBack }) => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [isDragging, setIsDragging] = useState(false);
+  const { t } = useLanguage();
+  const tr = t.deployProjectTranslations;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50/30 dark:from-gray-900 dark:to-blue-900/10 p-8">
@@ -19,9 +22,9 @@ export const DeployProject: React.FC<DeployProjectProps> = ({ onBack }) => {
             onClick={onBack}
             className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors mb-4"
           >
-            <ArrowLeft size={16} /> Volver al inicio
+            <ArrowLeft size={16} /> {tr?.backBtn ?? 'Volver al inicio'}
           </button>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Desplegar Proyecto</h1>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{tr?.title ?? 'Desplegar Proyecto'}</h1>
         </div>
 
         {/* Formulario */}
@@ -29,7 +32,7 @@ export const DeployProject: React.FC<DeployProjectProps> = ({ onBack }) => {
           <div>
             <input
               type="text"
-              placeholder="Título del proyecto"
+              placeholder={tr?.titlePlaceholder ?? 'Título del proyecto'}
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none text-sm"
@@ -38,7 +41,7 @@ export const DeployProject: React.FC<DeployProjectProps> = ({ onBack }) => {
 
           <div>
             <textarea
-              placeholder="Descripción del proyecto"
+              placeholder={tr?.descPlaceholder ?? 'Descripción del proyecto'}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={4}
@@ -60,7 +63,7 @@ export const DeployProject: React.FC<DeployProjectProps> = ({ onBack }) => {
           >
             <Upload size={28} className="text-gray-400 dark:text-gray-500 mb-3" />
             <p className="text-sm text-gray-500 dark:text-gray-400">
-              Haz clic para subir la carpeta del proyecto
+              {tr?.uploadLabel ?? 'Haz clic para subir la carpeta del proyecto'}
             </p>
             <input
               id="deploy-folder-input"
@@ -75,7 +78,7 @@ export const DeployProject: React.FC<DeployProjectProps> = ({ onBack }) => {
 
         {/* Aviso sin lógica */}
         <p className="text-xs text-gray-400 dark:text-gray-500 text-center mt-4">
-          Esta funcionalidad estará disponible próximamente.
+          {tr?.comingSoon ?? 'Esta funcionalidad estará disponible próximamente.'}
         </p>
       </div>
     </div>
