@@ -54,7 +54,8 @@ export async function createAssemblerMakerPath(
     throw new Error(message);
   }
 
-  const data = body as MakerPathResponseMinimal;
+  // Extract data from the response envelope { success, data, error, meta }
+  const data = (body?.data || body) as MakerPathResponseMinimal;
   if (!data || typeof data.editionUrl !== 'string' || data.editionUrl.length === 0) {
     throw new Error('Missing editionUrl in response');
   }

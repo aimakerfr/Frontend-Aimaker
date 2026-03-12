@@ -45,8 +45,22 @@ const AssemblerNew: React.FC = () => {
         description: description.trim(),
       });
       let url = res.editionUrl || '';
-      if (url && !url.startsWith('/')) url = `/${url}`;
       if (!url) throw new Error('Missing editionUrl');
+      
+      // Handle both absolute URLs (http://...) and relative URLs (/dashboard/...)
+      if (url.startsWith('http://') || url.startsWith('https://')) {
+        // Extract pathname from absolute URL for client-side navigation
+        try {
+          const urlObj = new URL(url);
+          url = urlObj.pathname + urlObj.search;
+        } catch {
+          // If URL parsing fails, use as-is
+        }
+      } else if (!url.startsWith('/')) {
+        // Ensure relative URLs start with /
+        url = `/${url}`;
+      }
+      
       navigate(url);
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : 'Failed to create project';
