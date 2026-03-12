@@ -4,7 +4,7 @@ import ChatInstructionNotebookSelector from '../../modules/object-selector/View/
 import { MainVisualTemplateNotebookSelector } from '../../modules/object-selector/View/Notebook/MainVisualTemplateNotebookSelector.tsx';
 import type { ObjectItem } from '../../modules/object-selector/services/api_handler';
 import { useLanguage } from '../../language/useLanguage';
-import { tokenStorage } from '../../../../core/src/api/http.client';
+import { tokenStorage } from '@core/api/http.client.ts';
 
 // Fixed module index identifiers for the notebook product
 type ModuleKey = 1 | 2 | 3 | 4 | 5;

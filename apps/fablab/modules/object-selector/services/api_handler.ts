@@ -1,6 +1,6 @@
 import { httpClient } from '@core/api/http.client';
 
-export const OBJECTS_ENDPOINT = '/api/v1/objects';
+export const OBJECTS_ENDPOINT = '/api/v1/objects/by-assembly';
 
 export type ObjectType =
   | 'PDF'
@@ -48,10 +48,6 @@ export async function fetchObjectsByAssemblyHints(params: GetObjectsParams): Pro
 
   if (params.module_name_for_assembly) {
     searchParams.set('module_name_for_assembly', params.module_name_for_assembly);
-  }
-
-  if (params.maker_path_id) {
-    searchParams.set('maker_path_id', params.maker_path_id.toString());
   }
 
   const queryString = searchParams.toString();

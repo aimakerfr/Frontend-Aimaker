@@ -1080,6 +1080,19 @@ export const fr: Translations = {
     },
 
   assembler: {
+    new: {
+      title: 'Sélectionnez un type de projet',
+      notebookTitle: 'Notebook',
+      notebookDesc: 'Chat intelligent connecté à vos sources de données.',
+      landingTitle: 'Landing Page',
+      landingDesc: "Créez des pages d'atterrissage optimisées avec RAG.",
+      selected: 'Sélectionné',
+      titlePlaceholder: 'Titre du projet',
+      descriptionPlaceholder: 'Description du projet',
+      createCta: 'Créer Projet',
+      creatingLabel: 'Création...',
+      errorCreating: 'Erreur lors de la création du projet',
+    },
     notebook: {
       title: 'Modules du projet',
       subtitle: 'Sélectionnez la configuration depuis la bibliothèque d’objets pour assembler le notebook.',
