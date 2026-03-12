@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { ApiKeyNotebookSelector } from '../../modules/object-selector/View/Notebook/ApiKeyNotebookSelector.tsx';
 import ChatInstructionNotebookSelector from '../../modules/object-selector/View/Notebook/ChatInstructionNotebookSelector.tsx';
 import { MainVisualTemplateNotebookSelector } from '../../modules/object-selector/View/Notebook/MainVisualTemplateNotebookSelector.tsx';
@@ -37,11 +38,13 @@ type NotebookInputModule = {
 
 type NotebookExactInputDTO = {
   PRODUCT_TYPE: 'notebook';
+  MAKER_PATH_ID: number;
   INPUT_MODULES: NotebookInputModule[];
 };
 
 const NotebookAssembler: React.FC = () => {
   const { t } = useLanguage();
+  const [searchParams] = useSearchParams();
   const [openModal, setOpenModal] = useState<null | ModuleName>(null);
   const [apiKeyModule, setApiKeyModule] = useState<ModuleSelection | null>(null);
   const [chatInstructionModule, setChatInstructionModule] = useState<ModuleSelection | null>(null);
@@ -49,9 +52,10 @@ const NotebookAssembler: React.FC = () => {
   const [exactDto, setExactDto] = useState<NotebookExactInputDTO | null>(null);
   const [showPreview, setShowPreview] = useState<boolean>(false);
   const [showIncompleteAlert, setShowIncompleteAlert] = useState<boolean>(false);
-  const [isValidating, setIsValidating] = useState<boolean>(false);
-  const [validateResult, setValidateResult] = useState<null | 'valid' | 'invalid'>(null);
-  const [validateMessage, setValidateMessage] = useState<string | null>(null);
+  const [isAssembling, setIsAssembling] = useState<boolean>(false);
+  const [assembleResult, setAssembleResult] = useState<null | 'success' | 'error'>(null);
+  const [assembleMessage, setAssembleMessage] = useState<string | null>(null);
+  const [validateClicked, setValidateClicked] = useState<boolean>(false);
 
   const modules: ModuleDefinition[] = useMemo(() => {
     const notebookTranslations = t?.assembler?.notebook;
@@ -115,6 +119,8 @@ const NotebookAssembler: React.FC = () => {
       setMainVisualTemplateModule(selection);
     }
     setOpenModal(null);
+    // Reset validate button when user changes selection
+    setValidateClicked(false);
   };
 
   // Helper to build the exact input DTO when ready
@@ -126,8 +132,20 @@ const NotebookAssembler: React.FC = () => {
       Number.isNaN(chatInstructionModule.object_id) ||
       Number.isNaN(mainVisualTemplateModule.object_id)
     ) return null;
+    
+    // Extract maker_path_id from URL query parameter
+    const makerPathIdParam = searchParams.get('id');
+    const makerPathId = makerPathIdParam ? parseInt(makerPathIdParam, 10) : null;
+    
+    // Validate maker_path_id is present and a valid number
+    if (!makerPathId || Number.isNaN(makerPathId)) {
+      console.error('Missing or invalid maker_path_id in URL');
+      return null;
+    }
+    
     return {
       PRODUCT_TYPE: 'notebook',
+      MAKER_PATH_ID: makerPathId,
       INPUT_MODULES: [
         { index: 3 as const, module_name_for_assembly: 'api_key', object_id: apiKeyModule.object_id },
         { index: 4 as const, module_name_for_assembly: 'chat_instruction', object_id: chatInstructionModule.object_id },
@@ -157,29 +175,36 @@ const NotebookAssembler: React.FC = () => {
     console.log('NOTEBOOK ASSEMBLY DTO:', dto);
     setShowIncompleteAlert(false);
     setShowPreview(true);
-    // reset validation status when assembling a new DTO
-    setValidateResult(null);
-    setValidateMessage(null);
+    // reset assembly status when building a new DTO
+    setAssembleResult(null);
+    setAssembleMessage(null);
   };
 
-  type ValidateResponse = {
-    success?: boolean;
+  type AssembleResponse = {
+    maker_path_id?: number;
+    output_dir?: string;
+    files?: Array<{
+      module: string;
+      filename: string;
+      path: string;
+      source: string;
+    }>;
     message?: string;
     error?: { code?: string; message?: string } | null;
   };
 
-  const handleValidate = async (): Promise<void> => {
+  const handleFinalAssemble = async (): Promise<void> => {
     if (!exactDto) return;
-    setIsValidating(true);
-    setValidateResult(null);
-    setValidateMessage(null);
+    setIsAssembling(true);
+    setAssembleResult(null);
+    setAssembleMessage(null);
 
     try {
       const apiUrl = import.meta.env.VITE_API_URL;
       const baseUrl = apiUrl ? apiUrl.replace(/\/$/, '') : '';
       const token = tokenStorage.get();
 
-      const response = await fetch(`${baseUrl}/api/v1/assembler/notebook/validate`, {
+      const response = await fetch(`${baseUrl}/api/v1/assembler/notebook/assemble`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -190,23 +215,27 @@ const NotebookAssembler: React.FC = () => {
 
       const contentType = response.headers.get('Content-Type') || '';
       const isJson = contentType.includes('application/json');
-      const body: ValidateResponse | null = isJson ? await response.json() : null;
+      const body: AssembleResponse | null = isJson ? await response.json() : null;
 
       if (response.ok) {
-        setValidateResult('valid');
-        setValidateMessage(body?.message ?? null);
+        setAssembleResult('success');
+        const filesCount = body?.files?.length ?? 0;
+        const successMsg = `Successfully assembled! ${filesCount} files generated in ${body?.output_dir ?? ''}`;
+        setAssembleMessage(body?.message ?? successMsg);
+        // eslint-disable-next-line no-console
+        console.log('ASSEMBLY RESULT:', body);
       } else {
-        setValidateResult('invalid');
+        setAssembleResult('error');
         const errorMsg =
           (body && (body.error?.message || body.message)) || `${response.status} ${response.statusText}`;
-        setValidateMessage(errorMsg);
+        setAssembleMessage(errorMsg);
       }
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Validation failed';
-      setValidateResult('invalid');
-      setValidateMessage(message);
+      const message = err instanceof Error ? err.message : 'Assembly failed';
+      setAssembleResult('error');
+      setAssembleMessage(message);
     } finally {
-      setIsValidating(false);
+      setIsAssembling(false);
     }
   };
 
@@ -254,20 +283,6 @@ const NotebookAssembler: React.FC = () => {
                 'Selecciona la configuración desde la librería de objetos para ensamblar el notebook.'}
             </p>
           </div>
-          <button
-            type="button"
-            onClick={handleAssemble}
-            disabled={!isComplete}
-            aria-disabled={!isComplete}
-            className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900 transition ${
-              isComplete
-                ? 'bg-brand-600 text-white hover:bg-brand-700'
-                : 'bg-gray-300 text-gray-600 cursor-not-allowed dark:bg-gray-700 dark:text-gray-300'
-            }`}
-            title={!isComplete ? (t?.assembler?.notebook?.assembleDisabledHint ?? '') : undefined}
-          >
-            {t?.assembler?.notebook?.assembleCta ?? 'Ensamblar objetos'}
-          </button>
         </div>
       </div>
 
@@ -421,15 +436,15 @@ const NotebookAssembler: React.FC = () => {
           <div className="mb-3 flex items-center justify-between gap-3">
             <button
               type="button"
-              onClick={handleValidate}
-              disabled={isValidating}
+              onClick={handleFinalAssemble}
+              disabled={isAssembling}
               className={`inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-semibold shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900 transition ${
-                isValidating
+                isAssembling
                   ? 'bg-gray-300 text-gray-600 cursor-not-allowed dark:bg-gray-700 dark:text-gray-300'
                   : 'bg-emerald-600 text-white hover:bg-emerald-700'
               }`}
             >
-              {isValidating && (
+              {isAssembling && (
                 <svg
                   aria-hidden="true"
                   className="h-4 w-4 animate-spin"
@@ -440,33 +455,51 @@ const NotebookAssembler: React.FC = () => {
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
                 </svg>
               )}
-              {t?.assembler?.notebook?.validateCta ?? 'Validate'}
+              {t?.assembler?.notebook?.assembleCta ?? 'Ensamblar objetos'}
             </button>
 
             <div className="min-h-5 flex-1 text-right">
-              {isValidating && (
-                <span className="text-sm text-gray-700 dark:text-gray-300">{t?.assembler?.notebook?.validatingLabel ?? 'Validating...'}</span>
+              {isAssembling && (
+                <span className="text-sm text-gray-700 dark:text-gray-300">{t?.assembler?.notebook?.assemblingLabel ?? 'Ensamblando...'}</span>
               )}
-              {!isValidating && validateResult === 'valid' && (
+              {!isAssembling && assembleResult === 'success' && (
                 <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-xs font-semibold text-green-800 dark:bg-green-900/40 dark:text-green-200">
                   <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
-                  {t?.assembler?.notebook?.validLabel ?? 'VALID'}
+                  {t?.assembler?.notebook?.assembledLabel ?? 'ENSAMBLADO'}
                 </span>
               )}
-              {!isValidating && validateResult === 'invalid' && (
+              {!isAssembling && assembleResult === 'error' && (
                 <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-800 dark:bg-red-900/40 dark:text-red-200">
                   <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
-                  {t?.assembler?.notebook?.invalidLabel ?? 'NOT VALID'}
+                  {t?.assembler?.notebook?.assembleErrorLabel ?? 'ERROR'}
                 </span>
               )}
             </div>
           </div>
-          {validateMessage && (
-            <div className="mb-2 text-xs text-gray-700 dark:text-gray-300">{validateMessage}</div>
+          {assembleMessage && (
+            <div className="mb-2 text-xs text-gray-700 dark:text-gray-300">{assembleMessage}</div>
           )}
           <pre className="overflow-x-auto rounded-lg bg-gray-900/80 p-3 text-xs text-green-100 dark:bg-gray-800">{JSON.stringify(exactDto, null, 2)}</pre>
         </div>
+        
       )}
+      <button
+            type="button"
+            onClick={() => {
+              handleAssemble();
+              setValidateClicked(true);
+            }}
+            disabled={!isComplete || validateClicked}
+            aria-disabled={!isComplete || validateClicked}
+            className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900 transition ${
+              isComplete && !validateClicked
+                ? 'bg-brand-600 text-white hover:bg-brand-700'
+                : 'bg-gray-300 text-gray-600 cursor-not-allowed dark:bg-gray-700 dark:text-gray-300'
+            }`}
+            title={!isComplete ? (t?.assembler?.notebook?.assembleDisabledHint ?? '') : undefined}
+          >
+            {t?.assembler?.notebook?.validateCta ?? 'Validar'}
+          </button>
     </div>
   );
 };
