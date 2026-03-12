@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ProjectsHub } from './components/ProjectsHub';
 import { TemplateSelector } from './components/TemplateSelector';
 import { DeployProject } from './components/DeployProject';
-import { AssemblyObjects } from './components/AssemblyObjects';
+// import { AssemblyObjects } from './components/AssemblyObjects';
 
 type ActiveView = 'hub' | 'template' | 'deploy' | 'assembly';
 
@@ -48,19 +48,16 @@ const MakerPathView: React.FC = () => {
   }
 
   if (activeView === 'assembly') {
-    return (
-      <AssemblyObjects
-        onBack={() => setActiveView('hub')}
-        onProductCreated={handleProductCreated}
-      />
-    );
+    // Legacy in-place assembly view: now we navigate to /assembler/new
+    navigate('dashboard/assembler/new');
+    return null;
   }
 
   return (
     <ProjectsHub
       onGoToTemplates={handleGoToTemplates}
       onGoToDeploy={() => setActiveView('deploy')}
-      onGoToAssembly={() => setActiveView('assembly')}
+      onGoToAssembly={() => navigate('/dashboard/assembler/new')}
     />
   );
 };

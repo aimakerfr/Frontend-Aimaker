@@ -16,7 +16,7 @@ export const ApiKeyNotebookSelector: React.FC<ApiKeyNotebookSelector> = ({
 }) => {
   return (
     <GenericObjectSelector
-      type="CONFIG"
+      type="TEXT"
       product_type_for_assembly="notebook"
       module_name_for_assembly="api_key"
       onObjectSelectionCallback={onObjectSelectionCallback}

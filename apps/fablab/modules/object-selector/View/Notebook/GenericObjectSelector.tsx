@@ -140,7 +140,7 @@ export const GenericObjectSelector: React.FC<GenericObjectSelectorProps> = ({
               type="button"
               className="inline-flex items-center rounded-md bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900"
               onClick={() => {
-                // Print selected object id before executing callback
+                // Print the selected object id before executing callback
                 // eslint-disable-next-line no-console
                 console.log('SELECT:', object.id);
                 setCurrentSelected({ id: object.id, name: object.name });
