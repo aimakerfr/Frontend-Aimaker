@@ -1080,6 +1080,64 @@ export const en: Translations = {
       },
     },
 
+  assembler: {
+    new: {
+      title: 'Select a project type',
+      notebookTitle: 'Notebook',
+      notebookDesc: 'Smart chat connected to your data sources.',
+      landingTitle: 'Landing Page',
+      landingDesc: 'Create landing pages optimized with RAG.',
+      selected: 'Selected',
+      titlePlaceholder: 'Project title',
+      descriptionPlaceholder: 'Project description',
+      createCta: 'Create Project',
+      creatingLabel: 'Creating...',
+      errorCreating: 'Error creating project',
+    },
+    notebook: {
+      title: 'Project modules',
+      subtitle: 'Select the configuration from the object library to assemble the notebook.',
+      assembleCta: 'Assemble objects',
+      reselect: 'Select again',
+      selectFromLibrary: 'Select from object library',
+      lockedLabel: 'Locked module',
+      assembleDisabledHint: 'Complete required modules to assemble',
+      validateCta: 'Validate',
+      validatingLabel: 'Validating...',
+      validLabel: 'VALID',
+      invalidLabel: 'NOT VALID',
+      assemblingLabel: 'Assembling...',
+      assembledLabel: 'ASSEMBLED',
+      assembleErrorLabel: 'ERROR',
+      configPreviewTitle: 'Configuration DTO',
+      configSummaryLabel: 'configured',
+      incompleteTitle: 'Incomplete configuration',
+      incompleteMessage: 'Some required modules have not been selected.',
+      modules: {
+        rag: {
+          title: 'RAG Module',
+          description: 'Base module (Not editable)',
+        },
+        assistant: {
+          title: 'Assistant Module',
+          description: 'Base module (Not editable)',
+        },
+        apiKey: {
+          title: 'API key',
+          description: 'Requires configuration from library',
+        },
+        assistantInstruction: {
+          title: 'Assistant instruction',
+          description: 'Requires configuration from library',
+        },
+        visualTemplate: {
+          title: 'Visual Template',
+          description: 'Requires configuration from library',
+        },
+      },
+    },
+  },
+
 
 
   // Auto-generated translations from Translation Maker

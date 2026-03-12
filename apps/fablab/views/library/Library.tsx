@@ -574,7 +574,7 @@ const Library = () => {
     
     console.log('  📤 Calling loadCreationTools with:', filters);
     loadCreationTools(filters);
-  }, [activeFilter, typeFilter]);
+  }, [activeFilter, loadCreationTools, typeFilter]);
 
   const handleDelete = async (itemId: number) => {
     if (!confirm(t.library.confirmDelete)) return;

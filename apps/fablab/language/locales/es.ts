@@ -1080,6 +1080,64 @@ export const es: Translations = {
       },
     },
 
+  assembler: {
+    new: {
+      title: 'Selecciona un tipo de proyecto',
+      notebookTitle: 'Notebook',
+      notebookDesc: 'Chat inteligente conectado a tus fuentes de datos.',
+      landingTitle: 'Landing Page',
+      landingDesc: 'Crea páginas de aterrizaje optimizadas con RAG.',
+      selected: 'Seleccionado',
+      titlePlaceholder: 'Título del proyecto',
+      descriptionPlaceholder: 'Descripción del proyecto',
+      createCta: 'Crear Proyecto',
+      creatingLabel: 'Creando...',
+      errorCreating: 'Error al crear el proyecto',
+    },
+    notebook: {
+      title: 'Módulos del Proyecto',
+      subtitle: 'Selecciona la configuración desde la librería de objetos para ensamblar el notebook.',
+      assembleCta: 'Ensamblar objetos',
+      reselect: 'Volver a seleccionar',
+      selectFromLibrary: 'Seleccionar desde librería de objetos',
+      lockedLabel: 'Módulo bloqueado',
+      assembleDisabledHint: 'Completa los módulos requeridos para ensamblar',
+      validateCta: 'Validar',
+      validatingLabel: 'Validando...',
+      validLabel: 'VÁLIDO',
+      invalidLabel: 'NO VÁLIDO',
+      assemblingLabel: 'Ensamblando...',
+      assembledLabel: 'ENSAMBLADO',
+      assembleErrorLabel: 'ERROR',
+      configPreviewTitle: 'DTO de configuración',
+      configSummaryLabel: 'configurados',
+      incompleteTitle: 'Configuración incompleta',
+      incompleteMessage: 'Algunos módulos requeridos no han sido seleccionados.',
+      modules: {
+        rag: {
+          title: 'Módulo RAG',
+          description: 'Módulo base (No modificable)',
+        },
+        assistant: {
+          title: 'Módulo de Asistente',
+          description: 'Módulo base (No modificable)',
+        },
+        apiKey: {
+          title: 'API key',
+          description: 'Requiere configuración desde librería',
+        },
+        assistantInstruction: {
+          title: 'Instrucción del asistente',
+          description: 'Requiere configuración desde librería',
+        },
+        visualTemplate: {
+          title: 'Plantilla visual',
+          description: 'Requiere configuración desde librería',
+        },
+      },
+    },
+  },
+
 
 
   // Auto-generated translations from Translation Maker

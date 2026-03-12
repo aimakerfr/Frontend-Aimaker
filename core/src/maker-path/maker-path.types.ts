@@ -26,6 +26,14 @@ export interface MakerPath {
   createdAt: string;
   updatedAt: string | null;
   userId: number;
+  rag?: {
+    id: number;
+    cag: string | null;
+    tool?: {
+      id: number;
+      title: string | null;
+    } | null;
+  } | null;
 }
 
 export interface MakerPathsParams {
@@ -56,4 +64,3 @@ export interface UpdateMakerPathRequest {
   productStatus?: 'public' | 'private';
   editionUrl?: string;
 }
-  

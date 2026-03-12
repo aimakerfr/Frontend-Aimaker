@@ -1068,7 +1068,7 @@ export const fr: Translations = {
       },
       outputSaver: {
         title: 'Voir et Télécharger le Résultat',
-        subtitle: 'Prévisualisez votre image générée et téléchargez en haute qualité',
+        subtitle: 'Prévisualisez votre image générée et téléchargez-la en haute qualité',
         imageLabel: 'Image Générée',
         downloadBtn: 'Télécharger l\'Image en Haute Qualité',
         downloadedBtn: 'Téléchargé ! Étape complète',
@@ -1078,7 +1078,65 @@ export const fr: Translations = {
         errorDownload: 'Échec du téléchargement de l\'image',
       },
     },
-  
+
+  assembler: {
+    new: {
+      title: 'Sélectionnez un type de projet',
+      notebookTitle: 'Notebook',
+      notebookDesc: 'Chat intelligent connecté à vos sources de données.',
+      landingTitle: 'Landing Page',
+      landingDesc: "Créez des pages d'atterrissage optimisées avec RAG.",
+      selected: 'Sélectionné',
+      titlePlaceholder: 'Titre du projet',
+      descriptionPlaceholder: 'Description du projet',
+      createCta: 'Créer Projet',
+      creatingLabel: 'Création...',
+      errorCreating: 'Erreur lors de la création du projet',
+    },
+    notebook: {
+      title: 'Modules du projet',
+      subtitle: 'Sélectionnez la configuration depuis la bibliothèque d’objets pour assembler le notebook.',
+      assembleCta: 'Assembler les objets',
+      reselect: 'Sélectionner à nouveau',
+      selectFromLibrary: 'Sélectionner depuis la bibliothèque d’objets',
+      lockedLabel: 'Module verrouillé',
+      assembleDisabledHint: 'Complétez les modules requis pour assembler',
+      validateCta: 'Valider',
+      validatingLabel: 'Validation...',
+      validLabel: 'VALIDE',
+      invalidLabel: 'NON VALIDE',
+      assemblingLabel: 'Assemblage...',
+      assembledLabel: 'ASSEMBLÉ',
+      assembleErrorLabel: 'ERREUR',
+      configPreviewTitle: 'DTO de configuration',
+      configSummaryLabel: 'configurés',
+      incompleteTitle: 'Configuration incomplète',
+      incompleteMessage: 'Certains modules requis n’ont pas été sélectionnés.',
+      modules: {
+        rag: {
+          title: 'Module RAG',
+          description: 'Module de base (non modifiable)',
+        },
+        assistant: {
+          title: 'Module Assistant',
+          description: 'Module de base (non modifiable)',
+        },
+        apiKey: {
+          title: 'API key',
+          description: 'Nécessite une configuration depuis la bibliothèque',
+        },
+        assistantInstruction: {
+          title: 'Instruction de l’assistant',
+          description: 'Nécessite une configuration depuis la bibliothèque',
+        },
+        visualTemplate: {
+          title: 'Template visuel',
+          description: 'Nécessite une configuration depuis la bibliothèque',
+        },
+      },
+    },
+  },
+
 
   // Auto-generated translations from Translation Maker
   demoWorkflowsTranslations: {
