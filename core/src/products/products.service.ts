@@ -7,7 +7,8 @@ import { httpClient } from '../api/http.client';
 import type { 
   Product, 
   ProductsParams, 
-  UpdateProductRequest 
+  UpdateProductRequest,
+  ProductType
 } from './products.types';
 
 const ENDPOINT = '/api/v1/products';
@@ -109,4 +110,45 @@ export const updateProduct = async (
  */
 export const deleteProduct = async (id: number): Promise<void> => {
   return httpClient.delete<void>(`${ENDPOINT}/${id}`);
+};
+
+/**
+ * Returns the first product of the given type for the current user, creating it from
+ * a template only if it does not exist. Uses localStorage to avoid accidental
+ * duplicated creations across reloads.
+ */
+export const getOrCreateProductByType = async (
+  type: ProductType,
+  defaults: { title: string; description?: string }
+): Promise<Product> => {
+  const storageKey = `fixed_product_id:${type}`;
+
+  // 1) Try cached id first to keep a stable entry
+  const cachedId = typeof window !== 'undefined' ? window.localStorage.getItem(storageKey) : null;
+  if (cachedId) {
+    try {
+      const byId = await getProduct(parseInt(cachedId, 10));
+      // Si el id cacheado no coincide con el tipo, invalidamos cache y seguimos
+      if (byId?.type !== type) {
+        if (typeof window !== 'undefined') window.localStorage.removeItem(storageKey);
+      } else {
+        return byId;
+      }
+    } catch {
+      if (typeof window !== 'undefined') window.localStorage.removeItem(storageKey);
+    }
+  }
+
+  // 2) Try existing products of that type (should be user-scoped from API)
+  const existing = await getProducts({ type });
+  if (Array.isArray(existing) && existing.length > 0) {
+    const first = existing[0];
+    if (typeof window !== 'undefined') window.localStorage.setItem(storageKey, String(first.id));
+    return first;
+  }
+
+  // 3) Create once if nothing exists
+  const created = await createProductFromTemplate(type, defaults.title, defaults.description ?? '');
+  if (typeof window !== 'undefined') window.localStorage.setItem(storageKey, String(created.id));
+  return created;
 };

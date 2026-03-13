@@ -6,7 +6,9 @@ import {
   getProducts, 
   deleteProduct,
   updateProduct,
-  type Product
+  getOrCreateProductByType,
+  type Product,
+  type ProductType
 } from '@core/products';
 
 type FilterType = 'all' | 'favorites';
@@ -18,6 +20,7 @@ interface ProductsViewProps {
   isLoading?: boolean;
   activeFilter?: FilterType;
   setActiveFilter?: (filter: FilterType) => void;
+  fixedItems?: Product[];
 }
 
 const ProductsView: React.FC<ProductsViewProps> = ({
@@ -26,13 +29,15 @@ const ProductsView: React.FC<ProductsViewProps> = ({
   onTogglePublic,
   isLoading = false,
   activeFilter: activeFilterProp,
-  setActiveFilter: setActiveFilterProp
+  setActiveFilter: setActiveFilterProp,
+  fixedItems = [],
 }) => {
   const navigate = useNavigate();
   const { t } = useLanguage();
 
   const [localActiveFilter, setLocalActiveFilter] = useState<FilterType>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const FIXED_TYPES: ProductType[] = ['landing_page_maker', 'image_generator_rag', 'translation_maker'];
   
   // Function to get the correct route based on product type
   const getProductRoute = (type: string, id: number): string => {
@@ -46,6 +51,12 @@ const ProductsView: React.FC<ProductsViewProps> = ({
       'custom': 'notebook' // Default
     };
     const route = routeMap[type] || 'notebook';
+
+    // Productos fijos no dependen de un id (evita colisiones con notebooks u otros)
+    if (['landing_page_maker', 'image_generator_rag', 'translation_maker'].includes(type)) {
+      return `/product/${route}`;
+    }
+
     return `/product/${route}/${id}`;
   };
   
@@ -53,7 +64,7 @@ const ProductsView: React.FC<ProductsViewProps> = ({
   const setActiveFilter = setActiveFilterProp ?? setLocalActiveFilter;
 
   const getFilteredProducts = () => {
-    let filtered = items;
+    let filtered = items.filter((product) => !FIXED_TYPES.includes(product.type));
 
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
@@ -154,12 +165,109 @@ const ProductsView: React.FC<ProductsViewProps> = ({
                 <div className="inline-block w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
                 <p className="mt-4">{t.common.loading}</p>
               </div>
-            ) : filteredItems.length === 0 ? (
-              <div className="px-6 py-16 text-center text-gray-500">{t.products.noResults}</div>
             ) : (
               <div>
-                {filteredItems.map((item: Product, index: number) => {
-                  return (
+                {/* Fijos */}
+                {fixedItems.length > 0 && (
+                  <div className="border-b border-gray-100 dark:border-gray-700 bg-blue-50/30 dark:bg-blue-900/10">
+                    {fixedItems.map((item: Product) => {
+                      const fixedTitle = item.type === 'landing_page_maker'
+                        ? t.products.fixed.landingTitle
+                        : item.type === 'image_generator_rag'
+                          ? t.products.fixed.imageTitle
+                          : t.products.fixed.translationTitle;
+                      const fixedDesc = item.type === 'landing_page_maker'
+                        ? t.products.fixed.landingDesc
+                        : item.type === 'image_generator_rag'
+                          ? t.products.fixed.imageDesc
+                          : t.products.fixed.translationDesc;
+                      return (
+                      <div 
+                        key={`fixed-${item.type}`}
+                        className="grid grid-cols-12 gap-4 px-6 py-6 items-center"
+                      >
+                        <div className="col-span-1">
+                          <div className="flex flex-col items-center gap-1">
+                            <div className={`w-12 h-12 rounded-xl ${getTypeColor(item.type)} flex items-center justify-center shadow-lg`}>
+                              <Package size={24} className="text-white" />
+                            </div>
+                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 font-semibold">{t.products.fixed.badge}</span>
+                          </div>
+                        </div>
+
+                        <div className="col-span-4">
+                          <h3 className="text-base font-bold text-gray-900 dark:text-white mb-1">
+                            {fixedTitle}
+                          </h3>
+                          <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2">
+                            {fixedDesc}
+                          </p>
+                        </div>
+
+                        <div className="col-span-2">
+                          <div className="text-sm text-gray-700 dark:text-gray-300">
+                            <span className="font-semibold">{getTypeLabel(item.type)}</span>
+                            <div className="text-xs text-gray-500">{t.products.fixed.productLabel}</div>
+                          </div>
+                        </div>
+
+                        <div className="col-span-2">
+                          <button
+                            onClick={() => navigate(getProductRoute(item.type, item.id))}
+                            className="inline-flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 border-2 border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-xl font-semibold transition-all text-sm hover:scale-105"
+                          >
+                            <Eye size={16} />
+                            {t.products.fixed.open}
+                          </button>
+                        </div>
+
+                        <div className="col-span-2">
+                          <div className="flex flex-col gap-2">
+                            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400">{t.products.fixed.alwaysActive}</span>
+                            {onTogglePublic && (
+                              <button
+                                onClick={() => onTogglePublic(item.id, !item.isPublic)}
+                                className={`inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${
+                                  item.isPublic
+                                    ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 hover:bg-blue-200 dark:hover:bg-blue-900/40'
+                                    : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'
+                                }`}
+                                title={item.isPublic ? t.products.buttons.makePrivate : t.products.buttons.makePublic}
+                              >
+                                {item.isPublic ? (
+                                  <>
+                                    <Globe size={12} />
+                                    {t.products.status.public}
+                                  </>
+                                ) : (
+                                  <>
+                                    <Lock size={12} />
+                                    {t.products.status.private}
+                                  </>
+                                )}
+                              </button>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="col-span-1">
+                          <div className="text-xs text-gray-500 dark:text-gray-400">{item.createdAt ? new Date(item.createdAt).toLocaleDateString() : ''}</div>
+                        </div>
+                      </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {fixedItems.length > 0 && filteredItems.length > 0 && (
+                  <div className="px-6 py-2 text-xs uppercase tracking-wide text-gray-400 dark:text-gray-500 border-b border-gray-100 dark:border-gray-700">{t.products.fixed.divider}</div>
+                )}
+
+                {/* Normales */}
+                {filteredItems.length === 0 ? (
+                  <div className="px-6 py-16 text-center text-gray-500">{t.products.noResults}</div>
+                ) : (
+                  filteredItems.map((item: Product, index: number) => (
                     <div 
                       key={item.id} 
                       className={`grid grid-cols-12 gap-4 px-6 py-6 items-center hover:bg-blue-50/50 dark:hover:bg-blue-900/10 transition-all ${
@@ -260,8 +368,8 @@ const ProductsView: React.FC<ProductsViewProps> = ({
                         </div>
                       </div>
                     </div>
-                  );
-                })}
+                  ))
+                )}
               </div>
             )}
           </div>
@@ -274,10 +382,28 @@ const ProductsView: React.FC<ProductsViewProps> = ({
 // Componente contenedor que maneja la carga de datos desde la API
 const Products = () => {
   const [items, setItems] = useState<Product[]>([]);
+  const [fixedItems, setFixedItems] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activeFilter, setActiveFilter] = useState<FilterType>('all');
   const { t } = useLanguage();
+
+  const loadFixedProducts = async () => {
+    try {
+      const fixedTypes: Array<{ type: ProductType; title: string; description: string }> = [
+        { type: 'landing_page_maker', title: t.products.fixed.landingTitle, description: t.products.fixed.landingDesc },
+        { type: 'image_generator_rag', title: t.products.fixed.imageTitle, description: t.products.fixed.imageDesc },
+        { type: 'translation_maker', title: t.products.fixed.translationTitle, description: t.products.fixed.translationDesc },
+      ];
+
+      const resolved = await Promise.all(
+        fixedTypes.map((f) => getOrCreateProductByType(f.type, { title: f.title, description: f.description }))
+      );
+      setFixedItems(resolved);
+    } catch (err) {
+      console.error('[Products] Error loading fixed products:', err);
+    }
+  };
 
   const loadProducts = async () => {
     setIsLoading(true);
@@ -296,6 +422,7 @@ const Products = () => {
 
   useEffect(() => {
     loadProducts();
+    loadFixedProducts();
   }, []);
 
   const handleDelete = async (itemId: number) => {
@@ -322,6 +449,9 @@ const Products = () => {
       setItems(prev => prev.map(item => 
         item.id === itemId ? { ...item, isPublic } : item
       ));
+      setFixedItems(prev => prev.map(item => 
+        item.id === itemId ? { ...item, isPublic } : item
+      ));
 
       // Update in backend
       await updateProduct(itemId, { isPublic });
@@ -341,7 +471,7 @@ const Products = () => {
         <div className="text-center">
           <p className="text-red-600 font-semibold mb-4">{error}</p>
           <button
-            onClick={() => loadProducts()}
+            onClick={() => { loadProducts(); loadFixedProducts(); }}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
           >
             {t.common.retry}
@@ -359,6 +489,7 @@ const Products = () => {
       onTogglePublic={handleTogglePublic}
       activeFilter={activeFilter}
       setActiveFilter={setActiveFilter}
+      fixedItems={fixedItems}
     />
   );
 };

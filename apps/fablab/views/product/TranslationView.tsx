@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Upload, Languages, Save, Globe, FileCode, Check, Loader2, Database, Download, AlertCircle, Sparkles, FileJson, ArrowRight } from 'lucide-react';
-import { getProduct } from '@core/products';
+import { getProduct, getOrCreateProductByType } from '@core/products';
 import { updateProductStepProgress, getProductStepProgress } from '@core/product-step-progress';
 import { httpClient } from '@core/api/http.client';
 import { extractTextFromCode, extractTextFromHTML } from '../projectflow/utils/astExtractor';
@@ -64,17 +64,25 @@ export const TranslationView: React.FC = () => {
 
   // Load product and previous progress
   useEffect(() => {
-    if (!id) return;
     const loadProductAndProgress = async () => {
       try {
         setLoading(true);
-        const productData = await getProduct(parseInt(id));
+        let targetId: number | null = id ? parseInt(id) : null;
+        if (!targetId) {
+          const ensured = await getOrCreateProductByType('translation_maker', {
+            title: 'Translation fixed',
+            description: 'Translation fixed',
+          });
+          targetId = ensured.id;
+        }
+
+        const productData = await getProduct(targetId);
         setProduct(productData);
 
         // Load previous progress for all steps
-        await loadStepProgress(STEP_FILE_UPLOAD);
-        await loadStepProgress(STEP_TRANSLATION_PROCESS);
-        await loadStepProgress(STEP_TRANSLATION_SAVE);
+        await loadStepProgress(STEP_FILE_UPLOAD, productData.id);
+        await loadStepProgress(STEP_TRANSLATION_PROCESS, productData.id);
+        await loadStepProgress(STEP_TRANSLATION_SAVE, productData.id);
       } catch (error: any) {
         console.error('Error loading product:', error);
         if (error.message?.includes('404')) {
@@ -88,10 +96,12 @@ export const TranslationView: React.FC = () => {
   }, [id]);
 
   // Load step progress
-  const loadStepProgress = async (stepId: number) => {
-    if (!id) return;
+  const loadStepProgress = async (stepId: number, productId?: number) => {
+    if (!id && !productId) return;
+    const resolvedId = productId ?? (id ? parseInt(id, 10) : undefined);
+    if (!resolvedId) return;
     try {
-      const allProgress = await getProductStepProgress(parseInt(id));
+      const allProgress = await getProductStepProgress(resolvedId);
       const progress = allProgress.find(p => p.stepId === stepId);
       if (progress?.resultText) {
         switch (stepId) {

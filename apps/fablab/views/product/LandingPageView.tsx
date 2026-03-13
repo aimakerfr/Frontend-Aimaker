@@ -5,7 +5,7 @@ import SourcePanel from '../rag_multimodal/components/SourcePanel.tsx';
 import ImportSourceModal from '../rag_multimodal/components/ImportSourceModal.tsx';
 import UploadSourceModal from '../rag_multimodal/components/UploadSourceModal.tsx';
 import { Source, SourceType } from '../rag_multimodal/types';
-import { getProduct, getPublicProduct, updateProduct, type Product } from '@core/products';
+import { getProduct, getPublicProduct, updateProduct, getOrCreateProductByType, type Product } from '@core/products';
 import { getProductStepProgress, updateProductStepProgress } from '@core/product-step-progress';
 import {
   getRagMultimodalSources,
@@ -74,21 +74,31 @@ const LandingPageView: React.FC = () => {
 
   // ── Load product ────────────────────────────────────────
   useEffect(() => {
-    if (!id) return;
     const load = async () => {
       try {
         setIsLoading(true);
         let productData: Product;
+
+        // Support routes sin ID: obtén o crea el fijo y usa su id
+        let targetId: number | null = id ? parseInt(id) : null;
+        if (!targetId) {
+          const ensured = await getOrCreateProductByType('landing_page_maker', {
+            title: t.products.fixed.landingTitle ?? 'Landing Page',
+            description: t.products.fixed.landingDesc ?? '',
+          });
+          targetId = ensured.id;
+        }
+
         if (isAuthenticated) {
           try {
-            productData = await getProduct(parseInt(id));
+            productData = await getProduct(targetId);
             setIsOwner(true);
           } catch {
-            productData = await getPublicProduct(parseInt(id));
+            productData = await getPublicProduct(targetId);
             setIsOwner(false);
           }
         } else {
-          productData = await getPublicProduct(parseInt(id));
+          productData = await getPublicProduct(targetId);
           setIsOwner(false);
         }
         setProduct(productData);
@@ -96,7 +106,7 @@ const LandingPageView: React.FC = () => {
           await loadRagSources(productData.rag.id);
         }
         // Load previous selections from product_step_progress
-        await loadPreviousSelections(parseInt(id));
+        await loadPreviousSelections(productData.id);
       } catch (err) {
         console.error('[LandingPageView] Error loading product:', err);
       } finally {
