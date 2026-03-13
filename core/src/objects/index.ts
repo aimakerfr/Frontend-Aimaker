@@ -12,6 +12,8 @@ export type CreateObjectPayload = {
   title: string;
   type: string;
   file?: File;
+  product_type_for_assembly?: string;
+  module_name_for_assembly?: string;
 };
 
 export type CopyObjectToRagPayload = {
@@ -69,6 +71,12 @@ export async function createObject(payload: CreateObjectPayload): Promise<Object
     formData.append('file', payload.file);
     formData.append('stream_file', payload.file);
   }
+  if (payload.product_type_for_assembly) {
+    formData.append('product_type_for_assembly', payload.product_type_for_assembly);
+  }
+  if (payload.module_name_for_assembly) {
+    formData.append('module_name_for_assembly', payload.module_name_for_assembly);
+  }
 
   return httpClient.post<ObjectItem>(ENDPOINT + '/upload', formData);
 }
@@ -79,6 +87,20 @@ export async function createObject(payload: CreateObjectPayload): Promise<Object
 export async function copyObjectToRag(payload: CopyObjectToRagPayload) {
   return httpClient.post(`${ENDPOINT}/copy_to_rag`, payload);
 }
+export type UpdateObjectPayload = {
+  name?: string;
+  title?: string;
+  product_type_for_assembly?: string;
+  module_name_for_assembly?: string;
+};
+
+/**
+ * Update an existing object (PATCH).
+ */
+export async function updateObject(id: number | string, payload: UpdateObjectPayload = {}): Promise<ObjectItem> {
+  return httpClient.patch<ObjectItem>(`${ENDPOINT}/${id}/assembly-tags`, payload);
+}
+
 /**
  * Create an object from a base64-encoded image.
  * Converts the base64 string to a Blob and uploads it.
