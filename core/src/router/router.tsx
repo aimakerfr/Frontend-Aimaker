@@ -17,6 +17,8 @@ import Notebook from '@apps/fablab/views/notebook/Notebook';
 import ProductView from '@apps/fablab/views/product/ProductView';
 import LandingPageView from '@apps/fablab/views/product/LandingPageView';
 import ImageGeneratorView from '@apps/fablab/views/product/ImageGeneratorView';
+import { TranslationView } from '@apps/fablab/views/product/TranslationView';
+import { LandingPageEntry, ImageGeneratorEntry, TranslationEntry } from '@apps/fablab/views/product/FixedProductEntry';
 import TemplateSelector from '@apps/frontend_template_visualizer/components/TemplateSelector';
 import PublicPromptDetails from '@apps/fablab/views/public/prompt/PublicPromptDetails';
 import PublicAssistantDetails from '@apps/fablab/views/public/assistant/PublicAssistantDetails';
@@ -154,12 +156,41 @@ export function AppRouter() {
 
         {/* Public Notebook (Product View) - No auth required, read-only */}
         <Route path="/product/notebook/:id" element={<ProductView />} />
+
+        {/* Fixed product entrypoints (resolve or create once, then redirect) */}
+        <Route
+          path="/product/landing-page"
+          element={
+            <ProtectedRoute>
+              <LandingPageEntry />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/product/image-generator"
+          element={
+            <ProtectedRoute>
+              <ImageGeneratorEntry />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/product/translation"
+          element={
+            <ProtectedRoute>
+              <TranslationEntry />
+            </ProtectedRoute>
+          }
+        />
         
         {/* Public Landing Page Product View */}
         <Route path="/product/landing-page/:id" element={<LandingPageView />} />
         
         {/* Public Image Generator Product View */}
         <Route path="/product/image-generator/:id" element={<ImageGeneratorView />} />
+        
+        {/* Public Translation Product View */}
+        <Route path="/product/translation/:id" element={<TranslationView />} />
         
         {/* Public Prompt - No auth required, read-only (config view) */}
         <Route path="/public/prompt/:id" element={<PublicPromptWrapper />} />

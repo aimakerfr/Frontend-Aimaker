@@ -136,7 +136,7 @@ export async function loadAddedLanguages(): Promise<void> {
       return;
     }
 
-    const response = await fetch('/api/v1/custom-languages', {
+    const response = await fetch('/api/v1/translation/custom-languages', {
       headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json'
@@ -144,8 +144,11 @@ export async function loadAddedLanguages(): Promise<void> {
     });
 
     if (response.ok) {
-      const data = await response.json();
-      const languages = data.data || [];
+      const result = await response.json();
+      const languages = result.data?.languages || result.data || [];
+
+      // Si languages es null o undefined, evitar errores
+      if (!Array.isArray(languages)) return;
 
       languages.forEach((lang: { code: string; name: string; translations: any }) => {
         registerCustomLanguage(lang.code, lang.translations);

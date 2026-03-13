@@ -5,7 +5,7 @@ import SourcePanel from '../rag_multimodal/components/SourcePanel.tsx';
 import ImportSourceModal from '../rag_multimodal/components/ImportSourceModal.tsx';
 import UploadSourceModal from '../rag_multimodal/components/UploadSourceModal.tsx';
 import { Source, SourceType } from '../rag_multimodal/types';
-import { getProduct, getPublicProduct, updateProduct, type Product } from '@core/products';
+import { getProduct, getPublicProduct, updateProduct, getOrCreateProductByType, type Product } from '@core/products';
 import { getProductStepProgress, updateProductStepProgress } from '@core/product-step-progress';
 import {
   getRagMultimodalSources,
@@ -52,21 +52,31 @@ const ImageGeneratorView: React.FC = () => {
 
   // ── Load product ───────────────────────────────────────────────
   useEffect(() => {
-    if (!id) return;
     const load = async () => {
       try {
         setIsLoading(true);
         let productData: Product;
+
+        // Soporta ruta sin ID buscando/creando el fijo
+        let targetId: number | null = id ? parseInt(id) : null;
+        if (!targetId) {
+          const ensured = await getOrCreateProductByType('image_generator_rag', {
+            title: t.products.fixed.imageTitle ?? 'Generador de imágenes',
+            description: t.products.fixed.imageDesc ?? '',
+          });
+          targetId = ensured.id;
+        }
+
         if (isAuthenticated) {
           try {
-            productData = await getProduct(parseInt(id));
+            productData = await getProduct(targetId);
             setIsOwner(true);
           } catch {
-            productData = await getPublicProduct(parseInt(id));
+            productData = await getPublicProduct(targetId);
             setIsOwner(false);
           }
         } else {
-          productData = await getPublicProduct(parseInt(id));
+          productData = await getPublicProduct(targetId);
           setIsOwner(false);
         }
         setProduct(productData);
@@ -74,7 +84,7 @@ const ImageGeneratorView: React.FC = () => {
           await loadRagSources(productData.rag.id);
         }
         // Load previous prompt and image from product_step_progress
-        await loadPreviousProgress(parseInt(id));
+        await loadPreviousProgress(productData.id);
       } catch (err) {
         console.error('[ImageGeneratorView] Error loading product:', err);
       } finally {

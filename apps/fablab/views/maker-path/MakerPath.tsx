@@ -23,7 +23,7 @@ const MakerPathView: React.FC = () => {
       'rag_chat_maker': 'notebook',
       'landing_page_maker': 'landing-page',
       'image_generator_rag': 'image-generator',
-      'translation_maker': 'notebook', // Default to notebook until specific route is created
+      'translation_maker': 'translation',
       'architect_ai': 'notebook', // Default to notebook until specific route is created
       'module_connector': 'notebook', // Default to notebook until specific route is created
       'custom': 'notebook' // Default

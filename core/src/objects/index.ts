@@ -26,7 +26,22 @@ const ENDPOINT = '/api/v1/objects';
  */
 export async function getAllObjects(): Promise<ObjectItem[]> {
   // Endpoint per current implementation in ObjectsLibrary
-  return httpClient.get<ObjectItem[]>(ENDPOINT);
+  const res = await httpClient.get<any>(ENDPOINT);
+
+  // ApiResponse shape handled by httpClient -> already an array
+  if (Array.isArray(res)) return res;
+
+  // ApiPlatform collection (hydra) fallback
+  if (Array.isArray(res?.['hydra:member'])) {
+    return res['hydra:member'];
+  }
+
+  // Generic { data: [...] } shape fallback
+  if (Array.isArray(res?.data)) {
+    return res.data;
+  }
+
+  return [];
 }
 
 /**

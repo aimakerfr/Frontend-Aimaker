@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import {
-  ArrowLeft, Layout, MessageSquare, Image as ImageIcon,
-  Languages, ChevronRight
+  ArrowLeft, MessageSquare, ChevronRight
 } from 'lucide-react';
 import { analyzeIntention, type MakerPathId } from '../utils/intentionAnalyzer';
 import { ProductCreateModal } from './ProductCreateModal';
@@ -26,42 +25,6 @@ const TEMPLATES = [
     bgColor: 'from-purple-50 to-pink-50',
     borderColor: 'border-purple-200',
     hoverBorder: 'hover:border-purple-400',
-  },
-  {
-    id: 'landing_page_maker' as MakerPathId,
-    titleKey: 'templateLanding' as const,
-    descKey: 'templateLandingDesc' as const,
-    titleFallback: 'Landing Page',
-    descFallback: 'Crea páginas de aterrizaje optimizadas con RAG.',
-    icon: Layout,
-    color: 'from-blue-500 to-indigo-600',
-    bgColor: 'from-blue-50 to-indigo-50',
-    borderColor: 'border-blue-200',
-    hoverBorder: 'hover:border-blue-400',
-  },
-  {
-    id: 'image_generator_rag' as MakerPathId,
-    titleKey: 'templateImage' as const,
-    descKey: 'templateImageDesc' as const,
-    titleFallback: 'Generador de imágenes',
-    descFallback: 'Generación de imágenes basada en contextos RAG.',
-    icon: ImageIcon,
-    color: 'from-emerald-500 to-teal-600',
-    bgColor: 'from-emerald-50 to-teal-50',
-    borderColor: 'border-emerald-200',
-    hoverBorder: 'hover:border-emerald-400',
-  },
-  {
-    id: 'translation_maker' as MakerPathId,
-    titleKey: 'templateTranslation' as const,
-    descKey: 'templateTranslationDesc' as const,
-    titleFallback: 'Translation Maker',
-    descFallback: 'Detecta y traduce textos de archivos JSX/TSX automáticamente.',
-    icon: Languages,
-    color: 'from-orange-500 to-red-600',
-    bgColor: 'from-orange-50 to-red-50',
-    borderColor: 'border-orange-200',
-    hoverBorder: 'hover:border-orange-400',
   },
 ];
 
@@ -135,27 +98,16 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({
           )}
         </div>
 
-        {/* Plantillas sugeridas */}
+        {/* Plantillas disponibles (solo Notebook, las demás viven en Productos) */}
         <div className="space-y-3">
-          {suggestedIds.length > 0 && (
-            <p className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider mb-2">
-              {suggested.length === 1 ? (tr?.suggestedSingle ?? 'Plantilla sugerida') : (tr?.suggestedMultiple ?? 'Plantillas sugeridas')}
-            </p>
-          )}
+          <p className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider mb-2">
+            {tr?.suggestedSingle ?? 'Plantilla disponible'}
+          </p>
           {suggested.map(t => <TemplateCard key={t.id} template={t} />)}
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-4">
+            Las experiencias de Landing Page, Generador de Imágenes y Traducción ahora son productos fijos en la sección Productos.
+          </p>
         </div>
-
-        {/* Resto de plantillas (si hubo sugerencias) */}
-        {rest.length > 0 && (
-          <div className="mt-8 space-y-3">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="flex-1 h-px bg-gray-200 dark:bg-gray-700" />
-              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">{tr?.allTemplates ?? 'Todas las plantillas'}</p>
-              <div className="flex-1 h-px bg-gray-200 dark:bg-gray-700" />
-            </div>
-            {rest.map(t => <TemplateCard key={t.id} template={t} />)}
-          </div>
-        )}
       </div>
 
       {/* Modal de creación */}

@@ -1,0 +1,77 @@
+import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Loader2, AlertTriangle } from 'lucide-react';
+import { getOrCreateProductByType, type ProductType } from '@core/products';
+
+interface FixedProductEntryProps {
+  type: ProductType;
+  route: string;
+  title: string;
+  description: string;
+}
+
+const FixedProductEntry: React.FC<FixedProductEntryProps> = ({ type, route, title, description }) => {
+  const navigate = useNavigate();
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const ensureProduct = async () => {
+      try {
+        const product = await getOrCreateProductByType(type, { title, description });
+        navigate(`/product/${route}/${product.id}`, { replace: true });
+      } catch (err: any) {
+        setError(err?.message || 'No se pudo abrir el producto fijo.');
+      }
+    };
+
+    ensureProduct();
+  }, [type, route, title, description, navigate]);
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 dark:bg-gray-900 p-6 text-center">
+        <AlertTriangle className="text-red-500 mb-3" size={32} />
+        <h1 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">{title}</h1>
+        <p className="text-sm text-gray-600 dark:text-gray-400 max-w-md">{error}</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+      <div className="flex flex-col items-center gap-3">
+        <Loader2 className="animate-spin text-indigo-600" size={36} />
+        <p className="text-sm text-gray-600 dark:text-gray-400">Abriendo {title}...</p>
+      </div>
+    </div>
+  );
+};
+
+export const LandingPageEntry = () => (
+  <FixedProductEntry
+    type="landing_page_maker"
+    route="landing-page"
+    title="Landing Page"
+    description="Landing page fija para ensamblar módulos HTML y descargar."
+  />
+);
+
+export const ImageGeneratorEntry = () => (
+  <FixedProductEntry
+    type="image_generator_rag"
+    route="image-generator"
+    title="Generador de Imágenes"
+    description="Generador fijo para prompts y descargas de imágenes."
+  />
+);
+
+export const TranslationEntry = () => (
+  <FixedProductEntry
+    type="translation_maker"
+    route="translation"
+    title="Traducciones"
+    description="Traducción fija de archivos con i18n."
+  />
+);
+
+export default FixedProductEntry;
