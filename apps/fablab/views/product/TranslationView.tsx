@@ -482,16 +482,20 @@ export const TranslationView: React.FC = () => {
     setLanguageLoading(true);
     setLanguageError(null);
     try {
-      const response = await httpClient.get<any>(`/api/v1/custom-languages/export/${selectedLanguageFile}`);
-      const content = typeof response === 'string' ? response : JSON.stringify(response, null, 2);
-      const blob = new Blob([content], { type: 'application/json' });
+      const response = await httpClient.post<any>('/api/v1/translation/export-language', {
+        language: selectedLanguageFile
+      });
+      
+      const content = response.content || '';
+      const blob = new Blob([content], { type: 'text/plain' });
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `${selectedLanguageFile}.json`;
+      // El contenido es TypeScript, así que guardamos como .ts
+      link.download = `${selectedLanguageFile}.ts`;
       link.click();
       URL.revokeObjectURL(url);
-      setLanguageSuccess(`Archivo ${selectedLanguageFile}.json descargado`);
+      setLanguageSuccess(`Archivo ${selectedLanguageFile}.ts descargado`);
       setTimeout(() => setLanguageSuccess(null), 3000);
     } catch (error: any) {
       setLanguageError(`Error exportando idioma: ${error.message || 'Error desconocido'}`);
@@ -528,9 +532,9 @@ export const TranslationView: React.FC = () => {
     setLanguageLoading(true);
     setLanguageError(null);
     try {
-      await httpClient.post('/api/v1/custom-languages', {
-        code: languageCode.toLowerCase(),
-        name: languageName,
+      await httpClient.post('/api/v1/translation/add-language', {
+        language: languageCode.toLowerCase(),
+        languageName: languageName,
         translations: importedData
       });
       setLanguageSuccess(`Idioma "${languageName}" agregado exitosamente`);
