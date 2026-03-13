@@ -1,6 +1,7 @@
 import { httpClient } from '@core/api/http.client';
 
 export const OBJECTS_ENDPOINT = '/api/v1/objects/by-assembly';
+export const OBJECTS_GENERIC_ENDPOINT = '/api/v1/objects';
 
 export type ObjectType =
   | 'PDF'
@@ -53,5 +54,16 @@ export async function fetchObjectsByAssemblyHints(params: GetObjectsParams): Pro
   const queryString = searchParams.toString();
   const endpoint = queryString ? `${OBJECTS_ENDPOINT}?${queryString}` : OBJECTS_ENDPOINT;
 
+  return httpClient.get<ObjectItem[]>(endpoint);
+}
+
+/**
+ * Fallback fetcher that lists objects filtered only by `type`.
+ * This is used when assembly-specific filters are not provided.
+ */
+export async function fetchObjectsByType(type: ObjectType): Promise<ObjectItem[]> {
+  const searchParams = new URLSearchParams();
+  searchParams.set('type', type);
+  const endpoint = `${OBJECTS_GENERIC_ENDPOINT}?${searchParams.toString()}`;
   return httpClient.get<ObjectItem[]>(endpoint);
 }

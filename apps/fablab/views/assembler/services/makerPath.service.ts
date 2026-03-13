@@ -24,11 +24,23 @@ function getBaseUrl(): string {
   return apiUrl ? apiUrl.replace(/\/$/, '') : '';
 }
 
+function normalizeProjectType(input: string): AssemblerProjectType {
+  const raw = (input || '').toLowerCase();
+  // unify common separators
+  const v = raw.replace(/\s+/g, '_').replace(/-+/g, '_');
+  if (v === 'landing_page' || v === 'landingpage' || v === 'landing__page') return 'landing_page';
+  if (v === 'notebook') return 'notebook';
+  // heuristic: if it contains both words
+  if (v.includes('landing') && v.includes('page')) return 'landing_page';
+  return 'notebook';
+}
+
 export async function createAssemblerMakerPath(
   params: CreateAssemblerMakerPathRequest
 ): Promise<MakerPathResponseMinimal> {
   const base = getBaseUrl();
   const token = tokenStorage.get();
+  const normalizedType = normalizeProjectType(params.projectType as string);
 
   // Use specialized endpoint for assembler creation per spec
   const res = await fetch(`${base}/api/v1/maker-paths/assembler/new`, {
@@ -39,7 +51,7 @@ export async function createAssemblerMakerPath(
     },
     body: JSON.stringify({
       // minimal required payload for assembler creation
-      projectType: params.projectType,
+      projectType: normalizedType,
       title: params.title,
       description: params.description,
     }),
@@ -50,14 +62,34 @@ export async function createAssemblerMakerPath(
   const body = isJson ? await res.json() : null;
 
   if (!res.ok) {
-    const message = (body && (body.error?.message || body.message)) || `HTTP ${res.status}`;
+    const message = (body && (body.error?.message || body.message || body.error)) || `HTTP ${res.status}`;
     throw new Error(message);
   }
 
   // Extract data from the response envelope { success, data, error, meta }
-  const data = (body?.data || body) as MakerPathResponseMinimal;
-  if (!data || typeof data.editionUrl !== 'string' || data.editionUrl.length === 0) {
+  const dataAny: any = body && (body as any).data ? (body as any).data : body;
+
+  // Map potential snake_case from backend to camelCase
+  if (dataAny && dataAny.edition_url && !dataAny.editionUrl) {
+    dataAny.editionUrl = dataAny.edition_url;
+  }
+
+  // Fallback per spec for assembler: if editionUrl missing but type + projectType are valid
+  if (
+    dataAny &&
+    (!dataAny.editionUrl || typeof dataAny.editionUrl !== 'string' || dataAny.editionUrl.length === 0)
+  ) {
+    const typeVal: string | undefined = (dataAny.type as string) || 'assembler';
+    const projectTypeVal: string | undefined = (dataAny.projectType as string) || normalizedType;
+    if (typeVal === 'assembler' && projectTypeVal) {
+      const pt = normalizeProjectType(projectTypeVal);
+      dataAny.editionUrl = `/dashboard/assembler/${pt}`;
+    }
+  }
+
+  if (!dataAny || typeof dataAny.editionUrl !== 'string' || dataAny.editionUrl.length === 0) {
     throw new Error('Missing editionUrl in response');
   }
-  return data;
+
+  return dataAny as MakerPathResponseMinimal;
 }

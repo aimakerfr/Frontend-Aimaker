@@ -12,7 +12,8 @@ import ExternalAccess from '../external-access/ExternalAccess';
 import AIChat from '../../components/AIChat';
 import ObjectsLibrary from '../objects/ObjectsLibrary';
 import Products from '../products/Products';
-import NotebookAssembler from '../assembler/NotebookAssembler';
+import NotebookAssembler from '../assembler/NotebookAssemblerLite';
+import LandingPageAssembler from '../assembler/LandingPageAssembler';
 import AssemblerNew from '../assembler/AssemblerNew';
 import { UserProfile } from '../../types';
 
@@ -80,6 +81,7 @@ const FabLabLayout: React.FC<Props> = ({
               <Route path="/maker-path/:id" element={<ProjectPlanner />} />
               <Route path="/maker-path/modules/:id" element={<PathCreationModules />} />
               <Route path="/assembler/notebook" element={<NotebookAssembler />} />
+              <Route path="/assembler/landing_page" element={<LandingPageAssembler />} />
               <Route path="/assembler/new" element={<AssemblerNew />} />
               <Route path="/products" element={<Products />} />
               <Route path="/tools" element={<ExternalAccess />} />

@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useLanguage } from '../../../../language/useLanguage.ts';
 import type { GetObjectsParams, ObjectItem } from '../../services/api_handler.ts';
-import { fetchObjectsByAssemblyHints, ObjectType } from '../../services/api_handler.ts';
+import { fetchObjectsByAssemblyHints, fetchObjectsByType, ObjectType } from '../../services/api_handler.ts';
 
 type GenericObjectSelectorProps = {
   type: ObjectType;
@@ -43,7 +43,10 @@ export const GenericObjectSelector: React.FC<GenericObjectSelectorProps> = ({
       setError(null);
 
       try {
-        const data = await fetchObjectsByAssemblyHints(queryParams);
+        const hasAssemblyFilters = Boolean(product_type_for_assembly || module_name_for_assembly);
+        const data = hasAssemblyFilters
+          ? await fetchObjectsByAssemblyHints(queryParams)
+          : await fetchObjectsByType(type);
         if (!isMounted) return;
         setObjects(data);
       } catch (err: any) {
@@ -74,7 +77,9 @@ export const GenericObjectSelector: React.FC<GenericObjectSelectorProps> = ({
           {t?.genericObjectSelector?.title ?? 'Objects'}
         </h3>
         <p className="text-sm text-gray-600 dark:text-gray-300">
-          {t?.genericObjectSelector?.subtitle ?? 'Showing objects filtered by type and assembly hints.'}
+          {product_type_for_assembly || module_name_for_assembly
+            ? (t?.genericObjectSelector?.subtitle ?? 'Showing objects filtered by type and assembly hints.')
+            : (t?.genericObjectSelector?.subtitleTypeOnly ?? 'Showing objects filtered by type only.')}
         </p>
         {currentSelected && (
           <div className="mt-2 inline-flex items-center gap-2 rounded-full bg-brand-50 px-3 py-1 text-xs font-semibold text-brand-700 dark:bg-brand-900/30 dark:text-brand-100">
@@ -102,7 +107,9 @@ export const GenericObjectSelector: React.FC<GenericObjectSelectorProps> = ({
 
       {!isLoading && !error && objects.length === 0 && (
         <div className="text-sm text-gray-600 dark:text-gray-300">
-          {t?.genericObjectSelector?.empty ?? 'No objects match the provided filters.'}
+          {product_type_for_assembly || module_name_for_assembly
+            ? (t?.genericObjectSelector?.empty ?? 'No objects match the provided filters.')
+            : (t?.genericObjectSelector?.emptyTypeOnly ?? 'No objects found for this type.')}
         </div>
       )}
 
