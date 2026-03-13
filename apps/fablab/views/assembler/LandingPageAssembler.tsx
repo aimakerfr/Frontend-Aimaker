@@ -121,12 +121,29 @@ const LandingPageAssembler: React.FC = () => {
         throw new Error(msg);
       }
       const data = body?.data ?? body ?? {};
-      const htmlPath: string | undefined = data.html_path || data.htmlPath || (Array.isArray(data.files)
-        ? (data.files.find((f: any) => f?.filename === 'a.htm')?.path || data.files.find((f: any) => f?.filename === 'a.htm')?.assembler_rel_path)
-        : undefined);
-      const finalHtmlPath = htmlPath && typeof htmlPath === 'string' && htmlPath.startsWith('/')
-        ? htmlPath
-        : `/uploads/assembler/${makerPathId}/a.htm`;
+      const htmlPath: string | undefined =
+        data.html_path ||
+        data.htmlPath ||
+        (Array.isArray(data.files)
+          ? (
+              data.files.find((f: any) => f?.filename === 'a.htm')?.path ||
+              data.files.find((f: any) => f?.filename === 'a.htm')?.assembler_rel_path
+            )
+          : undefined);
+
+      // Use the exact path provided by backend when available.
+      // Accept absolute URLs (http/https) and absolute relative paths starting with '/'.
+      // Only fallback to the conventional uploads path if response lacks a usable path.
+      let finalHtmlPath: string = `/uploads/assembler/${makerPathId}/a.htm`;
+      if (htmlPath && typeof htmlPath === 'string') {
+        if (htmlPath.startsWith('http://') || htmlPath.startsWith('https://')) {
+          finalHtmlPath = htmlPath;
+        } else if (htmlPath.startsWith('/')) {
+          finalHtmlPath = htmlPath;
+        } else if (htmlPath.length > 0) {
+          finalHtmlPath = `/${htmlPath.replace(/^\/+/, '')}`;
+        }
+      }
       setExampleHtmlPath(finalHtmlPath);
       setExampleResultMsg(tr.exampleAssembledOk ?? 'Example assembled. You can open the generated a.htm below.');
     } catch (e: any) {
@@ -159,7 +176,7 @@ const LandingPageAssembler: React.FC = () => {
           <a
             href={uploadsHref}
             target="_blank"
-            rel="noreferrer"
+            rel="noopener noreferrer"
             className="inline-flex items-center rounded-lg px-4 py-2 text-sm font-semibold border border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800"
           >
             {tr.openResult ?? 'Open generated index.html'}
@@ -196,7 +213,7 @@ const LandingPageAssembler: React.FC = () => {
             <a
               href={exampleHtmlPath}
               target="_blank"
-              rel="noreferrer"
+              rel="noopener noreferrer"
               className="inline-flex items-center rounded-lg px-4 py-2 text-sm font-semibold border border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800"
             >
               {tr.openExampleResult ?? 'Open example a.htm'}
