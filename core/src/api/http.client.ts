@@ -87,6 +87,8 @@ class HttpClient {
   private buildHeaders(options: RequestOptions, method: string = 'GET'): HeadersInit {
     const headers: Record<string, string> = {
       Accept: 'application/json',
+      'Cache-Control': 'no-cache',
+      Pragma: 'no-cache',
       ...options.headers,
     };
 
@@ -223,6 +225,8 @@ class HttpClient {
     const fetchOptions: RequestInit = {
       method,
       headers: this.buildHeaders(options, method),
+      // Bypass HTTP cache to avoid 304/ETag issues in prod
+      cache: 'no-store',
     };
 
     // Add body for non-GET requests

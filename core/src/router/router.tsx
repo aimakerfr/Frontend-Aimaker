@@ -17,8 +17,9 @@ import Notebook from '@apps/fablab/views/notebook/Notebook';
 import ProductView from '@apps/fablab/views/product/ProductView';
 import LandingPageView from '@apps/fablab/views/product/LandingPageView';
 import ImageGeneratorView from '@apps/fablab/views/product/ImageGeneratorView';
+import StyleTransferView from '@apps/fablab/views/product/StyleTransferView';
 import { TranslationView } from '@apps/fablab/views/product/TranslationView';
-import { LandingPageEntry, ImageGeneratorEntry, TranslationEntry } from '@apps/fablab/views/product/FixedProductEntry';
+import { LandingPageEntry, ImageGeneratorEntry, TranslationEntry, StyleTransferEntry } from '@apps/fablab/views/product/FixedProductEntry';
 import TemplateSelector from '@apps/frontend_template_visualizer/components/TemplateSelector';
 import PublicPromptDetails from '@apps/fablab/views/public/prompt/PublicPromptDetails';
 import PublicAssistantDetails from '@apps/fablab/views/public/assistant/PublicAssistantDetails';
@@ -167,6 +168,14 @@ export function AppRouter() {
           }
         />
         <Route
+          path="/product/style-transfer"
+          element={
+            <ProtectedRoute>
+              <StyleTransferEntry />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/product/image-generator"
           element={
             <ProtectedRoute>
@@ -185,6 +194,9 @@ export function AppRouter() {
         
         {/* Public Landing Page Product View */}
         <Route path="/product/landing-page/:id" element={<LandingPageView />} />
+
+        {/* Public Style Transfer Product View */}
+        <Route path="/product/style-transfer/:id" element={<StyleTransferView />} />
         
         {/* Public Image Generator Product View */}
         <Route path="/product/image-generator/:id" element={<ImageGeneratorView />} />

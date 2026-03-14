@@ -37,7 +37,7 @@ const ProductsView: React.FC<ProductsViewProps> = ({
 
   const [localActiveFilter, setLocalActiveFilter] = useState<FilterType>('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const FIXED_TYPES: ProductType[] = ['landing_page_maker', 'image_generator_rag', 'translation_maker'];
+  const FIXED_TYPES: ProductType[] = ['landing_page_maker', 'image_generator_rag', 'translation_maker', 'style_transfer_maker'];
   
   // Function to get the correct route based on product type
   const getProductRoute = (type: string, id: number): string => {
@@ -46,6 +46,7 @@ const ProductsView: React.FC<ProductsViewProps> = ({
       'landing_page_maker': 'landing-page',
       'image_generator_rag': 'image-generator',
       'translation_maker': 'translation',
+      'style_transfer_maker': 'style-transfer',
       'architect_ai': 'notebook', // Default to notebook until specific route is created
       'module_connector': 'notebook', // Default to notebook until specific route is created
       'custom': 'notebook' // Default
@@ -53,7 +54,7 @@ const ProductsView: React.FC<ProductsViewProps> = ({
     const route = routeMap[type] || 'notebook';
 
     // Productos fijos no dependen de un id (evita colisiones con notebooks u otros)
-    if (['landing_page_maker', 'image_generator_rag', 'translation_maker'].includes(type)) {
+    if (['landing_page_maker', 'image_generator_rag', 'translation_maker', 'style_transfer_maker'].includes(type)) {
       return `/product/${route}`;
     }
 
@@ -92,6 +93,7 @@ const ProductsView: React.FC<ProductsViewProps> = ({
       'landing_page_maker': 'Landing Page Maker',
       'image_generator_rag': 'Image Generator RAG',
       'translation_maker': 'Translation Maker',
+      'style_transfer_maker': 'Style Transfer Maker',
       'custom': 'Custom'
     };
     return typeMap[type] || type;
@@ -105,6 +107,7 @@ const ProductsView: React.FC<ProductsViewProps> = ({
       'landing_page_maker': 'bg-gradient-to-br from-purple-500 to-violet-600',
       'image_generator_rag': 'bg-gradient-to-br from-pink-500 to-rose-600',
       'translation_maker': 'bg-gradient-to-br from-amber-500 to-orange-600',
+      'style_transfer_maker': 'bg-gradient-to-br from-indigo-500 to-sky-500',
       'custom': 'bg-gradient-to-br from-gray-500 to-gray-600'
     };
     return colorMap[type] || 'bg-gradient-to-br from-gray-500 to-gray-600';
@@ -175,12 +178,16 @@ const ProductsView: React.FC<ProductsViewProps> = ({
                         ? t.products.fixed.landingTitle
                         : item.type === 'image_generator_rag'
                           ? t.products.fixed.imageTitle
-                          : t.products.fixed.translationTitle;
+                          : item.type === 'style_transfer_maker'
+                            ? t.products.fixed.styleTransferTitle
+                            : t.products.fixed.translationTitle;
                       const fixedDesc = item.type === 'landing_page_maker'
                         ? t.products.fixed.landingDesc
                         : item.type === 'image_generator_rag'
                           ? t.products.fixed.imageDesc
-                          : t.products.fixed.translationDesc;
+                          : item.type === 'style_transfer_maker'
+                            ? t.products.fixed.styleTransferDesc
+                            : t.products.fixed.translationDesc;
                       return (
                       <div 
                         key={`fixed-${item.type}`}
@@ -394,6 +401,7 @@ const Products = () => {
         { type: 'landing_page_maker', title: t.products.fixed.landingTitle, description: t.products.fixed.landingDesc },
         { type: 'image_generator_rag', title: t.products.fixed.imageTitle, description: t.products.fixed.imageDesc },
         { type: 'translation_maker', title: t.products.fixed.translationTitle, description: t.products.fixed.translationDesc },
+        { type: 'style_transfer_maker', title: t.products.fixed.styleTransferTitle, description: t.products.fixed.styleTransferDesc },
       ];
 
       const resolved = await Promise.all(

@@ -74,4 +74,13 @@ export const TranslationEntry = () => (
   />
 );
 
+export const StyleTransferEntry = () => (
+  <FixedProductEntry
+    type="style_transfer_maker"
+    route="style-transfer"
+    title="Style Transfer"
+    description="Extrae selectores de HTML y aplica CSS generado por IA."
+  />
+);
+
 export default FixedProductEntry;
