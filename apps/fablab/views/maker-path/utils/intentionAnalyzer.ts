@@ -3,7 +3,7 @@
  * Uses keyword matching to determine which Maker Path templates fit the user's needs
  */
 
-export type MakerPathId = 'landing_page_maker' | 'rag_chat_maker' | 'image_generator_rag' | 'translation_maker';
+export type MakerPathId = 'landing_page_maker' | 'rag_chat_maker' | 'image_generator_rag' | 'translation_maker' | 'style_transfer_maker';
 
 interface MakerPathKeywords {
   id: MakerPathId;
@@ -77,6 +77,16 @@ const MAKER_PATH_KEYWORDS: MakerPathKeywords[] = [
       // Code terms
       'jsx', 'tsx', 'react', 'component', 'componente', 'composant',
       'código', 'code', 'text extraction', 'extraer textos'
+    ]
+  },
+  {
+    id: 'style_transfer_maker',
+    keywords: [
+      'css', 'style', 'estilos', 'styles', 'hoja de estilos', 'style guide',
+      'clases', 'classes', 'ids', 'selectores', 'selectors',
+      'ui kit', 'design system', 'tema', 'theme', 'temas', 'branding',
+      're estilizar', 'restyle', 'skin', 'maquetado', 'maquetación',
+      'html structure', 'estructura html', 'css generator', 'style transfer', 'apply styles'
     ]
   }
 ];

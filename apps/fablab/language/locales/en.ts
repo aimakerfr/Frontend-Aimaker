@@ -27,6 +27,8 @@ export const en: Translations = {
       makerPath: 'Maker Path',
       tools: 'External Access',
       signOut: 'Sign Out',
+      objectsLibrary: 'Objects Library',
+      projects: 'Projects',
     },
     library: {
       title: 'Library',
@@ -116,6 +118,8 @@ export const en: Translations = {
         imageDesc: 'Prompts and images without duplicating products.',
         translationTitle: 'Fixed Translation',
         translationDesc: 'Process and translate files with i18n in one flow.',
+        styleTransferTitle: 'Fixed Style Transfer',
+        styleTransferDesc: 'Extract HTML selectors, build a base CSS, and apply AI-styled CSS.',
       },
     },
     productModal: {
@@ -1460,6 +1464,38 @@ export const en: Translations = {
     text_generating: 'Generating...',
   },
 
+  // Style Transfer product view translations
+  styleTransferViewTranslations: {
+    text_back: 'Back',
+    text_notFound: 'Product not found or not public',
+    text_titlePlaceholder: 'Style transfer lab title',
+    text_descPlaceholder: 'Product description',
+    text_public: 'Public Product',
+    text_private: 'Private Product',
+    text_copyUrl: 'Copy URL',
+    hero_title: 'Style Transfer Lab',
+    hero_subtitle: 'Load HTML, extract IDs and classes, generate a selector-only CSS file, and apply the styled CSS returned by any AI.',
+    selectors_title: 'Analyze HTML structure',
+    selectors_subtitle: 'Pick one or more HTML modules from the RAG. We will extract IDs and classes to create a clean CSS template.',
+    analyze: 'Extract structure',
+    analyzing: 'Extracting...',
+    selectors_total: 'Unique selectors',
+    modules_total: 'Modules analyzed',
+    css_template_label: 'Base CSS (selectors only)',
+    copy_css: 'Copy CSS',
+    download_css: 'Download CSS',
+    upload_css_label: 'Upload / paste styled CSS',
+    upload_css_hint: 'Paste or upload the CSS produced by your AI and apply it to the selected HTML modules.',
+    apply_css: 'Apply CSS to preview',
+    download_html: 'Download final HTML',
+    generate_first: 'Generate or upload CSS before downloading.',
+    preview_title: 'HTML + CSS preview',
+    preview_hint: 'Rendered HTML modules with the loaded CSS.',
+    empty_selection: 'Select at least one HTML module to analyze.',
+    css_placeholder: '/* CSS produced by your AI */',
+    template_placeholder: '/* Selectors ready for another AI to style */',
+  },
+
   // Image Generator product view translations
   imageGeneratorTranslations: {
     back: 'Back',
@@ -1496,101 +1532,125 @@ export const en: Translations = {
     errorSaving: 'Error saving to objects',
   },
 
-  // Translation product view translations
+  // Auto-generated translations from Translation Maker
+  
+  // Auto-generated translations from Translation Maker
+  
+  // Auto-generated translations from Translation Maker
+  
+  // Auto-generated translations from Translation Maker
+  
+  // Auto-generated translations from Translation Maker
+  
+  // Auto-generated translations from Translation Maker
+  
+  // Auto-generated translations from Translation Maker
+  
+  // Auto-generated translations from Translation Maker
+  
+  // Auto-generated translations from Translation Maker
+  
+  // Auto-generated translations from Translation Maker
+  
+  // Auto-generated translations from Translation Maker
+  
+  // Auto-generated translations from Translation Maker
+  
+  // Auto-generated translations from Translation Maker
+  
+  // Auto-generated translations from Translation Maker
   translationViewTranslations: {
-    back: 'Back to products',
-    notFound: 'Product not found',
-    titleDefault: 'Translation Creator',
-    descDefault: 'Extract texts and generate ES, EN, FR translations from code files',
-    publicProduct: 'Public',
-    privateProduct: 'Private',
-    
-    // Step Navigator
-    step1Name: 'Upload File',
-    step2Name: 'Process',
-    step3Name: 'Save',
-    step4Name: 'Languages',
-    
-    // Step 1: File Upload
-    step1Title: 'Step 1: Upload and Analyze File',
-    step1Subtitle: 'Upload a JSX, TSX, HTML, or JS file with hardcoded texts.',
-    hideLibrary: 'Hide Library',
-    loadFromLibrary: 'Load from Library',
-    objectLibrary: 'Object Library',
-    loadingObjects: 'Loading...',
-    noObjects: 'No CODE or HTML objects',
-    changeFile: 'Change file',
-    clickToUpload: 'Click to upload your code file',
-    supportedFormats: 'JSX, TSX, HTML, JS, TS',
-    selectFile: 'Select file',
-    saveToLibraryCheckbox: 'Also save to object library',
-    analyzing: 'Analyzing...',
-    analyzeAndContinue: 'Analyze and Continue',
-    
-    // Step 2: Translation Processing
-    step2Title: 'Step 2: Process Translations',
-    step2Subtitle: 'Extract texts and translate to ES, EN and FR.',
-    step2NoSource: 'First you must upload a file in Step 1',
-    goToStep1: 'Go to Step 1',
-    sourceFile: 'Source file:',
-    fileType: 'Type:',
-    textsFound: 'Texts found:',
-    extractedTexts: 'Extracted Texts:',
-    andMore: 'more',
-    downloadTexts: 'Download Texts (JSON)',
-    translating: 'Translating...',
-    translateAll: 'Translate All (ES, EN, FR)',
-    generateI18nCode: 'Generate Code with Auto-i18n',
-    continueToStep3: 'Continue to Step 3',
-    
-    // Step 3: Translation Saver
-    step3Title: 'Step 3: Save Translations',
-    step3Subtitle: 'Download the JSON files or apply them directly to the project.',
-    step3NoTranslations: 'No translations generated. Go to Step 2.',
-    goToStep2: 'Go to Step 2',
-    keys: 'keys',
-    noData: 'No data',
-    downloadButton: 'Download',
-    toLibraryButton: 'To Library',
-    i18nCodeTitle: 'Code with i18n',
-    downloadCode: 'Download Code',
-    applyingToProject: 'Applying to project...',
-    applyToProject: 'Apply Everything to Project',
-    applyHint: 'This will save the translations in apps/fablab/language/locales/',
-    appliedSuccess: 'Everything applied correctly!',
-    location: 'Location:',
-    
-    // Step 4: Language Manager
-    step4Title: 'Step 4: Manage Complete Languages',
-    step4Subtitle: 'Export/import complete language files or add new languages.',
-    exportLanguageTitle: 'Export Language File',
-    exportButton: 'Export',
-    exporting: 'Exporting...',
-    addNewLanguageTitle: 'Add New Language',
-    codeLabel: 'Code (e.g: de, it, pt)',
-    nameLabel: 'Name (e.g: German, Italian)',
-    uploadTranslatedFile: 'Load translated file (JSON or TypeScript)',
-    fileLoaded: '✅ File loaded - Click to change',
-    clickToLoadFile: 'Click to load file',
-    uploading: 'Uploading...',
-    addLanguageButton: 'Add Language',
-    languageManagerTip: '💡 Tip: Export an existing language file, translate it externally, and upload it here to add it to the project.',
-    languageFileDownloaded: 'File downloaded',
-    fileParsedSuccess: 'File loaded correctly',
-    errorParsingJson: 'Error parsing JSON. Check the format.',
-    completeAllFields: 'Complete all fields and load a file',
-    languageAddedSuccess: 'Language added successfully',
-    
-    // General errors
-    errorLoadingProduct: 'Error loading product',
-    errorAnalyzing: 'Error analyzing file',
-    errorTranslating: 'Error translating',
-    errorGeneratingI18n: 'Error generating i18n code',
-    errorDownloadingTranslation: 'Error downloading translation',
-    errorSavingToLibrary: 'Error saving to library',
-    errorApplyingToProject: 'Error applying to project',
-    errorExportingLanguage: 'Error exporting language',
-    errorAddingLanguage: 'Error adding language',
-    savedToLibrary: 'Saved to library',
+    'text_1': 'Translation fixed',
+    'text_2': 'Error extracting texts from file',
+    'text_3': 'No keys to translate',
+    'text_4': 'ES, EN, and FR translations ready. You can now generate the code or save.',
+    'text_5': 'Unknown error',
+    'text_6': 'Translations',
+    'text_7': 'i18n code generated. You can download it or apply it to the project.',
+    'text_8': 'No translations or code to apply',
+    'text_9': 'source.tsx',
+    'text_10': 'All applied correctly!',
+    'text_11': 'Error parsing JSON. Verify the format.',
+    'text_12': 'Complete all fields and upload a file',
+    'text_13': 'Product not found',
+    'text_14': 'Back to products',
+    'text_15': 'Translation Creator',
+    'text_16': 'Extracts texts and generates ES, EN, FR translations from code files',
+    'text_17': 'Public',
+    'text_18': 'Private',
+    'text_19': 'Upload File',
+    'text_20': 'Process',
+    'text_21': 'Save',
+    'text_22': 'Languages',
+    'text_23': 'Step 1: Upload and Analyze File',
+    'text_24': 'Upload a JSX, TSX, HTML, or JS file with hardcoded texts.',
+    'text_25': 'Hide Library',
+    'text_26': 'Load from Library',
+    'text_27': 'Object Library',
+    'text_28': 'Loading...',
+    'text_29': 'No CODE or HTML objects',
+    'text_30': 'Change file',
+    'text_31': 'Click to upload your code file',
+    'text_32': 'JSX, TSX, HTML, JS, TS',
+    'text_33': 'Select file',
+    'text_34': 'Also save to object library',
+    'text_35': 'Analyzing...',
+    'text_36': 'Analyze and Continue',
+    'text_37': 'Step 2: Process Translations',
+    'text_38': 'Extracts texts and translates to ES, EN, and FR.',
+    'text_39': 'First, you must upload a file in Step 1',
+    'text_40': 'Go to Step 1',
+    'text_41': 'Source file:',
+    'text_42': 'Type:',
+    'text_43': 'Texts found:',
+    'text_44': 'Extracted Texts:',
+    'text_45': 'Download Texts (JSON)',
+    'text_46': 'Translating...',
+    'text_47': 'Translate All (ES, EN, FR)',
+    'text_48': 'Generate Code with Auto-i18n',
+    'text_49': 'Continue to Step 3',
+    'text_50': 'Step 3: Save Translations',
+    'text_51': 'Download the JSONs or apply them directly to the project.',
+    'text_52': 'No translations generated. Go to Step 2.',
+    'text_53': 'Go to Step 2',
+    'text_54': 'No data',
+    'text_55': 'Download',
+    'text_56': 'To Library',
+    'text_57': 'Code with i18n',
+    'text_58': 'Download Code',
+    'text_59': 'Applying to project...',
+    'text_60': 'Apply All to Project',
+    'text_61': 'This will save translations in apps/fablab/language/locales/',
+    'text_62': 'Location:',
+    'text_63': 'Step 4: Manage Full Languages',
+    'text_64': 'Export/import complete language files or add new languages.',
+    'text_65': 'Export Language File',
+    'text_66': 'English (EN)',
+    'text_67': 'Spanish (ES)',
+    'text_68': 'French (FR)',
+    'text_69': 'Export',
+    'text_70': 'Add New Language',
+    'text_71': 'Code (e.g., de, it, pt)',
+    'text_72': 'Name (e.g., German, Italian)',
+    'text_73': 'Upload translated file (JSON or TypeScript)',
+    'text_74': '✅ File uploaded - Click to change',
+    'text_75': 'Click to upload file',
+    'text_76': 'Uploading...',
+    'text_77': 'Add Language',
+    'text_78': 'Tip:',
+    'text_79': 'Export an existing language file, translate it externally, and upload it here to add it to the project.',
   },
+
+
+
+
+
+
+
+
+
+
+
+
+
 };

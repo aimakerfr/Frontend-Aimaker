@@ -5,6 +5,7 @@ import { getProduct, getOrCreateProductByType } from '@core/products';
 import { updateProductStepProgress, getProductStepProgress } from '@core/product-step-progress';
 import { httpClient } from '@core/api/http.client';
 import { extractTextFromCode, extractTextFromHTML } from '../projectflow/utils/astExtractor';
+import { useLanguage } from '@apps/fablab/language/useLanguage';
 
 // Step IDs for translation workflow
 const STEP_FILE_UPLOAD = 1;
@@ -15,6 +16,9 @@ export const TranslationView: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { t } = useLanguage();
+  const tr = (t.translationViewTranslations ?? t.translationView ?? {}) as Record<string, string>;
+  const text = (key: string, fallback: string) => tr?.[key] ?? fallback;
 
   // Product info
   const [product, setProduct] = useState<any>(null);
@@ -70,8 +74,8 @@ export const TranslationView: React.FC = () => {
         let targetId: number | null = id ? parseInt(id) : null;
         if (!targetId) {
           const ensured = await getOrCreateProductByType('translation_maker', {
-            title: 'Translation fixed',
-            description: 'Translation fixed',
+            title: tr?.['text_1'] ?? 'Translation fixed',
+            description: tr?.['text_1'] ?? 'Translation fixed',
           });
           targetId = ensured.id;
         }
@@ -278,14 +282,14 @@ export const TranslationView: React.FC = () => {
       saveStepProgress(STEP_TRANSLATION_PROCESS, { extractedKeys: keys });
     } catch (error) {
       console.error('Error extracting keys:', error);
-      setProcessError('Error extrayendo textos del archivo');
+      setProcessError(tr?.['text_2'] ?? 'Error extrayendo textos del archivo');
     }
   };
 
   // Translate all keys (Step 2 - Part 2)
   const handleTranslateAll = async () => {
     if (!extractedKeys || Object.keys(extractedKeys).length === 0) {
-      setProcessError('No hay llaves para traducir');
+      setProcessError(tr?.['text_3'] ?? 'No hay llaves para traducir');
       return;
     }
     setProcessLoading(true);
@@ -310,10 +314,10 @@ export const TranslationView: React.FC = () => {
         translations: rawTranslations
       });
 
-      setProcessSuccess('Traducciones ES, EN y FR listas. Ahora puedes generar el código o guardar.');
+      setProcessSuccess(tr?.['text_4'] ?? 'Traducciones ES, EN y FR listas. Ahora puedes generar el código o guardar.');
       setTimeout(() => setProcessSuccess(null), 3000);
     } catch (err: any) {
-      setProcessError(`Error en traducción masiva: ` + (err.message || 'Error desconocido'));
+      setProcessError(`Error en traducción masiva: ` + ((err.message ?? tr?.['text_5']) ?? 'Error desconocido'));
     } finally {
       setProcessLoading(false);
     }
@@ -327,7 +331,7 @@ export const TranslationView: React.FC = () => {
       let modifiedCode = sourceData.content;
       const isJSX = sourceData.name.endsWith('.tsx') || sourceData.name.endsWith('.jsx');
       const fileBaseName = sourceData.name.replace(/\.[^.]+$/, '');
-      const translationObject = fileBaseName.charAt(0).toLowerCase() + fileBaseName.slice(1) + 'Translations';
+      const translationObject = fileBaseName.charAt(0).toLowerCase() + fileBaseName.slice(1) + (tr?.['text_6'] ?? 'Translations');
 
       // Sort keys by value length (desc) to avoid partial replacements
       const sortedKeys = Object.entries(extractedKeys).sort((a, b) => b[1].length - a[1].length);
@@ -341,9 +345,20 @@ export const TranslationView: React.FC = () => {
 
         // Add useLanguage hook in component
         if (!modifiedCode.includes('const { t } = useLanguage()')) {
-          const componentMatch = modifiedCode.match(/const\s+\w+.*?=.*?=>\s*{/);
-          if (componentMatch) {
-            const insertPos = componentMatch.index! + componentMatch[0].length;
+          // Try multiple patterns to find where to insert the hook
+          let componentMatch = modifiedCode.match(/const\s+\w+.*?=.*?=>\s*{/);
+          if (!componentMatch) {
+            componentMatch = modifiedCode.match(/function\s+\w+\s*\([^)]*\)\s*{/);
+          }
+          if (!componentMatch) {
+            componentMatch = modifiedCode.match(/export\s+const\s+\w+.*?=.*?=>\s*{/);
+          }
+          if (!componentMatch) {
+            componentMatch = modifiedCode.match(/export\s+function\s+\w+\s*\([^)]*\)\s*{/);
+          }
+          
+          if (componentMatch && componentMatch.index !== undefined) {
+            const insertPos = componentMatch.index + componentMatch[0].length;
             modifiedCode = modifiedCode.slice(0, insertPos) + `\n  const { t } = useLanguage();\n  const tr = t.${translationObject};\n` + modifiedCode.slice(insertPos);
           }
         }
@@ -382,10 +397,10 @@ export const TranslationView: React.FC = () => {
         i18n_code: i18nData
       });
 
-      setProcessSuccess('Código i18n generado. Puedes descargarlo o aplicarlo al proyecto.');
+      setProcessSuccess(tr?.['text_7'] ?? 'Código i18n generado. Puedes descargarlo o aplicarlo al proyecto.');
       setTimeout(() => setProcessSuccess(null), 3000);
     } catch (err: any) {
-      setProcessError(`Error generando código i18n: ` + (err.message || 'Error desconocido'));
+      setProcessError(`Error generando código i18n: ` + ((err.message ?? tr?.['text_5']) ?? 'Error desconocido'));
     } finally {
       setProcessLoading(false);
     }
@@ -430,7 +445,7 @@ export const TranslationView: React.FC = () => {
   // Apply to project (Step 3)
   const handleApplyToProject = async () => {
     if (!results.es && !results.en && !results.fr && !results.i18n_code) {
-      setSaveError('No hay traducciones ni código para aplicar');
+      setSaveError(tr?.['text_8'] ?? 'No hay traducciones ni código para aplicar');
       return;
     }
     setSavingToProject(true);
@@ -438,7 +453,7 @@ export const TranslationView: React.FC = () => {
     try {
       const sourceFileName = results.i18n_code?.fileName
         ? results.i18n_code.fileName.replace(/^i18n_/, '')
-        : 'source.tsx';
+        : (tr?.['text_9'] ?? 'source.tsx');
 
       const response = await httpClient.post<any>('/api/v1/translation/save-to-project', {
         translations: {
@@ -453,11 +468,11 @@ export const TranslationView: React.FC = () => {
         } : null
       });
 
-      setSaveSuccess('¡Todo aplicado correctamente!');
+      setSaveSuccess(tr?.['text_10'] ?? '¡Todo aplicado correctamente!');
       setProjectPath(response.path || 'apps/fablab/language/locales/');
       await saveStepProgress(STEP_TRANSLATION_SAVE, { projectPath: response.path });
     } catch (err: any) {
-      setSaveError(`Error aplicando al proyecto: ` + (err.message || 'Error desconocido'));
+      setSaveError(`Error aplicando al proyecto: ` + ((err.message ?? tr?.['text_5']) ?? 'Error desconocido'));
     } finally {
       setSavingToProject(false);
     }
@@ -508,7 +523,7 @@ export const TranslationView: React.FC = () => {
       setLanguageSuccess(`Archivo ${selectedLanguageFile}.ts descargado`);
       setTimeout(() => setLanguageSuccess(null), 3000);
     } catch (error: any) {
-      setLanguageError(`Error exportando idioma: ${error.message || 'Error desconocido'}`);
+      setLanguageError(`Error exportando idioma: ${error.message || (tr?.['text_5'] ?? 'Error desconocido')}`);
     } finally {
       setLanguageLoading(false);
     }
@@ -527,7 +542,7 @@ export const TranslationView: React.FC = () => {
         setLanguageSuccess(`Archivo ${file.name} cargado correctamente`);
         setTimeout(() => setLanguageSuccess(null), 3000);
       } catch (error) {
-        setLanguageError('Error parseando JSON. Verifica el formato.');
+        setLanguageError(tr?.['text_11'] ?? 'Error parseando JSON. Verifica el formato.');
       }
     };
     reader.readAsText(file);
@@ -536,7 +551,7 @@ export const TranslationView: React.FC = () => {
   // Language Manager - Upload new language
   const handleUploadNewLanguage = async () => {
     if (!languageCode.trim() || !languageName.trim() || !importedData) {
-      setLanguageError('Completa todos los campos y carga un archivo');
+      setLanguageError(tr?.['text_12'] ?? 'Completa todos los campos y carga un archivo');
       return;
     }
     setLanguageLoading(true);
@@ -556,7 +571,7 @@ export const TranslationView: React.FC = () => {
         window.location.reload();
       }, 2000);
     } catch (error: any) {
-      setLanguageError(`Error agregando idioma: ${error.message || 'Error desconocido'}`);
+      setLanguageError(`Error agregando idioma: ${error.message || (tr?.['text_5'] ?? 'Error desconocido')}`);
     } finally {
       setLanguageLoading(false);
     }
@@ -574,15 +589,11 @@ export const TranslationView: React.FC = () => {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-purple-50/30 dark:from-gray-900 dark:to-purple-900/10 p-8">
         <div className="max-w-2xl mx-auto text-center">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
-            Producto no encontrado
-          </h1>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">{tr?.['text_13'] ?? (tr?.['text_13'] ?? 'Producto no encontrado')}</h1>
           <button
             onClick={() => navigate('/dashboard/products')}
             className="text-purple-600 dark:text-purple-400 hover:underline"
-          >
-            Volver a productos
-          </button>
+          >{tr?.['text_14'] ?? (tr?.['text_14'] ?? 'Volver a productos')}</button>
         </div>
       </div>
     );
@@ -597,19 +608,18 @@ export const TranslationView: React.FC = () => {
             onClick={() => navigate('/dashboard/products')}
             className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors mb-4"
           >
-            <ArrowLeft size={16} /> Volver a productos
-          </button>
+            <ArrowLeft size={16} />{tr?.['text_14'] ?? (tr?.['text_14'] ?? 'Volver a productos')}</button>
           <div className="flex items-start justify-between">
             <div>
               <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-                {product.title || 'Creador de Traducciones'}
+                {product.title || (tr?.['text_15'] ?? 'Creador de Traducciones')}
               </h1>
               <p className="text-sm text-gray-500 dark:text-gray-400">
-                {product.description || 'Extrae textos y genera traducciones ES, EN, FR desde archivos de código'}
+                {product.description || (tr?.['text_16'] ?? 'Extrae textos y genera traducciones ES, EN, FR desde archivos de código')}
               </p>
             </div>
             <div className="px-3 py-1 rounded-full text-xs font-medium bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300">
-              {product.isPublic ? 'Público' : 'Privado'}
+              {product.isPublic ? (tr?.['text_17'] ?? 'Público') : (tr?.['text_18'] ?? 'Privado')}
             </div>
           </div>
         </div>
@@ -618,10 +628,10 @@ export const TranslationView: React.FC = () => {
         <div className="mb-8 bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6">
           <div className="flex items-center justify-between gap-4">
             {[
-              { id: 1, name: 'Subir Archivo', icon: Upload },
-              { id: 2, name: 'Procesar', icon: Languages },
-              { id: 3, name: 'Guardar', icon: Save },
-              { id: 4, name: 'Idiomas', icon: Globe }
+              { id: 1, name: tr?.['text_19'] ?? 'Subir Archivo', icon: Upload },
+              { id: 2, name: tr?.['text_20'] ?? 'Procesar', icon: Languages },
+              { id: 3, name: tr?.['text_21'] ?? 'Guardar', icon: Save },
+              { id: 4, name: tr?.['text_22'] ?? 'Idiomas', icon: Globe }
             ].map((step, index) => (
               <React.Fragment key={step.id}>
                 <button
@@ -655,8 +665,8 @@ export const TranslationView: React.FC = () => {
                   <FileCode className="text-purple-600 dark:text-purple-400" size={20} />
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-gray-900 dark:text-white">Paso 1: Subir y Analizar Archivo</h3>
-                  <p className="text-xs text-gray-500">Sube un JSX, TSX, HTML, o JS con textos hardcodeados.</p>
+                  <h3 className="text-lg font-bold text-gray-900 dark:text-white">{tr?.['text_23'] ?? (tr?.['text_23'] ?? 'Paso 1: Subir y Analizar Archivo')}</h3>
+                  <p className="text-xs text-gray-500">{tr?.['text_24'] ?? (tr?.['text_24'] ?? 'Sube un JSX, TSX, HTML, o JS con textos hardcodeados.')}</p>
                 </div>
               </div>
 
@@ -672,7 +682,7 @@ export const TranslationView: React.FC = () => {
               >
                 <Database size={16} />
                 <span className="text-sm font-medium">
-                  {showObjectLibrary ? 'Ocultar Biblioteca' : 'Cargar desde Biblioteca'}
+                  {showObjectLibrary ? (tr?.['text_25'] ?? 'Ocultar Biblioteca') : (tr?.['text_26'] ?? 'Cargar desde Biblioteca')}
                 </span>
               </button>
 
@@ -680,12 +690,12 @@ export const TranslationView: React.FC = () => {
               {showObjectLibrary && (
                 <div className="border border-gray-300 dark:border-gray-600 rounded-lg p-4 bg-gray-50 dark:bg-gray-700/30 max-h-64 overflow-y-auto">
                   <div className="flex items-center justify-between mb-3 border-b border-gray-200 dark:border-gray-600 pb-2">
-                    <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Biblioteca de Objetos</h3>
+                    <h3 className="text-sm font-semibold text-gray-900 dark:text-white">{tr?.['text_27'] ?? (tr?.['text_27'] ?? 'Biblioteca de Objetos')}</h3>
                   </div>
                   {loadingObjects ? (
-                    <p className="text-sm text-gray-500">Cargando...</p>
+                    <p className="text-sm text-gray-500">{tr?.['text_28'] ?? (tr?.['text_28'] ?? 'Cargando...')}</p>
                   ) : objects.length === 0 ? (
-                    <p className="text-sm text-gray-500">No hay objetos CODE o HTML</p>
+                    <p className="text-sm text-gray-500">{tr?.['text_29'] ?? (tr?.['text_29'] ?? 'No hay objetos CODE o HTML')}</p>
                   ) : (
                     <div className="space-y-2">
                       {objects.map((obj) => (
@@ -735,23 +745,17 @@ export const TranslationView: React.FC = () => {
                     <button
                       onClick={() => fileInputRef.current?.click()}
                       className="text-sm text-purple-600 dark:text-purple-400 hover:underline"
-                    >
-                      Cambiar archivo
-                    </button>
+                    >{tr?.['text_30'] ?? (tr?.['text_30'] ?? 'Cambiar archivo')}</button>
                   </div>
                 ) : (
                   <div className="space-y-3">
                     <Upload size={48} className="mx-auto text-gray-400" />
-                    <p className="text-sm font-medium text-gray-900 dark:text-white">
-                      Haz clic para subir tu archivo de código
-                    </p>
-                    <p className="text-xs text-gray-500">JSX, TSX, HTML, JS, TS</p>
+                    <p className="text-sm font-medium text-gray-900 dark:text-white">{tr?.['text_31'] ?? (tr?.['text_31'] ?? 'Haz clic para subir tu archivo de código')}</p>
+                    <p className="text-xs text-gray-500">{tr?.['text_32'] ?? (tr?.['text_32'] ?? 'JSX, TSX, HTML, JS, TS')}</p>
                     <button
                       onClick={() => fileInputRef.current?.click()}
                       className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium rounded-lg transition-colors"
-                    >
-                      Seleccionar archivo
-                    </button>
+                    >{tr?.['text_33'] ?? (tr?.['text_33'] ?? 'Seleccionar archivo')}</button>
                   </div>
                 )}
               </div>
@@ -764,7 +768,7 @@ export const TranslationView: React.FC = () => {
                     onChange={(e) => setSaveToLibrary(e.target.checked)}
                     className="rounded border-gray-300 dark:border-gray-600 focus:ring-purple-500"
                   />
-                  <span>Guardar también en la biblioteca de objetos</span>
+                  <span>{tr?.['text_34'] ?? (tr?.['text_34'] ?? 'Guardar también en la biblioteca de objetos')}</span>
                 </label>
               )}
 
@@ -778,12 +782,12 @@ export const TranslationView: React.FC = () => {
                   {uploadLoading ? (
                     <>
                       <Loader2 className="animate-spin" size={20} />
-                      <span>Analizando...</span>
+                      <span>{tr?.['text_35'] ?? (tr?.['text_35'] ?? 'Analizando...')}</span>
                     </>
                   ) : (
                     <>
                       <Check size={20} />
-                      <span>Analizar y Continuar</span>
+                      <span>{tr?.['text_36'] ?? (tr?.['text_36'] ?? 'Analizar y Continuar')}</span>
                     </>
                   )}
                 </button>
@@ -799,21 +803,19 @@ export const TranslationView: React.FC = () => {
                   <Languages className="text-purple-600 dark:text-purple-400" size={20} />
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-gray-900 dark:text-white">Paso 2: Procesar Traducciones</h3>
-                  <p className="text-xs text-gray-500">Extrae textos y traduce a ES, EN y FR.</p>
+                  <h3 className="text-lg font-bold text-gray-900 dark:text-white">{tr?.['text_37'] ?? (tr?.['text_37'] ?? 'Paso 2: Procesar Traducciones')}</h3>
+                  <p className="text-xs text-gray-500">{tr?.['text_38'] ?? (tr?.['text_38'] ?? 'Extrae textos y traduce a ES, EN y FR.')}</p>
                 </div>
               </div>
 
               {!sourceData && (
                 <div className="flex flex-col items-center justify-center py-8 text-center">
                   <AlertCircle className="text-yellow-500 mb-3" size={40} />
-                  <p className="text-gray-500">Primero debes subir un archivo en el Paso 1</p>
+                  <p className="text-gray-500">{tr?.['text_39'] ?? (tr?.['text_39'] ?? 'Primero debes subir un archivo en el Paso 1')}</p>
                   <button
                     onClick={() => setActiveStep(1)}
                     className="mt-4 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg"
-                  >
-                    Ir al Paso 1
-                  </button>
+                  >{tr?.['text_40'] ?? (tr?.['text_40'] ?? 'Ir al Paso 1')}</button>
                 </div>
               )}
 
@@ -822,20 +824,20 @@ export const TranslationView: React.FC = () => {
                   {/* Source Info */}
                   <div className="p-4 bg-gray-50 dark:bg-gray-700/30 rounded-lg">
                     <p className="text-sm text-gray-600 dark:text-gray-400">
-                      <span className="font-medium">Archivo fuente:</span> {sourceData.name}
+                      <span className="font-medium">{tr?.['text_41'] ?? (tr?.['text_41'] ?? 'Archivo fuente:')}</span> {sourceData.name}
                     </p>
                     <p className="text-sm text-gray-600 dark:text-gray-400">
-                      <span className="font-medium">Tipo:</span> {sourceData.type}
+                      <span className="font-medium">{tr?.['text_42'] ?? (tr?.['text_42'] ?? 'Tipo:')}</span> {sourceData.type}
                     </p>
                     <p className="text-sm text-gray-600 dark:text-gray-400">
-                      <span className="font-medium">Textos encontrados:</span> {Object.keys(extractedKeys).length}
+                      <span className="font-medium">{tr?.['text_43'] ?? (tr?.['text_43'] ?? 'Textos encontrados:')}</span> {Object.keys(extractedKeys).length}
                     </p>
                   </div>
 
                   {/* Extracted Keys Preview */}
                   {Object.keys(extractedKeys).length > 0 && (
                     <div className="border border-gray-200 dark:border-gray-600 rounded-lg p-4 max-h-60 overflow-y-auto">
-                      <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-2">Textos Extraídos:</h4>
+                      <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-2">{tr?.['text_44'] ?? (tr?.['text_44'] ?? 'Textos Extraídos:')}</h4>
                       <div className="space-y-1">
                         {Object.entries(extractedKeys).slice(0, 10).map(([key, value]) => (
                           <div key={key} className="text-xs">
@@ -859,9 +861,7 @@ export const TranslationView: React.FC = () => {
                       onClick={downloadOriginalJson}
                       className="flex-1 py-3 px-4 bg-gray-600 hover:bg-gray-700 text-white rounded-lg flex items-center justify-center gap-2"
                     >
-                      <Download size={18} />
-                      Descargar Textos (JSON)
-                    </button>
+                      <Download size={18} />{tr?.['text_45'] ?? (tr?.['text_45'] ?? 'Descargar Textos (JSON)')}</button>
                     <button
                       onClick={handleTranslateAll}
                       disabled={processLoading || Object.keys(extractedKeys).length === 0}
@@ -869,14 +869,10 @@ export const TranslationView: React.FC = () => {
                     >
                       {processLoading ? (
                         <>
-                          <Loader2 className="animate-spin" size={18} />
-                          Traduciendo...
-                        </>
+                          <Loader2 className="animate-spin" size={18} />{tr?.['text_46'] ?? (tr?.['text_46'] ?? 'Traduciendo...')}</>
                       ) : (
                         <>
-                          <Languages size={18} />
-                          Traducir Todo (ES, EN, FR)
-                        </>
+                          <Languages size={18} />{tr?.['text_47'] ?? (tr?.['text_47'] ?? 'Traducir Todo (ES, EN, FR)')}</>
                       )}
                     </button>
                   </div>
@@ -888,9 +884,7 @@ export const TranslationView: React.FC = () => {
                       disabled={processLoading}
                       className="w-full py-4 px-4 bg-gradient-to-r from-indigo-600 to-violet-600 text-white font-bold rounded-xl shadow-lg hover:scale-[1.02] transition-all flex items-center justify-center gap-2"
                     >
-                      <Sparkles size={20} />
-                      Generar Código con Auto-i18n
-                    </button>
+                      <Sparkles size={20} />{tr?.['text_48'] ?? (tr?.['text_48'] ?? 'Generar Código con Auto-i18n')}</button>
                   )}
 
                   {/* Success/Error Messages */}
@@ -912,9 +906,7 @@ export const TranslationView: React.FC = () => {
                     <button
                       onClick={() => setActiveStep(3)}
                       className="w-full py-3 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg flex items-center justify-center gap-2"
-                    >
-                      Continuar al Paso 3
-                      <ArrowRight size={18} />
+                    >{tr?.['text_49'] ?? (tr?.['text_49'] ?? 'Continuar al Paso 3')}<ArrowRight size={18} />
                     </button>
                   )}
                 </div>
@@ -930,21 +922,19 @@ export const TranslationView: React.FC = () => {
                   <Save className="text-purple-600 dark:text-purple-400" size={20} />
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-gray-900 dark:text-white">Paso 3: Guardar Traducciones</h3>
-                  <p className="text-xs text-gray-500">Descarga los JSON o aplícalos directamente al proyecto.</p>
+                  <h3 className="text-lg font-bold text-gray-900 dark:text-white">{tr?.['text_50'] ?? (tr?.['text_50'] ?? 'Paso 3: Guardar Traducciones')}</h3>
+                  <p className="text-xs text-gray-500">{tr?.['text_51'] ?? (tr?.['text_51'] ?? 'Descarga los JSON o aplícalos directamente al proyecto.')}</p>
                 </div>
               </div>
 
               {!results.es && !results.en && !results.fr && (
                 <div className="flex flex-col items-center justify-center py-8 text-center">
                   <AlertCircle className="text-yellow-500 mb-3" size={40} />
-                  <p className="text-gray-500">No hay traducciones generadas. Ve al Paso 2.</p>
+                  <p className="text-gray-500">{tr?.['text_52'] ?? (tr?.['text_52'] ?? 'No hay traducciones generadas. Ve al Paso 2.')}</p>
                   <button
                     onClick={() => setActiveStep(2)}
                     className="mt-4 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg"
-                  >
-                    Ir al Paso 2
-                  </button>
+                  >{tr?.['text_53'] ?? (tr?.['text_53'] ?? 'Ir al Paso 2')}<ArrowRight size={18} /></button>
                 </div>
               )}
 
@@ -959,7 +949,7 @@ export const TranslationView: React.FC = () => {
                           <h4 className="font-semibold text-gray-900 dark:text-white uppercase">{lang}</h4>
                         </div>
                         <p className="text-xs text-gray-500 mb-3">
-                          {results[lang] ? `${Object.keys(results[lang]).length} claves` : 'Sin datos'}
+                          {results[lang] ? `${Object.keys(results[lang]).length} claves` : tr?.['text_54'] ?? 'Sin datos'}
                         </p>
                         <div className="flex flex-col gap-2">
                           <button
@@ -967,17 +957,13 @@ export const TranslationView: React.FC = () => {
                             disabled={!results[lang]}
                             className="py-2 px-3 bg-gray-600 hover:bg-gray-700 disabled:bg-gray-400 text-white text-sm rounded-lg flex items-center justify-center gap-2"
                           >
-                            <Download size={16} />
-                            Descargar
-                          </button>
+                            <Download size={16} />{tr?.['text_55'] ?? (tr?.['text_55'] ?? 'Descargar')}</button>
                           <button
                             onClick={() => saveToObjectLibrary(lang)}
                             disabled={!results[lang]}
                             className="py-2 px-3 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-400 text-white text-sm rounded-lg flex items-center justify-center gap-2"
                           >
-                            <Database size={16} />
-                            A Biblioteca
-                          </button>
+                            <Database size={16} />{tr?.['text_56'] ?? (tr?.['text_56'] ?? 'A Biblioteca')}</button>
                         </div>
                       </div>
                     ))}
@@ -988,7 +974,7 @@ export const TranslationView: React.FC = () => {
                     <div className="border border-purple-200 dark:border-purple-700 rounded-lg p-4 bg-purple-50 dark:bg-purple-900/20">
                       <div className="flex items-center gap-2 mb-3">
                         <Sparkles className="text-purple-600 dark:text-purple-400" size={20} />
-                        <h4 className="font-semibold text-gray-900 dark:text-white">Código con i18n</h4>
+                        <h4 className="font-semibold text-gray-900 dark:text-white">{tr?.['text_57'] ?? (tr?.['text_57'] ?? 'Código con i18n')}</h4>
                       </div>
                       <p className="text-xs text-gray-600 dark:text-gray-400 mb-3">
                         {results.i18n_code.fileName}
@@ -998,16 +984,12 @@ export const TranslationView: React.FC = () => {
                           onClick={downloadI18nCode}
                           className="flex-1 py-2 px-3 bg-gray-600 hover:bg-gray-700 text-white text-sm rounded-lg flex items-center justify-center gap-2"
                         >
-                          <Download size={16} />
-                          Descargar Código
-                        </button>
+                          <Download size={16} />{tr?.['text_58'] ?? (tr?.['text_58'] ?? 'Descargar Código')}</button>
                         <button
                           onClick={() => saveToObjectLibrary('code')}
                           className="flex-1 py-2 px-3 bg-purple-600 hover:bg-purple-700 text-white text-sm rounded-lg flex items-center justify-center gap-2"
                         >
-                          <Database size={16} />
-                          A Biblioteca
-                        </button>
+                          <Database size={16} />{tr?.['text_56'] ?? (tr?.['text_56'] ?? 'A Biblioteca')}</button>
                       </div>
                     </div>
                   )}
@@ -1021,19 +1003,13 @@ export const TranslationView: React.FC = () => {
                     >
                       {savingToProject ? (
                         <>
-                          <Loader2 className="animate-spin" size={20} />
-                          Aplicando al proyecto...
-                        </>
+                          <Loader2 className="animate-spin" size={20} />{tr?.['text_59'] ?? (tr?.['text_59'] ?? 'Aplicando al proyecto...')}</>
                       ) : (
                         <>
-                          <ArrowRight size={20} />
-                          Aplicar Todo al Proyecto
-                        </>
+                          <ArrowRight size={20} />{tr?.['text_60'] ?? (tr?.['text_60'] ?? 'Aplicar Todo al Proyecto')}</>
                       )}
                     </button>
-                    <p className="text-xs text-gray-500 text-center mt-2">
-                      Esto guardará las traducciones en apps/fablab/language/locales/
-                    </p>
+                    <p className="text-xs text-gray-500 text-center mt-2">{tr?.['text_61'] ?? (tr?.['text_61'] ?? 'Esto guardará las traducciones en apps/fablab/language/locales/')}</p>
                   </div>
 
                   {/* Success/Error Messages */}
@@ -1067,23 +1043,23 @@ export const TranslationView: React.FC = () => {
                   <Globe className="text-purple-600 dark:text-purple-400" size={20} />
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-gray-900 dark:text-white">Paso 4: Gestionar Idiomas Completos</h3>
-                  <p className="text-xs text-gray-500">Exportar/importar archivos de idioma completos o agregar nuevos idiomas.</p>
+                  <h3 className="text-lg font-bold text-gray-900 dark:text-white">{text('text_63', 'Paso 4: Gestionar Idiomas Completos')}</h3>
+                  <p className="text-xs text-gray-500">{text('text_64', 'Exportar/importar archivos de idioma completos o agregar nuevos idiomas.')}</p>
                 </div>
               </div>
 
               {/* Export Section */}
               <div className="border border-gray-200 dark:border-gray-600 rounded-lg p-6">
-                <h4 className="font-semibold text-gray-900 dark:text-white mb-4">Exportar Archivo de Idioma</h4>
+                <h4 className="font-semibold text-gray-900 dark:text-white mb-4">{text('text_65', 'Exportar Archivo de Idioma')}</h4>
                 <div className="flex gap-3">
                   <select
                     value={selectedLanguageFile}
                     onChange={(e) => setSelectedLanguageFile(e.target.value as 'en' | 'es' | 'fr')}
                     className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                   >
-                    <option value="en">Inglés (EN)</option>
-                    <option value="es">Español (ES)</option>
-                    <option value="fr">Francés (FR)</option>
+                    <option value="en">{text('text_66', 'Inglés (EN)')}</option>
+                    <option value="es">{text('text_67', 'Español (ES)')}</option>
+                    <option value="fr">{text('text_68', 'Francés (FR)')}</option>
                   </select>
                   <button
                     onClick={handleExportLanguage}
@@ -1094,8 +1070,7 @@ export const TranslationView: React.FC = () => {
                       <Loader2 className="animate-spin" size={18} />
                     ) : (
                       <>
-                        <Download size={18} />
-                        Exportar
+                        <Download size={18} />{text('text_69', 'Exportar')}
                       </>
                     )}
                   </button>
@@ -1104,19 +1079,19 @@ export const TranslationView: React.FC = () => {
 
               {/* Import and Add New Language Section */}
               <div className="border border-gray-200 dark:border-gray-600 rounded-lg p-6">
-                <h4 className="font-semibold text-gray-900 dark:text-white mb-4">Agregar Nuevo Idioma</h4>
+                <h4 className="font-semibold text-gray-900 dark:text-white mb-4">{text('text_70', 'Agregar Nuevo Idioma')}</h4>
                 <div className="space-y-4">
                   <div className="grid grid-cols-2 gap-3">
                     <input
                       type="text"
-                      placeholder="Código (ej: de, it, pt)"
+                      placeholder={text('text_71', 'Código (ej: de, it, pt)')}
                       value={languageCode}
                       onChange={(e) => setLanguageCode(e.target.value)}
                       className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                     />
                     <input
                       type="text"
-                      placeholder="Nombre (ej: Alemán, Italiano)"
+                      placeholder={text('text_72', 'Nombre (ej: Alemán, Italiano)')}
                       value={languageName}
                       onChange={(e) => setLanguageName(e.target.value)}
                       className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
@@ -1124,9 +1099,7 @@ export const TranslationView: React.FC = () => {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Cargar archivo traducido (JSON o TypeScript)
-                    </label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{text('text_73', 'Cargar archivo traducido (JSON o TypeScript)')}</label>
                     <input
                       type="file"
                       accept=".json,.ts"
@@ -1140,7 +1113,7 @@ export const TranslationView: React.FC = () => {
                     >
                       <Upload size={20} className="text-purple-600 dark:text-purple-400" />
                       <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                        {importedData ? '✅ Archivo cargado - Click para cambiar' : 'Click para cargar archivo'}
+                        {importedData ? text('text_74', '✅ Archivo cargado - Click para cambiar') : text('text_75', 'Click para cargar archivo')}
                       </span>
                     </label>
                   </div>
@@ -1152,13 +1125,11 @@ export const TranslationView: React.FC = () => {
                   >
                     {languageLoading ? (
                       <>
-                        <Loader2 className="animate-spin" size={18} />
-                        Subiendo...
+                        <Loader2 className="animate-spin" size={18} />{text('text_76', 'Subiendo...')}
                       </>
                     ) : (
                       <>
-                        <Check size={18} />
-                        Agregar Idioma
+                        <Check size={18} />{text('text_77', 'Agregar Idioma')}
                       </>
                     )}
                   </button>
@@ -1182,8 +1153,7 @@ export const TranslationView: React.FC = () => {
               {/* Info */}
               <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
                 <p className="text-sm text-blue-800 dark:text-blue-200">
-                  💡 <strong>Tip:</strong> Exporta un archivo de idioma existente, tradúcelo externamente, y súbelo aquí para agregarlo al proyecto.
-                </p>
+                  💡 <strong>{tr?.['text_78'] ?? (tr?.['text_78'] ?? 'Tip:')}</strong>{tr?.['text_79'] ?? (tr?.['text_79'] ?? 'Exporta un archivo de idioma existente, tradúcelo externamente, y súbelo aquí para agregarlo al proyecto.')}</p>
               </div>
             </div>
           )}

@@ -27,6 +27,8 @@ export const fr: Translations = {
       makerPath: 'Chemin du Maker',
       tools: 'Accès Externe',
       signOut: 'Déconnexion',
+      objectsLibrary: 'Bibliothèque d\'Objets',
+      projects: 'Projets',
     },
     library: {
       title: 'Bibliothèque',
@@ -116,6 +118,8 @@ export const fr: Translations = {
         imageDesc: 'Prompts et images sans dupliquer les produits.',
         translationTitle: 'Traduction fixe',
         translationDesc: 'Traite et traduit des fichiers avec i18n en un seul flux.',
+        styleTransferTitle: 'Style Transfer fixe',
+        styleTransferDesc: 'Extrait les sélecteurs HTML, génère un CSS de base et applique des styles IA.',
       },
     },
     productModal: {
@@ -1458,6 +1462,38 @@ export const fr: Translations = {
     text_generating: 'Génération...',
   },
 
+  // Traductions de la vue produit Style Transfer
+  styleTransferViewTranslations: {
+    text_back: 'Retour',
+    text_notFound: 'Produit introuvable ou non public',
+    text_titlePlaceholder: 'Titre du labo de styles',
+    text_descPlaceholder: 'Description du produit',
+    text_public: 'Produit Public',
+    text_private: 'Produit Privé',
+    text_copyUrl: "Copier l'URL",
+    hero_title: 'Style Transfer Lab',
+    hero_subtitle: 'Chargez du HTML, extrayez IDs et classes, générez un CSS sans styles et appliquez le CSS stylé fourni par une IA.',
+    selectors_title: 'Analyser la structure HTML',
+    selectors_subtitle: 'Choisissez un ou plusieurs modules HTML du RAG. Nous extrairons IDs et classes pour créer un modèle CSS propre.',
+    analyze: 'Extraire la structure',
+    analyzing: 'Extraction...',
+    selectors_total: 'Sélecteurs uniques',
+    modules_total: 'Modules analysés',
+    css_template_label: 'CSS de base (sélecteurs uniquement)',
+    copy_css: 'Copier le CSS',
+    download_css: 'Télécharger le CSS',
+    upload_css_label: 'Charger / coller le CSS stylé',
+    upload_css_hint: 'Collez ou chargez le CSS généré par votre IA et appliquez-le aux modules HTML sélectionnés.',
+    apply_css: 'Appliquer le CSS au preview',
+    download_html: 'Télécharger le HTML final',
+    generate_first: 'Générez ou chargez un CSS avant de télécharger.',
+    preview_title: 'Aperçu HTML + CSS',
+    preview_hint: 'Rendu des modules HTML avec le CSS chargé.',
+    empty_selection: 'Sélectionnez au moins un module HTML à analyser.',
+    css_placeholder: '/* CSS généré par votre IA */',
+    template_placeholder: '/* Sélecteurs prêts pour qu’une IA ajoute des styles */',
+  },
+
   // Traductions de la vue produit Image Generator
   imageGeneratorTranslations: {
     back: 'Retour',
@@ -1494,101 +1530,124 @@ export const fr: Translations = {
     errorSaving: "Erreur lors de l'enregistrement dans les objets",
   },
 
-  // Translation product view translations
+  // Auto-generated translations from Translation Maker
+  
+  // Auto-generated translations from Translation Maker
+  
+  // Auto-generated translations from Translation Maker
+  
+  // Auto-generated translations from Translation Maker
+  
+  // Auto-generated translations from Translation Maker
+  
+  // Auto-generated translations from Translation Maker
+  
+  // Auto-generated translations from Translation Maker
+  
+  // Auto-generated translations from Translation Maker
+  
+  // Auto-generated translations from Translation Maker
+  
+  // Auto-generated translations from Translation Maker
+  
+  // Auto-generated translations from Translation Maker
+  
+  // Auto-generated translations from Translation Maker
+  
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+  // Auto-generated translations from Translation Maker
   translationViewTranslations: {
-    back: 'Retour aux produits',
-    notFound: 'Produit non trouvé',
-    titleDefault: 'Créateur de Traductions',
-    descDefault: 'Extraire des textes et générer des traductions ES, EN, FR à partir de fichiers de code',
-    publicProduct: 'Public',
-    privateProduct: 'Privé',
-    
-    // Step Navigator
-    step1Name: 'Télécharger Fichier',
-    step2Name: 'Traiter',
-    step3Name: 'Enregistrer',
-    step4Name: 'Langues',
-    
-    // Step 1: File Upload
-    step1Title: 'Étape 1: Télécharger et Analyser le Fichier',
-    step1Subtitle: 'Téléchargez un fichier JSX, TSX, HTML ou JS avec des textes codés en dur.',
-    hideLibrary: 'Masquer la Bibliothèque',
-    loadFromLibrary: 'Charger depuis la Bibliothèque',
-    objectLibrary: "Bibliothèque d'Objets",
-    loadingObjects: 'Chargement...',
-    noObjects: 'Aucun objet CODE ou HTML',
-    changeFile: 'Changer de fichier',
-    clickToUpload: 'Cliquez pour télécharger votre fichier de code',
-    supportedFormats: 'JSX, TSX, HTML, JS, TS',
-    selectFile: 'Sélectionner le fichier',
-    saveToLibraryCheckbox: "Enregistrer également dans la bibliothèque d'objets",
-    analyzing: 'Analyse...',
-    analyzeAndContinue: 'Analyser et Continuer',
-    
-    // Step 2: Translation Processing
-    step2Title: 'Étape 2: Traiter les Traductions',
-    step2Subtitle: 'Extraire les textes et traduire en ES, EN et FR.',
-    step2NoSource: "Vous devez d'abord télécharger un fichier à l'étape 1",
-    goToStep1: "Aller à l'étape 1",
-    sourceFile: 'Fichier source:',
-    fileType: 'Type:',
-    textsFound: 'Textes trouvés:',
-    extractedTexts: 'Textes Extraits:',
-    andMore: 'plus',
-    downloadTexts: 'Télécharger les Textes (JSON)',
-    translating: 'Traduction...',
-    translateAll: 'Tout Traduire (ES, EN, FR)',
-    generateI18nCode: 'Générer le Code avec Auto-i18n',
-    continueToStep3: "Continuer vers l'étape 3",
-    
-    // Step 3: Translation Saver
-    step3Title: 'Étape 3: Enregistrer les Traductions',
-    step3Subtitle: 'Téléchargez les fichiers JSON ou appliquez-les directement au projet.',
-    step3NoTranslations: "Aucune traduction générée. Allez à l'étape 2.",
-    goToStep2: "Aller à l'étape 2",
-    keys: 'clés',
-    noData: 'Pas de données',
-    downloadButton: 'Télécharger',
-    toLibraryButton: 'Vers la Bibliothèque',
-    i18nCodeTitle: 'Code avec i18n',
-    downloadCode: 'Télécharger le Code',
-    applyingToProject: 'Application au projet...',
-    applyToProject: 'Tout Appliquer au Projet',
-    applyHint: 'Cela enregistrera les traductions dans apps/fablab/language/locales/',
-    appliedSuccess: 'Tout appliqué correctement!',
-    location: 'Emplacement:',
-    
-    // Step 4: Language Manager
-    step4Title: 'Étape 4: Gérer les Langues Complètes',
-    step4Subtitle: 'Exporter/importer des fichiers de langue complets ou ajouter de nouvelles langues.',
-    exportLanguageTitle: 'Exporter Fichier de Langue',
-    exportButton: 'Exporter',
-    exporting: 'Export...',
-    addNewLanguageTitle: 'Ajouter Nouvelle Langue',
-    codeLabel: 'Code (ex: de, it, pt)',
-    nameLabel: 'Nom (ex: Allemand, Italien)',
-    uploadTranslatedFile: 'Charger fichier traduit (JSON ou TypeScript)',
-    fileLoaded: '✅ Fichier chargé - Cliquez pour changer',
-    clickToLoadFile: 'Cliquez pour charger le fichier',
-    uploading: 'Téléchargement...',
-    addLanguageButton: 'Ajouter Langue',
-    languageManagerTip: '💡 Conseil: Exportez un fichier de langue existant, traduisez-le en externe et téléchargez-le ici pour l\'ajouter au projet.',
-    languageFileDownloaded: 'Fichier téléchargé',
-    fileParsedSuccess: 'Fichier chargé correctement',
-    errorParsingJson: 'Erreur de parsing JSON. Vérifiez le format.',
-    completeAllFields: 'Complétez tous les champs et chargez un fichier',
-    languageAddedSuccess: 'Langue ajoutée avec succès',
-    
-    // General errors
-    errorLoadingProduct: 'Erreur de chargement du produit',
-    errorAnalyzing: 'Erreur d\'analyse du fichier',
-    errorTranslating: 'Erreur de traduction',
-    errorGeneratingI18n: 'Erreur de génération du code i18n',
-    errorDownloadingTranslation: 'Erreur de téléchargement de la traduction',
-    errorSavingToLibrary: 'Erreur d\'enregistrement dans la bibliothèque',
-    errorApplyingToProject: 'Erreur d\'application au projet',
-    errorExportingLanguage: 'Erreur d\'exportation de la langue',
-    errorAddingLanguage: 'Erreur d\'ajout de langue',
-    savedToLibrary: 'Enregistré dans la bibliothèque',
+    'text_1': 'Traduction corrigée',
+    'text_2': 'Erreur lors de l\'extraction des textes du fichier',
+    'text_3': 'Aucune clé à traduire',
+    'text_4': 'Traductions ES, EN et FR prêtes. Vous pouvez maintenant générer le code ou enregistrer.',
+    'text_5': 'Erreur inconnue',
+    'text_6': 'Traductions',
+    'text_7': 'Code i18n généré. Vous pouvez le télécharger ou l\'appliquer au projet.',
+    'text_8': 'Aucune traduction ni code à appliquer',
+    'text_9': 'source.tsx',
+    'text_10': 'Tout a été appliqué correctement !',
+    'text_11': 'Erreur d\'analyse JSON. Vérifiez le format.',
+    'text_12': 'Remplissez tous les champs et téléchargez un fichier',
+    'text_13': 'Produit introuvable',
+    'text_14': 'Retour aux produits',
+    'text_15': 'Créateur de Traductions',
+    'text_16': 'Extrait les textes et génère les traductions ES, EN, FR à partir des fichiers de code',
+    'text_17': 'Public',
+    'text_18': 'Privé',
+    'text_19': 'Télécharger un fichier',
+    'text_20': 'Traiter',
+    'text_21': 'Enregistrer',
+    'text_22': 'Langues',
+    'text_23': 'Étape 1 : Télécharger et analyser le fichier',
+    'text_24': 'Téléchargez un fichier JSX, TSX, HTML ou JS avec des textes codés en dur.',
+    'text_25': 'Masquer la bibliothèque',
+    'text_26': 'Charger depuis la bibliothèque',
+    'text_27': 'Bibliothèque d\'objets',
+    'text_28': 'Chargement...',
+    'text_29': 'Aucun objet CODE ou HTML',
+    'text_30': 'Changer de fichier',
+    'text_31': 'Cliquez pour télécharger votre fichier de code',
+    'text_32': 'JSX, TSX, HTML, JS, TS',
+    'text_33': 'Sélectionner un fichier',
+    'text_34': 'Enregistrer également dans la bibliothèque d\'objets',
+    'text_35': 'Analyse en cours...',
+    'text_36': 'Analyser et continuer',
+    'text_37': 'Étape 2 : Traiter les traductions',
+    'text_38': 'Extrait les textes et traduit en ES, EN et FR.',
+    'text_39': 'Vous devez d\'abord télécharger un fichier à l\'étape 1',
+    'text_40': 'Aller à l\'étape 1',
+    'text_41': 'Fichier source :',
+    'text_42': 'Type :',
+    'text_43': 'Textes trouvés :',
+    'text_44': 'Textes extraits :',
+    'text_45': 'Télécharger les textes (JSON)',
+    'text_46': 'Traduction en cours...',
+    'text_47': 'Tout traduire (ES, EN, FR)',
+    'text_48': 'Générer le code avec Auto-i18n',
+    'text_49': 'Continuer à l\'étape 3',
+    'text_50': 'Étape 3 : Enregistrer les traductions',
+    'text_51': 'Téléchargez les JSON ou appliquez-les directement au projet.',
+    'text_52': 'Aucune traduction générée. Allez à l\'étape 2.',
+    'text_53': 'Aller à l\'étape 2',
+    'text_54': 'Aucune donnée',
+    'text_55': 'Télécharger',
+    'text_56': 'À la bibliothèque',
+    'text_57': 'Code avec i18n',
+    'text_58': 'Télécharger le code',
+    'text_59': 'Application au projet...',
+    'text_60': 'Appliquer tout au projet',
+    'text_61': 'Ceci enregistrera les traductions dans apps/fablab/language/locales/',
+    'text_62': 'Emplacement :',
+    'text_63': 'Étape 4 : Gérer les langues complètes',
+    'text_64': 'Exporter/importer des fichiers de langue complets ou ajouter de nouvelles langues.',
+    'text_65': 'Exporter le fichier de langue',
+    'text_66': 'Anglais (EN)',
+    'text_67': 'Espagnol (ES)',
+    'text_68': 'Français (FR)',
+    'text_69': 'Exporter',
+    'text_70': 'Ajouter une nouvelle langue',
+    'text_71': 'Code (ex: de, it, pt)',
+    'text_72': 'Nom (ex: Allemand, Italien)',
+    'text_73': 'Télécharger le fichier traduit (JSON ou TypeScript)',
+    'text_74': '✅ Fichier téléchargé - Cliquez pour changer',
+    'text_75': 'Cliquez pour télécharger le fichier',
+    'text_76': 'Téléchargement...',
+    'text_77': 'Ajouter la langue',
+    'text_78': 'Astuce :',
+    'text_79': 'Exportez un fichier de langue existant, traduisez-le en externe, puis téléchargez-le ici pour l\'ajouter au projet.',
   },
 };
