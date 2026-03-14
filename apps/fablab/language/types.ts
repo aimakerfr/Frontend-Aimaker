@@ -41,6 +41,8 @@ export interface Translations {
     makerPath: string;
     tools: string;
     signOut: string;
+    objectsLibrary: string;
+    projects: string;
   };
   library: {
     title: string;

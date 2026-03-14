@@ -26,7 +26,8 @@ const ENDPOINT = '/api/v1/objects';
  */
 export async function getAllObjects(): Promise<ObjectItem[]> {
   // Endpoint per current implementation in ObjectsLibrary
-  const res = await httpClient.get<any>(ENDPOINT);
+  // Se agrega cache-buster para evitar respuestas 304 con cuerpo vacío en prod (ETag)
+  const res = await httpClient.get<any>(`${ENDPOINT}?_=${Date.now()}`);
 
   // ApiResponse shape handled by httpClient -> already an array
   if (Array.isArray(res)) return res;
@@ -40,6 +41,18 @@ export async function getAllObjects(): Promise<ObjectItem[]> {
   if (Array.isArray(res?.data)) {
     return res.data;
   }
+
+   // Paginated shape { data: { items: [...] } }
+  if (Array.isArray(res?.data?.items)) {
+    return res.data.items;
+  }
+
+  // Generic items array
+  if (Array.isArray(res?.items)) {
+    return res.items;
+  }
+
+  console.warn('[getAllObjects] Respuesta sin items reconocibles', res);
 
   return [];
 }
