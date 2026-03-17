@@ -46,15 +46,6 @@ export interface LayoutEntry {
 
 export const LANDING_PAGE_MODULES: ModuleDefinition[] = [
   {
-    key: 'css_generator',
-    label: 'CSS Generator',
-    description: 'Describe el estilo visual (colores, tipografía, espaciado).',
-    type: 'CONFIG',
-    color: 'bg-amber-500',
-    textInput: true,
-    textPlaceholder: 'Ej: Colores oscuros, acentos verdes, tipografía sans-serif, botones redondeados...',
-  },
-  {
     key: 'header',
     label: 'Header',
     description: 'HTML snippet for page header.',
@@ -82,35 +73,30 @@ export const LANDING_PAGE_MODULES: ModuleDefinition[] = [
 
 export const NOTEBOOK_MODULES: ModuleDefinition[] = [
   {
-    key: 'api_key',
-    label: 'API Key',
-    description: 'Pega tu API key aquí.',
-    type: 'CONFIG',
-    color: 'bg-amber-500',
-    textInput: true,
-    textPlaceholder: 'AIzaSy...',
-  },
-  {
-    key: 'chat_instruction',
-    label: 'Instrucción del Asistente',
-    description: 'Define el comportamiento del chat.',
-    type: 'TEXT',
-    color: 'bg-sky-500',
-    textInput: true,
-    textPlaceholder: 'Ej: Eres un asistente experto en...',
-  },
-  {
-    key: 'main_visual_template',
-    label: 'Visual Template',
-    description: 'Selecciona la plantilla HTML del notebook.',
-    type: 'HTML',
-    color: 'bg-emerald-500',
-    needsObject: true,
-  },
-  {
     key: 'buscador',
     label: 'Buscador',
-    description: 'Módulo de búsqueda del notebook.',
+    description: 'Módulo de búsqueda con funcionalidad y apariencia definida.',
+    type: 'HTML',
+    color: 'bg-sky-500',
+  },
+  {
+    key: 'chat',
+    label: 'Chat',
+    description: 'Módulo de conversación donde el usuario escribe y ve respuestas.',
+    type: 'HTML',
+    color: 'bg-emerald-500',
+  },
+  {
+    key: 'rag',
+    label: 'RAG',
+    description: 'Espacio para subir archivos PDF y documentos.',
+    type: 'HTML',
+    color: 'bg-violet-500',
+  },
+  {
+    key: 'html_input',
+    label: 'HTML Input',
+    description: 'Selecciona un objeto HTML personalizado.',
     type: 'HTML',
     color: 'bg-rose-500',
     needsObject: true,

@@ -92,8 +92,11 @@ const AssemblerNew: React.FC = () => {
   const buildAssembleDto = useCallback((makerPathId: number) => {
     const layout = buildLayoutData();
 
-    // Backend expects fixed indices for landing_page: header=2, body=3, footer=4
-    const FIXED_INDEX: Record<string, number> = { header: 2, body: 3, footer: 4 };
+    // Backend expects fixed indices per product type
+    const FIXED_INDEX: Record<string, number> = {
+      header: 2, body: 3, footer: 4,   // landing_page
+      html_input: 4,                     // notebook
+    };
     let nextIndex = 10; // dynamic modules start at 10
     const inputModules = canvasModules
       .filter((m) => m.needsObject && m.objectId)
@@ -107,11 +110,7 @@ const AssemblerNew: React.FC = () => {
     const variables: Record<string, string> = {};
     canvasModules.forEach((m) => {
       if (m.textInput && m.textValue) {
-        if (m.key === 'css_generator') {
-          variables['css_generator_instruction_text'] = m.textValue;
-        } else {
-          variables[m.key] = m.textValue;
-        }
+        variables[m.key] = m.textValue;
       }
     });
 
