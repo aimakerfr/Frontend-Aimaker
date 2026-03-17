@@ -8,12 +8,16 @@ type ObjectsTableProps = {
   error: string | null;
   t: any;
   onView: (item: ObjectItem) => void;
+  onDownload: (item: ObjectItem) => void;
+  onDelete: (item: ObjectItem) => void;
+  actionId?: string | number | null;
   selection?: boolean;
   selectedIds?: Array<string | number>;
   onToggleSelect?: (item: ObjectItem, checked: boolean) => void;
+  onDragStart?: (item: ObjectItem, ev: React.DragEvent<HTMLTableRowElement>) => void;
 };
 
-const ObjectsTable: React.FC<ObjectsTableProps> = ({ items, isLoading, error, t, onView, selection, selectedIds = [], onToggleSelect }) => {
+const ObjectsTable: React.FC<ObjectsTableProps> = ({ items, isLoading, error, t, onView, onDownload, onDelete, actionId, selection, selectedIds = [], onToggleSelect, onDragStart }) => {
   const totalColumns = selection ? 4 : 3;
 
   // Compute available filters from current items
@@ -132,7 +136,16 @@ const ObjectsTable: React.FC<ObjectsTableProps> = ({ items, isLoading, error, t,
           {!isLoading &&
             !error &&
             filteredItems.map((item) => (
-              <tr key={item.id} className="hover:bg-gray-50 dark:hover:bg-gray-800">
+              <tr
+                key={item.id}
+                draggable
+                onDragStart={(ev) => {
+                  ev.dataTransfer.setData('text/object-id', String(item.id));
+                  ev.dataTransfer.effectAllowed = 'move';
+                  onDragStart?.(item, ev);
+                }}
+                className="hover:bg-gray-50 dark:hover:bg-gray-800 cursor-move"
+              >
                 {selection && (
                   <td className="px-4 py-3 text-sm">
                     <input
@@ -150,14 +163,32 @@ const ObjectsTable: React.FC<ObjectsTableProps> = ({ items, isLoading, error, t,
                   <ObjectTypeIcon type={item.type} t={t} />
                 </td>
                 <td className="px-4 py-3 text-right text-sm">
-                  <button
-                    type="button"
-                    className="inline-flex items-center px-3 py-1.5 rounded-md text-sm font-medium bg-brand-600 text-white hover:bg-brand-700 disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500 dark:focus:ring-offset-gray-900"
-                    onClick={() => onView(item)}
-                    disabled={!item.url && !(item as any).data}
-                  >
-                    {(t as any).home?.objects_library?.voir ?? t.library.buttons.view}
-                  </button>
+                  <div className="flex justify-end gap-2">
+                    <button
+                      type="button"
+                      className="inline-flex items-center px-3 py-1.5 rounded-md text-sm font-medium bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 disabled:opacity-60 dark:bg-gray-800 dark:text-gray-200 dark:border-gray-700"
+                      onClick={() => onDownload(item)}
+                      disabled={actionId === item.id || (!item.url && !(item as any).relative_path && (item as any).data === undefined)}
+                    >
+                      {(t as any).home?.objects_library?.download ?? 'Download'}
+                    </button>
+                    <button
+                      type="button"
+                      className="inline-flex items-center px-3 py-1.5 rounded-md text-sm font-medium bg-brand-50 text-brand-700 border border-brand-200 hover:bg-brand-100 disabled:opacity-60"
+                      onClick={() => onView(item)}
+                      disabled={!item.url && !(item as any).data}
+                    >
+                      {(t as any).home?.objects_library?.voir ?? t.library.buttons.view}
+                    </button>
+                    <button
+                      type="button"
+                      className="inline-flex items-center px-3 py-1.5 rounded-md text-sm font-medium bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 disabled:opacity-60"
+                      onClick={() => onDelete(item)}
+                      disabled={actionId === item.id}
+                    >
+                      {(t as any).home?.objects_library?.delete ?? 'Delete'}
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}
