@@ -1,4 +1,4 @@
-import { httpClient } from '../api/http.client';
+import { httpClient, tokenStorage } from '../api/http.client';
 
 // Shared type for objects returned by the API
 export type ObjectItem = {
@@ -6,12 +6,29 @@ export type ObjectItem = {
   name: string;
   url?: string;
   type?: string;
+  title?: string;
+  relative_path?: string | null;
+  data?: Record<string, unknown> | null;
+  folderId?: number | null;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
+export type ObjectFolder = {
+  id: number;
+  name: string;
+  emoji?: string | null;
+  color?: string | null;
+  sort_order?: number;
+  createdAt?: string;
+  updatedAt?: string;
 };
 
 export type CreateObjectPayload = {
   title: string;
   type: string;
   file?: File;
+  folder_id?: number | null;
 };
 
 export type CopyObjectToRagPayload = {
@@ -20,6 +37,7 @@ export type CopyObjectToRagPayload = {
 };
 
 const ENDPOINT = '/api/v1/objects';
+const FOLDERS_ENDPOINT = '/api/v1/object-folders';
 /**
  * Fetch all objects from the backend.
  * Uses the centralized httpClient so auth/base URL are handled consistently.
@@ -65,6 +83,9 @@ export async function createObject(payload: CreateObjectPayload): Promise<Object
   const formData = new FormData();
   formData.append('title', payload?.title);
   formData.append('type', payload?.type);
+  if (payload.folder_id !== undefined && payload.folder_id !== null) {
+    formData.append('folder_id', String(payload.folder_id));
+  }
   if (payload.file) {
     formData.append('file', payload.file);
     formData.append('stream_file', payload.file);
@@ -79,6 +100,101 @@ export async function createObject(payload: CreateObjectPayload): Promise<Object
 export async function copyObjectToRag(payload: CopyObjectToRagPayload) {
   return httpClient.post(`${ENDPOINT}/copy_to_rag`, payload);
 }
+
+/**
+ * Delete an object by ID.
+ */
+export async function deleteObject(id: string | number): Promise<void> {
+  await httpClient.delete(`${ENDPOINT}/${id}`);
+}
+
+export async function getObjectFolders(): Promise<ObjectFolder[]> {
+  const res = await httpClient.get<any>(FOLDERS_ENDPOINT);
+  if (Array.isArray(res)) return res;
+  if (Array.isArray(res?.data)) return res.data;
+  return [];
+}
+
+export async function createObjectFolder(payload: {
+  name: string;
+  emoji?: string | null;
+  color?: string | null;
+  sort_order?: number;
+}): Promise<ObjectFolder> {
+  return httpClient.post<ObjectFolder>(FOLDERS_ENDPOINT, payload);
+}
+
+export async function updateObjectFolder(
+  id: number,
+  payload: { name?: string; emoji?: string | null; color?: string | null; sort_order?: number }
+): Promise<ObjectFolder> {
+  return httpClient.patch<ObjectFolder>(`${FOLDERS_ENDPOINT}/${id}`, payload);
+}
+
+export async function deleteObjectFolder(id: number): Promise<void> {
+  await httpClient.delete(`${FOLDERS_ENDPOINT}/${id}`);
+}
+
+export async function setObjectFolder(objectId: string | number, folderId: number | null): Promise<ObjectItem> {
+  return httpClient.patch<ObjectItem>(`${ENDPOINT}/${objectId}/folder`, { folder_id: folderId });
+}
+
+/**
+ * Download an object file as an attachment.
+ * Constructs headers with JWT auth, fetches from backend, and triggers browser download.
+ */
+export async function downloadObjectFile(objectId: string | number, fallbackName?: string): Promise<void> {
+  const apiUrl = import.meta.env.VITE_API_URL;
+  if (!apiUrl) throw new Error('VITE_API_URL is not defined');
+  
+  const cleanBase = apiUrl.endsWith('/') ? apiUrl.slice(0, -1) : apiUrl;
+  const path = `api/v1/objects/${objectId}/download`;
+  const url = `${cleanBase}/${path}`;
+  
+  const headers: Record<string, string> = {};
+  const token = tokenStorage.get();
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  const response = await fetch(url, {
+    method: 'GET',
+    headers,
+    cache: 'no-store',
+  });
+
+  if (!response.ok) {
+    const text = await response.text().catch(() => '');
+    throw new Error(text || `Download failed with status ${response.status}`);
+  }
+
+  const blob = await response.blob();
+
+  const disposition = response.headers.get('content-disposition');
+  const filenameFromHeader = disposition ? extractFilenameFromDisposition(disposition) : null;
+  const filename = filenameFromHeader || fallbackName || `object-${objectId}`;
+
+  const blobUrl = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = blobUrl;
+  anchor.download = filename;
+  anchor.style.display = 'none';
+  document.body.appendChild(anchor);
+  anchor.click();
+  document.body.removeChild(anchor);
+  URL.revokeObjectURL(blobUrl);
+}
+
+const extractFilenameFromDisposition = (header: string): string | null => {
+  const match = header.match(/filename\*=UTF-8''([^;]+)|filename="?([^";]+)"?/i);
+  if (!match) return null;
+  const raw = match[1] || match[2];
+  try {
+    return decodeURIComponent(raw);
+  } catch (e) {
+    return raw;
+  }
+};
 /**
  * Create an object from a base64-encoded image.
  * Converts the base64 string to a Blob and uploads it.
