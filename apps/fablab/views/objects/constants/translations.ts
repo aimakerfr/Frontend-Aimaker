@@ -25,6 +25,9 @@ export const UI_TRANSLATIONS = {
         // Table and actions
         empty: 'No objects found',
         voir: 'View',
+        download: 'Download',
+        delete: 'Delete',
+        delete_confirm: 'Delete this source?',
         // Tabs
         tabs: {
           document: 'DOC',
@@ -68,6 +71,9 @@ export const UI_TRANSLATIONS = {
         name_help: 'Dale a tu objeto un título claro y único.',
         empty: 'No se encontraron objetos',
         voir: 'Ver',
+        download: 'Descargar',
+        delete: 'Eliminar',
+        delete_confirm: '¿Eliminar esta fuente?',
         tabs: {
           document: 'DOC',
           document_desc: 'TXT, PDF, MD, DOC, DOCX, RTF, ODT',
@@ -110,6 +116,9 @@ export const UI_TRANSLATIONS = {
         name_help: 'Donnez à votre objet un titre clair et unique.',
         empty: 'Aucun objet trouvé',
         voir: 'Voir',
+        download: 'Télécharger',
+        delete: 'Supprimer',
+        delete_confirm: 'Supprimer cette source ?',
         tabs: {
           document: 'DOC',
           document_desc: 'TXT, PDF, MD, DOC, DOCX, RTF, ODT',

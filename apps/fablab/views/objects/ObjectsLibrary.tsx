@@ -1,18 +1,32 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useLanguage } from '../../language/useLanguage';
-import { getAllObjects, createObject, ObjectItem } from '@core/objects';
+import {
+  getAllObjects,
+  createObject,
+  deleteObject,
+  downloadObjectFile,
+  ObjectItem,
+  ObjectFolder,
+  getObjectFolders,
+  createObjectFolder,
+  updateObjectFolder,
+  deleteObjectFolder,
+  setObjectFolder,
+} from '@core/objects';
 import AddObjectButton from './components/AddObjectButton';
 import AddObjectModal from './components/AddObjectModal';
-import ObjectsTable from './components/ObjectsTable';
+import FolderCard from './components/FolderCard';
+import ObjectCard from './components/ObjectCard';
+import FolderModal from './components/FolderModal';
 import { UI_TRANSLATIONS as OBJECTS_UI_T } from './constants/translations';
 
-type ObjectsLibraryProps = {
+const DEFAULT_FOLDER_COLOR = '#2563eb';
+
+const ObjectsLibrary: React.FC<{
   selection?: boolean;
   selectedObjects?: ObjectItem[];
   onSelectionChange?: (selected: ObjectItem[]) => void;
-};
-
-const ObjectsLibrary: React.FC<ObjectsLibraryProps> = ({ selection = false, selectedObjects = [], onSelectionChange }) => {
+}> = ({ selection = false, selectedObjects = [], onSelectionChange }) => {
   const { t, language } = useLanguage() as any;
 
   const mergedT = useMemo(() => {
@@ -30,12 +44,24 @@ const ObjectsLibrary: React.FC<ObjectsLibraryProps> = ({ selection = false, sele
     };
   }, [t, language]);
 
+  const viewT = (mergedT as any).objectsLibraryView || {};
+  const locale = typeof language === 'string' ? language.substring(0, 2) : 'en';
+
   const [items, setItems] = useState<ObjectItem[]>([]);
+  const [folders, setFolders] = useState<ObjectFolder[]>([]);
   const [selected, setSelected] = useState<ObjectItem[]>(selectedObjects ?? []);
+  const [selectedFolderId, setSelectedFolderId] = useState<number | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [actionId, setActionId] = useState<string | number | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  // State for inline JSON viewer
+  const [folderModalOpen, setFolderModalOpen] = useState(false);
+  const [folderModalMode, setFolderModalMode] = useState<'create' | 'edit'>('create');
+  const [folderDraftId, setFolderDraftId] = useState<number | null>(null);
+  const [folderDraftName, setFolderDraftName] = useState('');
+  const [folderDraftEmoji, setFolderDraftEmoji] = useState<string | null>(null);
+  const [folderModalError, setFolderModalError] = useState<string | null>(null);
   const [jsonModalItem, setJsonModalItem] = useState<ObjectItem | null>(null);
 
   useEffect(() => {
@@ -44,10 +70,16 @@ const ObjectsLibrary: React.FC<ObjectsLibraryProps> = ({ selection = false, sele
       setIsLoading(true);
       setError(null);
       try {
-        const data = await getAllObjects();
-        if (isActive) setItems(Array.isArray(data) ? data : []);
+        const [objectsRes, foldersRes] = await Promise.all([
+          getAllObjects(),
+          getObjectFolders(),
+        ]);
+        if (isActive) {
+          setItems(Array.isArray(objectsRes) ? objectsRes : []);
+          setFolders(Array.isArray(foldersRes) ? foldersRes : []);
+        }
       } catch (e: any) {
-        if (isActive) setError(e?.message || 'Failed to load');
+        if (isActive) setError(e?.message || viewT?.errors?.load || 'Failed to load');
       } finally {
         if (isActive) setIsLoading(false);
       }
@@ -61,8 +93,33 @@ const ObjectsLibrary: React.FC<ObjectsLibraryProps> = ({ selection = false, sele
   }, [selection, selectedObjects]);
 
   const handleCreate = async ({ title, type, file }: { title: string; type: string; file: File }) => {
-    const created = await createObject({ title, type, file });
+    const created = await createObject({ title, type, file, folder_id: selectedFolderId });
     setItems((prev) => [created, ...prev]);
+  };
+
+  const handleDelete = async (item: ObjectItem) => {
+    setError(null);
+    setActionId(item.id);
+    try {
+      await deleteObject(item.id);
+      setItems((prev) => prev.filter((it) => it.id !== item.id));
+    } catch (e: any) {
+      setError(e?.message || viewT?.errors?.delete || 'Failed to delete');
+    } finally {
+      setActionId(null);
+    }
+  };
+
+  const handleDownload = async (item: ObjectItem) => {
+    setError(null);
+    setActionId(item.id);
+    try {
+      await downloadObjectFile(item.id, item.name);
+    } catch (e: any) {
+      setError(e?.message || viewT?.errors?.download || 'Failed to download');
+    } finally {
+      setActionId(null);
+    }
   };
 
   const handleToggleSelect = (item: ObjectItem, checked: boolean) => {
@@ -75,7 +132,102 @@ const ObjectsLibrary: React.FC<ObjectsLibraryProps> = ({ selection = false, sele
     });
   };
 
-  // Opens URL in new tab OR shows inline JSON modal when there is no URL
+  const openCreateFolderModal = useCallback(() => {
+    setFolderModalMode('create');
+    setFolderDraftId(null);
+    setFolderDraftName('');
+    setFolderDraftEmoji(null);
+    setFolderModalError(null);
+    setFolderModalOpen(true);
+  }, []);
+
+  const openEditFolderModal = useCallback((folder: ObjectFolder) => {
+    setFolderModalMode('edit');
+    setFolderDraftId(folder.id);
+    setFolderDraftName(folder.name || '');
+    setFolderDraftEmoji(folder.emoji ?? null);
+    setFolderModalError(null);
+    setFolderModalOpen(true);
+  }, []);
+
+  const handleDeleteFolder = useCallback(async (folder: ObjectFolder) => {
+    if (!window.confirm(viewT?.prompts?.deleteFolder || 'Delete folder? Items will return to root.')) return;
+
+    await deleteObjectFolder(folder.id);
+    setFolders((prev) => prev.filter((f) => f.id !== folder.id));
+    setItems((prev) => prev.map((item) => (item.folderId === folder.id ? { ...item, folderId: null } : item)));
+    if (selectedFolderId === folder.id) {
+      setSelectedFolderId(null);
+    }
+  }, [selectedFolderId]);
+
+  const handleFolderModalSubmit = useCallback(async () => {
+    const name = folderDraftName.trim();
+    if (!name) {
+      setFolderModalError(viewT?.folderModal?.required || 'Required');
+      return;
+    }
+
+    if (folderModalMode === 'create') {
+      const created = await createObjectFolder({
+        name,
+        emoji: folderDraftEmoji,
+        color: DEFAULT_FOLDER_COLOR,
+        sort_order: folders.length,
+      });
+      setFolders((prev) => [...prev, created]);
+    } else if (folderModalMode === 'edit' && folderDraftId) {
+      const updated = await updateObjectFolder(folderDraftId, {
+        name,
+        emoji: folderDraftEmoji,
+      });
+      setFolders((prev) => prev.map((f) => (f.id === updated.id ? updated : f)));
+    }
+
+    setFolderModalOpen(false);
+  }, [folderDraftName, folderDraftEmoji, folderDraftId, folderModalMode, folders.length, viewT]);
+
+  const handleDropOnFolder = useCallback(async (folderId: number, ev: React.DragEvent<HTMLDivElement>) => {
+    ev.preventDefault();
+    const objectId = ev.dataTransfer.getData('text/object-id');
+    if (!objectId) return;
+
+    const updated = await setObjectFolder(objectId, folderId === 0 ? null : folderId);
+    setItems((prev) => prev.map((item) => (item.id === updated.id ? updated : item)));
+  }, []);
+
+  const visibleItems = useMemo(() => {
+    const term = searchTerm.trim().toLowerCase();
+    return items.filter((item) => {
+      const matchesFolder = selectedFolderId === null ? !item.folderId : item.folderId === selectedFolderId;
+      if (!matchesFolder) return false;
+      if (term === '') return true;
+      return (item.name || '').toLowerCase().includes(term);
+    });
+  }, [items, selectedFolderId, searchTerm]);
+
+  const folderCounts = useMemo(() => {
+    const counts: Record<number, number> = {};
+    items.forEach((item) => {
+      if (item.folderId) {
+        counts[item.folderId] = (counts[item.folderId] || 0) + 1;
+      }
+    });
+    return counts;
+  }, [items]);
+
+  const currentFolder = useMemo(() => {
+    if (selectedFolderId === null) return null;
+    return folders.find((folder) => folder.id === selectedFolderId) || null;
+  }, [folders, selectedFolderId]);
+
+  const rootFolder = useMemo<ObjectFolder>(() => ({
+    id: 0,
+    name: viewT?.breadcrumb?.rootLabel || 'Root',
+    emoji: null,
+    color: '#94a3b8',
+  }), [viewT?.breadcrumb?.rootLabel]);
+
   const handleView = (item: ObjectItem) => {
     if (item.url) {
       window.open(item.url, '_blank', 'noopener,noreferrer');
@@ -87,12 +239,9 @@ const ObjectsLibrary: React.FC<ObjectsLibraryProps> = ({ selection = false, sele
   const getJsonContent = (item: ObjectItem): string => {
     const raw = (item as any).data;
     if (!raw) return '';
-
-    // If data has a 'content' field, it's likely our new format for CODE/JSON
-    if (raw.content) {
-      return typeof raw.content === 'string' ? raw.content : JSON.stringify(raw.content, null, 2);
+    if ((raw as any).content) {
+      return typeof (raw as any).content === 'string' ? (raw as any).content : JSON.stringify((raw as any).content, null, 2);
     }
-
     try {
       return typeof raw === 'string'
         ? JSON.stringify(JSON.parse(raw), null, 2)
@@ -114,27 +263,145 @@ const ObjectsLibrary: React.FC<ObjectsLibraryProps> = ({ selection = false, sele
   };
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-semibold">
-          {(mergedT as any).home?.objects_library?.title ?? 'Objects Library'}
-        </h1>
-        <AddObjectButton
-          label={(mergedT as any).home?.objects_library?.add_button ?? 'Add Object'}
-          onClick={() => setIsModalOpen(true)}
-        />
+    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow h-full flex flex-col">
+      <div className="px-6 py-5 border-b border-gray-200 dark:border-gray-700">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">
+              {(mergedT as any).home?.objects_library?.title ?? 'Objects Library'}
+            </h1>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              {viewT?.description || 'Organize your resources with visual folders and drag files.'}
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={openCreateFolderModal}
+              className="px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-600 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700"
+            >
+              {viewT?.newFolder || 'New folder'}
+            </button>
+            <AddObjectButton
+              label={(mergedT as any).home?.objects_library?.add_button ?? 'Add Object'}
+              onClick={() => setIsModalOpen(true)}
+            />
+          </div>
+        </div>
+
+        <div className="mt-4 flex flex-wrap items-center gap-3">
+          <div className="text-xs font-semibold uppercase tracking-widest text-gray-400">
+            {currentFolder
+              ? `${viewT?.breadcrumb?.rootLabel || 'Root'} ${viewT?.breadcrumb?.separator || '/'} ${currentFolder.name}`
+              : (viewT?.breadcrumb?.allResources || 'All Resources')
+            }
+          </div>
+          {currentFolder && (
+            <button
+              type="button"
+              onClick={() => setSelectedFolderId(null)}
+              className="text-xs text-gray-500 hover:text-gray-900 dark:hover:text-white"
+            >
+              {viewT?.breadcrumb?.backToRoot || 'Back to root'}
+            </button>
+          )}
+          <div className="ml-auto w-full sm:w-64">
+            <input
+              value={searchTerm}
+              onChange={(ev) => setSearchTerm(ev.target.value)}
+              placeholder={viewT?.searchPlaceholder || 'Search resources...'}
+              className="w-full rounded-full border border-gray-200 dark:border-gray-700 bg-white/70 dark:bg-gray-900/60 px-4 py-2 text-sm text-gray-700 dark:text-gray-200"
+            />
+          </div>
+        </div>
       </div>
 
-      <ObjectsTable
-        items={items}
-        isLoading={isLoading}
-        error={error}
-        t={mergedT as any}
-        onView={handleView}
-        selection={selection}
-        selectedIds={selection ? selected.map((item) => item.id) : []}
-        onToggleSelect={handleToggleSelect}
-      />
+      <div className="flex-1 min-h-0 overflow-y-auto px-6 py-6 space-y-6">
+        {error && (
+          <div className="text-sm text-red-600 dark:text-red-400">{error}</div>
+        )}
+
+        <section>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300">{viewT?.sections?.folders || 'Folders'}</h2>
+            <span className="text-xs text-gray-400">
+              {folders.length} {folders.length === 1 ? (viewT?.counts?.folderSingular || 'folder') : (viewT?.counts?.folderPlural || 'folders')}
+            </span>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+            <FolderCard
+              folder={rootFolder}
+              count={items.filter((item) => !item.folderId).length}
+              isSelected={selectedFolderId === null}
+              isRoot
+              labels={viewT?.folderCard}
+              counts={viewT?.counts}
+              locale={locale}
+              onSelect={() => setSelectedFolderId(null)}
+              onRename={() => undefined}
+              onDelete={() => undefined}
+              onChangeEmoji={() => undefined}
+              onDrop={(ev) => handleDropOnFolder(0, ev)}
+            />
+            {folders.map((folder) => (
+              <FolderCard
+                key={folder.id}
+                folder={folder}
+                count={folderCounts[folder.id] || 0}
+                isSelected={folder.id === selectedFolderId}
+                labels={viewT?.folderCard}
+                counts={viewT?.counts}
+                locale={locale}
+                onSelect={() => setSelectedFolderId(folder.id)}
+                onRename={() => openEditFolderModal(folder)}
+                onDelete={() => handleDeleteFolder(folder)}
+                onChangeEmoji={() => openEditFolderModal(folder)}
+                onDrop={(ev) => handleDropOnFolder(folder.id, ev)}
+              />
+            ))}
+            {folders.length === 0 && !isLoading && (
+              <div className="text-sm text-gray-500">{viewT?.empty?.folders || 'No folders yet. Create your first one.'}</div>
+            )}
+          </div>
+        </section>
+
+        <section>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300">{viewT?.sections?.files || 'Files'}</h2>
+            <span className="text-xs text-gray-400">
+              {visibleItems.length} {visibleItems.length === 1 ? (viewT?.counts?.fileSingular || 'file') : (viewT?.counts?.filePlural || 'files')}
+            </span>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+            {isLoading && (
+              <div className="text-sm text-gray-500">{viewT?.loading || 'Loading...'}</div>
+            )}
+            {!isLoading && visibleItems.length === 0 && (
+              <div className="text-sm text-gray-500">{viewT?.empty?.files || 'No files found.'}</div>
+            )}
+            {!isLoading && visibleItems.map((item) => (
+              <ObjectCard
+                key={item.id}
+                item={item}
+                t={mergedT as any}
+                labels={viewT?.objectCard}
+                locale={locale}
+                onView={() => handleView(item)}
+                onDownload={() => handleDownload(item)}
+                onDelete={() => handleDelete(item)}
+                isBusy={actionId === item.id}
+                onDragStart={(ev) => {
+                  ev.dataTransfer.setData('text/object-id', String(item.id));
+                  ev.dataTransfer.effectAllowed = 'move';
+                }}
+                selection={selection}
+                isSelected={selected.some((selectedItem) => selectedItem.id === item.id)}
+                onToggleSelect={(checked) => handleToggleSelect(item, checked)}
+              />
+            ))}
+          </div>
+        </section>
+      </div>
 
       <AddObjectModal
         isOpen={isModalOpen}
@@ -143,7 +410,19 @@ const ObjectsLibrary: React.FC<ObjectsLibraryProps> = ({ selection = false, sele
         t={mergedT as any}
       />
 
-      {/* ── Inline JSON Viewer Modal ── */}
+      <FolderModal
+        isOpen={folderModalOpen}
+        mode={folderModalMode}
+        name={folderDraftName}
+        emoji={folderDraftEmoji}
+        onChangeName={setFolderDraftName}
+        onSelectEmoji={setFolderDraftEmoji}
+        onClose={() => setFolderModalOpen(false)}
+        onSubmit={handleFolderModalSubmit}
+        labels={viewT?.folderModal}
+        error={folderModalError}
+      />
+
       {jsonModalItem && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
@@ -153,7 +432,6 @@ const ObjectsLibrary: React.FC<ObjectsLibraryProps> = ({ selection = false, sele
             className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-3xl max-h-[80vh] flex flex-col overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Header */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
               <div>
                 <h2 className="text-lg font-bold text-gray-900 dark:text-white">{jsonModalItem.name}</h2>
@@ -169,26 +447,24 @@ const ObjectsLibrary: React.FC<ObjectsLibraryProps> = ({ selection = false, sele
               </button>
             </div>
 
-            {/* JSON Content */}
             <div className="overflow-y-auto flex-1 p-6">
               <pre className="text-xs font-mono text-gray-800 dark:text-gray-200 whitespace-pre-wrap break-words bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
                 {getJsonContent(jsonModalItem)}
               </pre>
             </div>
 
-            {/* Footer */}
             <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-3">
               <button
                 onClick={() => downloadJson(jsonModalItem)}
                 className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors"
               >
-                Descargar JSON
+                {viewT?.jsonModal?.download || 'Download JSON'}
               </button>
               <button
                 onClick={() => setJsonModalItem(null)}
                 className="px-4 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg text-sm font-medium transition-colors"
               >
-                Cerrar
+                {viewT?.jsonModal?.close || 'Close'}
               </button>
             </div>
           </div>
