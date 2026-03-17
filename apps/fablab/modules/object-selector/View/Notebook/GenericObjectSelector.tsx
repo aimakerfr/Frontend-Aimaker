@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useLanguage } from '../../../../language/useLanguage.ts';
 import type { GetObjectsParams, ObjectItem } from '../../services/api_handler.ts';
 import { fetchObjectsByAssemblyHints, fetchObjectsByType, ObjectType } from '../../services/api_handler.ts';
+import { updateObject } from '@core/objects';
 
 type GenericObjectSelectorProps = {
   type: ObjectType;
@@ -44,12 +45,27 @@ export const GenericObjectSelector: React.FC<GenericObjectSelectorProps> = ({
 
       try {
         const hasAssemblyFilters = Boolean(product_type_for_assembly || module_name_for_assembly);
-        const data = hasAssemblyFilters
-          ? await fetchObjectsByAssemblyHints(queryParams)
-          : await fetchObjectsByType(type);
+        let data: ObjectItem[] = [];
+        console.log('[GenericObjectSelector] Loading objects', {
+          type,
+          product_type_for_assembly,
+          module_name_for_assembly,
+        });
+        if (hasAssemblyFilters) {
+          data = await fetchObjectsByAssemblyHints(queryParams);
+          // Fallback: if no tagged objects found, show all objects of this type
+          if (data.length === 0) {
+            console.warn('[GenericObjectSelector] No objects matched assembly filters, falling back to type-only list');
+            data = await fetchObjectsByType(type);
+          }
+        } else {
+          data = await fetchObjectsByType(type);
+        }
+        console.log('[GenericObjectSelector] Loaded objects count:', data.length);
         if (!isMounted) return;
         setObjects(data);
       } catch (err: any) {
+        console.error('[GenericObjectSelector] Failed loading objects', err);
         if (!isMounted) return;
         setError(err?.message ?? 'Unable to load objects');
       } finally {
@@ -146,10 +162,29 @@ export const GenericObjectSelector: React.FC<GenericObjectSelectorProps> = ({
             <button
               type="button"
               className="inline-flex items-center rounded-md bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900"
-              onClick={() => {
-                // Print the selected object id before executing callback
-                // eslint-disable-next-line no-console
-                console.log('SELECT:', object.id);
+              onClick={async () => {
+                // Auto-tag the object with assembly hints if not already tagged
+                if (product_type_for_assembly || module_name_for_assembly) {
+                  const needsProductTag = product_type_for_assembly && object.product_type_for_assembly !== product_type_for_assembly;
+                  const needsModuleTag = module_name_for_assembly && object.module_name_for_assembly !== module_name_for_assembly;
+                  if (needsProductTag || needsModuleTag) {
+                    try {
+                      console.log('[GenericObjectSelector] Auto-tagging object', {
+                        objectId: object.id,
+                        product_type_for_assembly,
+                        module_name_for_assembly,
+                      });
+                      await updateObject(object.id, {
+                        ...(needsProductTag ? { product_type_for_assembly } : {}),
+                        ...(needsModuleTag ? { module_name_for_assembly } : {}),
+                      });
+                      console.log('[GenericObjectSelector] Auto-tag success', { objectId: object.id });
+                    } catch (e) {
+                      // eslint-disable-next-line no-console
+                      console.warn('[GenericObjectSelector] Failed to auto-tag object:', e);
+                    }
+                  }
+                }
                 setCurrentSelected({ id: object.id, name: object.name });
                 onObjectSelectionCallback(object);
               }}
