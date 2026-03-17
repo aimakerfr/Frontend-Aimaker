@@ -544,6 +544,7 @@ export const en: Translations = {
         nameLabel: 'Folder name',
         namePlaceholder: 'Enter a name',
         chooseIcon: 'Choose an icon',
+        chooseColor: 'Choose a color',
         cancel: 'Cancel',
         save: 'Save',
         create: 'Create',

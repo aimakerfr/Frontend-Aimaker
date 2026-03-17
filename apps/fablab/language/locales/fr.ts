@@ -543,6 +543,7 @@ export const fr: Translations = {
         nameLabel: 'Nom du dossier',
         namePlaceholder: 'Saisir un nom',
         chooseIcon: 'Choisir une icone',
+        chooseColor: 'Choisir une couleur',
         cancel: 'Annuler',
         save: 'Enregistrer',
         create: 'Creer',

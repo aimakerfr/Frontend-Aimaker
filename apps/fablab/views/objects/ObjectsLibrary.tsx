@@ -61,6 +61,7 @@ const ObjectsLibrary: React.FC<{
   const [folderDraftId, setFolderDraftId] = useState<number | null>(null);
   const [folderDraftName, setFolderDraftName] = useState('');
   const [folderDraftEmoji, setFolderDraftEmoji] = useState<string | null>(null);
+  const [folderDraftColor, setFolderDraftColor] = useState<string | null>(DEFAULT_FOLDER_COLOR);
   const [folderModalError, setFolderModalError] = useState<string | null>(null);
   const [jsonModalItem, setJsonModalItem] = useState<ObjectItem | null>(null);
 
@@ -137,6 +138,7 @@ const ObjectsLibrary: React.FC<{
     setFolderDraftId(null);
     setFolderDraftName('');
     setFolderDraftEmoji(null);
+    setFolderDraftColor(DEFAULT_FOLDER_COLOR);
     setFolderModalError(null);
     setFolderModalOpen(true);
   }, []);
@@ -146,6 +148,7 @@ const ObjectsLibrary: React.FC<{
     setFolderDraftId(folder.id);
     setFolderDraftName(folder.name || '');
     setFolderDraftEmoji(folder.emoji ?? null);
+    setFolderDraftColor(folder.color ?? DEFAULT_FOLDER_COLOR);
     setFolderModalError(null);
     setFolderModalOpen(true);
   }, []);
@@ -172,7 +175,7 @@ const ObjectsLibrary: React.FC<{
       const created = await createObjectFolder({
         name,
         emoji: folderDraftEmoji,
-        color: DEFAULT_FOLDER_COLOR,
+        color: folderDraftColor || DEFAULT_FOLDER_COLOR,
         sort_order: folders.length,
       });
       setFolders((prev) => [...prev, created]);
@@ -180,12 +183,13 @@ const ObjectsLibrary: React.FC<{
       const updated = await updateObjectFolder(folderDraftId, {
         name,
         emoji: folderDraftEmoji,
+        color: folderDraftColor || DEFAULT_FOLDER_COLOR,
       });
       setFolders((prev) => prev.map((f) => (f.id === updated.id ? updated : f)));
     }
 
     setFolderModalOpen(false);
-  }, [folderDraftName, folderDraftEmoji, folderDraftId, folderModalMode, folders.length, viewT]);
+  }, [folderDraftName, folderDraftEmoji, folderDraftColor, folderDraftId, folderModalMode, folders.length, viewT]);
 
   const handleDropOnFolder = useCallback(async (folderId: number, ev: React.DragEvent<HTMLDivElement>) => {
     ev.preventDefault();
@@ -415,8 +419,10 @@ const ObjectsLibrary: React.FC<{
         mode={folderModalMode}
         name={folderDraftName}
         emoji={folderDraftEmoji}
+        color={folderDraftColor}
         onChangeName={setFolderDraftName}
         onSelectEmoji={setFolderDraftEmoji}
+        onSelectColor={setFolderDraftColor}
         onClose={() => setFolderModalOpen(false)}
         onSubmit={handleFolderModalSubmit}
         labels={viewT?.folderModal}

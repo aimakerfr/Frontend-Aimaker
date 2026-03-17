@@ -14,8 +14,10 @@ type FolderModalProps = {
   mode: 'create' | 'edit';
   name: string;
   emoji: string | null;
+  color: string | null;
   onChangeName: (value: string) => void;
   onSelectEmoji: (emoji: string) => void;
+  onSelectColor: (color: string) => void;
   onClose: () => void;
   onSubmit: () => void;
   labels?: {
@@ -24,6 +26,7 @@ type FolderModalProps = {
     nameLabel?: string;
     namePlaceholder?: string;
     chooseIcon?: string;
+    chooseColor?: string;
     cancel?: string;
     save?: string;
     create?: string;
@@ -37,8 +40,10 @@ const FolderModal: React.FC<FolderModalProps> = ({
   mode,
   name,
   emoji,
+  color,
   onChangeName,
   onSelectEmoji,
+  onSelectColor,
   onClose,
   onSubmit,
   labels,
@@ -52,6 +57,11 @@ const FolderModal: React.FC<FolderModalProps> = ({
     : (labels?.create || 'Create');
 
   const selectedEmoji = useMemo(() => emoji || '', [emoji]);
+  const selectedColor = useMemo(() => color || '#2563eb', [color]);
+  const colorOptions = useMemo(() => [
+    '#2563eb', '#0ea5e9', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6',
+    '#14b8a6', '#e11d48', '#a3e635', '#f97316', '#6366f1', '#64748b',
+  ], []);
 
   if (!isOpen) return null;
 
@@ -64,7 +74,7 @@ const FolderModal: React.FC<FolderModalProps> = ({
         aria-label={labels?.cancel || 'Close'}
       />
 
-      <div className="relative w-full max-w-2xl rounded-3xl bg-white shadow-2xl overflow-hidden">
+      <div className="relative w-full max-w-3xl rounded-3xl bg-white shadow-2xl overflow-hidden">
         <div className="px-6 py-5 border-b border-gray-100">
           <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
         </div>
@@ -89,7 +99,7 @@ const FolderModal: React.FC<FolderModalProps> = ({
             <label className="text-xs font-semibold uppercase tracking-wide text-gray-400">
               {labels?.chooseIcon || 'Choose an icon'}
             </label>
-            <div className="mt-3 grid grid-cols-10 gap-2">
+            <div className="mt-3 grid grid-cols-10 gap-3">
               {EMOJI_OPTIONS.map((icon) => {
                 const isActive = icon === selectedEmoji;
                 return (
@@ -97,12 +107,35 @@ const FolderModal: React.FC<FolderModalProps> = ({
                     key={icon}
                     type="button"
                     onClick={() => onSelectEmoji(icon)}
-                    className={`h-12 w-12 rounded-2xl flex items-center justify-center text-2xl transition-all ${
+                    className={`h-14 w-14 rounded-2xl flex items-center justify-center text-3xl transition-all ${
                       isActive ? 'bg-gray-900 text-white shadow-lg scale-105' : 'bg-gray-100 hover:bg-gray-200'
                     }`}
                   >
                     {icon}
                   </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div>
+            <label className="text-xs font-semibold uppercase tracking-wide text-gray-400">
+              {labels?.chooseColor || 'Choose a color'}
+            </label>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {colorOptions.map((value) => {
+                const isActive = value.toLowerCase() === selectedColor.toLowerCase();
+                return (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => onSelectColor(value)}
+                    className={`h-9 w-9 rounded-full border-2 transition-all ${
+                      isActive ? 'border-gray-900 scale-110' : 'border-transparent hover:scale-105'
+                    }`}
+                    style={{ backgroundColor: value }}
+                    aria-label={value}
+                  />
                 );
               })}
             </div>

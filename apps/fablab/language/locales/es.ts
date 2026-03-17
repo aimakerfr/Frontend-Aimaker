@@ -544,6 +544,7 @@ export const es: Translations = {
         nameLabel: 'Nombre de la carpeta',
         namePlaceholder: 'Ingresa un nombre',
         chooseIcon: 'Elige un icono',
+        chooseColor: 'Elige un color',
         cancel: 'Cancelar',
         save: 'Guardar',
         create: 'Crear',
