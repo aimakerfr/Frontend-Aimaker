@@ -49,51 +49,60 @@ const ProductView: React.FC = () => {
         return;
       }
 
-      // Load content for each source (same logic as RagChatStep)
-      const loadedSources: Source[] = [];
-      for (const source of apiSources) {
+      // 1) Paint sources immediately with safe placeholders so the user sees uploads instantly.
+      const baseSources: Source[] = apiSources.map((source: any) => {
+        const backendType = (source.type || '').toUpperCase();
+        const requiresDeferredContent = backendType === 'PDF' || backendType === 'DOC' || backendType === 'IMAGE' || backendType === 'VIDEO';
+        return {
+          id: source.id.toString(),
+          title: source.name || `Source ${source.id}`,
+          type: mapApiSourceType(source.type),
+          backendType: source.type,
+          content: requiresDeferredContent ? `[${source.name || `Source ${source.id}`} - Procesando contenido...]` : '',
+          url: source.filePath || source.url || '',
+          previewUrl: source.filePath || source.url || '',
+          dateAdded: source.createdAt ? new Date(source.createdAt) : new Date(),
+          selected: true,
+        };
+      });
+      setSources(baseSources);
+
+      // 2) Hydrate content in background (parallel), then merge without hiding newly uploaded items.
+      const hydratedEntries = await Promise.all(apiSources.map(async (source: any) => {
         try {
-          console.log('[ProductView] Loading content for source:', source.id);
           const sourceData = await getRagMultimodalSourceContent(source.id);
-          
-          // For PDFs and DOCs, allow empty content - they may be processed on-demand by the backend
-          const isPdfOrDoc = sourceData.type === 'doc' || sourceData.type === 'PDF' || sourceData.type === 'DOC';
-          const hasContent = sourceData.content && sourceData.content.trim() !== '';
-          
-          // Skip sources with empty content UNLESS they are PDFs/DOCs (which may be processed on-demand)
-          if (!hasContent && !isPdfOrDoc) {
-            console.warn('[ProductView] Skipping source with empty content:', {
-              id: source.id,
-              name: sourceData.name,
-              type: sourceData.type
-            });
-            continue;
+          const hasContent = !!(sourceData.content && sourceData.content.trim() !== '');
+          const backendType = (sourceData.type || source.type || '').toUpperCase();
+          const allowsEmpty = backendType === 'PDF' || backendType === 'DOC' || backendType === 'IMAGE' || backendType === 'VIDEO';
+
+          if (!hasContent && !allowsEmpty) {
+            return null;
           }
-          
-          loadedSources.push({
+
+          return {
             id: source.id.toString(),
-            title: sourceData.name || `Source ${source.id}`,
+            title: sourceData.name || source.name || `Source ${source.id}`,
             type: mapApiSourceType(sourceData.type),
             backendType: sourceData.type,
-            content: hasContent ? sourceData.content : `[${sourceData.name} - Documento pendiente de procesamiento]`,  // CRITICAL: Load actual content or placeholder
-            url: source.filePath || '',  // Use filePath from original source
-            previewUrl: source.filePath || '',  // Use filePath from original source
+            content: hasContent ? sourceData.content : `[${sourceData.name || source.name || `Source ${source.id}`} - Documento pendiente de procesamiento]`,
+            url: source.filePath || source.url || '',
+            previewUrl: source.filePath || source.url || '',
             dateAdded: source.createdAt ? new Date(source.createdAt) : new Date(),
-            selected: true,  // Auto-select all sources like RagChatStep
-          });
+            selected: true,
+          } as Source;
         } catch (err) {
           console.error(`[ProductView] Error loading source ${source.id}:`, err);
+          return null;
         }
-      }
-      
-      console.log('[ProductView] Loaded sources with content:', loadedSources.length);
-      console.log('[ProductView] Sources ready:', loadedSources.map(s => ({ 
-        id: s.id, 
-        title: s.title, 
-        contentLength: s.content.length,
-        selected: s.selected 
-      })));
-      setSources(loadedSources);
+      }));
+
+      const hydratedMap = new Map<string, Source>();
+      hydratedEntries.forEach((entry) => {
+        if (entry) hydratedMap.set(entry.id, entry);
+      });
+
+      const merged = baseSources.map((base) => hydratedMap.get(base.id) || base);
+      setSources(merged);
     } catch (error) {
       console.error('[ProductView] Error loading RAG sources:', error);
     }
@@ -120,24 +129,16 @@ const ProductView: React.FC = () => {
 
   const handleAddSource = async (type: SourceType, content: string, title: string, url?: string, _previewUrl?: string, file?: File) => {
     if (!product?.rag?.id) {
-      console.error('[ProductView] No RAG associated with this product');
-      return;
+      throw new Error('No RAG associated with this product');
     }
 
-    try {
-      let apiType = type.toUpperCase();
-      if (apiType === 'URL') apiType = 'WEBSITE';
-      if (apiType === 'PDF') apiType = 'DOC';
+    let apiType = type.toUpperCase();
+    if (apiType === 'URL') apiType = 'WEBSITE';
+    if (apiType === 'PDF') apiType = 'DOC';
 
-      await uploadSource(product.rag.id, apiType, title, file, url, content);
-      
-      // Reload all sources with content from database (ensures consistency)
-      await loadRagSources(product.rag.id);
-      console.log('[ProductView] Source added and reloaded');
-    } catch (error) {
-      console.error('[ProductView] Error adding source:', error);
-      alert('Error al agregar la fuente. Por favor intente de nuevo.');
-    }
+    await uploadSource(product.rag.id, apiType, title, file, url, content);
+    await loadRagSources(product.rag.id);
+    console.log('[ProductView] Source added and reloaded');
   };
 
   const handleDeleteSource = async (sourceId: string) => {

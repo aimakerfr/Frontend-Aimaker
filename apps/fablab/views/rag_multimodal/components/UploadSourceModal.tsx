@@ -14,7 +14,7 @@ type UploadSourceModalProps = {
     url?: string,
     previewUrl?: string,
     file?: File
-  ) => void;
+  ) => Promise<void> | void;
   tp: Translations['notebook']['sourcePanel'];
   t: Translations;
 };

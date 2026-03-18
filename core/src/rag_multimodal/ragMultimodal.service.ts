@@ -186,26 +186,54 @@ export const getRagMultimodalSources = async (ragMultimodalId?: number, type?: s
 export const postRagMultimodalSource = async (
   data: FormData | { rag_multimodal_id: number; type: string; name: string; text?: string; url?: string }
 ): Promise<PostRagMultimodalSourceResponse> => {
+  const normalizeSourceResponse = (
+    raw: any,
+    fallback: { name: string; type: string }
+  ): PostRagMultimodalSourceResponse => {
+    const candidate = raw && typeof raw === 'object' && raw.data && typeof raw.data === 'object'
+      ? raw.data
+      : raw;
+
+    if (candidate && typeof candidate === 'object') {
+      return {
+        id: Number(candidate.id ?? 0),
+        name: String(candidate.name ?? fallback.name),
+        type: String((candidate.type ?? fallback.type) === 'pdf' ? 'doc' : (candidate.type ?? fallback.type)),
+        filePath: typeof candidate.filePath === 'string' ? candidate.filePath : null,
+        createdAt: String(candidate.createdAt ?? new Date().toISOString()),
+      };
+    }
+
+    // Some backends may return empty success payloads on multipart writes.
+    // Return a synthetic response so UI flow can continue and refresh list immediately.
+    return {
+      id: 0,
+      name: fallback.name,
+      type: fallback.type === 'pdf' ? 'doc' : fallback.type,
+      filePath: null,
+      createdAt: new Date().toISOString(),
+    };
+  };
+
   // If it's FormData, map 'type' field if present
   if (data instanceof FormData) {
     const currentType = data.get('type');
     if (typeof currentType === 'string' && currentType === 'pdf') {
       data.set('type', 'doc');
     }
-    const resp = await httpClient.post<PostRagMultimodalSourceResponse>('/api/v1/rag-multimodal-sources', data);
-    if (!resp || typeof resp !== 'object') {
-      throw new Error('Invalid response from server: response is null or not an object');
-    }
-    return { ...resp, type: resp.type === 'pdf' ? 'doc' : resp.type };
+    const resp = await httpClient.post<any>('/api/v1/rag-multimodal-sources', data);
+    const fallbackName = String(data.get('name') || 'New source');
+    const fallbackType = String(data.get('type') || 'text');
+    return normalizeSourceResponse(resp, { name: fallbackName, type: fallbackType });
   }
 
   // JSON payload variant
   const outgoing = { ...data, type: (data as any).type === 'pdf' ? 'doc' : (data as any).type } as { rag_multimodal_id: number; type: string; name: string; text?: string; url?: string };
-  const resp = await httpClient.post<PostRagMultimodalSourceResponse>('/api/v1/rag-multimodal-sources', outgoing);
-  if (!resp || typeof resp !== 'object') {
-    throw new Error('Invalid response from server: response is null or not an object');
-  }
-  return { ...resp, type: resp.type === 'pdf' ? 'doc' : resp.type };
+  const resp = await httpClient.post<any>('/api/v1/rag-multimodal-sources', outgoing);
+  return normalizeSourceResponse(resp, {
+    name: outgoing.name,
+    type: outgoing.type,
+  });
 };
 
 /**

@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import {
     AlignLeft,
@@ -12,26 +12,17 @@ import {
 } from 'lucide-react';
 
 import { SourceType } from '../types.ts';
-import { analyzeImage, extractUrlContent, processPdfVisual, transcribeVideo, transcribeVideoUrl } from '../services/geminiService.ts';
-import type { Translations } from '../../../language/locales/types';
+import { analyzeImage, extractUrlContent, transcribeVideo, transcribeVideoUrl } from '../services/geminiService.ts';
+import type { Translations } from '../../../language/types';
 
 interface AddSourceModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onAddSource: (type: SourceType, content: string, title: string, url?: string, previewUrl?: string, file?: File) => void;
+    onAddSource: (type: SourceType, content: string, title: string, url?: string, previewUrl?: string, file?: File) => Promise<void> | void;
     tp: Translations['notebook']['sourcePanel'];
     t: Translations;
     isAdmin: boolean;
 }
-
-type PdfJsViewport = { height: number; width: number };
-type PdfJsPage = {
-    getViewport: (options: { scale: number }) => PdfJsViewport;
-    render: (params: { canvasContext: CanvasRenderingContext2D; viewport: PdfJsViewport }) => { promise: Promise<void> };
-};
-type PdfJsLib = {
-    getDocument?: (options: { data: ArrayBuffer }) => { promise: Promise<{ numPages: number; getPage: (pageNumber: number) => Promise<PdfJsPage> }> };
-};
 
 const fileToBase64 = (file: File): Promise<string> =>
     new Promise((resolve) => {
@@ -39,44 +30,6 @@ const fileToBase64 = (file: File): Promise<string> =>
         reader.readAsDataURL(file);
         reader.onload = () => resolve((reader.result as string).split(',')[1]);
     });
-
-const processPdfForAI = async (file: File): Promise<string> => {
-    if (
-        file.type === 'text/plain' ||
-        file.type === 'text/csv' ||
-        file.type === 'text/markdown' ||
-        file.name.toLowerCase().endsWith('.csv') ||
-        file.name.toLowerCase().endsWith('.md')
-    ) {
-        return new Promise((resolve) => {
-            const reader = new FileReader();
-            reader.onload = (e) => resolve(e.target?.result as string);
-            reader.readAsText(file);
-        });
-    }
-
-    const pdfjsLib = (window as Window & { pdfjsLib?: PdfJsLib }).pdfjsLib;
-    if (!pdfjsLib || !pdfjsLib.getDocument) {
-        throw new Error('PDF.js no está cargado. Por favor, recarga la página.');
-    }
-
-    const arrayBuffer = await file.arrayBuffer();
-    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-    const pagesBase64: { data: string; mimeType: string }[] = [];
-
-    for (let i = 1; i <= pdf.numPages; i++) {
-        const page = await pdf.getPage(i);
-        const viewport = page.getViewport({ scale: 1.0 });
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        canvas.height = viewport.height;
-        canvas.width = viewport.width;
-        await page.render({ canvasContext: ctx!, viewport }).promise;
-        const base64 = canvas.toDataURL('image/jpeg', 0.6).split(',')[1];
-        pagesBase64.push({ data: base64, mimeType: 'image/jpeg' });
-    }
-    return await processPdfVisual(pagesBase64);
-};
 
 const AddSourceModal: React.FC<AddSourceModalProps> = ({ isOpen, onClose, onAddSource, tp, t }) => {
     const [activeTab, setActiveTab] = useState<SourceType>('pdf');
@@ -95,16 +48,36 @@ const AddSourceModal: React.FC<AddSourceModalProps> = ({ isOpen, onClose, onAddS
     const jsxInputRef = useRef<HTMLInputElement>(null);
     const configInputRef = useRef<HTMLInputElement>(null);
 
-    if (!isOpen) return null;
-
     const resetForm = () => {
         setContent('');
         setUrl('');
         setFileName('');
         setMimeType('');
-        setLocalPreviewUrl('');
+        setLocalPreviewUrl((prev) => {
+            if (prev) {
+                URL.revokeObjectURL(prev);
+            }
+            return '';
+        });
         setSelectedFile(undefined);
     };
+
+    useEffect(() => {
+        return () => {
+            if (localPreviewUrl) {
+                URL.revokeObjectURL(localPreviewUrl);
+            }
+        };
+    }, [localPreviewUrl]);
+
+    const closeModal = () => {
+        if (isLoading) return;
+        resetForm();
+        onClose();
+    };
+
+    // Keep hooks order stable across renders (open/closed modal).
+    if (!isOpen) return null;
 
     const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: SourceType) => {
         const file = e.target.files?.[0];
@@ -153,8 +126,7 @@ const AddSourceModal: React.FC<AddSourceModalProps> = ({ isOpen, onClose, onAddS
         }
     };
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const handleSubmit = async () => {
         if (isLoading) return;
         setIsLoading(true);
 
@@ -185,9 +157,10 @@ const AddSourceModal: React.FC<AddSourceModalProps> = ({ isOpen, onClose, onAddS
                 finalTitle = (content || '').split('\n')[0].substring(0, 30) || tp.modal.placeholders.textLabel;
             }
 
-            onAddSource(activeTab, finalContent, finalTitle, url, finalPreviewUrl, selectedFile);
-            onClose();
+            await Promise.resolve(onAddSource(activeTab, finalContent, finalTitle, url, finalPreviewUrl, selectedFile));
             resetForm();
+            // Defer close to avoid unmount race while React is committing submit state changes.
+            requestAnimationFrame(() => onClose());
         } catch (err) {
             console.error(err);
             alert(t.common.error);
@@ -290,17 +263,18 @@ const AddSourceModal: React.FC<AddSourceModalProps> = ({ isOpen, onClose, onAddS
 
     const renderModalFooter = () => (
         <div className="px-6 py-4 border-t border-gray-100 bg-white shrink-0">
-            <form onSubmit={handleSubmit} className="flex gap-3">
+            <div className="flex gap-3">
                 <button
                     type="button"
-                    onClick={onClose}
+                    onClick={closeModal}
                     className="flex-1 py-3 text-[10px] font-black text-gray-500 hover:text-gray-700 uppercase tracking-widest"
                     disabled={isLoading}
                 >
                     {t.common.cancel}
                 </button>
                 <button
-                    type="submit"
+                    type="button"
+                    onClick={handleSubmit}
                     disabled={isLoading || (!content && !url && !selectedFile)}
                     className="flex-[2] py-3 min-h-[48px] text-[10px] font-black bg-indigo-600 text-white rounded-xl shadow-lg shadow-indigo-100 flex items-center justify-center gap-2 active:scale-95 transition-all uppercase tracking-widest disabled:bg-indigo-200"
                 >
@@ -315,7 +289,7 @@ const AddSourceModal: React.FC<AddSourceModalProps> = ({ isOpen, onClose, onAddS
                         </>
                     )}
                 </button>
-            </form>
+            </div>
         </div>
     );
 
@@ -328,7 +302,7 @@ const AddSourceModal: React.FC<AddSourceModalProps> = ({ isOpen, onClose, onAddS
                         <span className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">{tp.modal.subtitle}</span>
                     </div>
                     <button
-                        onClick={() => !isLoading && onClose()}
+                        onClick={closeModal}
                         className="p-2 hover:bg-gray-100 rounded-xl text-gray-500 transition-colors"
                         disabled={isLoading}
                         aria-label={t.common.cancel}
