@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLanguage } from '../../language/useLanguage';
 import {
   getAllObjects,
@@ -52,6 +52,7 @@ const ObjectsLibrary: React.FC<{
   const [selected, setSelected] = useState<ObjectItem[]>(selectedObjects ?? []);
   const [selectedFolderId, setSelectedFolderId] = useState<number | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [activeType, setActiveType] = useState<string>('ALL');
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [actionId, setActionId] = useState<string | number | null>(null);
@@ -64,6 +65,8 @@ const ObjectsLibrary: React.FC<{
   const [folderDraftColor, setFolderDraftColor] = useState<string | null>(DEFAULT_FOLDER_COLOR);
   const [folderModalError, setFolderModalError] = useState<string | null>(null);
   const [jsonModalItem, setJsonModalItem] = useState<ObjectItem | null>(null);
+  const [isDraggingObject, setIsDraggingObject] = useState(false);
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     let isActive = true;
@@ -92,6 +95,10 @@ const ObjectsLibrary: React.FC<{
   useEffect(() => {
     if (selection) setSelected(selectedObjects ?? []);
   }, [selection, selectedObjects]);
+
+  useEffect(() => {
+    setActiveType('ALL');
+  }, [selectedFolderId]);
 
   const handleCreate = async ({ title, type, file }: { title: string; type: string; file: File }) => {
     const created = await createObject({ title, type, file, folder_id: selectedFolderId });
@@ -200,15 +207,34 @@ const ObjectsLibrary: React.FC<{
     setItems((prev) => prev.map((item) => (item.id === updated.id ? updated : item)));
   }, []);
 
-  const visibleItems = useMemo(() => {
-    const term = searchTerm.trim().toLowerCase();
+  const folderItems = useMemo(() => {
     return items.filter((item) => {
-      const matchesFolder = selectedFolderId === null ? !item.folderId : item.folderId === selectedFolderId;
-      if (!matchesFolder) return false;
-      if (term === '') return true;
-      return (item.name || '').toLowerCase().includes(term);
+      return selectedFolderId === null ? !item.folderId : item.folderId === selectedFolderId;
     });
-  }, [items, selectedFolderId, searchTerm]);
+  }, [items, selectedFolderId]);
+
+  const searchedItems = useMemo(() => {
+    const term = searchTerm.trim().toLowerCase();
+    if (term === '') return folderItems;
+    return folderItems.filter((item) => (item.name || '').toLowerCase().includes(term));
+  }, [folderItems, searchTerm]);
+
+  const typeOptions = useMemo(() => {
+    const set = new Set<string>();
+    folderItems.forEach((item) => set.add((item.type || 'unknown').toString()));
+    return Array.from(set.values());
+  }, [folderItems]);
+
+  useEffect(() => {
+    if (activeType !== 'ALL' && !typeOptions.includes(activeType)) {
+      setActiveType('ALL');
+    }
+  }, [activeType, typeOptions]);
+
+  const visibleItems = useMemo(() => {
+    if (activeType === 'ALL') return searchedItems;
+    return searchedItems.filter((item) => (item.type || 'unknown') === activeType);
+  }, [searchedItems, activeType]);
 
   const folderCounts = useMemo(() => {
     const counts: Record<number, number> = {};
@@ -266,6 +292,43 @@ const ObjectsLibrary: React.FC<{
     URL.revokeObjectURL(url);
   };
 
+  const handleDragStart = (item: ObjectItem, ev: React.DragEvent<HTMLDivElement>) => {
+    ev.dataTransfer.setData('text/object-id', String(item.id));
+    ev.dataTransfer.effectAllowed = 'move';
+    setIsDraggingObject(true);
+    const container = scrollContainerRef.current;
+    if (container) {
+      container.scrollTo({ top: 0, behavior: 'smooth' });
+    } else {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  useEffect(() => {
+    const stopDragging = () => setIsDraggingObject(false);
+    window.addEventListener('dragend', stopDragging);
+    window.addEventListener('drop', stopDragging);
+    return () => {
+      window.removeEventListener('dragend', stopDragging);
+      window.removeEventListener('drop', stopDragging);
+    };
+  }, []);
+
+  const handleContainerDragOver = (ev: React.DragEvent<HTMLDivElement>) => {
+    if (!isDraggingObject) return;
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    const rect = container.getBoundingClientRect();
+    const threshold = 80;
+    const speed = 20;
+    if (ev.clientY < rect.top + threshold) {
+      container.scrollTop -= speed;
+    } else if (ev.clientY > rect.bottom - threshold) {
+      container.scrollTop += speed;
+    }
+  };
+
   return (
     <div className="bg-white dark:bg-gray-800 rounded-2xl shadow h-full flex flex-col">
       <div className="px-6 py-5 border-b border-gray-200 dark:border-gray-700">
@@ -318,9 +381,55 @@ const ObjectsLibrary: React.FC<{
             />
           </div>
         </div>
+
+        {folderItems.length > 0 && (
+          <div className="mt-4 flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setActiveType('ALL')}
+              className={
+                `px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ` +
+                (activeType === 'ALL'
+                  ? 'bg-brand-600 text-white border-brand-600'
+                  : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-200 dark:border-gray-600')
+              }
+            >
+              {(mergedT as any)?.common?.all ?? 'All'}
+              <span className="ml-1 text-[10px] opacity-80">{folderItems.length}</span>
+            </button>
+
+            {typeOptions.map((tp) => {
+              const count = folderItems.filter((it) => (it.type || 'unknown') === tp).length;
+              const label = tp === 'unknown'
+                ? ((mergedT as any)?.common?.unknown ?? 'Unknown')
+                : tp;
+              return (
+                <button
+                  key={tp}
+                  type="button"
+                  onClick={() => setActiveType(tp)}
+                  className={
+                    `px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ` +
+                    (activeType === tp
+                      ? 'bg-brand-600 text-white border-brand-600'
+                      : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-200 dark:border-gray-600')
+                  }
+                  title={(mergedT as any).home?.objects_library?.type_label ?? (mergedT as any)?.library?.tableHeaders?.type}
+                >
+                  {label}
+                  <span className="ml-1 text-[10px] opacity-80">{count}</span>
+                </button>
+              );
+            })}
+          </div>
+        )}
       </div>
 
-      <div className="flex-1 min-h-0 overflow-y-auto px-6 py-6 space-y-6">
+      <div
+        ref={scrollContainerRef}
+        onDragOver={handleContainerDragOver}
+        className="flex-1 min-h-0 overflow-y-auto px-6 py-6 space-y-6"
+      >
         {error && (
           <div className="text-sm text-red-600 dark:text-red-400">{error}</div>
         )}
@@ -394,10 +503,7 @@ const ObjectsLibrary: React.FC<{
                 onDownload={() => handleDownload(item)}
                 onDelete={() => handleDelete(item)}
                 isBusy={actionId === item.id}
-                onDragStart={(ev) => {
-                  ev.dataTransfer.setData('text/object-id', String(item.id));
-                  ev.dataTransfer.effectAllowed = 'move';
-                }}
+                onDragStart={(ev) => handleDragStart(item, ev)}
                 selection={selection}
                 isSelected={selected.some((selectedItem) => selectedItem.id === item.id)}
                 onToggleSelect={(checked) => handleToggleSelect(item, checked)}

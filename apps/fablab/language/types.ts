@@ -18,6 +18,28 @@ export interface Translations {
   dashboard: {
     welcome: string;
     subtitle: string;
+    myDashboardTitle?: string;
+    myDashboardSubtitle?: string;
+    favoriteProductsTitle?: string;
+    noFavoriteProducts?: string;
+    favoriteBadge?: string;
+    updatedAtLabel?: string;
+    latestProductTitle?: string;
+    latestCreatedLabel?: string;
+    noProductsYet?: string;
+    metricsTitle?: string;
+    totalProductsLabel?: string;
+    totalFavoritesLabel?: string;
+    totalNotebooksLabel?: string;
+    createdInRangeLabel?: string;
+    notebooksInRangeLabel?: string;
+    replicatedProductsLabel?: string;
+    productsTrendTitle?: string;
+    productsTrendSubtitle?: string;
+    objectsTrendTitle?: string;
+    objectsTrendSubtitle?: string;
+    productsMetricLabel?: string;
+    objectsMetricLabel?: string;
     stats: {
       notebooks: string;
       projects: string;
@@ -35,6 +57,7 @@ export interface Translations {
   };
   sidebar: {
     dashboard: string;
+    myDashboard?: string;
     library: string;
     profile: string;
     context: string;

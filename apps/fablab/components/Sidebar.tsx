@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { User, Server, ExternalLink, LogOut, Library as LibraryIcon, Route, Boxes, Package } from 'lucide-react';
+import { Server, ExternalLink, LogOut, Route, Boxes, Package, LayoutDashboard } from 'lucide-react';
 import { useLanguage } from '../language/useLanguage';
 
 interface SidebarProps {
@@ -13,7 +13,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onLogout }) => {
   const { t } = useLanguage();
 
   const menuItems: { path: string; label: string; icon: React.ReactNode }[] = [
-    { path: '/dashboard/profile', label: t.sidebar.profile, icon: <User size={20} /> },
+    { path: '/dashboard', label: t.sidebar.myDashboard ?? t.sidebar.dashboard, icon: <LayoutDashboard size={20} /> },
     // Second position: Objects Library
     { path: '/dashboard/objects-library', label: t.sidebar.objectsLibrary, icon: <Boxes size={20} /> },
     // Library section labeled as RAGs
