@@ -4,6 +4,28 @@ export const fr: Translations = {
   dashboard: {
       welcome: 'Bon retour',
       subtitle: 'Voici un aperçu de vos ressources IA',
+      myDashboardTitle: 'Mon Dashboard',
+      myDashboardSubtitle: 'Panneau indicateur des produits favoris et de l\'activité récente.',
+      favoriteProductsTitle: 'Produits favoris',
+      noFavoriteProducts: 'Vous n\'avez pas encore de produits favoris.',
+      favoriteBadge: 'Favori',
+      updatedAtLabel: 'Mis à jour',
+      latestProductTitle: 'Dernière création de produit',
+      latestCreatedLabel: 'Dernier enregistrement/modification',
+      noProductsYet: 'Aucun produit enregistré pour le moment.',
+      metricsTitle: 'Métriques des produits',
+      totalProductsLabel: 'Total des produits',
+      totalFavoritesLabel: 'Total des favoris',
+      totalNotebooksLabel: 'Total des produits notebook',
+      createdInRangeLabel: 'Créés dans la période',
+      notebooksInRangeLabel: 'Notebooks créés dans la période',
+      replicatedProductsLabel: 'Produits réplicables (hors types fixes)',
+      productsTrendTitle: 'Tendance de création des produits',
+      productsTrendSubtitle: 'Produits créés par jour sur la période sélectionnée',
+      objectsTrendTitle: 'Tendance de chargement des objets',
+      objectsTrendSubtitle: 'Nouveaux objets par jour dans la table objects',
+      productsMetricLabel: 'Produits',
+      objectsMetricLabel: 'Objets',
       stats: {
         notebooks: 'Notebooks',
         projects: 'Projets',
@@ -21,6 +43,7 @@ export const fr: Translations = {
     },
     sidebar: {
       dashboard: 'Dashboard',
+      myDashboard: 'Mon Dashboard',
       library: 'Bibliothèque',
       profile: 'Mon Profil',
       context: 'Serveur',
@@ -86,6 +109,7 @@ export const fr: Translations = {
       confirmDelete: 'Êtes-vous sûr de vouloir supprimer ce produit?',
       filters: {
         all: 'Tous',
+        favorites: 'Favoris',
       },
       tableHeaders: {
         type: 'Type',
@@ -100,6 +124,10 @@ export const fr: Translations = {
         delete: 'Supprimer',
         makePublic: 'Rendre public',
         makePrivate: 'Rendre privé',
+      },
+      tooltips: {
+        addFavorite: 'Ajouter aux favoris',
+        removeFavorite: 'Retirer des favoris',
       },
       status: {
         public: 'Public',

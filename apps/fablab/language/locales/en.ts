@@ -4,6 +4,28 @@ export const en: Translations = {
     dashboard: {
       welcome: 'Welcome back',
       subtitle: 'Here\'s an overview of your AI resources',
+      myDashboardTitle: 'My Dashboard',
+      myDashboardSubtitle: 'Indicator panel for favorite products and recent activity.',
+      favoriteProductsTitle: 'Favorite products',
+      noFavoriteProducts: 'You do not have favorite products yet.',
+      favoriteBadge: 'Favorite',
+      updatedAtLabel: 'Updated',
+      latestProductTitle: 'Latest product creation',
+      latestCreatedLabel: 'Last registered/updated',
+      noProductsYet: 'No products registered yet.',
+      metricsTitle: 'Product metrics',
+      totalProductsLabel: 'Total products',
+      totalFavoritesLabel: 'Total favorites',
+      totalNotebooksLabel: 'Total notebook products',
+      createdInRangeLabel: 'Created in selected range',
+      notebooksInRangeLabel: 'Notebooks created in range',
+      replicatedProductsLabel: 'Replicable products (excluding fixed types)',
+      productsTrendTitle: 'Products creation trend',
+      productsTrendSubtitle: 'Products created per day in selected range',
+      objectsTrendTitle: 'Objects upload trend',
+      objectsTrendSubtitle: 'New objects per day in objects table',
+      productsMetricLabel: 'Products',
+      objectsMetricLabel: 'Objects',
       stats: {
         notebooks: 'Notebooks',
         projects: 'Projects',
@@ -21,6 +43,7 @@ export const en: Translations = {
     },
     sidebar: {
       dashboard: 'Dashboard',
+      myDashboard: 'My Dashboard',
       library: 'Library',
       profile: 'My Profile',
       context: 'Server',
@@ -86,6 +109,7 @@ export const en: Translations = {
       confirmDelete: 'Are you sure you want to delete this product?',
       filters: {
         all: 'All',
+        favorites: 'Favorites',
       },
       tableHeaders: {
         type: 'Type',
@@ -100,6 +124,10 @@ export const en: Translations = {
         delete: 'Delete',
         makePublic: 'Make public',
         makePrivate: 'Make private',
+      },
+      tooltips: {
+        addFavorite: 'Add to favorites',
+        removeFavorite: 'Remove from favorites',
       },
       status: {
         public: 'Public',
