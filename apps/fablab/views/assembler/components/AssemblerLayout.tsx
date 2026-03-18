@@ -153,6 +153,8 @@ const AssemblerLayout: React.FC<Props> = ({
               >
                 <GenericObjectSelector
                   type={m.type as any}
+                  product_type_for_assembly={productType}
+                  module_name_for_assembly={m.key}
                   onObjectSelectionCallback={handleSelect(m.key)}
                   currentSelection={sel ? { id: sel.object_id, name: sel.object_name } : undefined}
                 />

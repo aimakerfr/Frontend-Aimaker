@@ -6,6 +6,8 @@ export interface CreateAssemblerMakerPathRequest {
   projectType: AssemblerProjectType;
   title: string;
   description: string;
+  /** Serialized JSON string with layout + canvas data */
+  data?: string;
 }
 
 export interface MakerPathResponseMinimal {
@@ -54,6 +56,7 @@ export async function createAssemblerMakerPath(
       projectType: normalizedType,
       title: params.title,
       description: params.description,
+      ...(params.data ? { data: params.data } : {}),
     }),
   });
 

@@ -12,6 +12,7 @@ const LandingPageAssembler: React.FC = () => {
   const [isRunningExample, setIsRunningExample] = useState<boolean>(false);
   const [exampleResultMsg, setExampleResultMsg] = useState<string | null>(null);
   const [exampleHtmlPath, setExampleHtmlPath] = useState<string | null>(null);
+  const [visualDescription, setVisualDescription] = useState<string>('');
 
   const modules: AssemblerModule[] = useMemo(() => {
     const lp = t?.assembler?.landing_page;
@@ -56,21 +57,30 @@ const LandingPageAssembler: React.FC = () => {
     const headerId = selections['header']?.object_id;
     const bodyId = selections['body']?.object_id;
     const footerId = selections['footer']?.object_id;
-    return {
+    const dto = {
       PRODUCT_TYPE: 'landing_page',
       MAKER_PATH_ID: makerPathId,
+      VARIABLES: {
+        landing_visual_description: visualDescription,
+      },
       INPUT_MODULES: [
         { index: 2, module_name_for_assembly: 'header', object_id: headerId },
         { index: 3, module_name_for_assembly: 'body', object_id: bodyId },
         { index: 4, module_name_for_assembly: 'footer', object_id: footerId },
       ],
     };
+    console.log('[LandingPageAssembler] Built DTO', dto);
+    return dto;
   };
 
   const onAssemble = async (dto: any) => {
     const token = tokenStorage.get();
     const base = (import.meta as any).env?.VITE_API_URL as string | undefined;
     const baseUrl = base ? base.replace(/\/$/, '') : '';
+    console.log('[LandingPageAssembler] Sending assemble request', {
+      url: `${baseUrl}/api/v1/assembler/landing_page/assemble`,
+      dto,
+    });
     const res = await fetch(`${baseUrl}/api/v1/assembler/landing_page/assemble`, {
       method: 'POST',
       headers: {
@@ -82,18 +92,31 @@ const LandingPageAssembler: React.FC = () => {
     const ct = res.headers.get('Content-Type') || '';
     const isJson = ct.includes('application/json');
     const body = isJson ? await res.json() : null;
+    console.log('[LandingPageAssembler] Assemble response', { status: res.status, body });
     if (!res.ok) {
       const msg = (body && (body.error?.message || body.message || body.error)) || `HTTP ${res.status}`;
       throw new Error(msg);
     }
+    // Extract html_path from response for auto-open
+    const data = body?.data ?? body ?? {};
+    const assembledHtmlPath: string | undefined = data.html_path || data.htmlPath;
+    const assembledUrl = assembledHtmlPath
+      ? (assembledHtmlPath.startsWith('http') ? assembledHtmlPath : `${baseUrl}${assembledHtmlPath}`)
+      : `${baseUrl}/uploads/assembler/${dto.MAKER_PATH_ID}/landing_page_assembly.html`;
+
     setAssembleResultMsg(
-      t?.assembler?.landing_page?.assembledOk ?? 'Landing page assembled. You can open the generated index.html below.'
+      t?.assembler?.landing_page?.assembledOk ?? 'Landing page assembled successfully!'
     );
+
+    // Auto-open the result in a new tab
+    window.open(assembledUrl, '_blank', 'noopener,noreferrer');
   };
 
-  const uploadsHref = `/uploads/assembler/${makerPathId}/index.html`;
   const tr = t?.assembler?.landing_page ?? {};
   const apiBase = ((import.meta as any).env?.VITE_API_URL as string | undefined)?.replace(/\/$/, '') || '';
+  const uploadsHref = apiBase
+    ? `${apiBase}/uploads/assembler/${makerPathId}/landing_page_assembly.html`
+    : `/uploads/assembler/${makerPathId}/landing_page_assembly.html`;
 
   const onRunExample = async () => {
     if (!makerPathId || makerPathId <= 0 || isRunningExample) return;
@@ -110,7 +133,9 @@ const LandingPageAssembler: React.FC = () => {
         },
         body: JSON.stringify({
           MAKER_PATH_ID: makerPathId,
-          // VARIABLES is optional; omit by default. You may provide css_generator_instruction_text here if you add a UI input.
+          VARIABLES: {
+            landing_visual_description: visualDescription,
+          },
         }),
       });
       const ct = res.headers.get('Content-Type') || '';
@@ -126,15 +151,15 @@ const LandingPageAssembler: React.FC = () => {
         data.htmlPath ||
         (Array.isArray(data.files)
           ? (
-              data.files.find((f: any) => f?.filename === 'a.htm')?.path ||
-              data.files.find((f: any) => f?.filename === 'a.htm')?.assembler_rel_path
+              data.files.find((f: any) => f?.filename === 'landing_page_assembly.html')?.path ||
+              data.files.find((f: any) => f?.filename === 'landing_page_assembly.html')?.assembler_rel_path
             )
           : undefined);
 
       // Use the exact path provided by backend when available.
       // Accept absolute URLs (http/https) and absolute relative paths starting with '/'.
       // Only fallback to the conventional uploads path if response lacks a usable path.
-      let finalHtmlPath: string = `/uploads/assembler/${makerPathId}/a.htm`;
+      let finalHtmlPath: string = `/uploads/assembler/${makerPathId}/examples/landing_page_assembly.html`;
       if (htmlPath && typeof htmlPath === 'string') {
         if (htmlPath.startsWith('http://') || htmlPath.startsWith('https://')) {
           finalHtmlPath = htmlPath;
@@ -161,6 +186,24 @@ const LandingPageAssembler: React.FC = () => {
           {tr.missingId ?? 'Missing maker_path id. Append ?id={maker_path_id} to the URL.'}
         </div>
       )}
+
+      {/* Visual description textarea */}
+      <div className="rounded-xl border border-gray-200 dark:border-gray-800 p-4 bg-white dark:bg-gray-900">
+        <label className="block font-semibold mb-1">
+          {tr.visualDescriptionLabel ?? 'Describe el look & feel de tu landing page'}
+        </label>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">
+          {tr.visualDescriptionHint ??
+            'Ej: "Colores oscuros con acentos en verde neón, tipografía moderna sans-serif, botones redondeados, estilo minimalista tech."'}
+        </p>
+        <textarea
+          value={visualDescription}
+          onChange={(e) => setVisualDescription(e.target.value)}
+          rows={3}
+          className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+          placeholder={tr.visualDescriptionPlaceholder ?? 'Describe los colores, tipografías, espaciado y estilo visual que deseas...'}
+        />
+      </div>
 
       <AssemblerLayout
         productType="landing_page"
@@ -211,7 +254,7 @@ const LandingPageAssembler: React.FC = () => {
           </div>
           {exampleHtmlPath && (
             <a
-              href={exampleHtmlPath}
+              href={exampleHtmlPath.startsWith('http') ? exampleHtmlPath : `${apiBase}${exampleHtmlPath}`}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center rounded-lg px-4 py-2 text-sm font-semibold border border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800"
