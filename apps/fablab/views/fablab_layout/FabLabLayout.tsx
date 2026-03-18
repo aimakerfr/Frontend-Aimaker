@@ -12,6 +12,7 @@ import ExternalAccess from '../external-access/ExternalAccess';
 import AIChat from '../../components/AIChat';
 import ObjectsLibrary from '../objects/ObjectsLibrary';
 import Products from '../products/Products';
+import MyDashboard from '../dashboard/MyDashboard';
 import NotebookAssembler from '../assembler/NotebookAssemblerLite';
 import LandingPageAssembler from '../assembler/LandingPageAssembler';
 import AssemblerNew from '../assembler/AssemblerNew';
@@ -70,7 +71,7 @@ const FabLabLayout: React.FC<Props> = ({
           <div className="max-w-7xl mx-auto">
             <Routes>
               {/* Rutas específicas para cada sección */}
-              <Route path="/" element={<ProfileSection user={user} />} />
+              <Route path="/" element={<MyDashboard />} />
               <Route path="/library" element={<Library />} />
               {/* Home routes */}
               <Route path="/objects-library" element={<ObjectsLibrary />} />

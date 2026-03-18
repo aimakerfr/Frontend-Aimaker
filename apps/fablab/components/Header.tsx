@@ -1,6 +1,7 @@
 import React from 'react';
 import { Moon, Sun, Menu, User } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useLanguage } from '../language/useLanguage';
 
 interface HeaderProps {
   toggleTheme: () => void;
@@ -11,6 +12,7 @@ interface HeaderProps {
 
 const Header: React.FC<HeaderProps> = ({ toggleTheme, isDark, toggleSidebar, title }) => {
   const navigate = useNavigate();
+  const { t } = useLanguage();
 
   return (
     <header className="h-16 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between px-6 sticky top-0 z-20 transition-colors duration-200">
@@ -34,15 +36,13 @@ const Header: React.FC<HeaderProps> = ({ toggleTheme, isDark, toggleSidebar, tit
         {/* Profile Button */}
         <button
           onClick={() => navigate('/dashboard/profile')}
-          className="w-10 h-10 rounded-full bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500 border-2 border-white dark:border-gray-700 shadow-md hover:shadow-lg hover:scale-105 transition-all flex items-center justify-center group relative overflow-hidden"
-          title="Ver mi perfil"
+          className="group inline-flex items-center gap-2 rounded-xl border border-sky-200 bg-sky-50 px-3 py-2 text-sky-700 shadow-sm transition-all hover:-translate-y-0.5 hover:border-sky-300 hover:bg-sky-100 hover:shadow-md dark:border-sky-800/70 dark:bg-sky-900/20 dark:text-sky-300"
+          title={t.sidebar.profile}
         >
-          {/* User icon visible on hover */}
-          <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-            <User size={18} className="text-white" />
-          </div>
-          {/* Animated gradient on hover */}
-          <div className="absolute inset-0 bg-gradient-to-tr from-purple-600 via-pink-600 to-indigo-600 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+          <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-white text-sky-600 ring-1 ring-sky-200 dark:bg-sky-950/60 dark:text-sky-300 dark:ring-sky-800">
+            <User size={16} />
+          </span>
+          <span className="text-xs font-semibold tracking-wide">{t.sidebar.profile}</span>
         </button>
       </div>
     </header>

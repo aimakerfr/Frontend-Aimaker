@@ -13,6 +13,7 @@ export interface Product {
   type: ProductType;
   status: ProductStatus;
   isPublic: boolean;
+  isFavorite: boolean;
   productLink: string | null;
   createdAt: string;
   updatedAt: string | null;
@@ -47,4 +48,5 @@ export interface UpdateProductRequest {
   data?: string;
   status?: ProductStatus;
   isPublic?: boolean;
+  isFavorite?: boolean;
 }

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Package, Eye, Search, Trash2, Globe, Lock } from 'lucide-react';
+import { Package, Eye, Search, Trash2, Globe, Lock, Star } from 'lucide-react';
 import { useLanguage } from '../../language/useLanguage';
 import { 
   getProducts, 
@@ -17,6 +17,7 @@ interface ProductsViewProps {
   items?: Product[];
   onDelete?: (itemId: number) => void;
   onTogglePublic?: (itemId: number, isPublic: boolean) => Promise<void>;
+  onToggleFavorite?: (itemId: number, isFavorite: boolean) => Promise<void>;
   isLoading?: boolean;
   activeFilter?: FilterType;
   setActiveFilter?: (filter: FilterType) => void;
@@ -27,6 +28,7 @@ const ProductsView: React.FC<ProductsViewProps> = ({
   items = [],
   onDelete,
   onTogglePublic,
+  onToggleFavorite,
   isLoading = false,
   activeFilter: activeFilterProp,
   setActiveFilter: setActiveFilterProp,
@@ -63,9 +65,16 @@ const ProductsView: React.FC<ProductsViewProps> = ({
   
   const activeFilter = activeFilterProp ?? localActiveFilter;
   const setActiveFilter = setActiveFilterProp ?? setLocalActiveFilter;
+  const visibleFixedItems = activeFilter === 'favorites'
+    ? fixedItems.filter((item) => item.isFavorite)
+    : fixedItems;
 
   const getFilteredProducts = () => {
     let filtered = items.filter((product) => !FIXED_TYPES.includes(product.type));
+
+    if (activeFilter === 'favorites') {
+      filtered = filtered.filter((product) => product.isFavorite);
+    }
 
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
@@ -148,6 +157,16 @@ const ProductsView: React.FC<ProductsViewProps> = ({
               >
                 {t.products.filters.all}
               </button>
+              <button
+                onClick={() => setActiveFilter('favorites')}
+                className={`px-5 py-2.5 font-medium transition-all rounded-xl ${
+                  activeFilter === 'favorites'
+                    ? 'bg-white dark:bg-gray-800 text-amber-600 dark:text-amber-400 shadow-md border border-amber-200 dark:border-amber-800'
+                    : 'text-gray-600 dark:text-gray-400 hover:bg-white dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-200 border border-gray-200 dark:border-gray-700'
+                }`}
+              >
+                {t.products.filters.favorites}
+              </button>
             </div>
           </div>
 
@@ -171,9 +190,9 @@ const ProductsView: React.FC<ProductsViewProps> = ({
             ) : (
               <div>
                 {/* Fijos */}
-                {fixedItems.length > 0 && (
+                {visibleFixedItems.length > 0 && (
                   <div className="border-b border-gray-100 dark:border-gray-700 bg-blue-50/30 dark:bg-blue-900/10">
-                    {fixedItems.map((item: Product) => {
+                    {visibleFixedItems.map((item: Product) => {
                       const fixedTitle = item.type === 'landing_page_maker'
                         ? t.products.fixed.landingTitle
                         : item.type === 'image_generator_rag'
@@ -219,13 +238,26 @@ const ProductsView: React.FC<ProductsViewProps> = ({
                         </div>
 
                         <div className="col-span-2">
-                          <button
-                            onClick={() => navigate(getProductRoute(item.type, item.id))}
-                            className="inline-flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 border-2 border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-xl font-semibold transition-all text-sm hover:scale-105"
-                          >
-                            <Eye size={16} />
-                            {t.products.fixed.open}
-                          </button>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => navigate(getProductRoute(item.type, item.id))}
+                              className="inline-flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 border-2 border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-xl font-semibold transition-all text-sm hover:scale-105"
+                            >
+                              <Eye size={16} />
+                              {t.products.fixed.open}
+                            </button>
+                            <button
+                              onClick={() => onToggleFavorite?.(item.id, !item.isFavorite)}
+                              className={`inline-flex items-center justify-center h-10 w-10 rounded-xl border-2 transition-all ${
+                                item.isFavorite
+                                  ? 'bg-amber-50 border-amber-200 text-amber-600'
+                                  : 'bg-white border-gray-200 text-gray-400 hover:text-amber-500'
+                              }`}
+                              title={item.isFavorite ? t.products.tooltips.removeFavorite : t.products.tooltips.addFavorite}
+                            >
+                              <Star size={16} className={item.isFavorite ? 'fill-amber-400' : ''} />
+                            </button>
+                          </div>
                         </div>
 
                         <div className="col-span-2">
@@ -266,7 +298,7 @@ const ProductsView: React.FC<ProductsViewProps> = ({
                   </div>
                 )}
 
-                {fixedItems.length > 0 && filteredItems.length > 0 && (
+                {visibleFixedItems.length > 0 && filteredItems.length > 0 && (
                   <div className="px-6 py-2 text-xs uppercase tracking-wide text-gray-400 dark:text-gray-500 border-b border-gray-100 dark:border-gray-700">{t.products.fixed.divider}</div>
                 )}
 
@@ -328,6 +360,17 @@ const ProductsView: React.FC<ProductsViewProps> = ({
                             title={t.products.buttons.delete}
                           >
                             <Trash2 size={16} />
+                          </button>
+                          <button
+                            onClick={() => onToggleFavorite?.(item.id, !item.isFavorite)}
+                            className={`inline-flex items-center justify-center h-11 w-11 rounded-xl border-2 transition-all ${
+                              item.isFavorite
+                                ? 'bg-amber-50 border-amber-200 text-amber-600'
+                                : 'bg-white border-gray-200 text-gray-400 hover:text-amber-500'
+                            }`}
+                            title={item.isFavorite ? t.products.tooltips.removeFavorite : t.products.tooltips.addFavorite}
+                          >
+                            <Star size={16} className={item.isFavorite ? 'fill-amber-400' : ''} />
                           </button>
                         </div>
                       </div>
@@ -473,6 +516,23 @@ const Products = () => {
     }
   };
 
+  const handleToggleFavorite = async (itemId: number, isFavorite: boolean) => {
+    try {
+      setItems(prev => prev.map(item =>
+        item.id === itemId ? { ...item, isFavorite } : item
+      ));
+      setFixedItems(prev => prev.map(item =>
+        item.id === itemId ? { ...item, isFavorite } : item
+      ));
+
+      await updateProduct(itemId, { isFavorite });
+    } catch (err) {
+      console.error('[Products] Error toggling favorite:', err);
+      await loadProducts();
+      setError(t.common.errorUpdating || 'Error al actualizar el producto');
+    }
+  };
+
   if (error && items.length === 0) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50/30 p-6 flex items-center justify-center">
@@ -495,6 +555,7 @@ const Products = () => {
       isLoading={isLoading}
       onDelete={handleDelete}
       onTogglePublic={handleTogglePublic}
+      onToggleFavorite={handleToggleFavorite}
       activeFilter={activeFilter}
       setActiveFilter={setActiveFilter}
       fixedItems={fixedItems}
