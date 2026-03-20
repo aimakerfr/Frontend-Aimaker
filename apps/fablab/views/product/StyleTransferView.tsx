@@ -627,7 +627,7 @@ interface ModuleContent { html: string; css: string; name: string; }
            <div className="flex-1 flex items-start gap-4">
              {isOwner && (
                <button
-                 onClick={() => navigate('/dashboard/maker-path')}
+                onClick={() => navigate('/dashboard/products')}
                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors flex-shrink-0 mt-1"
                  title={t.styleTransferViewTranslations?.text_back ?? 'Volver'}
                >
