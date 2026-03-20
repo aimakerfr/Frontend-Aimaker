@@ -16,6 +16,8 @@ import MyDashboard from '../dashboard/MyDashboard';
 import NotebookAssembler from '../assembler/NotebookAssemblerLite';
 import LandingPageAssembler from '../assembler/LandingPageAssembler';
 import AssemblerNew from '../assembler/AssemblerNew';
+import DeployerNew from '../../modules/deployer-new/View';
+import Deployer from '../deployer/Deployer';
 import { UserProfile } from '../../types';
 
 type Props = {
@@ -84,6 +86,8 @@ const FabLabLayout: React.FC<Props> = ({
               <Route path="/assembler/notebook" element={<NotebookAssembler />} />
               <Route path="/assembler/landing_page" element={<LandingPageAssembler />} />
               <Route path="/assembler/new" element={<AssemblerNew />} />
+              <Route path="/deployer/new" element={<DeployerNew />} />
+              <Route path="/deployer" element={<Deployer />} />
               <Route path="/products" element={<Products />} />
               <Route path="/tools" element={<ExternalAccess />} />
             </Routes>

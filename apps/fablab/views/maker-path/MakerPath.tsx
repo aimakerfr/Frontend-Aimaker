@@ -45,7 +45,8 @@ const MakerPathView: React.FC = () => {
   }
 
   if (activeView === 'deploy') {
-    return <DeployProject onBack={() => setActiveView('hub')} />;
+    navigate('dashboard/deployer/new');
+    return null;
   }
 
   if (activeView === 'assembly') {
@@ -57,7 +58,7 @@ const MakerPathView: React.FC = () => {
   return (
     <ProjectsHub
       onGoToTemplates={handleGoToTemplates}
-      onGoToDeploy={() => setActiveView('deploy')}
+      onGoToDeploy={() => navigate('/dashboard/deployer/new')}
       onGoToAssembly={() => navigate('/dashboard/assembler/new')}
     />
   );
