@@ -385,7 +385,7 @@ const ImageGeneratorView: React.FC = () => {
           <div className="flex-1 flex items-start gap-4">
             {isOwner && (
               <button
-                onClick={() => navigate('/dashboard/maker-path')}
+                onClick={() => navigate('/dashboard/products')}
                 className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors flex-shrink-0 mt-1"
                 title={t.imageGeneratorTranslations?.backButton ?? 'Volver'}
               >

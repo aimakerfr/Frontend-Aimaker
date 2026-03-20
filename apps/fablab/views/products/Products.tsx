@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Package, Eye, Search, Trash2, Globe, Lock, Star } from 'lucide-react';
+import { Package, Eye, Search, Trash2, Globe, Lock, Star, Sparkles, Plus } from 'lucide-react';
 import { useLanguage } from '../../language/useLanguage';
 import { 
   getProducts, 
   deleteProduct,
   updateProduct,
+  createProductFromTemplate,
   getOrCreateProductByType,
   type Product,
   type ProductType
@@ -19,9 +20,11 @@ interface ProductsViewProps {
   onTogglePublic?: (itemId: number, isPublic: boolean) => Promise<void>;
   onToggleFavorite?: (itemId: number, isFavorite: boolean) => Promise<void>;
   isLoading?: boolean;
+  isCreatingNotebook?: boolean;
   activeFilter?: FilterType;
   setActiveFilter?: (filter: FilterType) => void;
   fixedItems?: Product[];
+  onCreateNotebook?: (title: string, description: string) => Promise<void>;
 }
 
 const ProductsView: React.FC<ProductsViewProps> = ({
@@ -30,15 +33,21 @@ const ProductsView: React.FC<ProductsViewProps> = ({
   onTogglePublic,
   onToggleFavorite,
   isLoading = false,
+  isCreatingNotebook = false,
   activeFilter: activeFilterProp,
   setActiveFilter: setActiveFilterProp,
   fixedItems = [],
+  onCreateNotebook,
 }) => {
   const navigate = useNavigate();
   const { t } = useLanguage();
 
   const [localActiveFilter, setLocalActiveFilter] = useState<FilterType>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [notebookTitle, setNotebookTitle] = useState('');
+  const [notebookDescription, setNotebookDescription] = useState('');
+  const [createError, setCreateError] = useState<string | null>(null);
   const FIXED_TYPES: ProductType[] = ['landing_page_maker', 'image_generator_rag', 'translation_maker', 'style_transfer_maker'];
   
   // Function to get the correct route based on product type
@@ -94,6 +103,33 @@ const ProductsView: React.FC<ProductsViewProps> = ({
     setSearchQuery(e.target.value);
   };
 
+  const handleOpenCreateModal = () => {
+    setCreateError(null);
+    setIsCreateModalOpen(true);
+  };
+
+  const handleCloseCreateModal = () => {
+    if (isCreatingNotebook) return;
+    setIsCreateModalOpen(false);
+    setCreateError(null);
+    setNotebookTitle('');
+    setNotebookDescription('');
+  };
+
+  const handleConfirmCreateNotebook = async () => {
+    const title = notebookTitle.trim();
+    const description = notebookDescription.trim();
+
+    if (!title) {
+      setCreateError(t.productModal.titleRequired || 'El titulo es requerido');
+      return;
+    }
+
+    setCreateError(null);
+    await onCreateNotebook?.(title, description);
+    handleCloseCreateModal();
+  };
+
   const getTypeLabel = (type: string) => {
     const typeMap: Record<string, string> = {
       'rag_chat_maker': 'RAG Chat Maker',
@@ -132,6 +168,95 @@ const ProductsView: React.FC<ProductsViewProps> = ({
               {t.products.title}
             </h1>
             <p className="text-gray-600 dark:text-gray-400 mt-1">{t.products.subtitle}</p>
+          </div>
+        </div>
+
+      
+        {visibleFixedItems.length > 0 && (
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-gray-500 dark:text-gray-400 font-semibold">
+              <Sparkles size={14} />
+              {t.products.fixed.sectionTitle}
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+              {visibleFixedItems.map((item: Product) => {
+                const fixedTitle = item.type === 'landing_page_maker'
+                  ? t.products.fixed.landingTitle
+                  : item.type === 'image_generator_rag'
+                    ? t.products.fixed.imageTitle
+                    : item.type === 'style_transfer_maker'
+                      ? t.products.fixed.styleTransferTitle
+                      : t.products.fixed.translationTitle;
+                const fixedDesc = item.type === 'landing_page_maker'
+                  ? t.products.fixed.landingDesc
+                  : item.type === 'image_generator_rag'
+                    ? t.products.fixed.imageDesc
+                    : item.type === 'style_transfer_maker'
+                      ? t.products.fixed.styleTransferDesc
+                      : t.products.fixed.translationDesc;
+                return (
+                  <article key={`fixed-${item.type}`} className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm p-4 flex flex-col gap-3">
+                    <div className="flex items-start justify-between">
+                      <div className={`w-11 h-11 rounded-xl ${getTypeColor(item.type)} flex items-center justify-center shadow-md`}>
+                        <Package size={20} className="text-white" />
+                      </div>
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 font-semibold">{t.products.fixed.badge}</span>
+                    </div>
+
+                    <div>
+                      <h3 className="font-bold text-gray-900 dark:text-white text-sm">{fixedTitle}</h3>
+                      <p className="text-xs text-gray-600 dark:text-gray-400 mt-1 line-clamp-3">{fixedDesc}</p>
+                    </div>
+
+                    <div className="mt-auto flex items-center justify-between gap-2">
+                      <button
+                        onClick={() => navigate(getProductRoute(item.type, item.id))}
+                        className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold"
+                      >
+                        <Eye size={14} />
+                        {t.products.fixed.open}
+                      </button>
+                      <button
+                        onClick={() => onToggleFavorite?.(item.id, !item.isFavorite)}
+                        className={`inline-flex items-center justify-center h-9 w-9 rounded-lg border transition-all ${
+                          item.isFavorite
+                            ? 'bg-amber-50 border-amber-200 text-amber-600'
+                            : 'bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 text-gray-400 hover:text-amber-500'
+                        }`}
+                        title={item.isFavorite ? t.products.tooltips.removeFavorite : t.products.tooltips.addFavorite}
+                      >
+                        <Star size={14} className={item.isFavorite ? 'fill-amber-400' : ''} />
+                      </button>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        <div className="rounded-2xl border border-blue-100 dark:border-blue-900/40 bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-950/20 dark:to-cyan-950/20 p-5">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div>
+              <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full text-xs font-semibold bg-white/80 dark:bg-gray-900/50 text-blue-700 dark:text-blue-300 mb-2">
+                <Sparkles size={12} />
+                {t.products.notebookCreator.badge}
+              </div>
+              <h2 className="text-lg font-bold text-gray-900 dark:text-white">{t.products.notebookCreator.title}</h2>
+              <p className="text-sm text-gray-600 dark:text-gray-300">{t.products.notebookCreator.description}</p>
+            </div>
+            <button
+              onClick={handleOpenCreateModal}
+              disabled={isCreatingNotebook}
+              className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-70 disabled:cursor-not-allowed text-white font-semibold shadow-lg"
+            >
+              {isCreatingNotebook ? (
+                <span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <Plus size={16} />
+              )}
+              {t.products.notebookCreator.createButton}
+            </button>
           </div>
         </div>
 
@@ -189,119 +314,6 @@ const ProductsView: React.FC<ProductsViewProps> = ({
               </div>
             ) : (
               <div>
-                {/* Fijos */}
-                {visibleFixedItems.length > 0 && (
-                  <div className="border-b border-gray-100 dark:border-gray-700 bg-blue-50/30 dark:bg-blue-900/10">
-                    {visibleFixedItems.map((item: Product) => {
-                      const fixedTitle = item.type === 'landing_page_maker'
-                        ? t.products.fixed.landingTitle
-                        : item.type === 'image_generator_rag'
-                          ? t.products.fixed.imageTitle
-                          : item.type === 'style_transfer_maker'
-                            ? t.products.fixed.styleTransferTitle
-                            : t.products.fixed.translationTitle;
-                      const fixedDesc = item.type === 'landing_page_maker'
-                        ? t.products.fixed.landingDesc
-                        : item.type === 'image_generator_rag'
-                          ? t.products.fixed.imageDesc
-                          : item.type === 'style_transfer_maker'
-                            ? t.products.fixed.styleTransferDesc
-                            : t.products.fixed.translationDesc;
-                      return (
-                      <div 
-                        key={`fixed-${item.type}`}
-                        className="grid grid-cols-12 gap-4 px-6 py-6 items-center"
-                      >
-                        <div className="col-span-1">
-                          <div className="flex flex-col items-center gap-1">
-                            <div className={`w-12 h-12 rounded-xl ${getTypeColor(item.type)} flex items-center justify-center shadow-lg`}>
-                              <Package size={24} className="text-white" />
-                            </div>
-                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 font-semibold">{t.products.fixed.badge}</span>
-                          </div>
-                        </div>
-
-                        <div className="col-span-4">
-                          <h3 className="text-base font-bold text-gray-900 dark:text-white mb-1">
-                            {fixedTitle}
-                          </h3>
-                          <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2">
-                            {fixedDesc}
-                          </p>
-                        </div>
-
-                        <div className="col-span-2">
-                          <div className="text-sm text-gray-700 dark:text-gray-300">
-                            <span className="font-semibold">{getTypeLabel(item.type)}</span>
-                            <div className="text-xs text-gray-500">{t.products.fixed.productLabel}</div>
-                          </div>
-                        </div>
-
-                        <div className="col-span-2">
-                          <div className="flex gap-2">
-                            <button
-                              onClick={() => navigate(getProductRoute(item.type, item.id))}
-                              className="inline-flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 border-2 border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-xl font-semibold transition-all text-sm hover:scale-105"
-                            >
-                              <Eye size={16} />
-                              {t.products.fixed.open}
-                            </button>
-                            <button
-                              onClick={() => onToggleFavorite?.(item.id, !item.isFavorite)}
-                              className={`inline-flex items-center justify-center h-10 w-10 rounded-xl border-2 transition-all ${
-                                item.isFavorite
-                                  ? 'bg-amber-50 border-amber-200 text-amber-600'
-                                  : 'bg-white border-gray-200 text-gray-400 hover:text-amber-500'
-                              }`}
-                              title={item.isFavorite ? t.products.tooltips.removeFavorite : t.products.tooltips.addFavorite}
-                            >
-                              <Star size={16} className={item.isFavorite ? 'fill-amber-400' : ''} />
-                            </button>
-                          </div>
-                        </div>
-
-                        <div className="col-span-2">
-                          <div className="flex flex-col gap-2">
-                            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400">{t.products.fixed.alwaysActive}</span>
-                            {onTogglePublic && (
-                              <button
-                                onClick={() => onTogglePublic(item.id, !item.isPublic)}
-                                className={`inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${
-                                  item.isPublic
-                                    ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 hover:bg-blue-200 dark:hover:bg-blue-900/40'
-                                    : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'
-                                }`}
-                                title={item.isPublic ? t.products.buttons.makePrivate : t.products.buttons.makePublic}
-                              >
-                                {item.isPublic ? (
-                                  <>
-                                    <Globe size={12} />
-                                    {t.products.status.public}
-                                  </>
-                                ) : (
-                                  <>
-                                    <Lock size={12} />
-                                    {t.products.status.private}
-                                  </>
-                                )}
-                              </button>
-                            )}
-                          </div>
-                        </div>
-
-                        <div className="col-span-1">
-                          <div className="text-xs text-gray-500 dark:text-gray-400">{item.createdAt ? new Date(item.createdAt).toLocaleDateString() : ''}</div>
-                        </div>
-                      </div>
-                      );
-                    })}
-                  </div>
-                )}
-
-                {visibleFixedItems.length > 0 && filteredItems.length > 0 && (
-                  <div className="px-6 py-2 text-xs uppercase tracking-wide text-gray-400 dark:text-gray-500 border-b border-gray-100 dark:border-gray-700">{t.products.fixed.divider}</div>
-                )}
-
                 {/* Normales */}
                 {filteredItems.length === 0 ? (
                   <div className="px-6 py-16 text-center text-gray-500">{t.products.noResults}</div>
@@ -424,6 +436,63 @@ const ProductsView: React.FC<ProductsViewProps> = ({
             )}
           </div>
         </div>
+
+        {isCreateModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+            <div className="w-full max-w-lg rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-2xl p-6">
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1">{t.productModal.createProduct}</h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-5">{t.productModal.createSubtitle || 'Completa el titulo para crear tu notebook.'}</p>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">{t.productModal.title}</label>
+                  <input
+                    type="text"
+                    value={notebookTitle}
+                    onChange={(e) => setNotebookTitle(e.target.value)}
+                    placeholder={t.productModal.titlePlaceholder || 'Titulo del proyecto'}
+                    className="w-full rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-4 py-2.5 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">{t.productModal.description}</label>
+                  <textarea
+                    value={notebookDescription}
+                    onChange={(e) => setNotebookDescription(e.target.value)}
+                    placeholder={t.productModal.descriptionPlaceholder || 'Descripcion del proyecto'}
+                    rows={3}
+                    className="w-full rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-4 py-2.5 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                  />
+                </div>
+
+                {createError && (
+                  <p className="text-sm text-red-600 dark:text-red-400">{createError}</p>
+                )}
+              </div>
+
+              <div className="mt-6 flex items-center justify-end gap-3">
+                <button
+                  onClick={handleCloseCreateModal}
+                  disabled={isCreatingNotebook}
+                  className="px-4 py-2.5 rounded-xl border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-semibold hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-70"
+                >
+                  {t.productModal.cancel}
+                </button>
+                <button
+                  onClick={handleConfirmCreateNotebook}
+                  disabled={isCreatingNotebook}
+                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold disabled:opacity-70"
+                >
+                  {isCreatingNotebook ? (
+                    <span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  ) : null}
+                  {isCreatingNotebook ? t.productModal.creating : t.productModal.create}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </>
   );
@@ -434,9 +503,11 @@ const Products = () => {
   const [items, setItems] = useState<Product[]>([]);
   const [fixedItems, setFixedItems] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isCreatingNotebook, setIsCreatingNotebook] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activeFilter, setActiveFilter] = useState<FilterType>('all');
   const { t } = useLanguage();
+  const navigate = useNavigate();
 
   const loadFixedProducts = async () => {
     try {
@@ -533,6 +604,24 @@ const Products = () => {
     }
   };
 
+  const handleCreateNotebook = async (title: string, description: string) => {
+    try {
+      setIsCreatingNotebook(true);
+      const notebook = await createProductFromTemplate(
+        'rag_chat_maker',
+        title,
+        description
+      );
+      await loadProducts();
+      navigate(`/product/notebook/${notebook.id}`);
+    } catch (err) {
+      console.error('[Products] Error creating notebook:', err);
+      setError(t.common.errorCreating || 'Error al crear notebook');
+    } finally {
+      setIsCreatingNotebook(false);
+    }
+  };
+
   if (error && items.length === 0) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50/30 p-6 flex items-center justify-center">
@@ -553,9 +642,11 @@ const Products = () => {
     <ProductsView 
       items={items} 
       isLoading={isLoading}
+      isCreatingNotebook={isCreatingNotebook}
       onDelete={handleDelete}
       onTogglePublic={handleTogglePublic}
       onToggleFavorite={handleToggleFavorite}
+      onCreateNotebook={handleCreateNotebook}
       activeFilter={activeFilter}
       setActiveFilter={setActiveFilter}
       fixedItems={fixedItems}

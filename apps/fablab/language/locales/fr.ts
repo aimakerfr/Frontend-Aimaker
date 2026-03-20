@@ -104,6 +104,12 @@ export const fr: Translations = {
     products: {
       title: 'Produits',
       subtitle: 'Gérez vos instances de produits créées à partir de modèles.',
+      notebookCreator: {
+        createButton: 'Créer votre Notebook',
+        badge: 'Createur de notebook',
+        title: 'Demarrez un nouveau notebook personnalise',
+        description: 'Chaque clic cree un nouveau notebook qui apparait ensuite dans la liste des produits crees.',
+      },
       searchPlaceholder: 'Rechercher des produits...',
       noResults: 'Aucun produit trouvé',
       confirmDelete: 'Êtes-vous sûr de vouloir supprimer ce produit?',
@@ -134,6 +140,7 @@ export const fr: Translations = {
         private: 'Privé',
       },
       fixed: {
+        sectionTitle: 'Produits fixes',
         badge: 'Fixe',
         productLabel: 'Produit fixe',
         open: 'Ouvrir',

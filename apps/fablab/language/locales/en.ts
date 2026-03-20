@@ -104,6 +104,12 @@ export const en: Translations = {
     products: {
       title: 'Products',
       subtitle: 'Manage your product instances created from templates.',
+      notebookCreator: {
+        createButton: 'Create your Notebook',
+        badge: 'Notebook creator',
+        title: 'Start a new custom notebook',
+        description: 'Each click creates a new notebook record that appears in the created products list.',
+      },
       searchPlaceholder: 'Search products...',
       noResults: 'No products found',
       confirmDelete: 'Are you sure you want to delete this product?',
@@ -134,6 +140,7 @@ export const en: Translations = {
         private: 'Private',
       },
       fixed: {
+        sectionTitle: 'Fixed products',
         badge: 'Fixed',
         productLabel: 'Fixed product',
         open: 'Open',
