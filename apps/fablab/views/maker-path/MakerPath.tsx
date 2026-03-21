@@ -22,7 +22,6 @@ const MakerPathView: React.FC = () => {
 
   return (
     <ProjectsHub
-      onGoToTemplates={handleGoToTemplates}
       onGoToDeploy={() => navigate('/dashboard/deployer/new')}
       onGoToAssembly={() => navigate('/dashboard/assembler/new')}
     />
