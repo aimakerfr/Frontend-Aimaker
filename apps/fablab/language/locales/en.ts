@@ -1529,6 +1529,17 @@ export const en: Translations = {
     continueBtn: 'Continue',
   },
 
+  // Applications Management view
+  applicationsManagement: {
+    title: 'Applications Management',
+    subtitle: 'Overview of the projects, open a project to manage its applications',
+  },
+
+  // Common action labels
+  actions: {
+    manageProjectApplication: "Manage Project's Application",
+  },
+
   // Template selector translations
   templateSelectorTranslations: {
     backBtn: 'Back to home',

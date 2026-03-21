@@ -505,16 +505,16 @@ const ProductView: React.FC = () => {
 
           {/* Right side - Download Button + Status Badge */}
           <div className="flex-shrink-0 flex items-center gap-3">
-            {isOwner && (
-              <button
-                onClick={handleDownloadProject}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm font-semibold shadow-sm"
-                title="Descargar proyecto como index.html"
-              >
-                <Download size={16} />
-                Descargar proyecto
-              </button>
-            )}
+            {/*{isOwner && (*/}
+            {/*  <button*/}
+            {/*    onClick={handleDownloadProject}*/}
+            {/*    className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm font-semibold shadow-sm"*/}
+            {/*    title="Descargar proyecto como index.html"*/}
+            {/*  >*/}
+            {/*    <Download size={16} />*/}
+            {/*    Descargar proyecto*/}
+            {/*  </button>*/}
+            {/*)}*/}
             {product.isPublic ? (
               <div className="flex items-center gap-2 px-4 py-2 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
                 <Globe size={18} className="text-green-600 dark:text-green-400" />

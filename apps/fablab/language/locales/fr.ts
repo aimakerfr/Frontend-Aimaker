@@ -1527,6 +1527,17 @@ export const fr: Translations = {
     continueBtn: 'Continuer',
   },
 
+  // Gestion des applications
+  applicationsManagement: {
+    title: 'Gestion des applications',
+    subtitle: 'Aperçu des projets, ouvrez un projet pour gérer ses applications',
+  },
+
+  // Libellés d'actions communs
+  actions: {
+    manageProjectApplication: 'Gérer les applications du projet',
+  },
+
   // Traductions du sélecteur de modèles
   templateSelectorTranslations: {
     backBtn: "Retour à l'accueil",

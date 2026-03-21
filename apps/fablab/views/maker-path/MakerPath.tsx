@@ -1,17 +1,17 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ProjectsHub } from './components/ProjectsHub';
-import { DeployProject } from './components/DeployProject';
 // import { AssemblyObjects } from './components/AssemblyObjects';
 
 type ActiveView = 'hub' | 'deploy' | 'assembly';
 
 const MakerPathView: React.FC = () => {
   const navigate = useNavigate();
-  const [activeView, setActiveView] = useState<ActiveView>('hub');
+  const [activeView] = useState<ActiveView>('hub');
 
   if (activeView === 'deploy') {
-    return <DeployProject onBack={() => setActiveView('hub')} />;
+    navigate('dashboard/deployer/new');
+    return null;
   }
 
   if (activeView === 'assembly') {
@@ -22,7 +22,7 @@ const MakerPathView: React.FC = () => {
 
   return (
     <ProjectsHub
-      onGoToDeploy={() => setActiveView('deploy')}
+      onGoToDeploy={() => navigate('/dashboard/deployer/new')}
       onGoToAssembly={() => navigate('/dashboard/assembler/new')}
     />
   );
