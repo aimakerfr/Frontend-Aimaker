@@ -19,6 +19,8 @@ const Sidebar: React.FC<SidebarProps> = ({ onLogout }) => {
     // Library section labeled as RAGs
     // Rename "Chemin du Maker" to "Projects" and place it in 4th position
     { path: '/dashboard/maker-path', label: t.sidebar.projects, icon: <Route size={20} /> },
+    // Applications Management - below Projects
+    { path: '/dashboard/applications', label: 'Applications Management', icon: <Package size={20} /> },
     // Products section - NEW
     { path: '/dashboard/products', label: (t as any).products?.title ?? 'Products', icon: <Package size={20} /> },
     { path: '/dashboard/context', label: t.sidebar.context, icon: <Server size={20} /> },

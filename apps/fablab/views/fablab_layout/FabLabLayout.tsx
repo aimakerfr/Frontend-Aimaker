@@ -19,6 +19,7 @@ import AssemblerNew from '../assembler/AssemblerNew';
 import DeployerNew from '../../modules/deployer-new/View';
 import Deployer from '../deployer/Deployer';
 import { UserProfile } from '../../types';
+import ApplicationsManagement from '../applications/ApplicationsManagement';
 
 type Props = {
   user: UserProfile;
@@ -88,6 +89,7 @@ const FabLabLayout: React.FC<Props> = ({
               <Route path="/assembler/new" element={<AssemblerNew />} />
               <Route path="/deployer/new" element={<DeployerNew />} />
               <Route path="/deployer" element={<Deployer />} />
+              <Route path="/applications" element={<ApplicationsManagement />} />
               <Route path="/products" element={<Products />} />
               <Route path="/tools" element={<ExternalAccess />} />
             </Routes>
