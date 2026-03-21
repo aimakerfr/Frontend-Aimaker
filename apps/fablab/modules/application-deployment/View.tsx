@@ -5,6 +5,7 @@ import {
   type ApplicationDeployment,
 } from './services/applicationDeployment.service';
 import DeployActionButton from './components/DeployActionButton';
+import { getMakerPath, type MakerPath } from './services/makerPath.service';
 
 type Props = {
   makerPathId: number | null | undefined;
@@ -15,7 +16,11 @@ const ApplicationDeploymentFullPage: React.FC<Props> = ({ makerPathId }) => {
   const [deployments, setDeployments] = useState<ApplicationDeployment[]>([]);
   const [loading, setLoading] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [newTitle, setNewTitle] = useState('');
   const fileInputsRef = useRef<Record<number, HTMLInputElement | null>>({});
+  const [makerPath, setMakerPath] = useState<MakerPath | null>(null);
+  const [makerPathLoading, setMakerPathLoading] = useState(false);
 
   const renderStatusChip = (status?: string | null) => {
     const s = (status || '').toLowerCase();
@@ -40,6 +45,25 @@ const ApplicationDeploymentFullPage: React.FC<Props> = ({ makerPathId }) => {
   };
 
   useEffect(() => {
+    // Load MakerPath details for header area
+    const loadMakerPath = async () => {
+      if (!makerPathId) {
+        setMakerPath(null);
+        return;
+      }
+      try {
+        setMakerPathLoading(true);
+        const mp = await getMakerPath(makerPathId);
+        setMakerPath(mp);
+      } catch {
+        setMakerPath(null);
+      } finally {
+        setMakerPathLoading(false);
+      }
+    };
+
+    loadMakerPath().then(r => console.log(r));
+
     const load = async () => {
       if (!makerPathId) {
         setDeployments([]);
@@ -52,6 +76,7 @@ const ApplicationDeploymentFullPage: React.FC<Props> = ({ makerPathId }) => {
           ...(d as any),
           filesUrl: (d as any).filesUrl ?? (d as any).files_url ?? null,
           deploymentUrl: (d as any).deploymentUrl ?? (d as any).deployment_url ?? null,
+          // keep original db name fields; rendering will fall back
         }));
         setDeployments(normalized as any);
       } catch {
@@ -78,11 +103,13 @@ const ApplicationDeploymentFullPage: React.FC<Props> = ({ makerPathId }) => {
     }
   };
 
-  const handleCreate = async () => {
+  const handleCreateConfirm = async () => {
     if (!makerPathId) return;
     try {
       setCreating(true);
-      await applicationDeploymentService.createDeployment({ maker_path_id: makerPathId });
+      await applicationDeploymentService.createDeployment({ maker_path_id: makerPathId, title: newTitle });
+      setIsCreateModalOpen(false);
+      setNewTitle('');
       await refresh();
     } catch {
       // Silent
@@ -126,7 +153,7 @@ const ApplicationDeploymentFullPage: React.FC<Props> = ({ makerPathId }) => {
         <h1 className="text-2xl font-bold">{t?.projectFlow?.applicationDeployment || 'Application deployment'}</h1>
         <button
           disabled={!makerPathId || creating}
-          onClick={handleCreate}
+          onClick={() => setIsCreateModalOpen(true)}
           className={`px-4 py-2 text-sm font-semibold rounded-lg transition-colors ${
             !makerPathId || creating
               ? 'bg-gray-300 dark:bg-gray-700 text-gray-600 dark:text-gray-400 cursor-not-allowed'
@@ -136,6 +163,21 @@ const ApplicationDeploymentFullPage: React.FC<Props> = ({ makerPathId }) => {
           {creating ? (t?.common?.loading || 'Loading…') : (t?.projectFlow?.createDeployment || 'Create deployment')}
         </button>
       </div>
+
+      {makerPathId && (
+        <div className="">
+          {makerPathLoading ? (
+            <p className="text-sm text-gray-500">{t?.common?.loading || 'Loading…'}</p>
+          ) : makerPath ? (
+            <div className="space-y-1">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">{makerPath.title}</h2>
+              {makerPath.description && (
+                <p className="text-sm text-gray-600 dark:text-gray-300">{makerPath.description}</p>
+              )}
+            </div>
+          ) : null}
+        </div>
+      )}
 
       {!makerPathId && (
         <p className="text-sm text-amber-700 bg-amber-50 dark:bg-amber-900/20 dark:text-amber-200 border border-amber-200 dark:border-amber-900/40 rounded p-3">
@@ -152,7 +194,8 @@ const ApplicationDeploymentFullPage: React.FC<Props> = ({ makerPathId }) => {
               <table className="min-w-full text-left text-sm">
                 <thead className="text-gray-500 dark:text-gray-400">
                   <tr>
-                    <th className="py-3 px-4">{t?.projectFlow?.appName || 'App name'}</th>
+                    <th className="py-3 px-4">{'Title'}</th>
+                    <th className="py-3 px-4">{t?.projectFlow?.databaseName || 'Database name'}</th>
                     <th className="py-3 px-4">{t?.projectFlow?.deploymentUrl || 'Deployment URL'}</th>
                     <th className="py-3 px-4">{t?.projectFlow?.status || 'Status'}</th>
                     <th className="py-3 px-4">{t?.projectFlow?.actions || 'Actions'}</th>
@@ -161,7 +204,8 @@ const ApplicationDeploymentFullPage: React.FC<Props> = ({ makerPathId }) => {
                 <tbody className="text-gray-800 dark:text-gray-200">
                   {deployments.map((d) => (
                     <tr key={d.id} className="border-t border-gray-100 dark:border-gray-700">
-                      <td className="py-3 px-4">{d.app_name || '-'}</td>
+                      <td className="py-3 px-4">{(d as any).title || d.app_name || (d as any).appName || '-'}</td>
+                      <td className="py-3 px-4">{(d as any).data_base_name || (d as any).dataBaseName || '-'}</td>
                       <td className="py-3 px-4">
                         {(d as any).deploymentUrl ? (
                           <a
@@ -208,6 +252,46 @@ const ApplicationDeploymentFullPage: React.FC<Props> = ({ makerPathId }) => {
           ) : (
             <p className="text-sm text-gray-500">{t?.projectFlow?.noDeploymentsYet || 'No deployments yet'}</p>
           )}
+        </div>
+      )}
+
+      {isCreateModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6">
+            <h2 className="text-lg font-semibold mb-4">{t?.projectFlow?.createDeployment || 'Create deployment'}</h2>
+            <label className="block text-sm mb-2" htmlFor="new-title">
+              {'Title'}
+            </label>
+            <input
+              id="new-title"
+              type="text"
+              value={newTitle}
+              onChange={(e) => setNewTitle(e.target.value)}
+              placeholder={'My app title'}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <div className="mt-6 flex justify-end gap-2">
+              <button
+                type="button"
+                className="px-4 py-2 text-sm rounded-md border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700"
+                onClick={() => {
+                  setIsCreateModalOpen(false);
+                  setNewTitle('');
+                }}
+                disabled={creating}
+              >
+                {t?.common?.cancel || 'Cancel'}
+              </button>
+              <button
+                type="button"
+                className={`px-4 py-2 text-sm font-semibold rounded-md ${creating ? 'bg-gray-300 dark:bg-gray-700 text-gray-600 dark:text-gray-400' : 'bg-blue-600 text-white hover:bg-blue-700'}`}
+                onClick={handleCreateConfirm}
+                disabled={creating}
+              >
+                {creating ? (t?.common?.loading || 'Loading…') : (t?.common?.create || 'Create')}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

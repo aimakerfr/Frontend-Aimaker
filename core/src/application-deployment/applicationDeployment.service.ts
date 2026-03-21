@@ -65,9 +65,16 @@ export class ApplicationDeploymentService {
    * @param data Optional payload with MakerPath id.
    * @returns The created ApplicationDeployment entity.
    */
-  async createDeployment(data?: { maker_path_id?: number; makerPathId?: number }): Promise<ApplicationDeployment> {
+  async createDeployment(data?: { maker_path_id?: number; makerPathId?: number; app_name?: string | null; appName?: string | null; title?: string | null }): Promise<ApplicationDeployment> {
     const maker_path_id = data?.maker_path_id ?? data?.makerPathId;
-    const payload = maker_path_id ? { maker_path_id } : {};
+    const app_name = (data?.app_name ?? data?.appName) ?? undefined;
+    const title = data?.title ?? undefined;
+    const payload: Record<string, any> = {};
+    if (maker_path_id) payload.maker_path_id = maker_path_id;
+    // Per latest UI/requirement, prefer sending `title` when provided
+    if (typeof title !== 'undefined') payload.title = (title || '')?.trim() || null;
+    // Keep backward compatibility if callers still send app_name
+    if (typeof app_name !== 'undefined' && typeof title === 'undefined') payload.app_name = (app_name || '')?.trim() || null;
     const resp = await httpClient.post<CreateApplicationDeploymentResponse>(`${this.baseUrl}/new`, payload);
     return resp.deployment;
   }
