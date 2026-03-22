@@ -19,6 +19,8 @@ export const TranslationView: React.FC = () => {
   const { t } = useLanguage();
   const tr = (t.translationViewTranslations ?? t.translationView ?? {}) as Record<string, string>;
   const text = (key: string, fallback: string) => tr?.[key] ?? fallback;
+  const fixedTitle = t.products.fixed.translationTitle || (tr?.['text_15'] ?? 'Traductor de archivos');
+  const fixedDescription = t.products.fixed.translationDesc || (tr?.['text_16'] ?? 'Procesa y traduce archivos con i18n en un único flujo');
 
   // Product info
   const [product, setProduct] = useState<any>(null);
@@ -74,8 +76,8 @@ export const TranslationView: React.FC = () => {
         let targetId: number | null = id ? parseInt(id) : null;
         if (!targetId) {
           const ensured = await getOrCreateProductByType('translation_maker', {
-            title: tr?.['text_1'] ?? 'Translation fixed',
-            description: tr?.['text_1'] ?? 'Translation fixed',
+            title: t.products.fixed.translationTitle ?? 'Traductor de archivos',
+            description: t.products.fixed.translationDesc ?? '',
           });
           targetId = ensured.id;
         }
@@ -612,10 +614,10 @@ export const TranslationView: React.FC = () => {
           <div className="flex items-start justify-between">
             <div>
               <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-                {product.title || (tr?.['text_15'] ?? 'Creador de Traducciones')}
+                {fixedTitle}
               </h1>
               <p className="text-sm text-gray-500 dark:text-gray-400">
-                {product.description || (tr?.['text_16'] ?? 'Extrae textos y genera traducciones ES, EN, FR desde archivos de código')}
+                {fixedDescription}
               </p>
             </div>
             <div className="px-3 py-1 rounded-full text-xs font-medium bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300">

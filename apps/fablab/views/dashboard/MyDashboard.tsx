@@ -14,6 +14,7 @@ const FIXED_PRODUCT_TYPES = new Set([
   'image_generator_rag',
   'translation_maker',
   'style_transfer_maker',
+  'api_key_maker',
 ]);
 
 const getProductTimestamp = (product: Product): number => {
@@ -331,6 +332,7 @@ const MyDashboard: React.FC = () => {
       image_generator_rag: 'image-generator',
       translation_maker: 'translation',
       style_transfer_maker: 'style-transfer',
+      api_key_maker: 'api-key',
       architect_ai: 'notebook',
       module_connector: 'notebook',
       custom: 'notebook',

@@ -5,7 +5,7 @@ import SourcePanel from '../rag_multimodal/components/SourcePanel.tsx';
 import ImportSourceModal from '../rag_multimodal/components/ImportSourceModal.tsx';
 import UploadSourceModal from '../rag_multimodal/components/UploadSourceModal.tsx';
 import { Source, SourceType } from '../rag_multimodal/types';
-import { getProduct, getPublicProduct, getOrCreateProductByType, updateProduct, type Product } from '@core/products';
+import { getProduct, getPublicProduct, getOrCreateProductByType, type Product } from '@core/products';
 import { getProductStepProgress, updateProductStepProgress } from '@core/product-step-progress';
 import {
   deleteRagMultimodalSource,
@@ -242,10 +242,8 @@ interface ModuleContent { html: string; css: string; name: string; }
      setSources(prev => prev.map(s => s.id === sourceId ? { ...s, selected: !s.selected } : s));
    };
  
-   const handleTitleChange = (v: string) => { if (product && isOwner) setProduct({ ...product, title: v }); };
-   const handleTitleBlur   = async () => { if (product && isOwner) await updateProduct(product.id, { title: product.title }).catch(() => {}); };
-   const handleDescChange  = (v: string) => { if (product && isOwner) setProduct({ ...product, description: v }); };
-   const handleDescBlur    = async () => { if (product && isOwner) await updateProduct(product.id, { description: product.description }).catch(() => {}); };
+    const fixedTitle = t.products.fixed.styleTransferTitle ?? 'Estructura base CSS';
+    const fixedDescription = t.products.fixed.styleTransferDesc ?? '';
  
    const handleCopyUrl = () => {
      if (!product) return;
@@ -640,19 +638,17 @@ interface ModuleContent { html: string; css: string; name: string; }
              <div className="flex-1">
                <input
                  type="text"
-                 value={product.title || ''}
-                 onChange={e => handleTitleChange(e.target.value)}
-                 onBlur={handleTitleBlur}
-                 disabled={!isOwner}
+                 value={fixedTitle}
+                 readOnly
+                 disabled
                  className="text-xl font-bold text-gray-900 dark:text-white bg-transparent border-none outline-none focus:ring-2 focus:ring-indigo-500 rounded px-2 py-1 w-full"
                  placeholder={t.styleTransferViewTranslations?.text_titlePlaceholder ?? 'Título del laboratorio de estilos'}
                />
                <input
                  type="text"
-                 value={product.description || ''}
-                 onChange={e => handleDescChange(e.target.value)}
-                 onBlur={handleDescBlur}
-                 disabled={!isOwner}
+                 value={fixedDescription}
+                 readOnly
+                 disabled
                  className="text-sm text-gray-600 dark:text-gray-400 bg-transparent border-none outline-none focus:ring-2 focus:ring-indigo-500 rounded px-2 py-1 w-full mt-1"
                  placeholder={t.styleTransferViewTranslations?.text_descPlaceholder ?? 'Descripción del producto'}
                />

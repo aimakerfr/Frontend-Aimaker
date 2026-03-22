@@ -48,7 +48,7 @@ const ProductsView: React.FC<ProductsViewProps> = ({
   const [notebookTitle, setNotebookTitle] = useState('');
   const [notebookDescription, setNotebookDescription] = useState('');
   const [createError, setCreateError] = useState<string | null>(null);
-  const FIXED_TYPES: ProductType[] = ['landing_page_maker', 'image_generator_rag', 'translation_maker', 'style_transfer_maker'];
+  const FIXED_TYPES: ProductType[] = ['landing_page_maker', 'image_generator_rag', 'translation_maker', 'style_transfer_maker', 'api_key_maker'];
   
   // Function to get the correct route based on product type
   const getProductRoute = (type: string, id: number): string => {
@@ -58,6 +58,7 @@ const ProductsView: React.FC<ProductsViewProps> = ({
       'image_generator_rag': 'image-generator',
       'translation_maker': 'translation',
       'style_transfer_maker': 'style-transfer',
+      'api_key_maker': 'api-key',
       'architect_ai': 'notebook', // Default to notebook until specific route is created
       'module_connector': 'notebook', // Default to notebook until specific route is created
       'custom': 'notebook' // Default
@@ -65,7 +66,7 @@ const ProductsView: React.FC<ProductsViewProps> = ({
     const route = routeMap[type] || 'notebook';
 
     // Productos fijos no dependen de un id (evita colisiones con notebooks u otros)
-    if (['landing_page_maker', 'image_generator_rag', 'translation_maker', 'style_transfer_maker'].includes(type)) {
+    if (FIXED_TYPES.includes(type as ProductType)) {
       return `/product/${route}`;
     }
 
@@ -139,6 +140,7 @@ const ProductsView: React.FC<ProductsViewProps> = ({
       'image_generator_rag': 'Image Generator RAG',
       'translation_maker': 'Translation Maker',
       'style_transfer_maker': 'Style Transfer Maker',
+      'api_key_maker': 'API Key Inspector',
       'custom': 'Custom'
     };
     return typeMap[type] || type;
@@ -153,6 +155,7 @@ const ProductsView: React.FC<ProductsViewProps> = ({
       'image_generator_rag': 'bg-gradient-to-br from-pink-500 to-rose-600',
       'translation_maker': 'bg-gradient-to-br from-amber-500 to-orange-600',
       'style_transfer_maker': 'bg-gradient-to-br from-indigo-500 to-sky-500',
+      'api_key_maker': 'bg-gradient-to-br from-cyan-500 to-blue-600',
       'custom': 'bg-gradient-to-br from-gray-500 to-gray-600'
     };
     return colorMap[type] || 'bg-gradient-to-br from-gray-500 to-gray-600';
@@ -184,6 +187,8 @@ const ProductsView: React.FC<ProductsViewProps> = ({
                   ? t.products.fixed.landingTitle
                   : item.type === 'image_generator_rag'
                     ? t.products.fixed.imageTitle
+                    : item.type === 'api_key_maker'
+                      ? t.products.fixed.apiKeyTitle
                     : item.type === 'style_transfer_maker'
                       ? t.products.fixed.styleTransferTitle
                       : t.products.fixed.translationTitle;
@@ -191,6 +196,8 @@ const ProductsView: React.FC<ProductsViewProps> = ({
                   ? t.products.fixed.landingDesc
                   : item.type === 'image_generator_rag'
                     ? t.products.fixed.imageDesc
+                    : item.type === 'api_key_maker'
+                      ? t.products.fixed.apiKeyDesc
                     : item.type === 'style_transfer_maker'
                       ? t.products.fixed.styleTransferDesc
                       : t.products.fixed.translationDesc;
@@ -209,13 +216,28 @@ const ProductsView: React.FC<ProductsViewProps> = ({
                     </div>
 
                     <div className="mt-auto flex items-center justify-between gap-2">
-                      <button
-                        onClick={() => navigate(getProductRoute(item.type, item.id))}
-                        className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold"
-                      >
-                        <Eye size={14} />
-                        {t.products.fixed.open}
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => navigate(getProductRoute(item.type, item.id))}
+                          className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold"
+                        >
+                          <Eye size={14} />
+                          {t.products.fixed.open}
+                        </button>
+                        {onTogglePublic && (
+                          <button
+                            onClick={() => onTogglePublic(item.id, !item.isPublic)}
+                            className={`inline-flex items-center justify-center h-9 w-9 rounded-lg border transition-all ${
+                              item.isPublic
+                                ? 'bg-blue-50 border-blue-200 text-blue-600'
+                                : 'bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 text-gray-400 hover:text-gray-600'
+                            }`}
+                            title={item.isPublic ? t.products.buttons.makePrivate : t.products.buttons.makePublic}
+                          >
+                            {item.isPublic ? <Globe size={14} /> : <Lock size={14} />}
+                          </button>
+                        )}
+                      </div>
                       <button
                         onClick={() => onToggleFavorite?.(item.id, !item.isFavorite)}
                         className={`inline-flex items-center justify-center h-9 w-9 rounded-lg border transition-all ${
@@ -516,6 +538,7 @@ const Products = () => {
         { type: 'image_generator_rag', title: t.products.fixed.imageTitle, description: t.products.fixed.imageDesc },
         { type: 'translation_maker', title: t.products.fixed.translationTitle, description: t.products.fixed.translationDesc },
         { type: 'style_transfer_maker', title: t.products.fixed.styleTransferTitle, description: t.products.fixed.styleTransferDesc },
+        { type: 'api_key_maker', title: t.products.fixed.apiKeyTitle, description: t.products.fixed.apiKeyDesc },
       ];
 
       const resolved = await Promise.all(
