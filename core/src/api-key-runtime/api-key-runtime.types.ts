@@ -38,3 +38,21 @@ export interface ProviderChatResponse {
     totalTokens: number;
   };
 }
+
+export type ProviderModelCapability = 'text' | 'image' | 'audio' | 'video' | 'search';
+
+export interface ProviderModelTestRequest {
+  provider: ApiRuntimeProvider;
+  apiKey: string;
+  model: string;
+  capability: ProviderModelCapability;
+  prompt?: string;
+}
+
+export interface ProviderModelTestResponse {
+  ok: boolean;
+  mode: 'execution' | 'availability';
+  message: string;
+  capability: ProviderModelCapability;
+  outputPreview?: string;
+}

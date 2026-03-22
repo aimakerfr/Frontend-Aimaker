@@ -2,6 +2,8 @@ import { httpClient } from '../api/http.client';
 import type {
   ProviderChatRequest,
   ProviderChatResponse,
+  ProviderModelTestRequest,
+  ProviderModelTestResponse,
   ValidateProviderKeyRequest,
   ValidateProviderKeyResponse,
 } from './api-key-runtime.types';
@@ -18,4 +20,10 @@ export const providerChat = async (
   data: ProviderChatRequest
 ): Promise<ProviderChatResponse> => {
   return httpClient.post<ProviderChatResponse>(`${ENDPOINT}/chat`, data);
+};
+
+export const providerTestModel = async (
+  data: ProviderModelTestRequest
+): Promise<ProviderModelTestResponse> => {
+  return httpClient.post<ProviderModelTestResponse>(`${ENDPOINT}/test-model`, data);
 };

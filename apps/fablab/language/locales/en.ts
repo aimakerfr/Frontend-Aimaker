@@ -231,6 +231,7 @@ export const en: Translations = {
       invalidTestMode: 'This mode is not available for the selected model.',
       capabilityTestOk: 'Capability test OK',
       capabilityTestNote: 'The model is enabled for this capability; full output requires a dedicated modality flow.',
+      chatNotSupportedForModel: 'This model does not support text chat. Use Test model with its modality.',
       requestsLabel: 'Requests',
       latencyLabel: 'Last latency',
       selectedModelLabel: 'Selected model',

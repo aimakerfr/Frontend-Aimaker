@@ -11,7 +11,6 @@ import {
   Globe,
   GripVertical,
   KeyRound,
-  Loader2,
   Lock,
   Plus,
   Send,
@@ -22,6 +21,7 @@ import { getOrCreateProductByType, getProduct, getPublicProduct, type Product } 
 import { getProductStepProgress, updateProductStepProgress } from '@core/product-step-progress';
 import {
   providerChat,
+  providerTestModel,
   validateProviderKey,
   type ApiRuntimeProvider,
   type ProviderChatMessage,
@@ -370,9 +370,7 @@ const ApiKeyInspectorView: React.FC = () => {
     });
   }, [remoteModels, catalogMap]);
 
-  const modelOptions = useMemo(() => {
-    return validatedModelOptions.filter((m) => m.usableInChat);
-  }, [validatedModelOptions]);
+  const modelOptions = useMemo(() => validatedModelOptions, [validatedModelOptions]);
 
   const activeConversation = useMemo(
     () => conversations.find((c) => c.id === activeConversationId) ?? null,
@@ -744,6 +742,11 @@ const ApiKeyInspectorView: React.FC = () => {
   };
 
   const handleSendMessage = async () => {
+    if (selectedModelInfo && !selectedModelInfo.usableInChat) {
+      setErrorText(t.apiKeyProductView?.chatNotSupportedForModel || 'Este modelo no soporta chat de texto. Usa Probar modelo con su modalidad.');
+      return;
+    }
+
     const text = messageInput.trim();
     if (!text) return;
     await runChat(text, false);
@@ -760,40 +763,54 @@ const ApiKeyInspectorView: React.FC = () => {
       return;
     }
 
-    if (testMode === 'text' || testMode === 'search') {
-      await runChat('Responde solo: OK', true);
-      return;
-    }
+    setErrorText('');
+    setStatusText('');
+    setIsSending(true);
+    try {
+      const response = await providerTestModel({
+        provider,
+        apiKey: apiKey.trim(),
+        model: selectedModel,
+        capability: testMode === 'unknown' ? 'text' : testMode,
+        prompt: testMode === 'image'
+          ? 'Create a small test image with the word AIMAKER'
+          : 'Reply only with OK',
+      });
 
-    const capabilityLabelText = capabilityLabel(testMode, t);
-    const capabilityMessage = `${t.apiKeyProductView?.capabilityTestOk || 'Prueba de modalidad OK'}: ${capabilityLabelText}. ${t.apiKeyProductView?.capabilityTestNote || 'El modelo esta habilitado para esta capacidad; la salida completa requiere flujo dedicado por modalidad.'}`;
-    setStatusText(capabilityMessage);
+      const capabilityLabelText = capabilityLabel(testMode, t);
+      const outputPreview = response.outputPreview ? `\nPreview: ${response.outputPreview}` : '';
+      const capabilityMessage = `${t.apiKeyProductView?.capabilityTestOk || 'Prueba de modalidad OK'} (${capabilityLabelText}): ${response.message}${outputPreview}`;
+      setStatusText(capabilityMessage);
 
-    if (!activeConversation) {
-      return;
-    }
+      if (activeConversation) {
+        const syntheticAssistantMessage: ChatItem = {
+          id: `cap-${Date.now()}`,
+          role: 'assistant',
+          content: capabilityMessage,
+          createdAt: new Date().toISOString(),
+        };
 
-    const syntheticAssistantMessage: ChatItem = {
-      id: `cap-${Date.now()}`,
-      role: 'assistant',
-      content: capabilityMessage,
-      createdAt: new Date().toISOString(),
-    };
+        const nextMessages = [...activeConversation.messages, syntheticAssistantMessage];
+        const nextConversations = conversations.map((conv) =>
+          conv.id === activeConversation.id
+            ? {
+                ...conv,
+                messages: nextMessages,
+                updatedAt: new Date().toISOString(),
+              }
+            : conv
+        );
 
-    const nextMessages = [...activeConversation.messages, syntheticAssistantMessage];
-    const nextConversations = conversations.map((conv) =>
-      conv.id === activeConversation.id
-        ? {
-            ...conv,
-            messages: nextMessages,
-            updatedAt: new Date().toISOString(),
-          }
-        : conv
-    );
-
-    setConversations(nextConversations);
-    if (product) {
-      await persistChat(product.id, { conversations: nextConversations });
+        setConversations(nextConversations);
+        if (product) {
+          await persistChat(product.id, { conversations: nextConversations });
+        }
+      }
+    } catch (err: any) {
+      console.error('[ApiKeyInspectorView] Test model error:', err);
+      setErrorText(err?.message || 'No se pudo probar el modelo.');
+    } finally {
+      setIsSending(false);
     }
   };
 
@@ -886,7 +903,7 @@ const ApiKeyInspectorView: React.FC = () => {
   if (isLoading) {
     return (
       <div className="h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
-        <Loader2 className="animate-spin text-cyan-600" size={36} />
+        <span className="inline-block h-9 w-9 rounded-full border-4 border-cyan-200 border-t-cyan-600 animate-spin" />
       </div>
     );
   }
@@ -1355,7 +1372,7 @@ const ApiKeyInspectorView: React.FC = () => {
                   disabled={!isOwner || isSending || !messageInput.trim()}
                   className="rounded-full bg-[#0b7d72] text-white px-4 py-1.5 text-sm font-semibold disabled:opacity-50 inline-flex items-center gap-1"
                 >
-                  {isSending ? <Loader2 size={13} className="animate-spin" /> : <Send size={13} />}
+                  {isSending ? <span className="inline-block h-3 w-3 rounded-full border-2 border-white/50 border-t-white animate-spin" /> : <Send size={13} />}
                   {t.apiKeyProductView?.sendButton || 'Enviar'}
                 </button>
               </div>
