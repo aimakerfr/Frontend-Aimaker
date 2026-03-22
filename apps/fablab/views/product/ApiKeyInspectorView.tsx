@@ -70,6 +70,7 @@ type EnrichedModelOption = {
   capabilities: ModelCapability[];
   priceLabel: string;
   usableInChat: boolean;
+  sortPrice: number;
 };
 
 type PromptRecord = {
@@ -204,6 +205,29 @@ const formatPriceLabel = (catalogModel?: CatalogModel): string => {
   return `$${input}/$${output} /1M`;
 };
 
+const modelSortPrice = (catalogModel?: CatalogModel): number => {
+  if (!catalogModel) return Number.POSITIVE_INFINITY;
+
+  if (Number(catalogModel.imageOutput ?? 0) > 0) {
+    return Number(catalogModel.imageOutput);
+  }
+
+  const input = Number(catalogModel.inputPer1M ?? 0);
+  const output = Number(catalogModel.outputPer1M ?? 0);
+  if (input <= 0 && output <= 0) return Number.POSITIVE_INFINITY;
+
+  return input + output;
+};
+
+const capabilityRank = (capabilities: ModelCapability[]): number => {
+  if (capabilities.includes('text')) return 1;
+  if (capabilities.includes('search')) return 2;
+  if (capabilities.includes('image')) return 3;
+  if (capabilities.includes('audio')) return 4;
+  if (capabilities.includes('video')) return 5;
+  return 99;
+};
+
 const estimateCost = (
   modelId: string,
   inputTokens: number,
@@ -300,6 +324,8 @@ const ApiKeyInspectorView: React.FC = () => {
   const [promptContentInput, setPromptContentInput] = useState('');
 
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [modelsPanelOpen, setModelsPanelOpen] = useState(false);
+  const [testMode, setTestMode] = useState<ModelCapability>('text');
 
   const [isValidatingKey, setIsValidatingKey] = useState(false);
   const [isSending, setIsSending] = useState(false);
@@ -332,9 +358,16 @@ const ApiKeyInspectorView: React.FC = () => {
         capabilities,
         priceLabel,
         usableInChat,
+        sortPrice: modelSortPrice(catalog),
       });
     }
-    return options;
+    return options.sort((a, b) => {
+      const rankDiff = capabilityRank(a.capabilities) - capabilityRank(b.capabilities);
+      if (rankDiff !== 0) return rankDiff;
+      const priceDiff = a.sortPrice - b.sortPrice;
+      if (priceDiff !== 0) return priceDiff;
+      return a.label.localeCompare(b.label);
+    });
   }, [remoteModels, catalogMap]);
 
   const modelOptions = useMemo(() => {
@@ -350,6 +383,17 @@ const ApiKeyInspectorView: React.FC = () => {
     () => roles.find((r) => r.id === selectedRoleId) ?? null,
     [roles, selectedRoleId]
   );
+
+  const selectedModelInfo = useMemo(
+    () => validatedModelOptions.find((m) => m.id === selectedModel) ?? null,
+    [validatedModelOptions, selectedModel]
+  );
+
+  const availableTestModes = useMemo<ModelCapability[]>(() => {
+    if (!selectedModelInfo) return ['text'];
+    const dedup = Array.from(new Set(selectedModelInfo.capabilities));
+    return dedup.length > 0 ? dedup : ['text'];
+  }, [selectedModelInfo]);
 
   const effectiveSystemPrompt = useMemo(() => {
     const blocks = [systemPrompt.trim(), selectedRole?.behavior?.trim() ?? ''].filter(Boolean);
@@ -526,6 +570,12 @@ const ApiKeyInspectorView: React.FC = () => {
   }, [selectedModel, modelOptions]);
 
   useEffect(() => {
+    if (!availableTestModes.includes(testMode)) {
+      setTestMode(availableTestModes[0] ?? 'text');
+    }
+  }, [availableTestModes, testMode]);
+
+  useEffect(() => {
     if (!selectedModel) return;
     const stillAvailable = modelOptions.some((m) => m.id === selectedModel);
     if (!stillAvailable) {
@@ -700,7 +750,51 @@ const ApiKeyInspectorView: React.FC = () => {
   };
 
   const handleTestModel = async () => {
-    await runChat('Responde solo: OK', true);
+    if (!selectedModelInfo) {
+      setErrorText(t.apiKeyProductView?.selectModelFirst || 'Debes seleccionar un modelo.');
+      return;
+    }
+
+    if (!availableTestModes.includes(testMode)) {
+      setErrorText(t.apiKeyProductView?.invalidTestMode || 'Esta modalidad no esta disponible para el modelo elegido.');
+      return;
+    }
+
+    if (testMode === 'text' || testMode === 'search') {
+      await runChat('Responde solo: OK', true);
+      return;
+    }
+
+    const capabilityLabelText = capabilityLabel(testMode, t);
+    const capabilityMessage = `${t.apiKeyProductView?.capabilityTestOk || 'Prueba de modalidad OK'}: ${capabilityLabelText}. ${t.apiKeyProductView?.capabilityTestNote || 'El modelo esta habilitado para esta capacidad; la salida completa requiere flujo dedicado por modalidad.'}`;
+    setStatusText(capabilityMessage);
+
+    if (!activeConversation) {
+      return;
+    }
+
+    const syntheticAssistantMessage: ChatItem = {
+      id: `cap-${Date.now()}`,
+      role: 'assistant',
+      content: capabilityMessage,
+      createdAt: new Date().toISOString(),
+    };
+
+    const nextMessages = [...activeConversation.messages, syntheticAssistantMessage];
+    const nextConversations = conversations.map((conv) =>
+      conv.id === activeConversation.id
+        ? {
+            ...conv,
+            messages: nextMessages,
+            updatedAt: new Date().toISOString(),
+          }
+        : conv
+    );
+
+    setConversations(nextConversations);
+    if (product) {
+      await persistChat(product.id, { conversations: nextConversations });
+    }
   };
 
   const handleCreateConversation = async () => {
@@ -1121,6 +1215,24 @@ const ApiKeyInspectorView: React.FC = () => {
                   </button>
                 </div>
               </div>
+              <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-xs text-[#2e6d66] mb-1">{t.apiKeyProductView?.testModeLabel || 'Modo de prueba'}</label>
+                  <select
+                    value={testMode}
+                    onChange={(e) => setTestMode(e.target.value as ModelCapability)}
+                    disabled={!isOwner || !selectedModel}
+                    className="w-full rounded border border-[#8ccabd] bg-[#f8fcfb] px-2 py-2 text-sm"
+                  >
+                    {availableTestModes.map((mode) => (
+                      <option key={mode} value={mode}>{capabilityLabel(mode, t)}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="text-xs text-[#2e6d66] rounded border border-[#b6d7d1] bg-[#f7fcfa] px-2 py-2">
+                  {t.apiKeyProductView?.testModeHint || 'Texto y búsqueda se prueban en chat. Imagen/audio/video registran prueba de capacidad en la conversación actual.'}
+                </div>
+              </div>
               <textarea
                 value={systemPrompt}
                 onChange={(e) => setSystemPrompt(e.target.value)}
@@ -1148,7 +1260,17 @@ const ApiKeyInspectorView: React.FC = () => {
           </section>
 
           <section className="px-4 py-3 border-b border-[#c5ddd8] bg-[#f3f8f7]">
-            <h4 className="text-sm font-semibold text-[#174540] mb-2">{t.apiKeyProductView?.validatedModelsTitle || 'Modelos validados con esta key'}</h4>
+            <div className="flex items-center justify-between gap-3">
+              <h4 className="text-sm font-semibold text-[#174540]">{t.apiKeyProductView?.validatedModelsTitle || 'Modelos validados con esta key'}</h4>
+              <button
+                onClick={() => setModelsPanelOpen((v) => !v)}
+                className="text-xs px-2 py-1 rounded border border-[#9fcfc5] bg-white text-[#1a6f65]"
+              >
+                {modelsPanelOpen
+                  ? (t.apiKeyProductView?.hideModelsList || 'Ocultar lista')
+                  : (t.apiKeyProductView?.showModelsList || 'Mostrar lista')}
+              </button>
+            </div>
             {!hasValidatedKey && (
               <p className="text-xs text-[#2e6d66]">
                 {t.apiKeyProductView?.validateToSeeModels || 'Valida la API key para listar solo modelos realmente habilitados para tu cuenta.'}
@@ -1159,29 +1281,33 @@ const ApiKeyInspectorView: React.FC = () => {
                 {t.apiKeyProductView?.noValidatedModels || 'La validacion fue correcta, pero no se recibieron modelos para este proveedor.'}
               </p>
             )}
-            {validatedModelOptions.length > 0 && (
-              <div className="mt-2 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2">
+            {validatedModelOptions.length > 0 && modelsPanelOpen && (
+              <div className="mt-2 border border-[#b6d7d1] rounded bg-white overflow-hidden">
+                <div className="max-h-44 overflow-y-auto">
                 {validatedModelOptions.map((model) => (
-                  <div key={model.id} className="rounded border border-[#b6d7d1] bg-white p-2 text-xs">
-                    <div className="flex items-start justify-between gap-2">
-                      <p className="font-semibold text-[#173f3a] break-all">{model.label}</p>
-                      <span className="text-[#0b7d72] font-semibold whitespace-nowrap">{model.priceLabel}</span>
+                  <div key={model.id} className="grid grid-cols-[1fr_auto_auto] gap-2 p-2 text-xs border-b last:border-b-0 border-[#e0efeb]">
+                    <div className="min-w-0">
+                      <p className="font-semibold text-[#173f3a] truncate">{model.label}</p>
+                      <p className="text-[#4a7e77] truncate">{model.id}</p>
                     </div>
-                    <p className="text-[#4a7e77] mt-1 break-all">{model.id}</p>
-                    <div className="flex flex-wrap gap-1 mt-2">
+                    <div className="flex flex-wrap gap-1 items-center justify-start">
                       {model.capabilities.map((cap) => (
                         <span key={`${model.id}-${cap}`} className="px-1.5 py-0.5 rounded bg-[#e5f3f0] text-[#1a6f65] border border-[#b9ddd6]">
                           {capabilityLabel(cap, t)}
                         </span>
                       ))}
                     </div>
-                    <p className={`mt-2 font-medium ${model.usableInChat ? 'text-green-700' : 'text-amber-700'}`}>
-                      {model.usableInChat
-                        ? (t.apiKeyProductView?.compatibleWithChat || 'Compatible con chat de texto')
-                        : (t.apiKeyProductView?.notCompatibleWithChat || 'No compatible con chat de texto (requiere prueba por modalidad)')}
-                    </p>
+                    <div className="text-right">
+                      <p className="text-[#0b7d72] font-semibold whitespace-nowrap">{model.priceLabel}</p>
+                      <p className={`font-medium ${model.usableInChat ? 'text-green-700' : 'text-amber-700'}`}>
+                        {model.usableInChat
+                          ? (t.apiKeyProductView?.compatibleWithChat || 'Compatible con chat de texto')
+                          : (t.apiKeyProductView?.notCompatibleWithChat || 'No compatible con chat de texto (requiere prueba por modalidad)')}
+                      </p>
+                    </div>
                   </div>
                 ))}
+                </div>
               </div>
             )}
           </section>
