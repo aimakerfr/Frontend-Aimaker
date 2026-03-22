@@ -39,6 +39,8 @@ type ChatItem = {
   role: 'user' | 'assistant';
   content: string;
   createdAt: string;
+  outputKind?: 'text' | 'image' | 'audio' | 'video' | 'none';
+  outputPreview?: string;
 };
 
 type RuntimeStats = {
@@ -326,6 +328,7 @@ const ApiKeyInspectorView: React.FC = () => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [modelsPanelOpen, setModelsPanelOpen] = useState(false);
   const [testMode, setTestMode] = useState<ModelCapability>('text');
+  const [chatMode, setChatMode] = useState<ModelCapability>('text');
 
   const [isValidatingKey, setIsValidatingKey] = useState(false);
   const [isSending, setIsSending] = useState(false);
@@ -388,6 +391,12 @@ const ApiKeyInspectorView: React.FC = () => {
   );
 
   const availableTestModes = useMemo<ModelCapability[]>(() => {
+    if (!selectedModelInfo) return ['text'];
+    const dedup = Array.from(new Set(selectedModelInfo.capabilities));
+    return dedup.length > 0 ? dedup : ['text'];
+  }, [selectedModelInfo]);
+
+  const availableChatModes = useMemo<ModelCapability[]>(() => {
     if (!selectedModelInfo) return ['text'];
     const dedup = Array.from(new Set(selectedModelInfo.capabilities));
     return dedup.length > 0 ? dedup : ['text'];
@@ -574,6 +583,12 @@ const ApiKeyInspectorView: React.FC = () => {
   }, [availableTestModes, testMode]);
 
   useEffect(() => {
+    if (!availableChatModes.includes(chatMode)) {
+      setChatMode(availableChatModes[0] ?? 'text');
+    }
+  }, [availableChatModes, chatMode]);
+
+  useEffect(() => {
     if (!selectedModel) return;
     const stillAvailable = modelOptions.some((m) => m.id === selectedModel);
     if (!stillAvailable) {
@@ -687,6 +702,7 @@ const ApiKeyInspectorView: React.FC = () => {
         role: 'assistant',
         content: response.content || '(sin contenido)',
         createdAt: new Date().toISOString(),
+        outputKind: 'text',
       };
 
       const nextChat = [...nextChatBase, assistantMessage];
@@ -741,15 +757,111 @@ const ApiKeyInspectorView: React.FC = () => {
     }
   };
 
-  const handleSendMessage = async () => {
-    if (selectedModelInfo && !selectedModelInfo.usableInChat) {
-      setErrorText(t.apiKeyProductView?.chatNotSupportedForModel || 'Este modelo no soporta chat de texto. Usa Probar modelo con su modalidad.');
+  const runCapabilityGeneration = async (capability: ModelCapability, promptText: string, isTest: boolean) => {
+    if (!product) return;
+    if (!apiKey.trim()) {
+      setErrorText('Debes ingresar una API key.');
+      return;
+    }
+    if (!selectedModel.trim()) {
+      setErrorText('Debes elegir un modelo.');
+      return;
+    }
+    if (!activeConversation) {
+      setErrorText(t.apiKeyProductView?.selectConversationFirst || 'Debes crear o seleccionar una conversacion.');
       return;
     }
 
+    const userMessage: ChatItem = {
+      id: `u-${Date.now()}`,
+      role: 'user',
+      content: promptText,
+      createdAt: new Date().toISOString(),
+      outputKind: capability === 'text' || capability === 'search' ? 'text' : 'none',
+    };
+
+    const nextChatBase = [...getCurrentMessages(), userMessage];
+    patchConversation(activeConversation.id, (conv) => ({
+      ...conv,
+      title: conv.messages.length === 0 ? promptText.slice(0, 42) : conv.title,
+      messages: nextChatBase,
+      updatedAt: new Date().toISOString(),
+    }));
+
+    setErrorText('');
+    setStatusText('');
+    setIsSending(true);
+
+    try {
+      const response = await providerTestModel({
+        provider,
+        apiKey: apiKey.trim(),
+        model: selectedModel,
+        capability: capability === 'unknown' ? 'text' : capability,
+        prompt: promptText,
+      });
+
+      const kind = response.outputKind || (capability === 'image' || capability === 'audio' || capability === 'video' ? capability : 'text');
+      const assistantMessage: ChatItem = {
+        id: `cap-${Date.now()}`,
+        role: 'assistant',
+        content: response.message || 'Prueba ejecutada',
+        createdAt: new Date().toISOString(),
+        outputKind: kind,
+        outputPreview: response.outputPreview,
+      };
+
+      const nextChat = [...nextChatBase, assistantMessage];
+      const nextConversations = conversations.map((conv) =>
+        conv.id === activeConversation.id
+          ? {
+              ...conv,
+              messages: nextChat,
+              updatedAt: new Date().toISOString(),
+            }
+          : conv
+      );
+      setConversations(nextConversations);
+
+      const nextStats: RuntimeStats = {
+        ...stats,
+        totalRequests: stats.totalRequests + 1,
+      };
+      setStats(nextStats);
+
+      await Promise.all([
+        persistChat(product.id, { conversations: nextConversations }),
+        persistStats(product.id, nextStats),
+        persistConfig(product.id),
+      ]);
+
+      if (!isTest) {
+        setMessageInput('');
+      }
+
+      setStatusText(isTest ? 'Modelo probado correctamente.' : 'Generacion ejecutada y guardada.');
+    } catch (err: any) {
+      console.error('[ApiKeyInspectorView] Capability generation error:', err);
+      setErrorText(err?.message || 'No se pudo ejecutar la generacion para este modo.');
+    } finally {
+      setIsSending(false);
+    }
+  };
+
+  const handleSendMessage = async () => {
     const text = messageInput.trim();
     if (!text) return;
-    await runChat(text, false);
+
+    if (chatMode === 'text' || chatMode === 'search') {
+      if (selectedModelInfo && !selectedModelInfo.usableInChat) {
+        setErrorText(t.apiKeyProductView?.chatNotSupportedForModel || 'Este modelo no soporta chat de texto. Usa Probar modelo con su modalidad.');
+        return;
+      }
+      await runChat(text, false);
+      return;
+    }
+
+    await runCapabilityGeneration(chatMode, text, false);
   };
 
   const handleTestModel = async () => {
@@ -763,55 +875,11 @@ const ApiKeyInspectorView: React.FC = () => {
       return;
     }
 
-    setErrorText('');
-    setStatusText('');
-    setIsSending(true);
-    try {
-      const response = await providerTestModel({
-        provider,
-        apiKey: apiKey.trim(),
-        model: selectedModel,
-        capability: testMode === 'unknown' ? 'text' : testMode,
-        prompt: testMode === 'image'
-          ? 'Create a small test image with the word AIMAKER'
-          : 'Reply only with OK',
-      });
-
-      const capabilityLabelText = capabilityLabel(testMode, t);
-      const outputPreview = response.outputPreview ? `\nPreview: ${response.outputPreview}` : '';
-      const capabilityMessage = `${t.apiKeyProductView?.capabilityTestOk || 'Prueba de modalidad OK'} (${capabilityLabelText}): ${response.message}${outputPreview}`;
-      setStatusText(capabilityMessage);
-
-      if (activeConversation) {
-        const syntheticAssistantMessage: ChatItem = {
-          id: `cap-${Date.now()}`,
-          role: 'assistant',
-          content: capabilityMessage,
-          createdAt: new Date().toISOString(),
-        };
-
-        const nextMessages = [...activeConversation.messages, syntheticAssistantMessage];
-        const nextConversations = conversations.map((conv) =>
-          conv.id === activeConversation.id
-            ? {
-                ...conv,
-                messages: nextMessages,
-                updatedAt: new Date().toISOString(),
-              }
-            : conv
-        );
-
-        setConversations(nextConversations);
-        if (product) {
-          await persistChat(product.id, { conversations: nextConversations });
-        }
-      }
-    } catch (err: any) {
-      console.error('[ApiKeyInspectorView] Test model error:', err);
-      setErrorText(err?.message || 'No se pudo probar el modelo.');
-    } finally {
-      setIsSending(false);
-    }
+    await runCapabilityGeneration(
+      testMode,
+      testMode === 'image' ? 'Create a small test image with the word AIMAKER' : 'Reply only with OK',
+      true
+    );
   };
 
   const handleCreateConversation = async () => {
@@ -1343,6 +1411,21 @@ const ApiKeyInspectorView: React.FC = () => {
                     {msg.role === 'user' ? (t.apiKeyProductView?.youLabel || 'Tu') : (t.apiKeyProductView?.assistantLabel || 'Asistente')}
                   </div>
                   <p className="whitespace-pre-wrap">{msg.content}</p>
+                  {msg.outputKind === 'image' && msg.outputPreview && (
+                    <div className="mt-2">
+                      <img src={msg.outputPreview} alt="generated" className="max-h-64 rounded border border-[#b6d7d1]" />
+                    </div>
+                  )}
+                  {msg.outputKind === 'audio' && msg.outputPreview && (
+                    <div className="mt-2">
+                      <audio controls src={msg.outputPreview} className="w-full" />
+                    </div>
+                  )}
+                  {msg.outputKind === 'video' && msg.outputPreview && (
+                    <div className="mt-2">
+                      <video controls src={msg.outputPreview} className="max-h-64 rounded border border-[#b6d7d1]" />
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
@@ -1367,13 +1450,26 @@ const ApiKeyInspectorView: React.FC = () => {
                   placeholder={t.apiKeyProductView?.chatPlaceholder || 'Escribe tu mensaje...'}
                   className="flex-1 bg-transparent outline-none resize-none text-sm text-[#1b4e48]"
                 />
+                <select
+                  value={chatMode}
+                  onChange={(e) => setChatMode(e.target.value as ModelCapability)}
+                  disabled={!isOwner || isSending || !selectedModel}
+                  className="rounded border border-[#8ccabd] bg-[#f8fcfb] px-2 py-1 text-xs text-[#1b4e48]"
+                  title={t.apiKeyProductView?.chatModeLabel || 'Modo chat'}
+                >
+                  {availableChatModes.map((mode) => (
+                    <option key={mode} value={mode}>{capabilityLabel(mode, t)}</option>
+                  ))}
+                </select>
                 <button
                   onClick={handleSendMessage}
                   disabled={!isOwner || isSending || !messageInput.trim()}
                   className="rounded-full bg-[#0b7d72] text-white px-4 py-1.5 text-sm font-semibold disabled:opacity-50 inline-flex items-center gap-1"
                 >
                   {isSending ? <span className="inline-block h-3 w-3 rounded-full border-2 border-white/50 border-t-white animate-spin" /> : <Send size={13} />}
-                  {t.apiKeyProductView?.sendButton || 'Enviar'}
+                  {chatMode === 'text' || chatMode === 'search'
+                    ? (t.apiKeyProductView?.sendButton || 'Enviar')
+                    : (t.apiKeyProductView?.generateButton || 'Generar')}
                 </button>
               </div>
               <p className="text-center text-xs text-[#4f817a] mt-2">{t.apiKeyProductView?.chatHint || 'Enter para nueva linea. Usa el boton Enviar para ejecutar.'}</p>

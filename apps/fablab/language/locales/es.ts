@@ -232,6 +232,8 @@ export const es: Translations = {
       capabilityTestOk: 'Prueba de modalidad OK',
       capabilityTestNote: 'El modelo está habilitado para esta capacidad; la salida completa requiere flujo dedicado por modalidad.',
       chatNotSupportedForModel: 'Este modelo no soporta chat de texto. Usa Probar modelo con su modalidad.',
+      chatModeLabel: 'Modo de chat',
+      generateButton: 'Generar',
       requestsLabel: 'Requests',
       latencyLabel: 'Última latencia',
       selectedModelLabel: 'Modelo seleccionado',

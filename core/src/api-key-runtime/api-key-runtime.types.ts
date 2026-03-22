@@ -54,5 +54,6 @@ export interface ProviderModelTestResponse {
   mode: 'execution' | 'availability';
   message: string;
   capability: ProviderModelCapability;
+  outputKind?: 'text' | 'image' | 'audio' | 'video' | 'none';
   outputPreview?: string;
 }
