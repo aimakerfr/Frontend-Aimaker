@@ -83,4 +83,13 @@ export const StyleTransferEntry = () => (
   />
 );
 
+export const ApiKeyEntry = () => (
+  <FixedProductEntry
+    type="api_key_maker"
+    route="api-key"
+    title="Inspector de API Keys"
+    description="Valida formato y conectividad de API keys por proveedor."
+  />
+);
+
 export default FixedProductEntry;
