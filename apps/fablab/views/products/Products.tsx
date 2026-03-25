@@ -48,10 +48,14 @@ const ProductsView: React.FC<ProductsViewProps> = ({
   const [notebookTitle, setNotebookTitle] = useState('');
   const [notebookDescription, setNotebookDescription] = useState('');
   const [createError, setCreateError] = useState<string | null>(null);
-  const FIXED_TYPES: ProductType[] = ['landing_page_maker', 'image_generator_rag', 'translation_maker', 'style_transfer_maker', 'api_key_maker'];
+  const FIXED_TYPES: ProductType[] = ['landing_page_maker', 'image_generator_rag', 'translation_maker', 'style_transfer_maker', 'api_key_maker', 'api_key_html_injector'];
   
   // Function to get the correct route based on product type
   const getProductRoute = (type: string, id: number): string => {
+    if (type === 'api_key_maker') {
+      return '/dashboard/api-key-manager';
+    }
+
     const routeMap: Record<string, string> = {
       'rag_chat_maker': 'notebook',
       'landing_page_maker': 'landing-page',
@@ -59,6 +63,7 @@ const ProductsView: React.FC<ProductsViewProps> = ({
       'translation_maker': 'translation',
       'style_transfer_maker': 'style-transfer',
       'api_key_maker': 'api-key',
+      'api_key_html_injector': 'api-key-html',
       'architect_ai': 'notebook', // Default to notebook until specific route is created
       'module_connector': 'notebook', // Default to notebook until specific route is created
       'custom': 'notebook' // Default
@@ -141,6 +146,7 @@ const ProductsView: React.FC<ProductsViewProps> = ({
       'translation_maker': 'Translation Maker',
       'style_transfer_maker': 'Style Transfer Maker',
       'api_key_maker': 'API Key Inspector',
+      'api_key_html_injector': 'Inyección API Key HTML',
       'custom': 'Custom'
     };
     return typeMap[type] || type;
@@ -156,6 +162,7 @@ const ProductsView: React.FC<ProductsViewProps> = ({
       'translation_maker': 'bg-gradient-to-br from-amber-500 to-orange-600',
       'style_transfer_maker': 'bg-gradient-to-br from-indigo-500 to-sky-500',
       'api_key_maker': 'bg-gradient-to-br from-cyan-500 to-blue-600',
+      'api_key_html_injector': 'bg-gradient-to-br from-violet-500 to-fuchsia-600',
       'custom': 'bg-gradient-to-br from-gray-500 to-gray-600'
     };
     return colorMap[type] || 'bg-gradient-to-br from-gray-500 to-gray-600';
@@ -189,6 +196,8 @@ const ProductsView: React.FC<ProductsViewProps> = ({
                     ? t.products.fixed.imageTitle
                     : item.type === 'api_key_maker'
                       ? t.products.fixed.apiKeyTitle
+                    : item.type === 'api_key_html_injector'
+                      ? 'Inyección de API key a HTML'
                     : item.type === 'style_transfer_maker'
                       ? t.products.fixed.styleTransferTitle
                       : t.products.fixed.translationTitle;
@@ -198,6 +207,8 @@ const ProductsView: React.FC<ProductsViewProps> = ({
                     ? t.products.fixed.imageDesc
                     : item.type === 'api_key_maker'
                       ? t.products.fixed.apiKeyDesc
+                    : item.type === 'api_key_html_injector'
+                      ? 'Guarda y valida la key por proveedor, luego carga tu HTML y se inyecta runtime IA al proxy interno.'
                     : item.type === 'style_transfer_maker'
                       ? t.products.fixed.styleTransferDesc
                       : t.products.fixed.translationDesc;
@@ -539,6 +550,7 @@ const Products = () => {
         { type: 'translation_maker', title: t.products.fixed.translationTitle, description: t.products.fixed.translationDesc },
         { type: 'style_transfer_maker', title: t.products.fixed.styleTransferTitle, description: t.products.fixed.styleTransferDesc },
         { type: 'api_key_maker', title: t.products.fixed.apiKeyTitle, description: t.products.fixed.apiKeyDesc },
+        { type: 'api_key_html_injector', title: 'Inyección de API key a HTML', description: 'Carga y adapta HTML para consumir IA vía backend proxy.' },
       ];
 
       const resolved = await Promise.all(

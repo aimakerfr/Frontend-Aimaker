@@ -20,7 +20,9 @@ import ImageGeneratorView from '@apps/fablab/views/product/ImageGeneratorView';
 import StyleTransferView from '@apps/fablab/views/product/StyleTransferView';
 import { TranslationView } from '@apps/fablab/views/product/TranslationView';
 import ApiKeyInspectorView from '@apps/fablab/views/product/ApiKeyInspectorView';
-import { LandingPageEntry, ImageGeneratorEntry, TranslationEntry, StyleTransferEntry, ApiKeyEntry } from '@apps/fablab/views/product/FixedProductEntry';
+import ApiKeyHtmlInjectionView from '@apps/fablab/views/product/ApiKeyHtmlInjectionView';
+import ApiKeyManager from '@apps/fablab/views/api-proxy/ApiKeyManager';
+import { LandingPageEntry, ImageGeneratorEntry, TranslationEntry, StyleTransferEntry, ApiKeyEntry, ApiKeyHtmlInjectionEntry } from '@apps/fablab/views/product/FixedProductEntry';
 import TemplateSelector from '@apps/frontend_template_visualizer/components/TemplateSelector';
 import PublicPromptDetails from '@apps/fablab/views/public/prompt/PublicPromptDetails';
 import PublicAssistantDetails from '@apps/fablab/views/public/assistant/PublicAssistantDetails';
@@ -193,10 +195,10 @@ export function AppRouter() {
           }
         />
         <Route
-          path="/product/api-key"
+          path="/product/api-key-html"
           element={
             <ProtectedRoute>
-              <ApiKeyEntry />
+              <ApiKeyHtmlInjectionEntry />
             </ProtectedRoute>
           }
         />
@@ -215,6 +217,7 @@ export function AppRouter() {
 
         {/* Public API Key Inspector Product View */}
         <Route path="/product/api-key/:id" element={<ApiKeyInspectorView />} />
+        <Route path="/product/api-key-html/:id" element={<ApiKeyHtmlInjectionView />} />
         
         {/* Public Prompt - No auth required, read-only (config view) */}
         <Route path="/public/prompt/:id" element={<PublicPromptWrapper />} />
@@ -227,6 +230,15 @@ export function AppRouter() {
 
         {/* Templates Visualizer */}
         <Route path="/templates_visualizer" element={<TemplateSelector />} />
+
+        <Route
+          path="/api-key-manager"
+          element={
+            <ProtectedRoute>
+              <ApiKeyManager />
+            </ProtectedRoute>
+          }
+        />
 
         {/* Protected Routes */}
         {/*

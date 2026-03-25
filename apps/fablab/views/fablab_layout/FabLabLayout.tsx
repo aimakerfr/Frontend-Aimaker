@@ -20,6 +20,7 @@ import DeployerNew from '../../modules/deployer-new/View';
 import Deployer from '../deployer/Deployer';
 import { UserProfile } from '../../types';
 import ApplicationsManagement from '../applications/ApplicationsManagement';
+import ApiKeyManager from '../api-proxy/ApiKeyManager';
 
 type Props = {
   user: UserProfile;
@@ -91,6 +92,7 @@ const FabLabLayout: React.FC<Props> = ({
               <Route path="/deployer" element={<Deployer />} />
               <Route path="/applications" element={<ApplicationsManagement />} />
               <Route path="/products" element={<Products />} />
+              <Route path="/api-key-manager" element={<ApiKeyManager />} />
               <Route path="/tools" element={<ExternalAccess />} />
             </Routes>
           </div>
