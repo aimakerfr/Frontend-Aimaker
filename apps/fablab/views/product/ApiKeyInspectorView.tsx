@@ -6,6 +6,7 @@ import {
   ChevronRight,
   CirclePlus,
   Copy,
+  Download,
   Bot,
   Check,
   Globe,
@@ -14,6 +15,7 @@ import {
   Lock,
   Plus,
   Send,
+  Settings,
   ShieldCheck,
   User,
 } from 'lucide-react';
@@ -324,6 +326,7 @@ const ApiKeyInspectorView: React.FC = () => {
   const [showPromptModal, setShowPromptModal] = useState(false);
   const [promptTitleInput, setPromptTitleInput] = useState('');
   const [promptContentInput, setPromptContentInput] = useState('');
+  const [isConfigModalOpen, setIsConfigModalOpen] = useState(false);
 
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [modelsPanelOpen, setModelsPanelOpen] = useState(false);
@@ -968,6 +971,42 @@ const ApiKeyInspectorView: React.FC = () => {
     }
   };
 
+  const handleDownloadConversation = (conversation: ConversationRecord) => {
+    const title = (conversation.title || 'conversacion').trim();
+    const safeTitle = title
+      .toLowerCase()
+      .replace(/[^a-z0-9\-_\s]/g, '')
+      .replace(/\s+/g, '_')
+      .slice(0, 60) || 'conversacion';
+
+    const lines: string[] = [];
+    lines.push(`Conversacion: ${title}`);
+    lines.push(`Actualizada: ${new Date(conversation.updatedAt).toLocaleString()}`);
+    lines.push('');
+
+    conversation.messages.forEach((msg, index) => {
+      const roleLabel = msg.role === 'user'
+        ? (t.apiKeyProductView?.youLabel || 'Tu')
+        : (t.apiKeyProductView?.assistantLabel || 'Asistente');
+
+      lines.push(`--- Mensaje ${index + 1} (${roleLabel}) - ${new Date(msg.createdAt).toLocaleString()} ---`);
+      lines.push(msg.content || '');
+      lines.push('');
+    });
+
+    const blob = new Blob([lines.join('\n')], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = `${safeTitle}_${new Date().toISOString().slice(0, 10)}.txt`;
+    document.body.appendChild(anchor);
+    anchor.click();
+    document.body.removeChild(anchor);
+    URL.revokeObjectURL(url);
+
+    setStatusText(t.apiKeyProductView?.conversationDownloaded || 'Conversacion descargada.');
+  };
+
   if (isLoading) {
     return (
       <div className="h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
@@ -1128,16 +1167,32 @@ const ApiKeyInspectorView: React.FC = () => {
                         <p className="text-xs text-[#3f7b73]">{t.apiKeyProductView?.emptyConversations || 'Sin conversaciones'}</p>
                       )}
                       {conversations.map((conv) => (
-                        <button
+                        <div
                           key={conv.id}
-                          onClick={() => handleSelectConversation(conv.id)}
-                          className={`w-full text-left px-2 py-1.5 rounded text-sm ${activeConversationId === conv.id ? 'bg-[#0b7d72] text-white' : 'hover:bg-[#c3dfd8] text-[#18413d]'}`}
+                          className={`w-full rounded text-sm ${activeConversationId === conv.id ? 'bg-[#0b7d72] text-white' : 'hover:bg-[#c3dfd8] text-[#18413d]'}`}
                         >
-                          <p className="truncate">{conv.title || (t.apiKeyProductView?.untitledConversation || 'Conversacion sin titulo')}</p>
-                          <p className={`text-[11px] ${activeConversationId === conv.id ? 'text-white/80' : 'text-[#3e7770]'}`}>
-                            {new Date(conv.updatedAt).toLocaleDateString()}
-                          </p>
-                        </button>
+                          <div className="flex items-start gap-1">
+                            <button
+                              onClick={() => handleSelectConversation(conv.id)}
+                              className="flex-1 min-w-0 text-left px-2 py-1.5"
+                            >
+                              <p className="truncate">{conv.title || (t.apiKeyProductView?.untitledConversation || 'Conversacion sin titulo')}</p>
+                              <p className={`text-[11px] ${activeConversationId === conv.id ? 'text-white/80' : 'text-[#3e7770]'}`}>
+                                {new Date(conv.updatedAt).toLocaleDateString()}
+                              </p>
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDownloadConversation(conv);
+                              }}
+                              className={`mt-1 mr-1 p-1 rounded border ${activeConversationId === conv.id ? 'border-white/40 text-white hover:bg-white/15' : 'border-[#8ecabc] text-[#0b7d72] hover:bg-[#d9ece7]'}`}
+                              title={t.apiKeyProductView?.downloadConversation || 'Descargar conversacion'}
+                            >
+                              <Download size={12} />
+                            </button>
+                          </div>
+                        </div>
                       ))}
                     </div>
                   )}
@@ -1174,6 +1229,13 @@ const ApiKeyInspectorView: React.FC = () => {
                     <span className="inline-flex items-center gap-1"><Lock size={12} /> {t.apiKeyProductView?.privateLabel || 'Privado'}</span>
                   )}
                 </div>
+                <button
+                  onClick={() => setIsConfigModalOpen(true)}
+                  className="p-1.5 rounded border border-[#87c7bc] text-[#186f65] hover:bg-[#d6ebe6]"
+                  title={t.apiKeyProductView?.apiConfigTitle || 'Configuracion de API'}
+                >
+                  <Settings size={14} />
+                </button>
                 <button
                   onClick={handleCopyUrl}
                   className="p-1.5 rounded border border-[#87c7bc] text-[#186f65] hover:bg-[#d6ebe6]"
@@ -1270,77 +1332,23 @@ const ApiKeyInspectorView: React.FC = () => {
             </div>
           </section>
 
-          <section className="px-4 py-3 border-b border-[#c5ddd8] bg-[#f5faf8] grid grid-cols-1 lg:grid-cols-3 gap-3">
-            <div className="lg:col-span-2 rounded border border-[#b6d7d1] bg-white p-3">
-              <h4 className="text-sm font-semibold text-[#174540] mb-2 inline-flex items-center gap-1">
-                <ShieldCheck size={14} className="text-[#0b7d72]" /> {t.apiKeyProductView?.apiConfigTitle || 'Configuracion de API'}
-              </h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                <input
-                  value={apiKey}
-                  onChange={(e) => setApiKey(e.target.value)}
-                  disabled={!isOwner}
-                  placeholder={PROVIDERS.find((p) => p.value === provider)?.hint || 'API key'}
-                  className="rounded border border-[#8ccabd] bg-[#f8fcfb] px-3 py-2 text-sm"
-                />
-                <div className="flex gap-2">
-                  <button
-                    onClick={handleValidateKey}
-                    disabled={!isOwner || isValidatingKey || !apiKey.trim()}
-                    className="flex-1 rounded bg-[#0b7d72] text-white text-sm font-semibold py-2 hover:bg-[#0a7067] disabled:opacity-50"
-                  >
-                    {isValidatingKey ? (t.apiKeyProductView?.validating || 'Validando...') : (t.apiKeyProductView?.validateKey || 'Validar key')}
-                  </button>
-                  <button
-                    onClick={handleTestModel}
-                    disabled={!isOwner || isSending || !selectedModel || !apiKey.trim()}
-                    className="flex-1 rounded border border-[#0b7d72] text-[#0b7d72] text-sm font-semibold py-2 hover:bg-[#e4f4f0] disabled:opacity-50"
-                  >
-                    {t.apiKeyProductView?.testModel || 'Probar modelo'}
-                  </button>
-                </div>
-              </div>
-              <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-2">
-                <div>
-                  <label className="block text-xs text-[#2e6d66] mb-1">{t.apiKeyProductView?.testModeLabel || 'Modo de prueba'}</label>
-                  <select
-                    value={testMode}
-                    onChange={(e) => setTestMode(e.target.value as ModelCapability)}
-                    disabled={!isOwner || !selectedModel}
-                    className="w-full rounded border border-[#8ccabd] bg-[#f8fcfb] px-2 py-2 text-sm"
-                  >
-                    {availableTestModes.map((mode) => (
-                      <option key={mode} value={mode}>{capabilityLabel(mode, t)}</option>
-                    ))}
-                  </select>
-                </div>
-                <div className="text-xs text-[#2e6d66] rounded border border-[#b6d7d1] bg-[#f7fcfa] px-2 py-2">
-                  {t.apiKeyProductView?.testModeHint || 'Texto y búsqueda se prueban en chat. Imagen/audio/video registran prueba de capacidad en la conversación actual.'}
-                </div>
-              </div>
-              <textarea
-                value={systemPrompt}
-                onChange={(e) => setSystemPrompt(e.target.value)}
-                disabled={!isOwner}
-                rows={2}
-                placeholder={t.apiKeyProductView?.baseInstructionPlaceholder || 'Instruccion base para el asistente...'}
-                className="w-full mt-2 rounded border border-[#8ccabd] bg-[#f8fcfb] px-3 py-2 text-sm"
-              />
-              {selectedRole && (
-                <p className="text-xs text-[#2e6d66] mt-2">
-                  {t.apiKeyProductView?.activeRolePrefix || 'Rol activo'}: <strong>{selectedRole.title}</strong>
+          <section className="px-4 py-2 border-b border-[#c5ddd8] bg-[#f5faf8]">
+            <div className="flex items-center justify-between gap-2 rounded border border-[#b6d7d1] bg-white px-3 py-2">
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-[#174540] inline-flex items-center gap-1">
+                  <ShieldCheck size={14} className="text-[#0b7d72]" />
+                  {t.apiKeyProductView?.apiConfigTitle || 'Configuracion de API'}
                 </p>
-              )}
-            </div>
-
-            <div className="rounded border border-[#b6d7d1] bg-white p-3">
-              <h4 className="text-sm font-semibold text-[#174540] mb-2">{t.apiKeyProductView?.usageStatsTitle || 'Uso y costo'}</h4>
-              <div className="space-y-1 text-xs text-[#2f706a]">
-                <p>{t.apiKeyProductView?.requestsLabel || 'Requests'}: <strong>{stats.totalRequests}</strong></p>
-                <p>{t.apiKeyProductView?.latencyLabel || 'Ultima latencia'}: <strong>{stats.lastLatencyMs} ms</strong></p>
-                <p>{t.apiKeyProductView?.selectedModelLabel || 'Modelo seleccionado'}: <strong>{selectedModel || '-'}</strong></p>
-                <p>{t.apiKeyProductView?.providerLabel || 'Proveedor'}: <strong>{provider}</strong></p>
+                <p className="text-xs text-[#2f706a] truncate">
+                  {t.apiKeyProductView?.providerLabel || 'Proveedor'}: <strong>{provider}</strong> | {t.apiKeyProductView?.selectedModelLabel || 'Modelo seleccionado'}: <strong>{selectedModel || '-'}</strong>
+                </p>
               </div>
+              <button
+                onClick={() => setIsConfigModalOpen(true)}
+                className="rounded border border-[#0b7d72] text-[#0b7d72] text-xs font-semibold px-3 py-1.5 hover:bg-[#e4f4f0]"
+              >
+                {t.apiKeyProductView?.openConfig || 'Open configuration'}
+              </button>
             </div>
           </section>
 
@@ -1483,6 +1491,96 @@ const ApiKeyInspectorView: React.FC = () => {
           )}
         </main>
       </div>
+
+      {isConfigModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/35 flex items-center justify-center p-3">
+          <div className="w-full max-w-4xl rounded-xl bg-white border border-[#b6d7d1] overflow-hidden">
+            <div className="px-4 py-3 border-b border-[#c5ddd8] bg-[#eef6f4] flex items-center justify-between">
+              <h3 className="text-base font-semibold text-[#174540] inline-flex items-center gap-2">
+                <Settings size={16} className="text-[#0b7d72]" />
+                {t.apiKeyProductView?.apiConfigTitle || 'Configuracion de API'}
+              </h3>
+              <button
+                onClick={() => setIsConfigModalOpen(false)}
+                className="px-3 py-1.5 rounded border border-[#8ccabd] text-[#1b756b] text-sm hover:bg-[#eaf6f3]"
+              >
+                {t.apiKeyProductView?.closeButton || 'Cerrar'}
+              </button>
+            </div>
+
+            <div className="p-4 grid grid-cols-1 lg:grid-cols-3 gap-3 bg-[#f5faf8]">
+              <div className="lg:col-span-2 rounded border border-[#b6d7d1] bg-white p-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                  <input
+                    value={apiKey}
+                    onChange={(e) => setApiKey(e.target.value)}
+                    disabled={!isOwner}
+                    placeholder={PROVIDERS.find((p) => p.value === provider)?.hint || 'API key'}
+                    className="rounded border border-[#8ccabd] bg-[#f8fcfb] px-3 py-2 text-sm"
+                  />
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handleValidateKey}
+                      disabled={!isOwner || isValidatingKey || !apiKey.trim()}
+                      className="flex-1 rounded bg-[#0b7d72] text-white text-sm font-semibold py-2 hover:bg-[#0a7067] disabled:opacity-50"
+                    >
+                      {isValidatingKey ? (t.apiKeyProductView?.validating || 'Validando...') : (t.apiKeyProductView?.validateKey || 'Validar key')}
+                    </button>
+                    <button
+                      onClick={handleTestModel}
+                      disabled={!isOwner || isSending || !selectedModel || !apiKey.trim()}
+                      className="flex-1 rounded border border-[#0b7d72] text-[#0b7d72] text-sm font-semibold py-2 hover:bg-[#e4f4f0] disabled:opacity-50"
+                    >
+                      {t.apiKeyProductView?.testModel || 'Probar modelo'}
+                    </button>
+                  </div>
+                </div>
+                <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-2">
+                  <div>
+                    <label className="block text-xs text-[#2e6d66] mb-1">{t.apiKeyProductView?.testModeLabel || 'Modo de prueba'}</label>
+                    <select
+                      value={testMode}
+                      onChange={(e) => setTestMode(e.target.value as ModelCapability)}
+                      disabled={!isOwner || !selectedModel}
+                      className="w-full rounded border border-[#8ccabd] bg-[#f8fcfb] px-2 py-2 text-sm"
+                    >
+                      {availableTestModes.map((mode) => (
+                        <option key={mode} value={mode}>{capabilityLabel(mode, t)}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="text-xs text-[#2e6d66] rounded border border-[#b6d7d1] bg-[#f7fcfa] px-2 py-2">
+                    {t.apiKeyProductView?.testModeHint || 'Texto y búsqueda se prueban en chat. Imagen/audio/video registran prueba de capacidad en la conversación actual.'}
+                  </div>
+                </div>
+                <textarea
+                  value={systemPrompt}
+                  onChange={(e) => setSystemPrompt(e.target.value)}
+                  disabled={!isOwner}
+                  rows={2}
+                  placeholder={t.apiKeyProductView?.baseInstructionPlaceholder || 'Instruccion base para el asistente...'}
+                  className="w-full mt-2 rounded border border-[#8ccabd] bg-[#f8fcfb] px-3 py-2 text-sm"
+                />
+                {selectedRole && (
+                  <p className="text-xs text-[#2e6d66] mt-2">
+                    {t.apiKeyProductView?.activeRolePrefix || 'Rol activo'}: <strong>{selectedRole.title}</strong>
+                  </p>
+                )}
+              </div>
+
+              <div className="rounded border border-[#b6d7d1] bg-white p-3">
+                <h4 className="text-sm font-semibold text-[#174540] mb-2">{t.apiKeyProductView?.usageStatsTitle || 'Uso y costo'}</h4>
+                <div className="space-y-1 text-xs text-[#2f706a]">
+                  <p>{t.apiKeyProductView?.requestsLabel || 'Requests'}: <strong>{stats.totalRequests}</strong></p>
+                  <p>{t.apiKeyProductView?.latencyLabel || 'Ultima latencia'}: <strong>{stats.lastLatencyMs} ms</strong></p>
+                  <p>{t.apiKeyProductView?.selectedModelLabel || 'Modelo seleccionado'}: <strong>{selectedModel || '-'}</strong></p>
+                  <p>{t.apiKeyProductView?.providerLabel || 'Proveedor'}: <strong>{provider}</strong></p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showRoleModal && (
         <div className="fixed inset-0 z-50 bg-black/35 flex items-center justify-center p-3">

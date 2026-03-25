@@ -113,6 +113,7 @@ export const en: Translations = {
       searchPlaceholder: 'Search products...',
       noResults: 'No products found',
       confirmDelete: 'Are you sure you want to delete this product?',
+      confirmDeleteTitle: 'Delete product?',
       filters: {
         all: 'All',
         favorites: 'Favorites',
@@ -206,6 +207,7 @@ export const en: Translations = {
       step3Title: '3. Chat and track',
       step3Body: 'Send messages, store conversations and review usage stats.',
       apiConfigTitle: 'API configuration',
+      openConfig: 'Open configuration',
       validating: 'Validating...',
       validateKey: 'Validate key',
       testModel: 'Test model',
@@ -662,6 +664,9 @@ export const en: Translations = {
       prompts: {
         newFolder: 'Folder name',
         renameFolder: 'New name',
+        deleteObjectTitle: 'Delete object?',
+        deleteObject: 'Are you sure you want to delete this object?',
+        deleteFolderTitle: 'Delete folder?',
         deleteFolder: 'Delete folder? Items will return to root.',
       },
       folderModal: {
