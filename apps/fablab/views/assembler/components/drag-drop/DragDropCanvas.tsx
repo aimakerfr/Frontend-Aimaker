@@ -331,8 +331,24 @@ const DragDropCanvas: React.FC<Props> = ({ modules, onChange, onSelectObject, on
                 </div>
               )}
 
+              {mod.key === 'api_configuration' && (
+                <div className="flex-1 flex flex-col gap-1 mt-1">
+                  <p className="text-[10px] font-semibold text-gray-600 dark:text-gray-300 text-center">
+                    API Key
+                  </p>
+                  <input
+                    type="text"
+                    value={mod.textValue ?? ''}
+                    onChange={(e) => onTextChange?.(mod.key, e.target.value)}
+                    onPointerDown={(e) => e.stopPropagation()}
+                    placeholder={mod.textPlaceholder ?? 'Pega tu API aquí'}
+                    className="w-full rounded border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-2 py-1 text-[10px] text-gray-800 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+                  />
+                </div>
+              )}
+
               {/* textInput modules: inline text area */}
-              {mod.textInput && (
+              {mod.textInput && mod.key !== 'api_configuration' && (
                 <div className="flex-1 flex flex-col min-h-0 mt-1">
                   <textarea
                     value={mod.textValue ?? ''}
