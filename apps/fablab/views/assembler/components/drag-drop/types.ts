@@ -17,6 +17,15 @@ export interface ModuleDefinition {
 export const GRID_SIZE = 12;
 export const MAX_HTML_INPUTS = 5;
 
+export interface ModuleGroup {
+  id: string;
+  label: string;
+  description?: string;
+  containerClass: string;
+  titleClass: string;
+  modules: ModuleDefinition[];
+}
+
 export interface CanvasModule extends ModuleDefinition {
   /** Assembly order index (1-based) */
   index: number;
@@ -73,13 +82,6 @@ export const LANDING_PAGE_MODULES: ModuleDefinition[] = [
 
 export const NOTEBOOK_MODULES: ModuleDefinition[] = [
   {
-    key: 'buscador',
-    label: 'Buscador',
-    description: 'Módulo de búsqueda con funcionalidad y apariencia definida.',
-    type: 'HTML',
-    color: 'bg-sky-500',
-  },
-  {
     key: 'chat',
     label: 'Chat',
     description: 'Módulo de conversación donde el usuario escribe y ve respuestas.',
@@ -93,6 +95,16 @@ export const NOTEBOOK_MODULES: ModuleDefinition[] = [
     type: 'HTML',
     color: 'bg-violet-500',
   },
+];
+
+export const UNGROUPED_MODULES: ModuleDefinition[] = [
+  {
+    key: 'buscador',
+    label: 'Buscador',
+    description: 'Módulo de búsqueda con funcionalidad y apariencia definida.',
+    type: 'HTML',
+    color: 'bg-sky-500',
+  },
   {
     key: 'html_input',
     label: 'HTML Input',
@@ -101,15 +113,38 @@ export const NOTEBOOK_MODULES: ModuleDefinition[] = [
     color: 'bg-rose-500',
     needsObject: true,
   },
+  {
+    key: 'api_configuration',
+    label: 'API Configuration',
+    description: 'Configura la API global del proyecto.',
+    type: 'CONFIG',
+    color: 'bg-amber-500',
+    textInput: true,
+    textPlaceholder: 'Pega tu API aquí',
+  },
 ];
 
-export function getModulesForProduct(productType: string): ModuleDefinition[] {
-  switch (productType) {
-    case 'landing_page':
-      return LANDING_PAGE_MODULES;
-    case 'notebook':
-      return NOTEBOOK_MODULES;
-    default:
-      return [];
-  }
-}
+export const MODULE_GROUPS: ModuleGroup[] = [
+  {
+    id: 'landing_page',
+    label: 'LandingPage modules',
+    description: 'Módulos base para una landing page.',
+    containerClass: 'bg-sky-50 border-sky-200 dark:bg-sky-900/20 dark:border-sky-800/60',
+    titleClass: 'text-sky-700 dark:text-sky-200',
+    modules: LANDING_PAGE_MODULES,
+  },
+  {
+    id: 'notebook',
+    label: 'Notebook modules',
+    description: 'Bloques principales de un notebook.',
+    containerClass: 'bg-emerald-50 border-emerald-200 dark:bg-emerald-900/20 dark:border-emerald-800/60',
+    titleClass: 'text-emerald-700 dark:text-emerald-200',
+    modules: NOTEBOOK_MODULES,
+  },
+];
+
+export const ALL_MODULES: ModuleDefinition[] = [
+  ...LANDING_PAGE_MODULES,
+  ...NOTEBOOK_MODULES,
+  ...UNGROUPED_MODULES,
+];

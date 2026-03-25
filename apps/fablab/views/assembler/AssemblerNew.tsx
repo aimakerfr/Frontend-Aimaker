@@ -1,9 +1,9 @@
 import React, { useMemo, useState, useCallback } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '../../language/useLanguage';
 import { tokenStorage } from '@core/api/http.client';
 import { createAssemblerMakerPath } from './services/makerPath.service';
-import { DragDropCanvas, ModulesPalette, getModulesForProduct } from './components/drag-drop';
+import { DragDropCanvas, ModulesPalette, ALL_MODULES, MODULE_GROUPS, UNGROUPED_MODULES } from './components/drag-drop';
 import type { CanvasModule, LayoutEntry } from './components/drag-drop';
 import GenericObjectSelector from '@apps/fablab/modules/object-selector/View/Notebook/GenericObjectSelector';
 import type { ObjectItem } from '@apps/fablab/modules/object-selector/services/api_handler';
@@ -11,24 +11,14 @@ import AssemblerModal from './components/AssemblerModal';
 
 type ProductType = 'notebook' | 'landing_page';
 
-const VALID_TYPES: ProductType[] = ['notebook', 'landing_page'];
-
 function getApiBase(): string {
   const u = (import.meta as any).env?.VITE_API_URL as string | undefined;
   return u ? u.replace(/\/$/, '') : '';
 }
 
 const AssemblerNew: React.FC = () => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-
-  const initialType = useMemo<ProductType | null>(() => {
-    const q = (searchParams.get('type') || '').toLowerCase();
-    return (VALID_TYPES as string[]).includes(q) ? (q as ProductType) : null;
-  }, [searchParams]);
-
-  const [selectedType, setSelectedType] = useState<ProductType | null>(initialType);
   const [title, setTitle] = useState<string>('');
   const [description, setDescription] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
@@ -39,10 +29,27 @@ const AssemblerNew: React.FC = () => {
   // Object selector modal state
   const [selectorModuleKey, setSelectorModuleKey] = useState<string | null>(null);
 
-  const availableModules = useMemo(
-    () => (selectedType ? getModulesForProduct(selectedType) : []),
-    [selectedType]
-  );
+  const availableModules = useMemo(() => ALL_MODULES, []);
+
+  const detectedType = useMemo<ProductType>(() => {
+    const hasLanding = canvasModules.some((mod) => ['header', 'body', 'footer'].includes(mod.key));
+    return hasLanding ? 'landing_page' : 'notebook';
+  }, [canvasModules]);
+
+  const landingRequired = useMemo(() => ['header', 'body', 'footer'], []);
+  const landingModulesReady = useMemo(() => {
+    if (detectedType !== 'landing_page') return true;
+    return landingRequired.every((key) => {
+      const mod = canvasModules.find((m) => m.key === key);
+      return mod && (!mod.needsObject || (mod.objectId && mod.objectId > 0));
+    });
+  }, [canvasModules, detectedType, landingRequired]);
+
+  const notebookHtmlReady = useMemo(() => {
+    if (detectedType !== 'notebook') return true;
+    const htmlMod = canvasModules.find((m) => m.key === 'html_input');
+    return Boolean(htmlMod && htmlMod.objectId && htmlMod.objectId > 0);
+  }, [canvasModules, detectedType]);
 
   // Validation: all needsObject modules on canvas must have objectId
   const objectModulesValid = canvasModules
@@ -50,10 +57,11 @@ const AssemblerNew: React.FC = () => {
     .every((m) => m.objectId && m.objectId > 0);
 
   const canCreate = Boolean(
-    selectedType &&
     title.trim().length > 0 &&
     canvasModules.length > 0 &&
-    objectModulesValid
+    objectModulesValid &&
+    landingModulesReady &&
+    notebookHtmlReady
   );
 
   const handleSelectObject = useCallback((moduleKey: string) => {
@@ -93,10 +101,9 @@ const AssemblerNew: React.FC = () => {
     const layout = buildLayoutData();
 
     // Backend expects fixed indices per product type
-    const FIXED_INDEX: Record<string, number> = {
-      header: 2, body: 3, footer: 4,   // landing_page
-      html_input: 4,                     // notebook
-    };
+    const FIXED_INDEX: Record<string, number> = detectedType === 'landing_page'
+      ? { header: 2, body: 3, footer: 4 }
+      : { html_input: 4 };
     let nextIndex = 10; // dynamic modules start at 10
     const inputModules = canvasModules
       .filter((m) => m.needsObject && m.objectId)
@@ -107,7 +114,11 @@ const AssemblerNew: React.FC = () => {
       }));
 
     // Collect text variables
-    const variables: Record<string, string> = {};
+    const variables: Record<string, string> = {
+      project_description: description.trim(),
+      language: language ?? 'es',
+      has_api_config_module: canvasModules.some((m) => m.key === 'api_configuration') ? '1' : '0',
+    };
     canvasModules.forEach((m) => {
       if (m.textInput && m.textValue) {
         variables[m.key] = m.textValue;
@@ -115,20 +126,20 @@ const AssemblerNew: React.FC = () => {
     });
 
     return {
-      PRODUCT_TYPE: selectedType,
+      PRODUCT_TYPE: detectedType,
       MAKER_PATH_ID: makerPathId,
       INPUT_MODULES: inputModules,
       LAYOUT: layout,
       VARIABLES: variables,
     };
-  }, [canvasModules, selectedType, buildLayoutData]);
+  }, [canvasModules, detectedType, buildLayoutData, description, language]);
 
   const callAssembleEndpoint = useCallback(async (makerPathId: number) => {
     const apiBase = getApiBase();
     const token = tokenStorage.get();
     const dto = buildAssembleDto(makerPathId);
 
-    const endpoint = selectedType === 'notebook'
+    const endpoint = detectedType === 'notebook'
       ? `${apiBase}/api/v1/assembler/notebook/assemble`
       : `${apiBase}/api/v1/assembler/landing_page/assemble`;
 
@@ -160,10 +171,10 @@ const AssemblerNew: React.FC = () => {
       setResultUrl(full);
       window.open(full, '_blank', 'noopener,noreferrer');
     }
-  }, [selectedType, buildAssembleDto]);
+  }, [detectedType, buildAssembleDto]);
 
   const handleCreateAndAssemble = async () => {
-    if (!canCreate || !selectedType || isSubmitting) return;
+    if (!canCreate || isSubmitting) return;
 
     const layout = buildLayoutData();
     const canvasData = canvasModules.map((m) => ({
@@ -177,7 +188,7 @@ const AssemblerNew: React.FC = () => {
     }));
 
     // eslint-disable-next-line no-console
-    console.log('ASSEMBLER_NEW_DTO', { productType: selectedType, title: title.trim(), layout, canvasModules: canvasData });
+    console.log('ASSEMBLER_NEW_DTO', { productType: detectedType, title: title.trim(), layout, canvasModules: canvasData });
 
     setIsSubmitting(true);
     setError(null);
@@ -186,7 +197,7 @@ const AssemblerNew: React.FC = () => {
     try {
       // Step 1: Create MakerPath
       const res = await createAssemblerMakerPath({
-        projectType: selectedType,
+        projectType: detectedType,
         title: title.trim(),
         description: description.trim(),
         data: JSON.stringify({ layout, canvasModules: canvasData }),
@@ -229,50 +240,13 @@ const AssemblerNew: React.FC = () => {
 
         <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{tr.title ?? 'Nuevo proyecto'}</h1>
 
-        {/* Type selector */}
-        <div className="space-y-4">
-          {([
-            {
-              key: 'notebook' as ProductType,
-              title: tr.notebookTitle ?? 'Notebook',
-              desc: tr.notebookDesc ?? 'Chat inteligente conectado a tus fuentes de datos.',
-              iconBg: 'from-purple-500 to-pink-500',
-            },
-            {
-              key: 'landing_page' as ProductType,
-              title: tr.landingTitle ?? 'Landing Page',
-              desc: tr.landingDesc ?? 'Crea páginas de aterrizaje con módulos HTML.',
-              iconBg: 'from-indigo-500 to-sky-500',
-            },
-          ]).map((opt) => {
-            const isSelected = selectedType === opt.key;
-            return (
-              <button
-                type="button"
-                key={opt.key}
-                onClick={() => { setSelectedType(opt.key); setCanvasModules([]); setResultUrl(null); setError(null); }}
-                className={
-                  'w-full flex items-center gap-4 rounded-2xl border px-5 py-5 text-left transition ' +
-                  (isSelected
-                    ? 'border-brand-400 bg-brand-50 dark:border-brand-900/60 dark:bg-brand-900/20'
-                    : 'border-gray-200 bg-white hover:bg-gray-50 dark:border-gray-800 dark:bg-gray-900 dark:hover:bg-gray-800')
-                }
-              >
-                <div className={`h-14 w-14 rounded-2xl bg-gradient-to-br ${opt.iconBg} flex items-center justify-center text-white text-xl font-bold`}>
-                  {opt.key === 'notebook' ? 'N' : 'L'}
-                </div>
-                <div>
-                  <div className="text-lg font-semibold text-gray-900 dark:text-gray-100">{opt.title}</div>
-                  <div className="text-sm text-gray-600 dark:text-gray-300">{opt.desc}</div>
-                </div>
-                {isSelected && (
-                  <div className="ml-auto text-xs font-semibold rounded-full bg-green-100 text-green-700 px-2 py-0.5 dark:bg-green-900/40 dark:text-green-200">
-                    {tr.selected ?? 'Seleccionado'}
-                  </div>
-                )}
-              </button>
-            );
-          })}
+        <div className="rounded-2xl border border-gray-200 bg-white p-4 text-xs text-gray-500 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-400">
+          {tr.detectedTypeLabel ?? 'Tipo detectado'}:{' '}
+          <span className="font-semibold text-gray-900 dark:text-gray-100">
+            {detectedType === 'landing_page'
+              ? (tr.landingTitle ?? 'Landing Page')
+              : (tr.notebookTitle ?? 'Notebook')}
+          </span>
         </div>
 
         {/* Form: title + description */}
@@ -296,24 +270,28 @@ const AssemblerNew: React.FC = () => {
         </div>
 
         {/* Drag & Drop Assembly Editor */}
-        {selectedType && (
-          <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">
-              {tr.layoutEditorTitle ?? 'Diseño de módulos'}
-            </h2>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mb-5">
-              {tr.layoutEditorDesc ?? 'Arrastra los módulos desde la paleta al canvas. Selecciona un archivo HTML para cada módulo que lo requiera y completa los textos.'}
-            </p>
-            <div className="flex gap-5">
-              {/* Palette sidebar */}
-              <div className="w-56 flex-shrink-0">
+        <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">
+            {tr.layoutEditorTitle ?? 'Diseño de módulos'}
+          </h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-5">
+            {tr.layoutEditorDesc ?? 'Arrastra los módulos desde la paleta al canvas. Selecciona un archivo HTML para cada módulo que lo requiera y completa los textos.'}
+          </p>
+          <div className="flex gap-5 items-stretch">
+            {/* Palette sidebar */}
+            <div className="w-64 flex-shrink-0">
+              <div className="h-[min(70vh,640px)] overflow-y-auto pr-1">
                 <ModulesPalette
                   modules={availableModules}
                   canvasModules={canvasModules}
+                  groups={MODULE_GROUPS}
+                  ungrouped={UNGROUPED_MODULES}
                 />
               </div>
-              {/* Canvas area */}
-              <div className="flex-1 min-w-0">
+            </div>
+            {/* Canvas area */}
+            <div className="flex-1 min-w-0">
+              <div className="h-[min(70vh,640px)]">
                 <DragDropCanvas
                   modules={canvasModules}
                   onChange={setCanvasModules}
@@ -322,6 +300,7 @@ const AssemblerNew: React.FC = () => {
                 />
               </div>
             </div>
+          </div>
 
             {/* Validation warning for needsObject modules without object */}
             {canvasModules.some((m) => m.needsObject && !m.objectId) && (
@@ -330,26 +309,37 @@ const AssemblerNew: React.FC = () => {
               </div>
             )}
 
+            {detectedType === 'landing_page' && !landingModulesReady && (
+              <div className="mt-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-900/40 dark:bg-amber-900/20 dark:text-amber-100">
+                Para landing page debes incluir Header, Body y Footer.
+              </div>
+            )}
+
+            {detectedType === 'notebook' && !notebookHtmlReady && (
+              <div className="mt-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-900/40 dark:bg-amber-900/20 dark:text-amber-100">
+                Para notebook necesitas seleccionar un HTML Input.
+              </div>
+            )}
+
             {/* Object selector modal */}
-            <AssemblerModal
-              isOpen={selectorModuleKey !== null}
-              title={`Seleccionar HTML — ${selectorModule?.label ?? selectorModuleKey ?? ''}`}
-              onClose={() => setSelectorModuleKey(null)}
-            >
-              <GenericObjectSelector
-                type={(selectorModule?.type as any) ?? 'HTML'}
-                product_type_for_assembly={selectedType ?? undefined}
-                module_name_for_assembly={selectorModuleKey ?? undefined}
-                onObjectSelectionCallback={handleObjectSelected}
-                currentSelection={
-                  selectorModule?.objectId
-                    ? { id: selectorModule.objectId, name: selectorModule.objectName ?? undefined }
-                    : undefined
-                }
-              />
-            </AssemblerModal>
-          </div>
-        )}
+          <AssemblerModal
+            isOpen={selectorModuleKey !== null}
+            title={`Seleccionar HTML — ${selectorModule?.label ?? selectorModuleKey ?? ''}`}
+            onClose={() => setSelectorModuleKey(null)}
+          >
+            <GenericObjectSelector
+              type={(selectorModule?.type as any) ?? 'HTML'}
+              product_type_for_assembly={detectedType ?? undefined}
+              module_name_for_assembly={selectorModuleKey ?? undefined}
+              onObjectSelectionCallback={handleObjectSelected}
+              currentSelection={
+                selectorModule?.objectId
+                  ? { id: selectorModule.objectId, name: selectorModule.objectName ?? undefined }
+                  : undefined
+              }
+            />
+          </AssemblerModal>
+        </div>
 
         {/* Create & Assemble button + results */}
         <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
