@@ -28,10 +28,11 @@ const DeployerNew: React.FC = () => {
       const payload: CreateMakerPathRequest = {
         title: title.trim(),
         description: description.trim() || undefined,
-        type: 'custom'
+        type: 'custom',
+        hasApplicationDeployment: true
       };
       const mp = await createMakerPath(payload);
-      navigate(`/dashboard/deployer?id=${mp.id}`);
+      navigate(`/dashboard/applications/deployer?id=${mp.id}`);
     } catch (e: unknown) {
       // Friendlier error mapping for common HTTP failures when possible
       let message = 'Failed to create Maker Path';

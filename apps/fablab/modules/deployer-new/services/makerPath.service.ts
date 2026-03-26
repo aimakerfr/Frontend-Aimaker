@@ -60,6 +60,9 @@ export interface CreateMakerPathRequest {
   hasDatabase?: boolean;
   productLink?: string;
   editionUrl?: string;
+  // mark whether this maker path has an associated application deployment
+  // backend column: has_application_deployment (TINYINT(1))
+  hasApplicationDeployment?: boolean;
 }
 
 // Service (based on core/src/maker-path/maker-path.service.ts)
