@@ -16,6 +16,7 @@ export type ClearSchemaResponse = {
 
 const ENDPOINT = '/api/v1/application-deployment/database/clear-schema';
 const EXECUTE_SQL_ENDPOINT = '/api/v1/application-deployment/database/execute-sql';
+const SHOW_TABLES_ENDPOINT = '/api/v1/application-deployment/database/show-tables';
 
 /**
  * Drop and recreate a database/schema for a given deployment.
@@ -41,11 +42,15 @@ export type ExecuteSqlParams = {
 export type ExecuteSqlResponse = {
   status: 'success';
   executed: boolean; // true if SQL executed; false if service couldn’t execute (e.g., error/invalid config)
+  // Compact textual summary propagated by backend. For SELECT-like queries,
+  // includes a small JSON preview of the first rows (up to 10).
+  resultText?: string;
 };
 
 /**
  * Execute a raw SQL text on the database associated with an ApplicationDeployment.
- * Returns only a boolean outcome; no result rows are returned by the backend.
+ * Backend now returns a compact `resultText` summarizing the outcome and, for
+ * SELECT/SHOW/DESCRIBE/EXPLAIN, a small JSON preview of rows.
  */
 export async function executeSql(
   params: ExecuteSqlParams
@@ -58,7 +63,10 @@ export async function executeSql(
   return httpClient.post<ExecuteSqlResponse>(EXECUTE_SQL_ENDPOINT, payload);
 }
 
-// Convenience helper: SHOW TABLES
+// Convenience helper: SHOW TABLES (dedicated endpoint). Returns a large text with one table per line.
 export async function showTables(params: { deploymentId: number }): Promise<ExecuteSqlResponse> {
-  return executeSql({ deploymentId: params.deploymentId, sql: 'SHOW TABLES;' });
+  const payload = {
+    application_deployment_id: params.deploymentId,
+  };
+  return httpClient.post<ExecuteSqlResponse>(SHOW_TABLES_ENDPOINT, payload);
 }

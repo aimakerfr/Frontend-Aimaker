@@ -40,11 +40,9 @@ const DatabaseManagerModal: React.FC<Props> = ({ isOpen, onClose, deploymentId, 
     try {
       setIsExecuting(true);
       const resp = await executeSql({ deploymentId, sql: sqlText });
+      const base = resp?.resultText || `Execution attempted: ${resp.executed ? 'executed' : 'not executed'} (status: ${resp?.status}).`;
       // eslint-disable-next-line no-alert
-      alert(
-        (t as any)?.databaseManager?.executeResult ||
-          `Execution attempted: ${resp.executed ? 'executed' : 'not executed'} (status: ${resp.status}).`
-      );
+      alert(base);
     } catch (e: any) {
       // eslint-disable-next-line no-alert
       alert(
@@ -97,10 +95,11 @@ const DatabaseManagerModal: React.FC<Props> = ({ isOpen, onClose, deploymentId, 
     try {
       setIsLoadingSchema(true);
       const resp = await showTables({ deploymentId });
-      if (resp.status === 'success' && resp.executed) {
-        setSchemaMessage('SHOW TABLES executed successfully.');
+      if (resp.status === 'success') {
+        // Prefer backend-provided compact summary with preview
+        setSchemaMessage(resp.resultText || (resp.executed ? 'SHOW TABLES executed successfully.' : 'SHOW TABLES could not be executed (executed=false).'));
       } else {
-        setSchemaMessage('SHOW TABLES could not be executed (executed=false).');
+        setSchemaMessage('SHOW TABLES request failed.');
       }
     } catch (e: any) {
       setSchemaMessage(`Failed to run SHOW TABLES: ${e?.message || 'Unknown error'}`);
@@ -222,7 +221,7 @@ const DatabaseManagerModal: React.FC<Props> = ({ isOpen, onClose, deploymentId, 
                 </button>
               </div>
               <div className="text-xs text-gray-600 dark:text-gray-300 mb-3">
-                {(t as any)?.databaseManager?.tablesDefinitionSubtitle || 'Executed SHOW TABLES using the execute-sql endpoint. The backend does not return table names; only execution status is available.'}
+                {(t as any)?.databaseManager?.tablesDefinitionSubtitle || 'Lists all tables using the dedicated show-tables endpoint. Full list returned, one table per line for easy copy/paste.'}
               </div>
               <div className="rounded-md border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 p-3 overflow-auto max-h-80">
                 <pre className="text-xs whitespace-pre-wrap break-words">{isLoadingSchema ? 'Running SHOW TABLES...' : (schemaMessage || 'No status available.')}</pre>
