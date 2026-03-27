@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useLanguage } from '@apps/fablab/language/useLanguage';
+import { createProductFromTemplate } from '@core/products';
 import {
   applicationDeploymentService,
   type ApplicationDeployment,
@@ -19,6 +20,8 @@ const ApplicationDeploymentFullPage: React.FC<Props> = ({ makerPathId, DatabaseC
   const [deployments, setDeployments] = useState<ApplicationDeployment[]>([]);
   const [loading, setLoading] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [convertingDeploymentId, setConvertingDeploymentId] = useState<number | null>(null);
+  const [convertMessage, setConvertMessage] = useState<string | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [newTitle, setNewTitle] = useState('');
   const fileInputsRef = useRef<Record<number, HTMLInputElement | null>>({});
@@ -121,6 +124,28 @@ const ApplicationDeploymentFullPage: React.FC<Props> = ({ makerPathId, DatabaseC
     }
   };
 
+  const handleConvertToProduct = async (deployment: ApplicationDeployment) => {
+    const deploymentUrl = ((deployment as any).deploymentUrl ?? (deployment as any).deployment_url ?? '').toString().trim();
+    if (!deploymentUrl) return;
+
+    const title = ((deployment as any).title || deployment.app_name || (deployment as any).appName || `App ${deployment.id}`).toString().trim();
+    const description = `App deployed from deployment #${deployment.id}`;
+
+    try {
+      setConvertingDeploymentId(deployment.id);
+      setConvertMessage(null);
+      await createProductFromTemplate('app', title, description, {
+        productLink: deploymentUrl,
+        isPublic: true,
+      });
+      setConvertMessage(t?.projectFlow?.convertedToProductSuccess || 'Aplicacion convertida en producto correctamente.');
+    } catch {
+      setConvertMessage(t?.projectFlow?.convertedToProductError || 'No se pudo convertir la aplicacion en producto.');
+    } finally {
+      setConvertingDeploymentId(null);
+    }
+  };
+
   const openFilePicker = (deploymentId: number) => {
     let input = fileInputsRef.current[deploymentId];
     if (!input) {
@@ -190,6 +215,11 @@ const ApplicationDeploymentFullPage: React.FC<Props> = ({ makerPathId, DatabaseC
 
       {makerPathId && (
         <div className="">
+          {convertMessage && (
+            <p className="mb-3 rounded border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-700 dark:border-blue-900/40 dark:bg-blue-900/20 dark:text-blue-200">
+              {convertMessage}
+            </p>
+          )}
           {loading ? (
             <p className="text-sm text-gray-500">{t?.common?.loading || 'Loading…'}</p>
           ) : deployments.length > 0 ? (
@@ -245,6 +275,17 @@ const ApplicationDeploymentFullPage: React.FC<Props> = ({ makerPathId, DatabaseC
                             hasFiles={Boolean((d as any).filesUrl)}
                             onAfter={refresh}
                           />
+                          {String((d as any).status || '').toLowerCase() === 'deployed_successful' && Boolean((d as any).deploymentUrl) && (
+                            <button
+                              onClick={() => handleConvertToProduct(d)}
+                              disabled={convertingDeploymentId === d.id}
+                              className="px-3 py-1.5 text-xs font-semibold rounded bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed"
+                            >
+                              {convertingDeploymentId === d.id
+                                ? (t?.projectFlow?.convertingToProduct || 'Convirtiendo...')
+                                : (t?.projectFlow?.convertToProduct || 'Convertir en producto')}
+                            </button>
+                          )}
                           {((d as any).data_base_name || (d as any).dataBaseName) ? (
                             <DatabaseManager
                               deploymentId={d.id}

@@ -92,4 +92,13 @@ export const ApiKeyEntry = () => (
   />
 );
 
+export const ApiKeyHtmlInjectionEntry = () => (
+  <FixedProductEntry
+    type="api_key_html_injector"
+    route="api-key-html"
+    title="Inyección de API key a HTML"
+    description="Carga HTML y lo adapta automáticamente para consumir IA vía proxy seguro."
+  />
+);
+
 export default FixedProductEntry;
