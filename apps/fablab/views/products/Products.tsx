@@ -60,6 +60,7 @@ const ProductsView: React.FC<ProductsViewProps> = ({
       'style_transfer_maker': 'style-transfer',
       'api_key_maker': 'api-key',
       'api_key_html_injector': 'api-key-html',
+      'app': 'app',
       'architect_ai': 'notebook', // Default to notebook until specific route is created
       'module_connector': 'notebook', // Default to notebook until specific route is created
       'custom': 'notebook' // Default
@@ -132,6 +133,30 @@ const ProductsView: React.FC<ProductsViewProps> = ({
     handleCloseCreateModal();
   };
 
+  const normalizeExternalUrl = (value?: string | null): string | null => {
+    const raw = (value || '').trim();
+    if (!raw) return null;
+    if (/^https?:\/\//i.test(raw)) return raw;
+    return `https://${raw}`;
+  };
+
+  const openProduct = (item: Product) => {
+    if (item.type === 'app') {
+      const externalUrl = normalizeExternalUrl(item.productLink);
+      if (externalUrl) {
+        window.open(externalUrl, '_blank', 'noopener,noreferrer');
+        return;
+      }
+    }
+
+    if (item.type === 'app' && item.productLink) {
+      // Fallback for unexpected malformed values
+      window.open(item.productLink, '_blank', 'noopener,noreferrer');
+      return;
+    }
+    navigate(getProductRoute(item.type, item.id));
+  };
+
   const getTypeLabel = (type: string) => {
     const typeMap: Record<string, string> = {
       'rag_chat_maker': 'RAG Chat Maker',
@@ -143,6 +168,7 @@ const ProductsView: React.FC<ProductsViewProps> = ({
       'style_transfer_maker': 'Style Transfer Maker',
       'api_key_maker': 'API Key Inspector',
       'api_key_html_injector': 'Inyección API Key HTML',
+      'app': t.products.appTypeLabel || 'App',
       'custom': 'Custom'
     };
     return typeMap[type] || type;
@@ -159,6 +185,7 @@ const ProductsView: React.FC<ProductsViewProps> = ({
       'style_transfer_maker': 'bg-gradient-to-br from-indigo-500 to-sky-500',
       'api_key_maker': 'bg-gradient-to-br from-cyan-500 to-blue-600',
       'api_key_html_injector': 'bg-gradient-to-br from-violet-500 to-fuchsia-600',
+      'app': 'bg-gradient-to-br from-emerald-500 to-teal-600',
       'custom': 'bg-gradient-to-br from-gray-500 to-gray-600'
     };
     return colorMap[type] || 'bg-gradient-to-br from-gray-500 to-gray-600';
@@ -225,13 +252,13 @@ const ProductsView: React.FC<ProductsViewProps> = ({
                     <div className="mt-auto flex items-center justify-between gap-2">
                       <div className="flex items-center gap-2">
                         <button
-                          onClick={() => navigate(getProductRoute(item.type, item.id))}
+                          onClick={() => openProduct(item)}
                           className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold"
                         >
                           <Eye size={14} />
                           {t.products.fixed.open}
                         </button>
-                        {onTogglePublic && (
+                        {onTogglePublic && item.type !== 'app' && (
                           <button
                             onClick={() => onTogglePublic(item.id, !item.isPublic)}
                             className={`inline-flex items-center justify-center h-9 w-9 rounded-lg border transition-all ${
@@ -388,7 +415,7 @@ const ProductsView: React.FC<ProductsViewProps> = ({
                       <div className="col-span-2">
                         <div className="flex gap-2">
                           <button
-                            onClick={() => navigate(getProductRoute(item.type, item.id))}
+                            onClick={() => openProduct(item)}
                             className="inline-flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 border-2 border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-xl font-semibold transition-all text-sm hover:scale-105"
                             title={`${t.products.buttons.view} - ${getTypeLabel(item.type)}`}
                           >
@@ -418,16 +445,14 @@ const ProductsView: React.FC<ProductsViewProps> = ({
 
                       <div className="col-span-2">
                         <div className="flex flex-col gap-2">
-                          <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${
-                            item.status === 'active' 
-                              ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' 
-                              : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
-                          }`}>
-                            {item.status}
-                          </span>
+                          {item.type === 'app' && (
+                            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400">
+                              {t.products.status.deployed || 'Desplegado'}
+                            </span>
+                          )}
                           
-                          {/* Toggle Public/Private Button */}
-                          {onTogglePublic && (
+                          {/* For non-app products, show only public/private state */}
+                          {onTogglePublic && item.type !== 'app' && (
                             <button
                               onClick={() => onTogglePublic(item.id, !item.isPublic)}
                               className={`inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${
@@ -599,6 +624,11 @@ const Products = () => {
   };
 
   const handleTogglePublic = async (itemId: number, isPublic: boolean) => {
+    const target = [...items, ...fixedItems].find((item) => item.id === itemId);
+    if (target?.type === 'app') {
+      return;
+    }
+
     try {
       console.log('[Products] Toggling public status:', itemId, isPublic);
       

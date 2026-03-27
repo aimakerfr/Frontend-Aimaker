@@ -2,7 +2,7 @@
  * Product Types
  */
 
-export type ProductType = 'architect_ai' | 'module_connector' | 'custom' | 'rag_chat_maker' | 'landing_page_maker' | 'image_generator_rag' | 'translation_maker' | 'style_transfer_maker' | 'api_key_maker' | 'api_key_html_injector';
+export type ProductType = 'architect_ai' | 'module_connector' | 'custom' | 'rag_chat_maker' | 'landing_page_maker' | 'image_generator_rag' | 'translation_maker' | 'style_transfer_maker' | 'api_key_maker' | 'api_key_html_injector' | 'app';
 export type ProductStatus = 'active' | 'archived';
 
 export interface Product {

@@ -131,6 +131,7 @@ export const es: Translations = {
         makePublic: 'Hacer público',
         makePrivate: 'Hacer privado',
       },
+      appTypeLabel: 'App',
       tooltips: {
         addFavorite: 'Marcar como favorito',
         removeFavorite: 'Quitar de favoritos',
@@ -138,6 +139,7 @@ export const es: Translations = {
       status: {
         public: 'Público',
         private: 'Privado',
+        deployed: 'Desplegado',
       },
       fixed: {
         sectionTitle: 'Productos fijos',
@@ -1244,6 +1246,10 @@ export const es: Translations = {
       closePanel: 'Close Panel',
       deploy: 'DEPLOY',
       save: 'Save',
+      convertToProduct: 'Convertir en producto',
+      convertingToProduct: 'Convirtiendo...',
+      convertedToProductSuccess: 'Aplicación convertida en producto correctamente.',
+      convertedToProductError: 'No se pudo convertir la aplicación en producto.',
       testWorkflow: 'Test Workflow',
       changesAreSavedLocally: 'CHANGES ARE SAVED LOCALLY',
       selectRagSource: 'SELECCIONAR FUENTE RAG',

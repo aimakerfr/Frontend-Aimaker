@@ -81,12 +81,18 @@ export const forkProduct = async (makerPathId: number): Promise<Product> => {
 export const createProductFromTemplate = async (
   type: string,
   title: string,
-  description?: string
+  description?: string,
+  options?: {
+    productLink?: string;
+    isPublic?: boolean;
+  }
 ): Promise<Product> => {
   return httpClient.post<Product>(`${ENDPOINT}/create-from-template`, {
     type,
     title,
     description: description || '',
+    ...(options?.productLink ? { productLink: options.productLink } : {}),
+    ...(typeof options?.isPublic === 'boolean' ? { isPublic: options.isPublic } : {}),
   });
 };
 
