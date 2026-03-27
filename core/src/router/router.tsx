@@ -195,6 +195,14 @@ export function AppRouter() {
           }
         />
         <Route
+          path="/product/api-key"
+          element={
+            <ProtectedRoute>
+              <ApiKeyEntry />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/product/api-key-html"
           element={
             <ProtectedRoute>

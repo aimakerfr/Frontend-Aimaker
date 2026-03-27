@@ -52,10 +52,6 @@ const ProductsView: React.FC<ProductsViewProps> = ({
   
   // Function to get the correct route based on product type
   const getProductRoute = (type: string, id: number): string => {
-    if (type === 'api_key_maker') {
-      return '/dashboard/api-key-manager';
-    }
-
     const routeMap: Record<string, string> = {
       'rag_chat_maker': 'notebook',
       'landing_page_maker': 'landing-page',
@@ -197,7 +193,7 @@ const ProductsView: React.FC<ProductsViewProps> = ({
                     : item.type === 'api_key_maker'
                       ? t.products.fixed.apiKeyTitle
                     : item.type === 'api_key_html_injector'
-                      ? 'Inyección de API key a HTML'
+                      ? (t.products.fixed.apiKeyHtmlTitle || 'Inyección de API key a HTML')
                     : item.type === 'style_transfer_maker'
                       ? t.products.fixed.styleTransferTitle
                       : t.products.fixed.translationTitle;
@@ -208,7 +204,7 @@ const ProductsView: React.FC<ProductsViewProps> = ({
                     : item.type === 'api_key_maker'
                       ? t.products.fixed.apiKeyDesc
                     : item.type === 'api_key_html_injector'
-                      ? 'Guarda y valida la key por proveedor, luego carga tu HTML y se inyecta runtime IA al proxy interno.'
+                      ? (t.products.fixed.apiKeyHtmlDesc || 'Guarda API key por producto, genera prompt guía y despliega tu HTML conectado al proxy interno.')
                     : item.type === 'style_transfer_maker'
                       ? t.products.fixed.styleTransferDesc
                       : t.products.fixed.translationDesc;
@@ -550,7 +546,11 @@ const Products = () => {
         { type: 'translation_maker', title: t.products.fixed.translationTitle, description: t.products.fixed.translationDesc },
         { type: 'style_transfer_maker', title: t.products.fixed.styleTransferTitle, description: t.products.fixed.styleTransferDesc },
         { type: 'api_key_maker', title: t.products.fixed.apiKeyTitle, description: t.products.fixed.apiKeyDesc },
-        { type: 'api_key_html_injector', title: 'Inyección de API key a HTML', description: 'Carga y adapta HTML para consumir IA vía backend proxy.' },
+        {
+          type: 'api_key_html_injector',
+          title: t.products.fixed.apiKeyHtmlTitle || 'Inyección de API key a HTML',
+          description: t.products.fixed.apiKeyHtmlDesc || 'Configura API key por producto y despliega tu HTML conectado al proxy.'
+        },
       ];
 
       const resolved = await Promise.all(
