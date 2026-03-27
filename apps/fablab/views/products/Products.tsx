@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Package, Eye, Search, Trash2, Globe, Lock, Star, Sparkles, Plus } from 'lucide-react';
 import { useLanguage } from '../../language/useLanguage';
+import ConfirmDeleteModal from '../../components/ConfirmDeleteModal';
 import { 
   getProducts, 
   deleteProduct,
@@ -16,7 +17,7 @@ type FilterType = 'all' | 'favorites';
 
 interface ProductsViewProps {
   items?: Product[];
-  onDelete?: (itemId: number) => void;
+  onDelete?: (item: Product) => void;
   onTogglePublic?: (itemId: number, isPublic: boolean) => Promise<void>;
   onToggleFavorite?: (itemId: number, isFavorite: boolean) => Promise<void>;
   isLoading?: boolean;
@@ -423,7 +424,7 @@ const ProductsView: React.FC<ProductsViewProps> = ({
                             {t.products.buttons.view}
                           </button>
                           <button
-                            onClick={() => onDelete?.(item.id)}
+                            onClick={() => onDelete?.(item)}
                             className="inline-flex items-center gap-2 px-3 py-2.5 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 border-2 border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 rounded-xl font-semibold transition-all text-sm hover:scale-105"
                             title={t.products.buttons.delete}
                           >
@@ -559,6 +560,7 @@ const Products = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isCreatingNotebook, setIsCreatingNotebook] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<Product | null>(null);
   const [activeFilter, setActiveFilter] = useState<FilterType>('all');
   const { t } = useLanguage();
   const navigate = useNavigate();
@@ -607,13 +609,18 @@ const Products = () => {
     loadFixedProducts();
   }, []);
 
-  const handleDelete = async (itemId: number) => {
-    if (!confirm(t.products.confirmDelete)) return;
-    
+  const handleDeleteRequest = (item: Product) => {
+    setPendingDelete(item);
+  };
+
+  const handleDelete = async () => {
+    if (!pendingDelete) return;
+
     try {
       setIsLoading(true);
-      await deleteProduct(itemId);
-      setItems(prev => prev.filter((item: Product) => item.id !== itemId));
+      await deleteProduct(pendingDelete.id);
+      setItems(prev => prev.filter((item: Product) => item.id !== pendingDelete.id));
+      setPendingDelete(null);
     } catch (err) {
       console.error('Error eliminando producto:', err);
       setError(t.common.errorDeleting);
@@ -704,18 +711,38 @@ const Products = () => {
   }
 
   return (
-    <ProductsView 
-      items={items} 
-      isLoading={isLoading}
-      isCreatingNotebook={isCreatingNotebook}
-      onDelete={handleDelete}
-      onTogglePublic={handleTogglePublic}
-      onToggleFavorite={handleToggleFavorite}
-      onCreateNotebook={handleCreateNotebook}
-      activeFilter={activeFilter}
-      setActiveFilter={setActiveFilter}
-      fixedItems={fixedItems}
-    />
+    <>
+      <ProductsView 
+        items={items} 
+        isLoading={isLoading}
+        isCreatingNotebook={isCreatingNotebook}
+        onDelete={handleDeleteRequest}
+        onTogglePublic={handleTogglePublic}
+        onToggleFavorite={handleToggleFavorite}
+        onCreateNotebook={handleCreateNotebook}
+        activeFilter={activeFilter}
+        setActiveFilter={setActiveFilter}
+        fixedItems={fixedItems}
+      />
+
+      <ConfirmDeleteModal
+        isOpen={pendingDelete !== null}
+        title={t.products.confirmDeleteTitle || 'Delete product?'}
+        message={
+          pendingDelete
+            ? `${t.products.confirmDelete || 'This action cannot be undone.'} (${pendingDelete.title})`
+            : (t.products.confirmDelete || 'This action cannot be undone.')
+        }
+        confirmLabel={t.common.delete || 'Delete'}
+        cancelLabel={t.common.cancel || 'Cancel'}
+        isLoading={isLoading}
+        onClose={() => {
+          if (isLoading) return;
+          setPendingDelete(null);
+        }}
+        onConfirm={handleDelete}
+      />
+    </>
   );
 };
 

@@ -113,6 +113,7 @@ export const fr: Translations = {
       searchPlaceholder: 'Rechercher des produits...',
       noResults: 'Aucun produit trouvé',
       confirmDelete: 'Êtes-vous sûr de vouloir supprimer ce produit?',
+      confirmDeleteTitle: 'Supprimer le produit ?',
       filters: {
         all: 'Tous',
         favorites: 'Favoris',
@@ -210,6 +211,7 @@ export const fr: Translations = {
       step3Title: '3. Chattez et suivez',
       step3Body: 'Envoyez des messages, enregistrez les conversations et consultez les statistiques.',
       apiConfigTitle: 'Configuration API',
+      openConfig: 'Ouvrir la configuration',
       validating: 'Validation...',
       validateKey: 'Valider la clé',
       testModel: 'Tester le modèle',
@@ -665,6 +667,9 @@ export const fr: Translations = {
       prompts: {
         newFolder: 'Nom du dossier',
         renameFolder: 'Nouveau nom',
+        deleteObjectTitle: 'Supprimer l\'objet ?',
+        deleteObject: 'Êtes-vous sûr de vouloir supprimer cet objet?',
+        deleteFolderTitle: 'Supprimer le dossier ?',
         deleteFolder: 'Supprimer le dossier ? Les fichiers reviendront a la racine.',
       },
       folderModal: {
