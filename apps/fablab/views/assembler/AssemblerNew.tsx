@@ -85,6 +85,7 @@ const AssemblerNew: React.FC = () => {
     );
   }, []);
 
+  
   // Build layout data from canvas modules
   const buildLayoutData = useCallback((): LayoutEntry[] => {
     return canvasModules.map((m) => ({
@@ -165,8 +166,20 @@ const AssemblerNew: React.FC = () => {
     }
 
     const data = body?.data ?? body ?? {};
+    const downloadUrl: string | undefined = data.download_url || data.downloadUrl;
+    const hasDownload = Boolean(downloadUrl);
+    if (downloadUrl) {
+      const fullDownload = downloadUrl.startsWith('http') ? downloadUrl : `${apiBase}${downloadUrl}`;
+      const link = document.createElement('a');
+      link.href = fullDownload;
+      link.download = '';
+      link.rel = 'noopener';
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    }
     const htmlPath: string | undefined = data.html_path || data.htmlPath;
-    if (htmlPath) {
+    if (htmlPath && !hasDownload) {
       const full = htmlPath.startsWith('http') ? htmlPath : `${apiBase}${htmlPath}`;
       setResultUrl(full);
       window.open(full, '_blank', 'noopener,noreferrer');

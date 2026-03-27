@@ -24,6 +24,24 @@ export type ObjectFolder = {
   updatedAt?: string;
 };
 
+export type ProjectTreeNode = {
+  name: string;
+  path: string;
+  type: 'folder' | 'file';
+  children?: ProjectTreeNode[];
+};
+
+export type ProjectTreeResponse = {
+  root: string;
+  tree: ProjectTreeNode[];
+};
+
+export type ProjectFileResponse = {
+  path: string;
+  content: string;
+  size: number;
+};
+
 export type CreateObjectPayload = {
   title: string;
   type: string;
@@ -205,6 +223,15 @@ export async function downloadObjectFile(objectId: string | number, fallbackName
   anchor.click();
   document.body.removeChild(anchor);
   URL.revokeObjectURL(blobUrl);
+}
+
+export async function getProjectTree(objectId: string | number): Promise<ProjectTreeResponse> {
+  return httpClient.get<ProjectTreeResponse>(`${ENDPOINT}/${objectId}/tree`);
+}
+
+export async function getProjectFile(objectId: string | number, path: string): Promise<ProjectFileResponse> {
+  const encoded = encodeURIComponent(path);
+  return httpClient.get<ProjectFileResponse>(`${ENDPOINT}/${objectId}/file?path=${encoded}`);
 }
 
 const extractFilenameFromDisposition = (header: string): string | null => {

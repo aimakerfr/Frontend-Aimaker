@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '../../language/useLanguage';
 import {
   getAllObjects,
@@ -67,6 +68,7 @@ const ObjectsLibrary: React.FC<{
   const [jsonModalItem, setJsonModalItem] = useState<ObjectItem | null>(null);
   const [isDraggingObject, setIsDraggingObject] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     let isActive = true;
@@ -259,6 +261,13 @@ const ObjectsLibrary: React.FC<{
   }), [viewT?.breadcrumb?.rootLabel]);
 
   const handleView = (item: ObjectItem) => {
+    if ((item.type || '').toUpperCase() === 'PRODUCT') {
+      navigate(`/dashboard/objects-library/${item.id}`, {
+        state: { name: item.name || item.title },
+      });
+      return;
+    }
+
     if (item.url) {
       window.open(item.url, '_blank', 'noopener,noreferrer');
     } else if ((item as any).data) {
