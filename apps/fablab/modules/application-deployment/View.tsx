@@ -6,12 +6,15 @@ import {
 } from './services/applicationDeployment.service';
 import DeployActionButton from './components/DeployActionButton';
 import { getMakerPath, type MakerPath } from './services/makerPath.service';
+import { DatabaseManager } from '@apps/fablab/modules/database-manager';
 
 type Props = {
   makerPathId: number | null | undefined;
+  /** Optional component to render a "Create Database" action per deployment row */
+  DatabaseCreatorComponent?: React.ComponentType<any>;
 };
 
-const ApplicationDeploymentFullPage: React.FC<Props> = ({ makerPathId }) => {
+const ApplicationDeploymentFullPage: React.FC<Props> = ({ makerPathId, DatabaseCreatorComponent }) => {
   const { t } = useLanguage();
   const [deployments, setDeployments] = useState<ApplicationDeployment[]>([]);
   const [loading, setLoading] = useState(false);
@@ -224,7 +227,7 @@ const ApplicationDeploymentFullPage: React.FC<Props> = ({ makerPathId }) => {
                         {renderStatusChip((d as any).status)}
                       </td>
                       <td className="py-3 px-4">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <button
                             onClick={() => openFilePicker(d.id)}
                             className="px-3 py-1.5 text-xs font-semibold rounded bg-gray-900 text-white dark:bg-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100"
@@ -242,6 +245,24 @@ const ApplicationDeploymentFullPage: React.FC<Props> = ({ makerPathId }) => {
                             hasFiles={Boolean((d as any).filesUrl)}
                             onAfter={refresh}
                           />
+                          {((d as any).data_base_name || (d as any).dataBaseName) ? (
+                            <DatabaseManager
+                              deploymentId={d.id}
+                              databaseName={(d as any).data_base_name || (d as any).dataBaseName}
+                              className="px-3 py-1.5 text-xs"
+                            />
+                          ) : (
+                            DatabaseCreatorComponent && (
+                              <DatabaseCreatorComponent
+                                deploymentId={d.id}
+                                onCreated={() => {
+                                  // After creating a DB, refresh data if needed
+                                  void refresh();
+                                }}
+                                className="px-3 py-1.5 text-xs"
+                              />
+                            )
+                          )}
                         </div>
                       </td>
                     </tr>

@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useLanguage } from '../../../../language/useLanguage.ts';
 import type { GetObjectsParams, ObjectItem } from '../../services/api_handler.ts';
-import { fetchObjectsByAssemblyHints, fetchObjectsByType, ObjectType } from '../../services/api_handler.ts';
+import { fetchObjectsByType, ObjectType } from '../../services/api_handler.ts';
 import { updateObject } from '@core/objects';
 
 type GenericObjectSelectorProps = {
@@ -44,23 +44,13 @@ export const GenericObjectSelector: React.FC<GenericObjectSelectorProps> = ({
       setError(null);
 
       try {
-        const hasAssemblyFilters = Boolean(product_type_for_assembly || module_name_for_assembly);
         let data: ObjectItem[] = [];
         console.log('[GenericObjectSelector] Loading objects', {
           type,
           product_type_for_assembly,
           module_name_for_assembly,
         });
-        if (hasAssemblyFilters) {
-          data = await fetchObjectsByAssemblyHints(queryParams);
-          // Fallback: if no tagged objects found, show all objects of this type
-          if (data.length === 0) {
-            console.warn('[GenericObjectSelector] No objects matched assembly filters, falling back to type-only list');
-            data = await fetchObjectsByType(type);
-          }
-        } else {
-          data = await fetchObjectsByType(type);
-        }
+        data = await fetchObjectsByType(type);
         console.log('[GenericObjectSelector] Loaded objects count:', data.length);
         if (!isMounted) return;
         setObjects(data);
@@ -93,9 +83,7 @@ export const GenericObjectSelector: React.FC<GenericObjectSelectorProps> = ({
           {t?.genericObjectSelector?.title ?? 'Objects'}
         </h3>
         <p className="text-sm text-gray-600 dark:text-gray-300">
-          {product_type_for_assembly || module_name_for_assembly
-            ? (t?.genericObjectSelector?.subtitle ?? 'Showing objects filtered by type and assembly hints.')
-            : (t?.genericObjectSelector?.subtitleTypeOnly ?? 'Showing objects filtered by type only.')}
+          {t?.genericObjectSelector?.subtitleTypeOnly ?? 'Showing objects filtered by type only.'}
         </p>
         {currentSelected && (
           <div className="mt-2 inline-flex items-center gap-2 rounded-full bg-brand-50 px-3 py-1 text-xs font-semibold text-brand-700 dark:bg-brand-900/30 dark:text-brand-100">
@@ -123,12 +111,9 @@ export const GenericObjectSelector: React.FC<GenericObjectSelectorProps> = ({
 
       {!isLoading && !error && objects.length === 0 && (
         <div className="text-sm text-gray-600 dark:text-gray-300">
-          {product_type_for_assembly || module_name_for_assembly
-            ? (t?.genericObjectSelector?.empty ?? 'No objects match the provided filters.')
-            : (t?.genericObjectSelector?.emptyTypeOnly ?? 'No objects found for this type.')}
+          {t?.genericObjectSelector?.emptyTypeOnly ?? 'No objects found for this type.'}
         </div>
       )}
-
       <ul className="divide-y divide-gray-200 rounded-md border border-gray-100 dark:divide-gray-800 dark:border-gray-800">
         {objects.map((object) => (
           <li
