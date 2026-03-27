@@ -101,4 +101,13 @@ export const ApiKeyHtmlInjectionEntry = () => (
   />
 );
 
+export const ProfileB2BEntry = () => (
+  <FixedProductEntry
+    type="profile_b2b_maker"
+    route="profile-b2b"
+    title="Profile B2B"
+    description="Perfila prospectos B2B con IA, genera una landing personalizada y guarda el resultado en notebook."
+  />
+);
+
 export default FixedProductEntry;
