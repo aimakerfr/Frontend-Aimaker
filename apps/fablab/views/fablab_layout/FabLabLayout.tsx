@@ -11,6 +11,7 @@ import PathCreationModules from '../path-creation-modules/App';
 import ExternalAccess from '../external-access/ExternalAccess';
 import AIChat from '../../components/AIChat';
 import ObjectsLibrary from '../objects/ObjectsLibrary';
+import ProjectExplorer from '../objects/ProjectExplorer';
 import Products from '../products/Products';
 import MyDashboard from '../dashboard/MyDashboard';
 import NotebookAssembler from '../assembler/NotebookAssemblerLite';
@@ -78,6 +79,7 @@ const FabLabLayout: React.FC<Props> = ({
               <Route path="/library" element={<Library />} />
               {/* Home routes */}
               <Route path="/objects-library" element={<ObjectsLibrary />} />
+              <Route path="/objects-library/:id" element={<ProjectExplorer />} />
 
               <Route path="/profile" element={<ProfileSection user={user} />} />
               <Route path="/context" element={<AIContext />} />
