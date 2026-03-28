@@ -1804,6 +1804,8 @@ export const en: Translations = {
     emailLabel: 'Prospect email',
     urlLabel: 'Website URL',
     catalogLabel: 'Services catalog',
+    showCatalogEditor: 'Customize services catalog',
+    hideCatalogEditor: 'Hide services catalog',
     needEmailOrUrl: 'Provide at least an email or a URL.',
     running: 'Running pipeline...',
     runPipeline: 'Start profiling pipeline',
