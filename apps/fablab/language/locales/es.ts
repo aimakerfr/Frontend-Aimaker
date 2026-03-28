@@ -1793,6 +1793,8 @@ export const es: Translations = {
     emailLabel: 'Email del prospecto',
     urlLabel: 'URL del sitio web',
     catalogLabel: 'Catálogo de servicios',
+    showCatalogEditor: 'Personalizar catálogo de servicios',
+    hideCatalogEditor: 'Ocultar catálogo de servicios',
     needEmailOrUrl: 'Introduce al menos un email o una URL.',
     running: 'Ejecutando pipeline...',
     runPipeline: 'Lanzar pipeline de perfilado',

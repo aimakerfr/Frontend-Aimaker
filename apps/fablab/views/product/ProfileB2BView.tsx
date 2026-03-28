@@ -64,6 +64,11 @@ const toFile = (content: string, name: string, mimeType: string): File => {
   return new File([blob], name, { type: mimeType });
 };
 
+const resolveAiEndpoint = (): string => {
+  const apiBase = String((import.meta as any)?.env?.VITE_API_URL || '').replace(/\/+$/, '');
+  return apiBase ? `${apiBase}/api/ai` : '/api/ai';
+};
+
 const ProfileB2BView: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -78,6 +83,7 @@ const ProfileB2BView: React.FC = () => {
   const [email, setEmail] = useState('');
   const [url, setUrl] = useState('');
   const [catalog, setCatalog] = useState(DEFAULT_CATALOG);
+  const [showCatalogEditor, setShowCatalogEditor] = useState(false);
 
   const [step, setStep] = useState<PipelineStep>('input');
   const [running, setRunning] = useState(false);
@@ -162,7 +168,7 @@ const ProfileB2BView: React.FC = () => {
   const callAi = async (system: string, userPrompt: string): Promise<string> => {
     if (!product?.id) throw new Error(tr.productMissing || 'Producto no disponible.');
 
-    const response = await fetch('/api/ai', {
+    const response = await fetch(resolveAiEndpoint(), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -174,7 +180,23 @@ const ProfileB2BView: React.FC = () => {
       }),
     });
 
-    const data = await response.json();
+    const raw = await response.text();
+    let data: any = null;
+
+    try {
+      data = JSON.parse(raw);
+    } catch {
+      data = null;
+    }
+
+    if (!data) {
+      const looksLikeHtml = raw.trim().startsWith('<!doctype') || raw.trim().startsWith('<html') || raw.trim().startsWith('<');
+      if (looksLikeHtml) {
+        throw new Error(tr.aiError || 'El endpoint de IA devolvio HTML en lugar de JSON. Verifica VITE_API_URL en produccion.');
+      }
+      throw new Error(tr.aiError || 'Respuesta no valida del servicio de IA.');
+    }
+
     if (!response.ok || !data.ok) {
       throw new Error(data.error || tr.aiError || 'Error al procesar IA.');
     }
@@ -508,15 +530,27 @@ const ProfileB2BView: React.FC = () => {
               </div>
             </div>
 
-            <div>
-              <textarea
-                value={catalog}
-                onChange={(e) => setCatalog(e.target.value)}
-                rows={8}
-                className="w-full rounded border border-slate-600 bg-slate-900 px-3 py-2 text-xs font-mono"
-                aria-label={tr.catalogLabel || 'Catalogo de servicios'}
-                disabled={running || readOnly}
-              />
+            <div className="space-y-2">
+              <button
+                type="button"
+                onClick={() => setShowCatalogEditor((prev) => !prev)}
+                className="text-xs text-slate-400 hover:text-slate-200 transition-colors"
+              >
+                {showCatalogEditor
+                  ? (tr.hideCatalogEditor || 'Ocultar catalogo de servicios')
+                  : (tr.showCatalogEditor || 'Personalizar catalogo de servicios')}
+              </button>
+
+              {showCatalogEditor && (
+                <textarea
+                  value={catalog}
+                  onChange={(e) => setCatalog(e.target.value)}
+                  rows={8}
+                  className="w-full rounded border border-slate-600 bg-slate-900 px-3 py-2 text-xs font-mono"
+                  aria-label={tr.catalogLabel || 'Catalogo de servicios'}
+                  disabled={running || readOnly}
+                />
+              )}
             </div>
 
             {error && <div className="rounded border border-red-700 bg-red-900/20 px-3 py-2 text-sm text-red-300">{error}</div>}
