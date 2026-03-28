@@ -21,7 +21,6 @@ import DeployerNew from '../../modules/deployer-new/View';
 import Deployer from '../deployer/Deployer';
 import { UserProfile } from '../../types';
 import ApplicationsManagement from '../applications/ApplicationsManagement';
-// @ts-expect-error Legacy JSX module without exported TypeScript declarations.
 import ApiKeyManager from '../api-proxy/ApiKeyManager';
 import { useLanguage } from '../../language/useLanguage';
 

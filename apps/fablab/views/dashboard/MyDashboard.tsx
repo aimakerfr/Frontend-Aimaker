@@ -12,6 +12,8 @@ const FIXED_PRODUCT_TYPES = new Set([
   'translation_maker',
   'style_transfer_maker',
   'api_key_maker',
+  'api_key_html_injector',
+  'profile_b2b_maker',
 ]);
 
 const getProductTimestamp = (product: Product): number => {
@@ -285,6 +287,8 @@ const MyDashboard: React.FC = () => {
       translation_maker: 'translation',
       style_transfer_maker: 'style-transfer',
       api_key_maker: 'api-key',
+      api_key_html_injector: 'api-key-html',
+      profile_b2b_maker: 'profile-b2b',
       architect_ai: 'notebook',
       module_connector: 'notebook',
       custom: 'notebook',

@@ -49,7 +49,7 @@ const ProductsView: React.FC<ProductsViewProps> = ({
   const [notebookTitle, setNotebookTitle] = useState('');
   const [notebookDescription, setNotebookDescription] = useState('');
   const [createError, setCreateError] = useState<string | null>(null);
-  const FIXED_TYPES: ProductType[] = ['landing_page_maker', 'image_generator_rag', 'translation_maker', 'style_transfer_maker', 'api_key_maker', 'api_key_html_injector'];
+  const FIXED_TYPES: ProductType[] = ['landing_page_maker', 'image_generator_rag', 'translation_maker', 'style_transfer_maker', 'api_key_maker', 'api_key_html_injector', 'profile_b2b_maker'];
   
   // Function to get the correct route based on product type
   const getProductRoute = (type: string, id: number): string => {
@@ -61,6 +61,7 @@ const ProductsView: React.FC<ProductsViewProps> = ({
       'style_transfer_maker': 'style-transfer',
       'api_key_maker': 'api-key',
       'api_key_html_injector': 'api-key-html',
+      'profile_b2b_maker': 'profile-b2b',
       'app': 'app',
       'architect_ai': 'notebook', // Default to notebook until specific route is created
       'module_connector': 'notebook', // Default to notebook until specific route is created
@@ -169,6 +170,7 @@ const ProductsView: React.FC<ProductsViewProps> = ({
       'style_transfer_maker': 'Style Transfer Maker',
       'api_key_maker': 'API Key Inspector',
       'api_key_html_injector': 'Inyección API Key HTML',
+      'profile_b2b_maker': t.products.fixed.profileB2BTitle || 'Profile B2B',
       'app': t.products.appTypeLabel || 'App',
       'custom': 'Custom'
     };
@@ -186,6 +188,7 @@ const ProductsView: React.FC<ProductsViewProps> = ({
       'style_transfer_maker': 'bg-gradient-to-br from-indigo-500 to-sky-500',
       'api_key_maker': 'bg-gradient-to-br from-cyan-500 to-blue-600',
       'api_key_html_injector': 'bg-gradient-to-br from-violet-500 to-fuchsia-600',
+      'profile_b2b_maker': 'bg-gradient-to-br from-teal-500 to-cyan-600',
       'app': 'bg-gradient-to-br from-emerald-500 to-teal-600',
       'custom': 'bg-gradient-to-br from-gray-500 to-gray-600'
     };
@@ -220,6 +223,8 @@ const ProductsView: React.FC<ProductsViewProps> = ({
                     ? t.products.fixed.imageTitle
                     : item.type === 'api_key_maker'
                       ? t.products.fixed.apiKeyTitle
+                    : item.type === 'profile_b2b_maker'
+                      ? (t.products.fixed.profileB2BTitle || 'Profile B2B')
                     : item.type === 'api_key_html_injector'
                       ? (t.products.fixed.apiKeyHtmlTitle || 'Inyección de API key a HTML')
                     : item.type === 'style_transfer_maker'
@@ -231,6 +236,8 @@ const ProductsView: React.FC<ProductsViewProps> = ({
                     ? t.products.fixed.imageDesc
                     : item.type === 'api_key_maker'
                       ? t.products.fixed.apiKeyDesc
+                    : item.type === 'profile_b2b_maker'
+                      ? (t.products.fixed.profileB2BDesc || 'Pipeline B2B de OSINT, persona, matching y landing personalizada con IA.')
                     : item.type === 'api_key_html_injector'
                       ? (t.products.fixed.apiKeyHtmlDesc || 'Guarda API key por producto, genera prompt guía y despliega tu HTML conectado al proxy interno.')
                     : item.type === 'style_transfer_maker'
@@ -577,6 +584,11 @@ const Products = () => {
           type: 'api_key_html_injector',
           title: t.products.fixed.apiKeyHtmlTitle || 'Inyección de API key a HTML',
           description: t.products.fixed.apiKeyHtmlDesc || 'Configura API key por producto y despliega tu HTML conectado al proxy.'
+        },
+        {
+          type: 'profile_b2b_maker',
+          title: t.products.fixed.profileB2BTitle || 'Profile B2B',
+          description: t.products.fixed.profileB2BDesc || 'Pipeline B2B de OSINT, persona, matching y landing personalizada con IA.'
         },
       ];
 
