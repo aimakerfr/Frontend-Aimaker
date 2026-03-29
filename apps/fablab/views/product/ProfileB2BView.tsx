@@ -48,26 +48,64 @@ const renderMarkdown = (text: string): string => {
       .replace(/>/g, '&gt;')
       .replace(/\"/g, '&quot;');
 
+  const formatInline = (line: string): string =>
+    escape(line)
+      .replace(/\*\*(.+?)\*\*/g, '<strong class="text-slate-100">$1</strong>')
+      .replace(/\[(confirmado)\]/gi, '<span class="text-emerald-300 font-semibold">[confirmado]</span>')
+      .replace(/\[(probable)\]/gi, '<span class="text-amber-300 font-semibold">[probable]</span>')
+      .replace(/\[(hipotesis|hipótesis)\]/gi, '<span class="text-violet-300 font-semibold">[hipotesis]</span>');
+
   return text
     .split('\n')
     .map((line) => {
-      if (line.startsWith('## ')) return `<h3 class="text-teal-300 mt-4 mb-2 font-semibold">${escape(line.slice(3))}</h3>`;
-      if (line.startsWith('# ')) return `<h2 class="text-white mt-4 mb-2 font-semibold">${escape(line.slice(2))}</h2>`;
+      if (line.startsWith('## ')) return `<h3 class="text-teal-300 mt-4 mb-2 font-semibold">${formatInline(line.slice(3))}</h3>`;
+      if (line.startsWith('# ')) return `<h2 class="text-white mt-4 mb-2 font-semibold">${formatInline(line.slice(2))}</h2>`;
       if (line.startsWith('- ') || line.startsWith('* ')) {
-        return `<p class="text-slate-300 mb-1"><span class="text-teal-400">•</span> ${escape(line.slice(2))}</p>`;
+        return `<p class="text-slate-300 mb-1"><span class="text-teal-400">•</span> ${formatInline(line.slice(2))}</p>`;
       }
       if (line.trim() === '') return '<div class="h-2"></div>';
-      return `<p class="text-slate-300 mb-1">${escape(line)}</p>`;
+      return `<p class="text-slate-300 mb-1">${formatInline(line)}</p>`;
     })
     .join('');
 };
 
 const extractHtml = (raw: string): string => {
-  const match = raw.match(/```html\s*([\s\S]*?)```/i);
-  if (match?.[1]) return match[1].trim();
-  const idx = raw.indexOf('<!DOCTYPE');
-  if (idx >= 0) return raw.slice(idx).trim();
-  return raw.trim();
+  const source = String(raw || '');
+  const fencedBlocks = Array.from(source.matchAll(/```(?:html)?\s*([\s\S]*?)```/gi))
+    .map((m) => String(m[1] || '').trim())
+    .filter(Boolean);
+
+  if (fencedBlocks.length > 0) {
+    const preferred = fencedBlocks.find((block) => /<!doctype html|<html[\s>]|<body[\s>]/i.test(block));
+    if (preferred) return preferred;
+    return fencedBlocks.sort((a, b) => b.length - a.length)[0];
+  }
+
+  const htmlStart = source.match(/<!doctype html|<html[\s>]/i);
+  if (htmlStart?.index !== undefined) {
+    return source.slice(htmlStart.index).trim();
+  }
+
+  return source.trim();
+};
+
+const sanitizeLandingHtml = (raw: string): string => {
+  return extractHtml(raw)
+    .replace(/^```(?:html)?\s*/i, '')
+    .replace(/```\s*$/i, '')
+    .trim();
+};
+
+const isLandingHtmlIncomplete = (html: string): boolean => {
+  if (!html) return true;
+  const hasDoctype = /<!doctype html>/i.test(html);
+  const hasHtmlOpen = /<html[\s>]/i.test(html);
+  const hasHtmlClose = /<\/html>/i.test(html);
+  const hasBodyOpen = /<body[\s>]/i.test(html);
+  const hasBodyClose = /<\/body>/i.test(html);
+  const hasUnclosedStyle = /<style[^>]*>/i.test(html) && !/<\/style>/i.test(html);
+  const hasRenderableContent = /<(section|main|article|h1|h2|p|div|button|a)[\s>]/i.test(html);
+  return !hasDoctype || !hasHtmlOpen || !hasHtmlClose || !hasBodyOpen || !hasBodyClose || hasUnclosedStyle || !hasRenderableContent;
 };
 
 const toFile = (content: string, name: string, mimeType: string): File => {
@@ -133,6 +171,8 @@ const ProfileB2BView: React.FC = () => {
   const [notebookDescription, setNotebookDescription] = useState('');
   const [saveNotebookLoading, setSaveNotebookLoading] = useState(false);
   const [saveNotebookMessage, setSaveNotebookMessage] = useState('');
+
+  const safeLandingHtml = useMemo(() => sanitizeLandingHtml(landingHtml), [landingHtml]);
 
   const buildRecordFromState = (
     overrides: Partial<{
@@ -340,8 +380,9 @@ const ProfileB2BView: React.FC = () => {
     loadProgress();
   }, [product?.id, isOwner]);
 
-  const callAi = async (system: string, userPrompt: string): Promise<string> => {
+  const callAi = async (system: string, userPrompt: string, options?: { maxTokens?: number }): Promise<string> => {
     if (!product?.id) throw new Error(tr.productMissing || 'Producto no disponible.');
+    const maxTokens = Number(options?.maxTokens || 4000);
 
     const toErrorMessage = (err: unknown): string => {
       if (err instanceof Error && err.message) return err.message;
@@ -361,7 +402,7 @@ const ProfileB2BView: React.FC = () => {
         const generated = await httpClient.post<{ text?: string; content?: string }>('/api/v1/gemini/generate', {
           prompt,
           options: {
-            maxTokens: 4000,
+            maxTokens,
             temperature: 0.2,
           },
         });
@@ -385,7 +426,7 @@ const ProfileB2BView: React.FC = () => {
         product_id: product.id,
         system,
         messages: [{ role: 'user', content: userPrompt }],
-        max_tokens: 4000,
+        max_tokens: maxTokens,
       }),
     });
 
@@ -495,10 +536,33 @@ const ProfileB2BView: React.FC = () => {
 
       setStep('landing');
       const landing = await callAi(
-        `Eres un disenador web experto. Genera HTML completo de landing B2B personalizada.\n\nREGLAS:\n- HTML completo con DOCTYPE\n- CSS en style\n- Responsive\n- Paleta dark + acentos teal/coral\n- Secciones: Hero, 3 cards servicio, beneficios, CTA\n- CTA: Agendar 15 min\n- Footer: Propuesta generada por AI Maker Fablab`,
-        `Genera landing con:\n\nRAG Persona:\n${persona}\n\nServicios recomendados:\n${matching}`
+        `Eres un senior web designer + copywriter B2B. Debes devolver SOLO HTML completo (sin markdown), profesional y elegante, siguiendo una estetica muy cercana a un dashboard dark premium.\n\nREQUISITOS ESTRICTOS DE SALIDA:\n- Responder solo con HTML completo y valido: <!DOCTYPE html> + <html> + <head> + <body>\n- Incluir CSS dentro de <style>\n- NO usar JavaScript\n- Responsive real (desktop + mobile)\n- Mantener el HTML en un rango moderado (aprox 180-300 lineas) para evitar truncamientos\n\nGUIA VISUAL (obligatoria):\n- Tipografia: usar Google Fonts Inter (principal) y JetBrains Mono (detalles tecnicos)\n- Paleta tipo AI Maker: fondo #060a13 / #0b1120, tarjetas #111827, acentos teal #0d9488 y coral #f97066\n- Bordes suaves, sombras ligeras, contraste alto, aspecto moderno y limpio\n- Animaciones CSS sutiles (fade-up, pulse suave) para dinamismo\n- Definir variables CSS en :root con estos nombres: --bg-deep, --bg-base, --bg-card, --border, --teal, --coral, --text-primary, --text-secondary\n- Reforzar bloques visuales en este orden: hero destacado, cards con badge de relevancia, bloque de beneficios, CTA final\n\nESTRUCTURA OBLIGATORIA DE LA LANDING:\n1) Hero personalizado con nombre/empresa y su desafio principal\n2) Bloque breve de contexto del prospecto (insights clave del analisis)\n3) Grid de 3 servicios recomendados (card por servicio con: titulo, problema que resuelve, resultado esperado, badge de relevancia)\n4) Bloque de beneficios medibles (3-4 bullets claros y concretos)\n5) CTA principal visible: "Agendar 15 min"\n6) Footer: "Propuesta generada por AI Maker Fablab"\n\nREGLAS DE COPY:\n- Texto claro, profesional y accionable\n- Hablar especificamente de esta empresa/persona, sin frases genericas\n- Evitar exageraciones; mostrar propuesta realista\n\nIMPORTANTE:\n- Si falta algun dato, usar una formulacion neutra y profesional, pero nunca dejar secciones vacias\n- No devolver explicaciones fuera del HTML`,
+        `Genera una landing B2B personalizada usando estos insumos:\n\nOSINT:\n${osint}\n\nRAG Persona:\n${persona}\n\nServicios recomendados:\n${matching}`,
+        { maxTokens: 7000 }
       );
-      const html = extractHtml(landing);
+      let html = sanitizeLandingHtml(landing);
+
+      if (isLandingHtmlIncomplete(html)) {
+        try {
+          const repairedLanding = await callAi(
+            `Eres un desarrollador frontend senior. Debes reparar y completar un HTML de landing B2B incompleto manteniendo la misma direccion visual dark/teal/coral.\n\nREGLAS OBLIGATORIAS:\n- Responde SOLO con HTML completo y valido\n- Debe empezar con <!DOCTYPE html>\n- Debe incluir <html>, <head>, <body>, y todos los cierres\n- Sin markdown y sin explicaciones fuera del HTML\n- Mantener enfoque profesional, limpio y moderno`,
+            `Repara y completa este HTML para que quede totalmente funcional y visualmente consistente:\n\n${html}\n\nContexto del prospecto:\n${persona}\n\nServicios:\n${matching}`,
+            { maxTokens: 7000 }
+          );
+
+          const repaired = sanitizeLandingHtml(repairedLanding);
+          if (repaired && !isLandingHtmlIncomplete(repaired)) {
+            html = repaired;
+          }
+        } catch (repairErr) {
+          console.warn('[ProfileB2BView] landing repair failed, keeping first HTML', repairErr);
+        }
+      }
+
+      if (isLandingHtmlIncomplete(html)) {
+        throw new Error(tr.aiLandingIncomplete || 'La IA devolvio un HTML incompleto para la landing. Reintenta la ejecucion.');
+      }
+
       setLandingHtml(html);
       setActiveTab('landing');
       await persistB2BRecord(buildRecordFromState({
@@ -579,8 +643,8 @@ const ProfileB2BView: React.FC = () => {
   };
 
   const handleDownloadHtml = () => {
-    if (!landingHtml) return;
-    const blob = new Blob([landingHtml], { type: 'text/html;charset=utf-8' });
+    if (!safeLandingHtml) return;
+    const blob = new Blob([safeLandingHtml], { type: 'text/html;charset=utf-8' });
     const href = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = href;
@@ -590,11 +654,15 @@ const ProfileB2BView: React.FC = () => {
   };
 
   const openInNewTab = () => {
-    if (!landingHtml) return;
-    const w = window.open('', '_blank', 'noopener,noreferrer');
-    if (!w) return;
-    w.document.write(landingHtml);
-    w.document.close();
+    if (!safeLandingHtml) return;
+    const blob = new Blob([safeLandingHtml], { type: 'text/html;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const w = window.open(url, '_blank');
+    if (!w) {
+      URL.revokeObjectURL(url);
+      return;
+    }
+    window.setTimeout(() => URL.revokeObjectURL(url), 60000);
   };
 
   const buildNotebookPayload = (): string => {
@@ -616,7 +684,7 @@ const ProfileB2BView: React.FC = () => {
       '',
       '## Landing HTML',
       '```html',
-      landingHtml || '',
+      safeLandingHtml || '',
       '```',
       '',
       emailData
@@ -634,7 +702,7 @@ const ProfileB2BView: React.FC = () => {
       return;
     }
 
-    if (!landingHtml) {
+    if (!safeLandingHtml) {
       setSaveNotebookMessage(tr.notebookNoContent || 'Primero ejecuta el pipeline para generar contenido.');
       return;
     }
@@ -670,12 +738,12 @@ const ProfileB2BView: React.FC = () => {
           module: 'profile_b2b_matching',
         },
         {
-          file: toFile(landingHtml || 'Sin codigo HTML generado.', `profile-b2b-landing-code-${now}.txt`, 'text/plain;charset=utf-8'),
+          file: toFile(safeLandingHtml || 'Sin codigo HTML generado.', `profile-b2b-landing-code-${now}.txt`, 'text/plain;charset=utf-8'),
           type: 'TEXT',
           module: 'profile_b2b_landing_code',
         },
         {
-          file: toFile(landingHtml || '<!DOCTYPE html><html><body><h1>Sin landing generada</h1></body></html>', `profile-b2b-landing-page-${now}.html`, 'text/html;charset=utf-8'),
+          file: toFile(safeLandingHtml || '<!DOCTYPE html><html><body><h1>Sin landing generada</h1></body></html>', `profile-b2b-landing-page-${now}.html`, 'text/html;charset=utf-8'),
           type: 'HTML',
           module: 'profile_b2b_landing_page',
         },
@@ -742,7 +810,7 @@ const ProfileB2BView: React.FC = () => {
   }
 
   const readOnly = !isOwner;
-  const canShowFinalTabs = step === 'landing' && !!landingHtml;
+  const canShowFinalTabs = step === 'landing' && !!safeLandingHtml;
 
   return (
     <div className="min-h-screen bg-[#060a13] text-slate-100 p-6">
@@ -926,12 +994,12 @@ const ProfileB2BView: React.FC = () => {
               <>
                 <div className="flex flex-wrap gap-2">
                   <button onClick={handleDownloadHtml} className="rounded border border-slate-600 px-3 py-1.5 text-xs text-slate-200">{tr.downloadHtml || 'Descargar HTML'}</button>
-                  <button onClick={() => handleCopy(landingHtml)} className="inline-flex items-center gap-1 rounded border border-slate-600 px-3 py-1.5 text-xs text-slate-200">
+                  <button onClick={() => handleCopy(safeLandingHtml)} className="inline-flex items-center gap-1 rounded border border-slate-600 px-3 py-1.5 text-xs text-slate-200">
                     {copied ? <Check size={12} /> : <Copy size={12} />} {copied ? (tr.copied || 'Copiado') : (tr.copyCode || 'Copiar codigo')}
                   </button>
                   <button onClick={openInNewTab} className="rounded border border-slate-600 px-3 py-1.5 text-xs text-slate-200">{tr.openNewTab || 'Abrir en nueva pestana'}</button>
                 </div>
-                <iframe title="landing-preview" srcDoc={landingHtml} className="w-full h-[680px] rounded border border-slate-700 bg-white" />
+                <iframe title="landing-preview" srcDoc={safeLandingHtml} className="w-full h-[680px] rounded border border-slate-700 bg-white" />
               </>
             )}
 
@@ -948,7 +1016,7 @@ const ProfileB2BView: React.FC = () => {
             )}
 
             {activeTab === 'code' && (
-              <pre className="rounded border border-slate-700 bg-slate-900 p-4 text-xs text-slate-300 overflow-auto max-h-[560px]">{landingHtml}</pre>
+              <pre className="rounded border border-slate-700 bg-slate-900 p-4 text-xs text-slate-300 overflow-auto max-h-[560px]">{safeLandingHtml}</pre>
             )}
 
             {activeTab === 'email' && (
