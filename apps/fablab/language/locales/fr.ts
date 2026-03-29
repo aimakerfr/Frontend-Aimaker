@@ -1804,6 +1804,7 @@ export const fr: Translations = {
     catalogLabel: 'Catalogue de services',
     showCatalogEditor: 'Personnaliser le catalogue de services',
     hideCatalogEditor: 'Masquer le catalogue de services',
+    resetToStepOne: 'Retour à l\'étape 1',
     needEmailOrUrl: 'Entrez au moins un email ou une URL.',
     running: 'Exécution du pipeline...',
     runPipeline: 'Lancer le pipeline de profilage',
