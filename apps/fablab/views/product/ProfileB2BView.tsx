@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, BookOpen, Check, Copy, Globe, Loader2, Lock } from 'lucide-react';
 import { createObject, copyObjectToRag } from '@core/objects';
 import { createProductFromTemplate, getOrCreateProductByType, getProduct, getPublicProduct, type Product } from '@core/products';
-import { updateProductStepProgress } from '@core/product-step-progress';
+import { getProductStepProgress, updateProductStepProgress } from '@core/product-step-progress';
 import { tokenStorage } from '@core/api/http.client';
 import { useLanguage } from '../../language/useLanguage';
 
@@ -20,12 +20,23 @@ const DEFAULT_CATALOG = `Catalogo de servicios AI Maker Fablab:
 7. RAG Multimodal — Sistema de busqueda inteligente sobre documentos e imagenes.
 8. Audit IA & Strategie — Diagnostico de madurez IA + roadmap de implementacion.`;
 
-const STEP_IDS = {
-  profiling: 11,
-  persona: 12,
-  matching: 13,
-  landing: 14,
-  email: 15,
+const B2B_PROGRESS_STEP_ID = 11;
+
+type B2BProgressRecord = {
+  input: {
+    email: string;
+    url: string;
+    catalog: string;
+  };
+  outputs: {
+    osint: string;
+    persona: string;
+    matching: string;
+    landingHtml: string;
+    email: string;
+  };
+  lastCompletedStep: PipelineStep;
+  updatedAt: string;
 };
 
 const renderMarkdown = (text: string): string => {
@@ -66,7 +77,27 @@ const toFile = (content: string, name: string, mimeType: string): File => {
 
 const resolveAiEndpoint = (): string => {
   const apiBase = String((import.meta as any)?.env?.VITE_API_URL || '').replace(/\/+$/, '');
-  return apiBase ? `${apiBase}/api/ai` : '/api/ai';
+  if (!apiBase) return '/api/ai';
+  if (apiBase.endsWith('/api')) return `${apiBase}/ai`;
+  return `${apiBase}/api/ai`;
+};
+
+const inferStepFromOutputs = (outputs: B2BProgressRecord['outputs']): PipelineStep => {
+  if (outputs.landingHtml) return 'landing';
+  if (outputs.matching) return 'matching';
+  if (outputs.persona) return 'persona';
+  if (outputs.osint) return 'profiling';
+  return 'input';
+};
+
+const parseLegacyInput = (rawInput: unknown): { email: string; url: string } => {
+  if (typeof rawInput !== 'string') return { email: '', url: '' };
+  const emailMatch = rawInput.match(/Email:\s*(.+)/i);
+  const urlMatch = rawInput.match(/URL:\s*(.+)/i);
+  return {
+    email: emailMatch?.[1]?.trim() || '',
+    url: urlMatch?.[1]?.trim() || '',
+  };
 };
 
 const ProfileB2BView: React.FC = () => {
@@ -102,6 +133,39 @@ const ProfileB2BView: React.FC = () => {
   const [notebookDescription, setNotebookDescription] = useState('');
   const [saveNotebookLoading, setSaveNotebookLoading] = useState(false);
   const [saveNotebookMessage, setSaveNotebookMessage] = useState('');
+
+  const buildRecordFromState = (
+    overrides: Partial<{
+      email: string;
+      url: string;
+      catalog: string;
+      osint: string;
+      persona: string;
+      matching: string;
+      landingHtml: string;
+      emailOutput: string;
+      lastCompletedStep: PipelineStep;
+    }> = {}
+  ): B2BProgressRecord => {
+    const outputs = {
+      osint: overrides.osint ?? profileData,
+      persona: overrides.persona ?? personaData,
+      matching: overrides.matching ?? matchingData,
+      landingHtml: overrides.landingHtml ?? landingHtml,
+      email: overrides.emailOutput ?? emailData,
+    };
+
+    return {
+      input: {
+        email: overrides.email ?? email,
+        url: overrides.url ?? url,
+        catalog: overrides.catalog ?? catalog,
+      },
+      outputs,
+      lastCompletedStep: overrides.lastCompletedStep ?? inferStepFromOutputs(outputs),
+      updatedAt: new Date().toISOString(),
+    };
+  };
 
   const progressSteps = useMemo(
     () => [
@@ -155,15 +219,126 @@ const ProfileB2BView: React.FC = () => {
     load();
   }, [id, isAuthenticated, t]);
 
-  const persistStep = async (stepId: number, resultText: Record<string, unknown>) => {
+  const persistB2BRecord = async (record: B2BProgressRecord) => {
     if (!product?.id || !isOwner) return;
     await updateProductStepProgress({
       productId: product.id,
-      stepId,
+      stepId: B2B_PROGRESS_STEP_ID,
       status: 'success',
-      resultText,
+      resultText: record,
     });
   };
+
+  useEffect(() => {
+    const loadProgress = async () => {
+      if (!product?.id || !isOwner) return;
+
+      try {
+        const allProgress = await getProductStepProgress(product.id);
+        if (!Array.isArray(allProgress) || allProgress.length === 0) return;
+
+        const byStep = new Map(allProgress.map((item) => [Number(item.stepId), item]));
+        const main = byStep.get(B2B_PROGRESS_STEP_ID);
+
+        const current = main?.resultText as any;
+        const isCurrentFormat =
+          current &&
+          typeof current === 'object' &&
+          current.input &&
+          typeof current.input === 'object' &&
+          current.outputs &&
+          typeof current.outputs === 'object';
+
+        let record: B2BProgressRecord | null = null;
+        let needsMigration = false;
+
+        if (isCurrentFormat) {
+          const outputBlock = current.outputs as Record<string, unknown>;
+          record = {
+            input: {
+              email: String(current.input?.email || ''),
+              url: String(current.input?.url || ''),
+              catalog: String(current.input?.catalog || DEFAULT_CATALOG),
+            },
+            outputs: {
+              osint: String(outputBlock.osint || ''),
+              persona: String(outputBlock.persona || ''),
+              matching: String(outputBlock.matching || ''),
+              landingHtml: String(outputBlock.landingHtml || ''),
+              email: String(outputBlock.email || ''),
+            },
+            lastCompletedStep: inferStepFromOutputs({
+              osint: String(outputBlock.osint || ''),
+              persona: String(outputBlock.persona || ''),
+              matching: String(outputBlock.matching || ''),
+              landingHtml: String(outputBlock.landingHtml || ''),
+              email: String(outputBlock.email || ''),
+            }),
+            updatedAt: String(current.updatedAt || new Date().toISOString()),
+          };
+        } else {
+          const legacy11 = byStep.get(11)?.resultText as any;
+          const legacy12 = byStep.get(12)?.resultText as any;
+          const legacy13 = byStep.get(13)?.resultText as any;
+          const legacy14 = byStep.get(14)?.resultText as any;
+          const legacy15 = byStep.get(15)?.resultText as any;
+
+          const parsedLegacyInput = parseLegacyInput(legacy11?.input);
+          const legacyLandingOutput = String(legacy14?.output || '');
+
+          const outputs = {
+            osint: String(legacy11?.output || ''),
+            persona: String(legacy12?.output || ''),
+            matching: String(legacy13?.output || ''),
+            landingHtml: String(legacy14?.html || extractHtml(legacyLandingOutput || '')),
+            email: String(legacy15?.output || ''),
+          };
+
+          const hasLegacyData = Boolean(outputs.osint || outputs.persona || outputs.matching || outputs.landingHtml || outputs.email);
+          if (hasLegacyData) {
+            record = {
+              input: {
+                email: parsedLegacyInput.email,
+                url: parsedLegacyInput.url,
+                catalog: String(legacy13?.catalog || DEFAULT_CATALOG),
+              },
+              outputs,
+              lastCompletedStep: inferStepFromOutputs(outputs),
+              updatedAt: new Date().toISOString(),
+            };
+            needsMigration = true;
+          }
+        }
+
+        if (!record) return;
+
+        setEmail(record.input.email || '');
+        setUrl(record.input.url || '');
+        setCatalog(record.input.catalog || DEFAULT_CATALOG);
+
+        setProfileData(record.outputs.osint || '');
+        setPersonaData(record.outputs.persona || '');
+        setMatchingData(record.outputs.matching || '');
+        setLandingHtml(record.outputs.landingHtml || '');
+        setEmailData(record.outputs.email || '');
+
+        const recoveredStep = inferStepFromOutputs(record.outputs);
+        setStep(recoveredStep);
+
+        if (record.outputs.landingHtml) {
+          setActiveTab('landing');
+        }
+
+        if (needsMigration) {
+          await persistB2BRecord(record);
+        }
+      } catch (err) {
+        console.error('[ProfileB2BView] error loading persisted progress', err);
+      }
+    };
+
+    loadProgress();
+  }, [product?.id, isOwner]);
 
   const callAi = async (system: string, userPrompt: string): Promise<string> => {
     if (!product?.id) throw new Error(tr.productMissing || 'Producto no disponible.');
@@ -215,6 +390,12 @@ const ProfileB2BView: React.FC = () => {
     setRunning(true);
     setSaveNotebookMessage('');
 
+    setProfileData('');
+    setPersonaData('');
+    setMatchingData('');
+    setLandingHtml('');
+    setEmailData('');
+
     const input = [email ? `Email: ${email}` : '', url ? `URL: ${url}` : ''].filter(Boolean).join('\n');
 
     try {
@@ -224,7 +405,14 @@ const ProfileB2BView: React.FC = () => {
         `Investiga este prospecto B2B:\n${input}\n\nBusca informacion real y publica, y cita evidencias.`
       );
       setProfileData(osint);
-      await persistStep(STEP_IDS.profiling, { input, output: osint });
+      await persistB2BRecord(buildRecordFromState({
+        osint,
+        persona: '',
+        matching: '',
+        landingHtml: '',
+        emailOutput: '',
+        lastCompletedStep: 'profiling',
+      }));
 
       setStep('persona');
       const persona = await callAi(
@@ -232,7 +420,14 @@ const ProfileB2BView: React.FC = () => {
         `Genera el RAG Persona a partir de:\n\n${osint}`
       );
       setPersonaData(persona);
-      await persistStep(STEP_IDS.persona, { output: persona });
+      await persistB2BRecord(buildRecordFromState({
+        osint,
+        persona,
+        matching: '',
+        landingHtml: '',
+        emailOutput: '',
+        lastCompletedStep: 'persona',
+      }));
 
       setStep('matching');
       const matching = await callAi(
@@ -240,7 +435,14 @@ const ProfileB2BView: React.FC = () => {
         `RAG Persona:\n${persona}\n\nCatalogo:\n${catalog}\n\nGenera matching de 3 servicios relevantes.`
       );
       setMatchingData(matching);
-      await persistStep(STEP_IDS.matching, { catalog, output: matching });
+      await persistB2BRecord(buildRecordFromState({
+        osint,
+        persona,
+        matching,
+        landingHtml: '',
+        emailOutput: '',
+        lastCompletedStep: 'matching',
+      }));
 
       setStep('landing');
       const landing = await callAi(
@@ -250,13 +452,51 @@ const ProfileB2BView: React.FC = () => {
       const html = extractHtml(landing);
       setLandingHtml(html);
       setActiveTab('landing');
-      await persistStep(STEP_IDS.landing, { output: landing, html });
+      await persistB2BRecord(buildRecordFromState({
+        osint,
+        persona,
+        matching,
+        landingHtml: html,
+        emailOutput: '',
+        lastCompletedStep: 'landing',
+      }));
     } catch (e) {
       const msg = e instanceof Error ? e.message : tr.pipelineError || 'Error ejecutando el pipeline.';
       setError(msg);
       setStep('input');
     } finally {
       setRunning(false);
+    }
+  };
+
+  const handleResetToStepOne = async () => {
+    if (running) return;
+
+    setError('');
+    setStep('input');
+    setActiveTab('landing');
+    setProfileData('');
+    setPersonaData('');
+    setMatchingData('');
+    setLandingHtml('');
+    setEmailData('');
+    setSaveNotebookMessage('');
+
+    if (isOwner && product?.id) {
+      try {
+        await persistB2BRecord(
+          buildRecordFromState({
+            osint: '',
+            persona: '',
+            matching: '',
+            landingHtml: '',
+            emailOutput: '',
+            lastCompletedStep: 'input',
+          })
+        );
+      } catch (err) {
+        console.error('[ProfileB2BView] reset persistence error', err);
+      }
     }
   };
 
@@ -268,7 +508,16 @@ const ProfileB2BView: React.FC = () => {
         `RAG Persona:\n${personaData}\n\nMatching:\n${matchingData}`
       );
       setEmailData(out);
-      await persistStep(STEP_IDS.email, { output: out });
+      await persistB2BRecord(buildRecordFromState({
+        emailOutput: out,
+        lastCompletedStep: inferStepFromOutputs({
+          osint: profileData,
+          persona: personaData,
+          matching: matchingData,
+          landingHtml,
+          email: out,
+        }),
+      }));
     } catch (e) {
       setError(e instanceof Error ? e.message : tr.emailError || 'No se pudo generar email.');
     }
@@ -498,6 +747,19 @@ const ProfileB2BView: React.FC = () => {
               </React.Fragment>
             ))}
           </div>
+
+          {!readOnly && step !== 'input' && (
+            <div className="mt-3 flex justify-end">
+              <button
+                type="button"
+                onClick={handleResetToStepOne}
+                disabled={running}
+                className="rounded border border-slate-600 px-3 py-1.5 text-xs text-slate-300 hover:bg-slate-800 disabled:opacity-50"
+              >
+                {tr.resetToStepOne || 'Volver al paso 1'}
+              </button>
+            </div>
+          )}
         </div>
 
         {step === 'input' && (
