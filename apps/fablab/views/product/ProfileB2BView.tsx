@@ -4,7 +4,7 @@ import { ArrowLeft, BookOpen, Check, Copy, Globe, Loader2, Lock } from 'lucide-r
 import { createObject, copyObjectToRag } from '@core/objects';
 import { createProductFromTemplate, getOrCreateProductByType, getProduct, getPublicProduct, type Product } from '@core/products';
 import { getProductStepProgress, updateProductStepProgress } from '@core/product-step-progress';
-import { tokenStorage } from '@core/api/http.client';
+import { httpClient, tokenStorage } from '@core/api/http.client';
 import { useLanguage } from '../../language/useLanguage';
 
 type PipelineStep = 'input' | 'profiling' | 'persona' | 'matching' | 'landing';
@@ -343,6 +343,40 @@ const ProfileB2BView: React.FC = () => {
   const callAi = async (system: string, userPrompt: string): Promise<string> => {
     if (!product?.id) throw new Error(tr.productMissing || 'Producto no disponible.');
 
+    const toErrorMessage = (err: unknown): string => {
+      if (err instanceof Error && err.message) return err.message;
+      return String(err || 'unknown_error');
+    };
+
+    const callGeminiGenerateFallback = async (reason: string): Promise<string> => {
+      try {
+        const prompt = [
+          'SYSTEM INSTRUCTIONS:',
+          system,
+          '',
+          'USER REQUEST:',
+          userPrompt,
+        ].join('\n');
+
+        const generated = await httpClient.post<{ text?: string; content?: string }>('/api/v1/gemini/generate', {
+          prompt,
+          options: {
+            maxTokens: 4000,
+            temperature: 0.2,
+          },
+        });
+
+        const text = String(generated?.text || generated?.content || '').trim();
+        if (!text) {
+          throw new Error('Gemini fallback devolvio contenido vacio');
+        }
+
+        return text;
+      } catch (err) {
+        throw new Error(`IA fallback error (${reason}): ${toErrorMessage(err)}`);
+      }
+    };
+
     const response = await fetch(resolveAiEndpoint(), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -355,6 +389,7 @@ const ProfileB2BView: React.FC = () => {
       }),
     });
 
+    const contentType = String(response.headers.get('content-type') || '').toLowerCase();
     const raw = await response.text();
     let data: any = null;
 
@@ -364,19 +399,33 @@ const ProfileB2BView: React.FC = () => {
       data = null;
     }
 
+    if (contentType.includes('text/html')) {
+      return callGeminiGenerateFallback(`proxy_html_status_${response.status}`);
+    }
+
     if (!data) {
       const looksLikeHtml = raw.trim().startsWith('<!doctype') || raw.trim().startsWith('<html') || raw.trim().startsWith('<');
       if (looksLikeHtml) {
-        throw new Error(tr.aiError || 'El endpoint de IA devolvio HTML en lugar de JSON. Verifica VITE_API_URL en produccion.');
+        return callGeminiGenerateFallback(`proxy_non_json_html_status_${response.status}`);
       }
-      throw new Error(tr.aiError || 'Respuesta no valida del servicio de IA.');
+      return callGeminiGenerateFallback(`proxy_non_json_status_${response.status}`);
     }
 
     if (!response.ok || !data.ok) {
-      throw new Error(data.error || tr.aiError || 'Error al procesar IA.');
+      const proxyError = String(data?.error || `proxy_http_${response.status}`);
+      try {
+        return await callGeminiGenerateFallback(`proxy_error_${proxyError}`);
+      } catch (fallbackErr) {
+        throw new Error(`Proxy error: ${proxyError} | ${toErrorMessage(fallbackErr)}`);
+      }
     }
 
-    return String(data.text || '').trim();
+    const finalText = String(data.text || '').trim();
+    if (!finalText) {
+      return callGeminiGenerateFallback(`proxy_empty_text_status_${response.status}`);
+    }
+
+    return finalText;
   };
 
   const startPipeline = async () => {
