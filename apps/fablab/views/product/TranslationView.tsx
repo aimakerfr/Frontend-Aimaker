@@ -607,7 +607,7 @@ export const TranslationView: React.FC = () => {
         {/* Header */}
         <div className="mb-8">
           <button
-            onClick={() => navigate('/dashboard/products')}
+            onClick={() => navigate('/dashboard/context')}
             className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors mb-4"
           >
             <ArrowLeft size={16} />{tr?.['text_14'] ?? (tr?.['text_14'] ?? 'Volver a productos')}</button>

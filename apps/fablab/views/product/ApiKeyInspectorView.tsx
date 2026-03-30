@@ -1208,7 +1208,7 @@ const ApiKeyInspectorView: React.FC = () => {
               <div className="flex items-center gap-2 min-w-0">
                 {isOwner && (
                   <button
-                    onClick={() => navigate('/dashboard/products')}
+                    onClick={() => navigate('/dashboard/context')}
                     className="p-1.5 rounded border border-[#87c7bc] text-[#186f65] hover:bg-[#d6ebe6]"
                     title={t.apiKeyProductView?.backToProducts || 'Volver a productos'}
                   >
