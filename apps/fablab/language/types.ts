@@ -55,6 +55,18 @@ export interface Translations {
       tools: string;
     };
   };
+  projectBuilder: {
+    title: string;
+    subtitle: string;
+    deployExternalProject: string;
+    deployExternalProjectDesc: string;
+    assembleCustomProject: string;
+    assembleCustomProjectDesc: string;
+    useServerProducts: string;
+    useServerProductsDesc: string;
+    guidedCreationPath: string;
+    guidedCreationPathDesc: string;
+  };
   sidebar: {
     dashboard: string;
     myDashboard?: string;
@@ -66,6 +78,8 @@ export interface Translations {
     signOut: string;
     objectsLibrary: string;
     projects: string;
+    assembler: string;
+    projectBuilder: string;
   };
   library: {
     title: string;
@@ -351,6 +365,12 @@ export interface Translations {
     testWorkflow: string;
     changesAreSavedLocally: string;
     selectRagSource: string;
+    convertToProduct: string;
+    convertToProductSuccess: string;
+    convertToProductError: string;
+    convertingToProduct: string;
+    convertedToProductSuccess: string;
+    convertedToProductError: string;
     nodeTypes: {
       fetchData: string;
       inputPrompt: string;

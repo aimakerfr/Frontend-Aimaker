@@ -1,4 +1,6 @@
 import React, { useMemo } from 'react';
+import ProjectBuilderView from '../project/ProjectBuilderView';
+import CreationPathView from '../project/CreationPathView';
 import { Routes, Route, Link, useLocation } from 'react-router-dom';
 import Sidebar from '../../components/Sidebar';
 import Header from '../../components/Header';
@@ -162,6 +164,8 @@ const FabLabLayout: React.FC<Props> = ({
               <Route path="/context" element={<AIContext />} />
               <Route path="/maker-path" element={<MakerPathView />} />
               <Route path="/maker-path/:id" element={<ProjectPlanner />} />
+              <Route path="/project-builder" element={<ProjectBuilderView />} />
+              <Route path="/creation-path" element={<CreationPathView />} />
               <Route path="/maker-path/modules/:id" element={<PathCreationModules />} />
               <Route path="/assembler/notebook" element={<NotebookAssembler />} />
               <Route path="/assembler/landing_page" element={<LandingPageAssembler />} />

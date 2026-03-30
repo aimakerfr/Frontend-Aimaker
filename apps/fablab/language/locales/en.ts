@@ -41,6 +41,18 @@ export const en: Translations = {
         tools: 'External Access',
       }, 
     },
+    projectBuilder: {
+        title: 'What do you want to do today?',
+        subtitle: 'Select the path that best fits your needs to get started.',
+        deployExternalProject: 'Deploy an external project',
+        deployExternalProjectDesc: 'Deploy a project you have already created outside the platform.',
+        assembleCustomProject: 'Assemble your own project',
+        assembleCustomProjectDesc: 'Build a custom project by selecting the modules you need.',
+        useServerProducts: 'Use server products',
+        useServerProductsDesc: 'Explore and use solutions that are ready to use.',
+        guidedCreationPath: 'Guided creation path',
+        guidedCreationPathDesc: 'Follow a step-by-step path to help you create your project from scratch.',
+    },
     sidebar: {
       dashboard: 'Dashboard',
       myDashboard: 'My Dashboard',
@@ -51,7 +63,9 @@ export const en: Translations = {
       tools: 'External Access',
       signOut: 'Sign Out',
       objectsLibrary: 'Objects Library',
+      projects: 'Projects',
       assembler: 'Assembler',
+      projectBuilder: 'Project Builder',
     },
     library: {
       title: 'Library',
@@ -1340,6 +1354,8 @@ export const en: Translations = {
         noImageSubtitle: 'Complete the previous step to generate an image',
         errorDownload: 'Failed to download image',
       },
+      convertToProductSuccess: '',
+      convertToProductError: ''
     },
 
   assembler: {

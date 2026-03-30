@@ -41,6 +41,18 @@ export const fr: Translations = {
         tools: 'Accès Externe',
       },
     },
+      projectBuilder: {
+        title: 'Que voulez-vous faire aujourd\'hui ?',
+        subtitle: 'Sélectionnez le chemin qui correspond le mieux à vos besoins pour commencer.',
+        deployExternalProject: 'Déployer un projet externe',
+        deployExternalProjectDesc: 'Déployez un projet que vous avez déjà réalisé en dehors de la plateforme.',
+        assembleCustomProject: 'Assembler un projet personnalisé',
+        assembleCustomProjectDesc: 'Construisez un projet sur mesure en sélectionnant les modules dont vous avez besoin.',
+        useServerProducts: 'Utiliser les produits du serveur',
+        useServerProductsDesc: 'Explorez et utilisez des solutions déjà prêtes à l\'emploi.',
+        guidedCreationPath: 'Parcours de création guidée',
+        guidedCreationPathDesc: 'Suivez un parcours étape par étape pour vous aider à créer votre projet à partir de zéro.',
+      },
     sidebar: {
       dashboard: 'Dashboard',
       myDashboard: 'Mon Dashboard',
@@ -51,7 +63,9 @@ export const fr: Translations = {
       tools: 'Accès Externe',
       signOut: 'Déconnexion',
       objectsLibrary: 'Bibliothèque d\'Objets',
+      projects: 'Projets',
       assembler: 'Assembleur',
+      projectBuilder: 'Créateur de projets',
     },
     library: {
       title: 'Bibliothèque',
@@ -1339,6 +1353,8 @@ export const fr: Translations = {
         noImageSubtitle: 'Complétez l\'étape précédente pour générer une image',
         errorDownload: 'Échec du téléchargement de l\'image',
       },
+      convertToProductSuccess: '',
+      convertToProductError: ''
     },
 
   assembler: {
