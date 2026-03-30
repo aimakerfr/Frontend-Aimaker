@@ -51,7 +51,7 @@ export const fr: Translations = {
       tools: 'Accès Externe',
       signOut: 'Déconnexion',
       objectsLibrary: 'Bibliothèque d\'Objets',
-      projects: 'Projets',
+      assembler: 'Assembleur',
     },
     library: {
       title: 'Bibliothèque',

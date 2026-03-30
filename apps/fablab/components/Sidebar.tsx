@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Server, ExternalLink, LogOut, Route, Boxes, Package, LayoutDashboard, Rocket } from 'lucide-react';
+import { Server, ExternalLink, LogOut, Boxes, Package, LayoutDashboard, Rocket, Blocks } from 'lucide-react';
 import { useLanguage } from '../language/useLanguage';
 
 interface SidebarProps {
@@ -18,7 +18,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onLogout }) => {
     { path: '/dashboard/objects-library', label: t.sidebar.objectsLibrary, icon: <Boxes size={20} /> },
     // Library section labeled as RAGs
     // Rename "Chemin du Maker" to "Projects" and place it in 4th position
-    { path: '/dashboard/maker-path', label: t.sidebar.projects, icon: <Route size={20} /> },
+    { path: '/dashboard/maker-path', label: t.sidebar.assembler, icon: <Blocks size={20} /> },
     // Applications Management - below Projects
     { 
       path: '/dashboard/applications', 
