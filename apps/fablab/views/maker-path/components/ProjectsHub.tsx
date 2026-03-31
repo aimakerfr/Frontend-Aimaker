@@ -1,14 +1,12 @@
 import React from 'react';
-import { ArrowRight, Rocket, Box } from 'lucide-react';
+import { ArrowRight, Box } from 'lucide-react';
 import { useLanguage } from '../../../language/useLanguage';
 
 interface ProjectsHubProps {
-  onGoToDeploy: () => void;
   onGoToAssembly: () => void;
 }
 
 export const ProjectsHub: React.FC<ProjectsHubProps> = ({
-  onGoToDeploy,
   onGoToAssembly,
 }) => {
   const { t } = useLanguage();
@@ -23,33 +21,9 @@ export const ProjectsHub: React.FC<ProjectsHubProps> = ({
           <p className="text-gray-500 dark:text-gray-400 mt-1">{tr?.subtitle ?? 'Gestiona y crea tus flujos de trabajo'}</p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:max-w-md mx-auto gap-6">
 
-          {/* Caja 2: Desplegar proyecto */}
-          <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm p-6 flex flex-col gap-4">
-            <p className="text-sm font-semibold text-blue-600 dark:text-blue-400 text-center leading-snug">
-              {tr?.card2Question ?? '¿Ya tienes un proyecto y quieres desplegarlo?'}
-            </p>
-            <div className="flex-1 flex flex-col gap-3">
-              <div className="flex items-center gap-2">
-                <div className="p-2 bg-gray-100 dark:bg-gray-700 rounded-lg">
-                  <Rocket size={18} className="text-gray-600 dark:text-gray-400" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-gray-900 dark:text-white text-sm">{tr?.card2Title ?? 'Desplegar un proyecto'}</h3>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">{tr?.card2Desc ?? 'Conecta y despliega tu código existente.'}</p>
-                </div>
-              </div>
-            </div>
-            <button
-              onClick={onGoToDeploy}
-              className="w-full flex items-center justify-center gap-2 py-2.5 bg-gray-900 dark:bg-gray-700 hover:bg-gray-800 dark:hover:bg-gray-600 text-white font-semibold rounded-xl transition-colors text-sm"
-            >
-              {tr?.continueBtn ?? 'Continuar'} <ArrowRight size={16} />
-            </button>
-          </div>
-
-          {/* Caja 3: Ensamblador de objetos */}
+          {/* Caja 1: Ensamblador de objetos (Única caja ahora) */}
           <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm p-6 flex flex-col gap-4">
             <p className="text-sm font-semibold text-blue-600 dark:text-blue-400 text-center leading-snug">
               {tr?.card3Question ?? '¿Quieres crear tu proyecto con módulos de tu biblioteca de objetos?'}
