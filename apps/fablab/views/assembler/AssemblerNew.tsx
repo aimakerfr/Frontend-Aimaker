@@ -1,5 +1,6 @@
 import React, { useMemo, useState, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+// navigate is no longer used here but kept for potential future use if needed, removing it to fix lint.
+
 import { useLanguage } from '../../language/useLanguage';
 import { tokenStorage } from '@core/api/http.client';
 import { createAssemblerMakerPath } from './services/makerPath.service';
@@ -18,7 +19,7 @@ function getApiBase(): string {
 
 const AssemblerNew: React.FC = () => {
   const { t, language } = useLanguage();
-  const navigate = useNavigate();
+  // const navigate = useNavigate();
   const [title, setTitle] = useState<string>('');
   const [description, setDescription] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
@@ -242,16 +243,7 @@ const AssemblerNew: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-6 md:p-8">
       <div className="max-w-4xl mx-auto space-y-8">
-        <button
-          type="button"
-          onClick={() => navigate(-1)}
-          className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100"
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
-          {t?.notebook?.header?.back ?? 'Volver'}
-        </button>
-
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{tr.title ?? 'Nuevo proyecto'}</h1>
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white mt-2">{tr.title ?? 'Nuevo proyecto'}</h1>
 
         <div className="rounded-2xl border border-gray-200 bg-white p-4 text-xs text-gray-500 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-400">
           {tr.detectedTypeLabel ?? 'Tipo detectado'}:{' '}

@@ -172,7 +172,7 @@ export const es: Translations = {
         translationDesc: 'Procesa y traduce archivos con i18n en un único flujo.',
         styleTransferTitle: 'Estructura base CSS',
         styleTransferDesc: 'Ensambla módulos HTML, extrae automáticamente su estructura CSS y aplica cualquier estilo sobre esa base.',
-        apiKeyTitle: 'Inspector de API Keys',
+        apiKeyTitle: 'Chatbot con gestor de LLM',
         apiKeyDesc: 'Valida formato y conectividad de API keys por proveedor en un flujo guiado.',
         apiKeyHtmlTitle: 'Inyección de API key a HTML',
         apiKeyHtmlDesc: 'Guarda la API key por producto, usa un prompt guiado y despliega tu HTML conectado al proxy IA.',
