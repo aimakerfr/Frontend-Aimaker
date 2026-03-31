@@ -1,6 +1,4 @@
-import React, { useMemo, useState, useCallback } from 'react';
-// navigate is no longer used here but kept for potential future use if needed, removing it to fix lint.
-
+import React, { useMemo, useState, useCallback, useEffect } from 'react';
 import { useLanguage } from '../../language/useLanguage';
 import { tokenStorage } from '@core/api/http.client';
 import { createAssemblerMakerPath } from './services/makerPath.service';
@@ -9,6 +7,7 @@ import type { CanvasModule, LayoutEntry } from './components/drag-drop';
 import GenericObjectSelector from '@apps/fablab/modules/object-selector/View/Notebook/GenericObjectSelector';
 import type { ObjectItem } from '@apps/fablab/modules/object-selector/services/api_handler';
 import AssemblerModal from './components/AssemblerModal';
+import { useNavigate } from 'react-router-dom';
 
 type ProductType = 'notebook' | 'landing_page';
 
@@ -19,7 +18,7 @@ function getApiBase(): string {
 
 const AssemblerNew: React.FC = () => {
   const { t, language } = useLanguage();
-  // const navigate = useNavigate();
+  const navigate = useNavigate();
   const [title, setTitle] = useState<string>('');
   const [description, setDescription] = useState<string>('');
   const [protectedEnabled, setProtectedEnabled] = useState<boolean>(false);
@@ -649,7 +648,7 @@ const AssemblerNew: React.FC = () => {
               </div>
             )}
           </div>
-        </div>
+        
 
         <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm space-y-6">
           <div>
