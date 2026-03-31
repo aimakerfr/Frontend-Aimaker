@@ -2005,6 +2005,51 @@ export const en: Translations = {
     'text_78': 'Tip:',
     'text_79': 'Export an existing language file, translate it externally, and upload it here to add it to the project.',
   },
+  perplexitySearch: {
+    title: 'Perplexity Search',
+    subtitle: 'Investigate concepts, topics and data with clear and deep structuring.',
+    inDevTitle: 'In Development',
+    inDevDesc: 'This feature will be available soon.',
+    back: 'Back',
+    inputLabel: 'What topic do you want to investigate?',
+    inputPlaceholder: 'Write the topic, concept or question you want Perplexity to analyze in depth...',
+    clear: 'Clear',
+    searchButton: 'Search and Organize',
+    searching: 'Investigating and structuring...',
+    outputLabel: 'Summary or Research',
+    copied: 'Copied!',
+    copy: 'Copy',
+    errorEmpty: 'Write a topic to search.',
+    errorSearch: 'There was an error performing the search.'
+  },
+  promptOptimizer: {
+    title: 'Prompt Optimizer',
+    subtitle: 'Improve the structure, objective and detail of your prompts with AI',
+    back: 'Back',
+    publicProduct: 'Public',
+    privateProduct: 'Private',
+    copyUrl: 'Copy URL',
+    inputLabel: 'Your original prompt',
+    uploadFile: 'Upload file (.txt, .md)',
+    inputPlaceholder: 'Write your prompt here or upload a .txt / .md file...',
+    clear: 'Clear',
+    optimizing: 'Optimizing...',
+    optimizeButton: 'Optimize Prompt',
+    outputLabel: 'Optimized prompt',
+    copied: 'Copied!',
+    copy: 'Copy',
+    errorFileType: 'Only .txt or .md files are allowed',
+    errorEmpty: 'Write or upload a prompt first',
+    errorOptimize: 'Error optimizing the prompt',
+    notFound: 'Product not found'
+  },
+  creationPath: {
+    title: 'Creation-Path',
+    subtitle: 'Step by step guided creation path with AI assistance',
+    inDevTitle: 'In Development',
+    inDevDesc: 'This feature will be available soon. Creation-Path will guide you step by step in creating projects with AI assistance.',
+    back: 'Back'
+  }
 
 
 

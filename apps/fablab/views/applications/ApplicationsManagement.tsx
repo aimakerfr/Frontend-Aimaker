@@ -59,7 +59,6 @@ const ApplicationsManagement: React.FC = () => {
           </button>
         </div>
       </div>
-
       <div>
         <h1 className="text-2xl font-semibold mb-2">
           {(t as any)?.applicationsManagement?.title ?? 'Applications Management'}

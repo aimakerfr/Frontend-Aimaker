@@ -1994,6 +1994,51 @@ export const es: Translations = {
     'text_78': 'Tip:',
     'text_79': 'Exporta un archivo de idioma existente, tradúcelo externamente, y súbelo aquí para agregarlo al proyecto.',
   },
+  perplexitySearch: {
+    title: 'Búsqueda Perplexity',
+    subtitle: 'Investiga conceptos, temas y datos con una estructuración clara y profunda.',
+    inDevTitle: 'En Desarrollo',
+    inDevDesc: 'Esta funcionalidad estará disponible próximamente.',
+    back: 'Volver',
+    inputLabel: '¿Qué tema deseas investigar?',
+    inputPlaceholder: 'Escribe aquí el tema, concepto o pregunta que quieras que Perplexity analice a profundidad...',
+    clear: 'Limpiar',
+    searchButton: 'Buscar y Organizar',
+    searching: 'Investigando y estructurando...',
+    outputLabel: 'Resumen o Investigación',
+    copied: '¡Copiado!',
+    copy: 'Copiar',
+    errorEmpty: 'Escribe un tema para buscar.',
+    errorSearch: 'Hubo un error al realizar la búsqueda.'
+  },
+  promptOptimizer: {
+    title: 'Optimizador de Prompt',
+    subtitle: 'Mejora la estructura, objetivo y detalle de tus prompts con IA',
+    back: 'Volver',
+    publicProduct: 'Público',
+    privateProduct: 'Privado',
+    copyUrl: 'Copiar URL',
+    inputLabel: 'Tu prompt original',
+    uploadFile: 'Cargar archivo (.txt, .md)',
+    inputPlaceholder: 'Escribe tu prompt aquí o carga un archivo .txt / .md...',
+    clear: 'Limpiar',
+    optimizing: 'Optimizando...',
+    optimizeButton: 'Optimizar Prompt',
+    outputLabel: 'Prompt optimizado',
+    copied: '¡Copiado!',
+    copy: 'Copiar',
+    errorFileType: 'Solo se permiten archivos .txt o .md',
+    errorEmpty: 'Escribe o carga un prompt primero',
+    errorOptimize: 'Error al optimizar el prompt',
+    notFound: 'Producto no encontrado'
+  },
+  creationPath: {
+    title: 'Creation-Path',
+    subtitle: 'Ruta de creación guiada paso a paso con asistencia de IA',
+    inDevTitle: 'En Desarrollo',
+    inDevDesc: 'Esta funcionalidad estará disponible próximamente. Creation-Path te guiará paso a paso en la creación de proyectos con asistencia de IA.',
+    back: 'Volver'
+  }
 
 
 
