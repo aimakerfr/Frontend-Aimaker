@@ -360,7 +360,7 @@ const ApiKeyHtmlInjectionView: React.FC = () => {
             <div className="flex items-start gap-3">
               <button
                 type="button"
-                onClick={() => navigate('/dashboard/products')}
+                onClick={() => navigate('/dashboard/context')}
                 className="mt-0.5 inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700"
                 title={tr.backToProducts || 'Volver a productos'}
               >

@@ -110,4 +110,31 @@ export const ProfileB2BEntry = () => (
   />
 );
 
+export const PerplexitySearchEntry = () => (
+  <FixedProductEntry
+    type="perplexity_search"
+    route="perplexity-search"
+    title="Búsqueda Perplexity"
+    description="Búsqueda inteligente potenciada con Perplexity AI."
+  />
+);
+
+export const PromptOptimizerEntry = () => (
+  <FixedProductEntry
+    type="prompt_optimizer"
+    route="prompt-optimizer"
+    title="Optimizador de Prompt"
+    description="Optimiza tus prompts con IA para mejorar su estructura, objetivo y detalle."
+  />
+);
+
+export const CreationPathEntry = () => (
+  <FixedProductEntry
+    type="creation_path"
+    route="creation-path"
+    title="Creation-Path"
+    description="Ruta de creación guiada paso a paso con asistencia de IA."
+  />
+);
+
 export default FixedProductEntry;

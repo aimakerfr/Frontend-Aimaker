@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Server, ExternalLink, LogOut, Route, Boxes, Package, LayoutDashboard, Rocket } from 'lucide-react';
+import { Server, ExternalLink, LogOut, Boxes, Package, LayoutDashboard, Rocket, Blocks, Hammer } from 'lucide-react';
 import { useLanguage } from '../language/useLanguage';
 
 interface SidebarProps {
@@ -14,18 +14,15 @@ const Sidebar: React.FC<SidebarProps> = ({ onLogout }) => {
 
   const menuItems: { path: string; label: string; icon: React.ReactNode }[] = [
     { path: '/dashboard', label: t.sidebar.myDashboard ?? t.sidebar.dashboard, icon: <LayoutDashboard size={20} /> },
-    // Second position: Objects Library
     { path: '/dashboard/objects-library', label: t.sidebar.objectsLibrary, icon: <Boxes size={20} /> },
-    // Library section labeled as RAGs
-    // Rename "Chemin du Maker" to "Projects" and place it in 4th position
-    { path: '/dashboard/maker-path', label: t.sidebar.projects, icon: <Route size={20} /> },
-    // Applications Management - below Projects
+    { path: '/dashboard/project-builder', label: t.sidebar.projectBuilder, icon: <Hammer size={20} /> },
+    { path: '/dashboard/maker-path', label: t.sidebar.assembler, icon: <Blocks size={20} /> },
+    // Project Builder section
     { 
       path: '/dashboard/applications', 
       label: (t as any)?.applicationsManagement?.title ?? 'Applications Management', 
       icon: <Rocket size={20} /> 
     },
-    // Products section - NEW
     { path: '/dashboard/products', label: (t as any).products?.title ?? 'Products', icon: <Package size={20} /> },
     { path: '/dashboard/context', label: t.sidebar.context, icon: <Server size={20} /> },
     { path: '/dashboard/tools', label: t.sidebar.tools, icon: <ExternalLink size={20} /> },

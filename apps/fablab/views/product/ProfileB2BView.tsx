@@ -820,7 +820,7 @@ const ProfileB2BView: React.FC = () => {
             <div className="flex items-start gap-3">
               <button
                 type="button"
-                onClick={() => navigate('/dashboard/products')}
+                onClick={() => navigate('/dashboard/context')}
                 className="mt-0.5 inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-600 text-slate-300 hover:bg-slate-800"
               >
                 <ArrowLeft size={16} />

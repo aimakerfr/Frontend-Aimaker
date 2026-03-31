@@ -41,6 +41,18 @@ export const en: Translations = {
         tools: 'External Access',
       }, 
     },
+    projectBuilder: {
+        title: 'What do you want to do today?',
+        subtitle: 'Select the path that best fits your needs to get started.',
+        deployExternalProject: 'Deploy an external project',
+        deployExternalProjectDesc: 'Deploy a project you have already created outside the platform.',
+        assembleCustomProject: 'Assemble your own project',
+        assembleCustomProjectDesc: 'Build a custom project by selecting the modules you need.',
+        useServerProducts: 'Use server products',
+        useServerProductsDesc: 'Explore and use solutions that are ready to use.',
+        guidedCreationPath: 'Guided creation path',
+        guidedCreationPathDesc: 'Follow a step-by-step path to help you create your project from scratch.',
+    },
     sidebar: {
       dashboard: 'Dashboard',
       myDashboard: 'My Dashboard',
@@ -52,6 +64,8 @@ export const en: Translations = {
       signOut: 'Sign Out',
       objectsLibrary: 'Objects Library',
       projects: 'Projects',
+      assembler: 'Assembler',
+      projectBuilder: 'Project Builder',
     },
     library: {
       title: 'Library',
@@ -143,14 +157,14 @@ export const en: Translations = {
         deployed: 'Deployed',
       },
       fixed: {
-        sectionTitle: 'Fixed products',
-        badge: 'Fixed',
-        productLabel: 'Fixed product',
+        sectionTitle: 'Server products',
+        badge: 'Server',
+        productLabel: 'Server product',
         open: 'Open',
         alwaysActive: 'Always active',
         idLabel: 'ID',
         divider: 'Created products',
-        landingTitle: 'Fixed Landing Page',
+        landingTitle: 'Landing Page',
         landingDesc: 'Assemble your HTML modules and convert them into a single HTML file.',
         imageTitle: 'AI Image Generator',
         imageDesc: 'Generate your image with AI from a prompt.',
@@ -164,6 +178,12 @@ export const en: Translations = {
         apiKeyHtmlDesc: 'Store API key per product, use a guided prompt, and deploy your HTML connected to the AI proxy.',
         profileB2BTitle: 'B2B Profile',
         profileB2BDesc: 'B2B pipeline with OSINT, persona, matching, and AI-generated personalized landing page.',
+        perplexitySearchTitle: 'Perplexity Search',
+        perplexitySearchDesc: 'Smart search powered by Perplexity AI.',
+        promptOptimizerTitle: 'Prompt Optimizer',
+        promptOptimizerDesc: 'Optimize your prompts with AI to improve accuracy and structure.',
+        creationPathTitle: 'Creation-Path',
+        creationPathDesc: 'Step-by-step guided creation path with AI assistance.',
       },
     },
     productModal: {
@@ -776,13 +796,18 @@ export const en: Translations = {
       editUrl: 'Edit URL',
       open: 'Open',
       access: 'Access',
+      sections: {
+        llms: 'Language Models (LLMs)',
+        automation: 'Automation',
+        administration: 'Administration',
+      },
       tools: {
         llm: { name: 'LLM', description: 'Large Language Models - Ollama' },
         n8n: { name: 'n8n Workflow', description: 'Automation & Integration' },
         perplexity: { name: 'Perplexity Index', description: 'Search & Knowledge Base' },
         promptOptimize: { name: 'API Prompt Optimize', description: 'Optimize your prompts' },
         imageGen: { name: 'Image Generation', description: 'AI-powered image creation' },
-        admin: { name: 'Administration', description: 'System management' },
+        admin: { name: 'Control Panel', description: 'System management and global settings' },
       },
     },
     tools: {
@@ -1335,6 +1360,8 @@ export const en: Translations = {
         noImageSubtitle: 'Complete the previous step to generate an image',
         errorDownload: 'Failed to download image',
       },
+      convertToProductSuccess: '',
+      convertToProductError: ''
     },
 
   assembler: {
@@ -1984,6 +2011,51 @@ export const en: Translations = {
     'text_78': 'Tip:',
     'text_79': 'Export an existing language file, translate it externally, and upload it here to add it to the project.',
   },
+  perplexitySearch: {
+    title: 'Perplexity Search',
+    subtitle: 'Investigate concepts, topics and data with clear and deep structuring.',
+    inDevTitle: 'In Development',
+    inDevDesc: 'This feature will be available soon.',
+    back: 'Back',
+    inputLabel: 'What topic do you want to investigate?',
+    inputPlaceholder: 'Write the topic, concept or question you want Perplexity to analyze in depth...',
+    clear: 'Clear',
+    searchButton: 'Search and Organize',
+    searching: 'Investigating and structuring...',
+    outputLabel: 'Summary or Research',
+    copied: 'Copied!',
+    copy: 'Copy',
+    errorEmpty: 'Write a topic to search.',
+    errorSearch: 'There was an error performing the search.'
+  },
+  promptOptimizer: {
+    title: 'Prompt Optimizer',
+    subtitle: 'Improve the structure, objective and detail of your prompts with AI',
+    back: 'Back',
+    publicProduct: 'Public',
+    privateProduct: 'Private',
+    copyUrl: 'Copy URL',
+    inputLabel: 'Your original prompt',
+    uploadFile: 'Upload file (.txt, .md)',
+    inputPlaceholder: 'Write your prompt here or upload a .txt / .md file...',
+    clear: 'Clear',
+    optimizing: 'Optimizing...',
+    optimizeButton: 'Optimize Prompt',
+    outputLabel: 'Optimized prompt',
+    copied: 'Copied!',
+    copy: 'Copy',
+    errorFileType: 'Only .txt or .md files are allowed',
+    errorEmpty: 'Write or upload a prompt first',
+    errorOptimize: 'Error optimizing the prompt',
+    notFound: 'Product not found'
+  },
+  creationPath: {
+    title: 'Creation-Path',
+    subtitle: 'Step by step guided creation path with AI assistance',
+    inDevTitle: 'In Development',
+    inDevDesc: 'This feature will be available soon. Creation-Path will guide you step by step in creating projects with AI assistance.',
+    back: 'Back'
+  }
 
 
 

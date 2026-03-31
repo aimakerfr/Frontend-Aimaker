@@ -49,7 +49,7 @@ const ProductsView: React.FC<ProductsViewProps> = ({
   const [notebookTitle, setNotebookTitle] = useState('');
   const [notebookDescription, setNotebookDescription] = useState('');
   const [createError, setCreateError] = useState<string | null>(null);
-  const FIXED_TYPES: ProductType[] = ['landing_page_maker', 'image_generator_rag', 'translation_maker', 'style_transfer_maker', 'api_key_maker', 'api_key_html_injector', 'profile_b2b_maker'];
+  const FIXED_TYPES: ProductType[] = ['landing_page_maker', 'image_generator_rag', 'translation_maker', 'style_transfer_maker', 'api_key_maker', 'api_key_html_injector', 'profile_b2b_maker', 'perplexity_search', 'prompt_optimizer', 'creation_path'];
   
   // Function to get the correct route based on product type
   const getProductRoute = (type: string, id: number): string => {
@@ -62,6 +62,9 @@ const ProductsView: React.FC<ProductsViewProps> = ({
       'api_key_maker': 'api-key',
       'api_key_html_injector': 'api-key-html',
       'profile_b2b_maker': 'profile-b2b',
+      'perplexity_search': 'perplexity-search',
+      'prompt_optimizer': 'prompt-optimizer',
+      'creation_path': 'creation-path',
       'app': 'app',
       'architect_ai': 'notebook', // Default to notebook until specific route is created
       'module_connector': 'notebook', // Default to notebook until specific route is created
@@ -171,6 +174,9 @@ const ProductsView: React.FC<ProductsViewProps> = ({
       'api_key_maker': 'API Key Inspector',
       'api_key_html_injector': 'Inyección API Key HTML',
       'profile_b2b_maker': t.products.fixed.profileB2BTitle || 'Profile B2B',
+      'perplexity_search': (t.products.fixed as any).perplexitySearchTitle || 'Búsqueda Perplexity',
+      'prompt_optimizer': (t.products.fixed as any).promptOptimizerTitle || 'Optimizador de Prompt',
+      'creation_path': (t.products.fixed as any).creationPathTitle || 'Creation-Path',
       'app': t.products.appTypeLabel || 'App',
       'custom': 'Custom'
     };
@@ -189,6 +195,9 @@ const ProductsView: React.FC<ProductsViewProps> = ({
       'api_key_maker': 'bg-gradient-to-br from-cyan-500 to-blue-600',
       'api_key_html_injector': 'bg-gradient-to-br from-violet-500 to-fuchsia-600',
       'profile_b2b_maker': 'bg-gradient-to-br from-teal-500 to-cyan-600',
+      'perplexity_search': 'bg-gradient-to-br from-blue-500 to-sky-600',
+      'prompt_optimizer': 'bg-gradient-to-br from-indigo-500 to-purple-600',
+      'creation_path': 'bg-gradient-to-br from-emerald-500 to-green-600',
       'app': 'bg-gradient-to-br from-emerald-500 to-teal-600',
       'custom': 'bg-gradient-to-br from-gray-500 to-gray-600'
     };
@@ -209,95 +218,7 @@ const ProductsView: React.FC<ProductsViewProps> = ({
         </div>
 
       
-        {visibleFixedItems.length > 0 && (
-          <div className="space-y-3">
-            <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-gray-500 dark:text-gray-400 font-semibold">
-              <Sparkles size={14} />
-              {t.products.fixed.sectionTitle}
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-              {visibleFixedItems.map((item: Product) => {
-                const fixedTitle = item.type === 'landing_page_maker'
-                  ? t.products.fixed.landingTitle
-                  : item.type === 'image_generator_rag'
-                    ? t.products.fixed.imageTitle
-                    : item.type === 'api_key_maker'
-                      ? t.products.fixed.apiKeyTitle
-                    : item.type === 'profile_b2b_maker'
-                      ? (t.products.fixed.profileB2BTitle || 'Profile B2B')
-                    : item.type === 'api_key_html_injector'
-                      ? (t.products.fixed.apiKeyHtmlTitle || 'Inyección de API key a HTML')
-                    : item.type === 'style_transfer_maker'
-                      ? t.products.fixed.styleTransferTitle
-                      : t.products.fixed.translationTitle;
-                const fixedDesc = item.type === 'landing_page_maker'
-                  ? t.products.fixed.landingDesc
-                  : item.type === 'image_generator_rag'
-                    ? t.products.fixed.imageDesc
-                    : item.type === 'api_key_maker'
-                      ? t.products.fixed.apiKeyDesc
-                    : item.type === 'profile_b2b_maker'
-                      ? (t.products.fixed.profileB2BDesc || 'Pipeline B2B de OSINT, persona, matching y landing personalizada con IA.')
-                    : item.type === 'api_key_html_injector'
-                      ? (t.products.fixed.apiKeyHtmlDesc || 'Guarda API key por producto, genera prompt guía y despliega tu HTML conectado al proxy interno.')
-                    : item.type === 'style_transfer_maker'
-                      ? t.products.fixed.styleTransferDesc
-                      : t.products.fixed.translationDesc;
-                return (
-                  <article key={`fixed-${item.type}`} className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm p-4 flex flex-col gap-3">
-                    <div className="flex items-start justify-between">
-                      <div className={`w-11 h-11 rounded-xl ${getTypeColor(item.type)} flex items-center justify-center shadow-md`}>
-                        <Package size={20} className="text-white" />
-                      </div>
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 font-semibold">{t.products.fixed.badge}</span>
-                    </div>
-
-                    <div>
-                      <h3 className="font-bold text-gray-900 dark:text-white text-sm">{fixedTitle}</h3>
-                      <p className="text-xs text-gray-600 dark:text-gray-400 mt-1 line-clamp-3">{fixedDesc}</p>
-                    </div>
-
-                    <div className="mt-auto flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => openProduct(item)}
-                          className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold"
-                        >
-                          <Eye size={14} />
-                          {t.products.fixed.open}
-                        </button>
-                        {onTogglePublic && item.type !== 'app' && (
-                          <button
-                            onClick={() => onTogglePublic(item.id, !item.isPublic)}
-                            className={`inline-flex items-center justify-center h-9 w-9 rounded-lg border transition-all ${
-                              item.isPublic
-                                ? 'bg-blue-50 border-blue-200 text-blue-600'
-                                : 'bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 text-gray-400 hover:text-gray-600'
-                            }`}
-                            title={item.isPublic ? t.products.buttons.makePrivate : t.products.buttons.makePublic}
-                          >
-                            {item.isPublic ? <Globe size={14} /> : <Lock size={14} />}
-                          </button>
-                        )}
-                      </div>
-                      <button
-                        onClick={() => onToggleFavorite?.(item.id, !item.isFavorite)}
-                        className={`inline-flex items-center justify-center h-9 w-9 rounded-lg border transition-all ${
-                          item.isFavorite
-                            ? 'bg-amber-50 border-amber-200 text-amber-600'
-                            : 'bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 text-gray-400 hover:text-amber-500'
-                        }`}
-                        title={item.isFavorite ? t.products.tooltips.removeFavorite : t.products.tooltips.addFavorite}
-                      >
-                        <Star size={14} className={item.isFavorite ? 'fill-amber-400' : ''} />
-                      </button>
-                    </div>
-                  </article>
-                );
-              })}
-            </div>
-          </div>
-        )}
+        {/* Se eliminó la sección de productos del servidor (fijos) para que solo aparezca en la vista Server */}
 
         <div className="rounded-2xl border border-blue-100 dark:border-blue-900/40 bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-950/20 dark:to-cyan-950/20 p-5">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">

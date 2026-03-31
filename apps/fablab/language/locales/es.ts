@@ -41,6 +41,18 @@ export const es: Translations = {
         tools: 'Acceso Externo',
       },
     },
+      projectBuilder: {
+        title: '¿Qué quieres hacer hoy?',
+        subtitle: 'Selecciona el camino que mejor se adapte a tus necesidades para comenzar.',
+        deployExternalProject: 'Desplegar un proyecto externo',
+        deployExternalProjectDesc: 'Despliega un proyecto que ya has realizado fuera de la plataforma.',
+        assembleCustomProject: 'Ensamblar un proyecto propio',
+        assembleCustomProjectDesc: 'Construye un proyecto a medida seleccionando los módulos que necesitas.',
+        useServerProducts: 'Utilizar productos del servidor',
+        useServerProductsDesc: 'Explora y utiliza soluciones que ya están listas para usar.',
+        guidedCreationPath: 'Ruta de creación guiada',
+        guidedCreationPathDesc: 'Sigue un paso a paso que te ayudará a crear tu proyecto desde cero.',
+      },
     sidebar: {
       dashboard: 'Dashboard',
       myDashboard: 'Mi Dashboard',
@@ -52,6 +64,8 @@ export const es: Translations = {
       signOut: 'Cerrar Sesión',
       objectsLibrary: 'Biblioteca de Objetos',
       projects: 'Proyectos',
+      assembler: 'Ensamblador',
+      projectBuilder: 'Constructor de proyectos',
     },
     library: {
       title: 'Biblioteca',
@@ -143,14 +157,14 @@ export const es: Translations = {
         deployed: 'Desplegado',
       },
       fixed: {
-        sectionTitle: 'Productos fijos',
-        badge: 'Fijo',
-        productLabel: 'Producto fijo',
+        sectionTitle: 'Productos del servidor',
+        badge: 'Servidor',
+        productLabel: 'Producto del servidor',
         open: 'Abrir',
         alwaysActive: 'Siempre activo',
         idLabel: 'ID',
         divider: 'Productos creados',
-        landingTitle: 'Landing Page fija',
+        landingTitle: 'Landing Page',
         landingDesc: 'Ensamble tus módulos HTML y conviértalos en un solo archivo HTML.',
         imageTitle: 'Generador de imágenes con IA',
         imageDesc: 'Genera tu imagen con IA a partir de un prompt.',
@@ -164,6 +178,12 @@ export const es: Translations = {
         apiKeyHtmlDesc: 'Guarda la API key por producto, usa un prompt guiado y despliega tu HTML conectado al proxy IA.',
         profileB2BTitle: 'Profile B2B',
         profileB2BDesc: 'Pipeline B2B con OSINT, persona, matching y landing personalizada con IA.',
+        perplexitySearchTitle: 'Búsqueda Perplexity',
+        perplexitySearchDesc: 'Búsqueda inteligente potenciada con Perplexity AI.',
+        promptOptimizerTitle: 'Optimizador de Prompt',
+        promptOptimizerDesc: 'Optimiza tus prompts con IA para mejorar su precisión y estructura.',
+        creationPathTitle: 'Creation-Path',
+        creationPathDesc: 'Ruta de creación guiada paso a paso con asistencia de IA.',
       },
     },
     productModal: {
@@ -776,13 +796,18 @@ export const es: Translations = {
       editUrl: 'Editar URL',
       open: 'Abrir',
       access: 'Acceder',
+      sections: {
+        llms: 'Modelos de Lenguaje (LLMs)',
+        automation: 'Automatización',
+        administration: 'Administración',
+      },
       tools: {
         llm: { name: 'LLM', description: 'Modelos de Lenguaje - Ollama' },
         n8n: { name: 'n8n Workflow', description: 'Automatización e Integración' },
         perplexity: { name: 'Perplexity Index', description: 'Búsqueda y Base de Conocimiento' },
         promptOptimize: { name: 'API Prompt Optimize', description: 'Optimiza tus prompts' },
         imageGen: { name: 'Generación de Imágenes', description: 'Creación de imágenes por IA' },
-        admin: { name: 'Administración', description: 'Gestión del sistema' },
+        admin: { name: 'Panel de Control', description: 'Gestión del sistema y configuraciones globales' },
       },
     },
     tools: {
@@ -1335,6 +1360,8 @@ export const es: Translations = {
         noImageSubtitle: 'Completa el paso anterior para generar una imagen',
         errorDownload: 'Error al descargar la imagen',
       },
+      convertToProductSuccess: '',
+      convertToProductError: ''
     },
 
   assembler: {
@@ -1973,6 +2000,51 @@ export const es: Translations = {
     'text_78': 'Tip:',
     'text_79': 'Exporta un archivo de idioma existente, tradúcelo externamente, y súbelo aquí para agregarlo al proyecto.',
   },
+  perplexitySearch: {
+    title: 'Búsqueda Perplexity',
+    subtitle: 'Investiga conceptos, temas y datos con una estructuración clara y profunda.',
+    inDevTitle: 'En Desarrollo',
+    inDevDesc: 'Esta funcionalidad estará disponible próximamente.',
+    back: 'Volver',
+    inputLabel: '¿Qué tema deseas investigar?',
+    inputPlaceholder: 'Escribe aquí el tema, concepto o pregunta que quieras que Perplexity analice a profundidad...',
+    clear: 'Limpiar',
+    searchButton: 'Buscar y Organizar',
+    searching: 'Investigando y estructurando...',
+    outputLabel: 'Resumen o Investigación',
+    copied: '¡Copiado!',
+    copy: 'Copiar',
+    errorEmpty: 'Escribe un tema para buscar.',
+    errorSearch: 'Hubo un error al realizar la búsqueda.'
+  },
+  promptOptimizer: {
+    title: 'Optimizador de Prompt',
+    subtitle: 'Mejora la estructura, objetivo y detalle de tus prompts con IA',
+    back: 'Volver',
+    publicProduct: 'Público',
+    privateProduct: 'Privado',
+    copyUrl: 'Copiar URL',
+    inputLabel: 'Tu prompt original',
+    uploadFile: 'Cargar archivo (.txt, .md)',
+    inputPlaceholder: 'Escribe tu prompt aquí o carga un archivo .txt / .md...',
+    clear: 'Limpiar',
+    optimizing: 'Optimizando...',
+    optimizeButton: 'Optimizar Prompt',
+    outputLabel: 'Prompt optimizado',
+    copied: '¡Copiado!',
+    copy: 'Copiar',
+    errorFileType: 'Solo se permiten archivos .txt o .md',
+    errorEmpty: 'Escribe o carga un prompt primero',
+    errorOptimize: 'Error al optimizar el prompt',
+    notFound: 'Producto no encontrado'
+  },
+  creationPath: {
+    title: 'Creation-Path',
+    subtitle: 'Ruta de creación guiada paso a paso con asistencia de IA',
+    inDevTitle: 'En Desarrollo',
+    inDevDesc: 'Esta funcionalidad estará disponible próximamente. Creation-Path te guiará paso a paso en la creación de proyectos con asistencia de IA.',
+    back: 'Volver'
+  }
 
 
 
