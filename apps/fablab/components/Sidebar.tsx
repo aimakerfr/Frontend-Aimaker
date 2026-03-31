@@ -16,7 +16,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onLogout }) => {
     { path: '/dashboard', label: t.sidebar.myDashboard ?? t.sidebar.dashboard, icon: <LayoutDashboard size={20} /> },
     { path: '/dashboard/objects-library', label: t.sidebar.objectsLibrary, icon: <Boxes size={20} /> },
     { path: '/dashboard/project-builder', label: t.sidebar.projectBuilder, icon: <Hammer size={20} /> },
-    { path: '/dashboard/assembler/new', label: t.sidebar.assembler, icon: <Blocks size={20} /> },
+    { path: '/dashboard/assembler', label: t.sidebar.assembler, icon: <Blocks size={20} /> },
     // Project Builder section
     { 
       path: '/dashboard/applications', 
