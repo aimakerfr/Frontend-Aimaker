@@ -178,6 +178,12 @@ export const es: Translations = {
         apiKeyHtmlDesc: 'Guarda la API key por producto, usa un prompt guiado y despliega tu HTML conectado al proxy IA.',
         profileB2BTitle: 'Profile B2B',
         profileB2BDesc: 'Pipeline B2B con OSINT, persona, matching y landing personalizada con IA.',
+        perplexitySearchTitle: 'Búsqueda Perplexity',
+        perplexitySearchDesc: 'Búsqueda inteligente potenciada con Perplexity AI.',
+        promptOptimizerTitle: 'Optimizador de Prompt',
+        promptOptimizerDesc: 'Optimiza tus prompts con IA para mejorar su precisión y estructura.',
+        creationPathTitle: 'Creation-Path',
+        creationPathDesc: 'Ruta de creación guiada paso a paso con asistencia de IA.',
       },
     },
     productModal: {
