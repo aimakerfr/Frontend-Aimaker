@@ -105,10 +105,10 @@ const ProjectDetails: React.FC<Props> = ({ toolId }) => {
     return (
       <div className="flex flex-col w-full space-y-6">
         <div className="animate-pulse space-y-4">
-          <div className="h-4 bg-slate-100 rounded w-1/3" />
-          <div className="h-12 bg-slate-100 rounded" />
-          <div className="h-12 bg-slate-100 rounded" />
-          <div className="h-12 bg-slate-100 rounded" />
+          <div className="h-4 bg-slate-100 dark:bg-slate-800 rounded w-1/3" />
+          <div className="h-12 bg-slate-100 dark:bg-slate-800 rounded" />
+          <div className="h-12 bg-slate-100 dark:bg-slate-800 rounded" />
+          <div className="h-12 bg-slate-100 dark:bg-slate-800 rounded" />
         </div>
       </div>
     );
@@ -116,76 +116,76 @@ const ProjectDetails: React.FC<Props> = ({ toolId }) => {
 
   return (
     <div className="flex flex-col w-full space-y-6">
-      <h2 className="text-lg font-bold text-slate-900">{tp.title}</h2>
+      <h2 className="text-lg font-bold text-slate-900 dark:text-white">{tp.title}</h2>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
-          <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">{tp.appName}</label>
+          <label className="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">{tp.appName}</label>
           <input
             type="text"
             value={appName}
             onChange={(e) => setAppName(e.target.value)}
-            className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm text-slate-600 bg-white"
+            className="w-full px-4 py-3 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all text-sm text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800"
             placeholder={tp.placeholderAppName}
             disabled={saving}
           />
         </div>
         
         <div>
-          <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">{tp.category}</label>
+          <label className="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">{tp.category}</label>
           <input
             type="text"
             value={category}
             onChange={(e) => setCategory(e.target.value)}
-            className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm text-slate-600 bg-white"
+            className="w-full px-4 py-3 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all text-sm text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800"
             placeholder={tp.placeholderCategory}
             disabled={saving}
           />
         </div>
         
         <div>
-          <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">{tp.filesUrl}</label>
+          <label className="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">{tp.filesUrl}</label>
           <input
             type="url"
             value={filesUrl}
             onChange={(e) => setFilesUrl(e.target.value)}
-            className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm text-slate-600 bg-white"
+            className="w-full px-4 py-3 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all text-sm text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800"
             placeholder={tp.placeholderFilesUrl}
             disabled={saving}
           />
         </div>
         
         <div>
-          <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">{tp.deploymentUrl}</label>
+          <label className="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">{tp.deploymentUrl}</label>
           <input
             type="url"
             value={deploymentUrl}
             onChange={(e) => setDeploymentUrl(e.target.value)}
-            className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm text-slate-600 bg-white"
+            className="w-full px-4 py-3 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all text-sm text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800"
             placeholder={tp.placeholderDeploymentUrl}
             disabled={saving}
           />
         </div>
         
         <div>
-          <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">{tp.databaseUrl}</label>
+          <label className="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">{tp.databaseUrl}</label>
           <input
             type="url"
             value={databaseUrl}
             onChange={(e) => setDatabaseUrl(e.target.value)}
-            className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm text-slate-600 bg-white"
+            className="w-full px-4 py-3 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all text-sm text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800"
             placeholder={tp.placeholderDatabaseUrl}
             disabled={saving}
           />
         </div>
         
         <div>
-          <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">{tp.databaseName}</label>
+          <label className="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">{tp.databaseName}</label>
           <input
             type="text"
             value={dataBaseName}
             onChange={(e) => setDataBaseName(e.target.value)}
-            className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm text-slate-600 bg-white"
+            className="w-full px-4 py-3 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all text-sm text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800"
             placeholder={tp.placeholderDatabaseName}
             disabled={saving}
           />
@@ -193,7 +193,7 @@ const ProjectDetails: React.FC<Props> = ({ toolId }) => {
       </div>
 
       {error && (
-        <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg p-3">{error}</div>
+        <div className="text-sm text-red-600 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-900/40 rounded-lg p-3">{error}</div>
       )}
 
       {/* Checkmark save button removed - Save functionality moved to main "Save Changes" button */}

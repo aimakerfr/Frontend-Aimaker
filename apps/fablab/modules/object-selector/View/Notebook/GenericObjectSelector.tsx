@@ -122,22 +122,34 @@ export const GenericObjectSelector: React.FC<GenericObjectSelectorProps> = ({
           >
             <div className="min-w-0">
               <p className="truncate text-sm font-medium text-gray-900 dark:text-gray-100">{object.name}</p>
-              <div className="flex flex-wrap gap-2 text-xs text-gray-600 dark:text-gray-400">
-                <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-gray-700 dark:bg-gray-800 dark:text-gray-200">
+              <div className="mt-1.5 flex flex-wrap gap-2 text-[10px] text-gray-600 dark:text-gray-400">
+                <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 font-bold uppercase tracking-wider text-gray-700 dark:bg-gray-800 dark:text-gray-200 border border-gray-200/50 dark:border-gray-700/50">
                   {object.type}
                 </span>
+                
                 {object.product_type_for_assembly && (
-                  <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[11px] font-semibold text-blue-700 dark:bg-blue-900/40 dark:text-blue-100">
-                    {object.product_type_for_assembly}
+                  <span 
+                    title={object.product_type_for_assembly}
+                    className="inline-flex items-center rounded-full bg-blue-50 px-2.5 py-0.5 font-bold text-blue-700 dark:bg-blue-900/40 dark:text-blue-200 border border-blue-100 dark:border-blue-800/50 truncate max-w-[50%] transition-all hover:max-w-full cursor-help"
+                  >
+                    <span className="mr-1 opacity-60 text-[9px]">PROD:</span>
+                    <span className="truncate">{object.product_type_for_assembly}</span>
                   </span>
                 )}
+                
                 {object.module_name_for_assembly && (
-                  <span className="rounded-full bg-purple-50 px-2 py-0.5 text-[11px] font-semibold text-purple-700 dark:bg-purple-900/40 dark:text-purple-100">
-                    {object.module_name_for_assembly}
+                  <span 
+                    title={object.module_name_for_assembly}
+                    className="inline-flex items-center rounded-full bg-purple-50 px-2.5 py-0.5 font-bold text-purple-700 dark:bg-purple-900/40 dark:text-purple-200 border border-purple-100 dark:border-purple-800/50 truncate max-w-[50%] transition-all hover:max-w-full cursor-help"
+                  >
+                    <span className="mr-1 opacity-60 text-[9px]">MOD:</span>
+                    <span className="truncate">{object.module_name_for_assembly}</span>
                   </span>
                 )}
+                
                 {object.title && (
-                  <span className="truncate text-[11px] italic text-gray-500 dark:text-gray-300">
+                  <span className="truncate italic text-gray-500 dark:text-gray-400 flex items-center">
+                    <span className="mx-1 opacity-30">â€¢</span>
                     {object.title}
                   </span>
                 )}

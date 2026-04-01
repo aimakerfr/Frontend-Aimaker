@@ -50,12 +50,12 @@ const FolderCard: React.FC<FolderCardProps> = ({
       onDrop={(ev) => { setIsDragOver(false); onDrop(ev); }}
       className={`
         group relative rounded-2xl cursor-pointer select-none
-        transition-all duration-200 ease-out overflow-hidden
+        transition-all duration-200 ease-out overflow-hidden flex flex-col h-full
         ${isDragOver
           ? 'scale-[1.03] shadow-2xl ring-2 ring-indigo-400'
           : isSelected
             ? 'shadow-lg ring-2 ring-offset-1'
-            : 'shadow-sm hover:shadow-md hover:scale-[1.01]'
+            : 'shadow-sm hover:shadow-md hover:scale-[1.01] bg-white dark:bg-gray-800'
         }
       `}
       style={{
@@ -64,19 +64,34 @@ const FolderCard: React.FC<FolderCardProps> = ({
           ? `linear-gradient(135deg, ${color}18 0%, ${color}08 100%)`
           : isSelected
             ? `linear-gradient(135deg, ${color}12 0%, ${color}05 100%)`
-            : 'white',
-        border: `1.5px solid ${isDragOver ? color : isSelected ? color + '80' : '#e5e7eb'}`,
+            : undefined,
+        border: `1.5px solid ${isDragOver ? color : isSelected ? color + '80' : 'transparent'}`,
       }}
     >
-      {/* Top color strip */}
-      <div
-        className="h-1 w-full absolute top-0 left-0 rounded-t-2xl transition-opacity duration-200"
-        style={{ backgroundColor: color, opacity: isSelected || isDragOver ? 1 : 0.35 }}
-      />
+      {/* Fallback for non-selected/non-dragover border */}
+      {!isDragOver && !isSelected && (
+        <div className="absolute inset-0 border border-gray-100 dark:border-gray-700 rounded-2xl pointer-events-none" />
+      )}
 
-      <div className="px-5 pt-6 pb-5">
-        {/* Header row */}
-        <div className="flex items-start justify-between gap-2">
+      {/* 1. Header Section: Name */}
+      <div 
+        className="p-4 pb-3 border-b border-gray-50 dark:border-gray-700 rounded-t-2xl transition-colors duration-200"
+        style={{ backgroundColor: color + '10' }}
+      >
+        <div className="flex items-center gap-2">
+          <span
+            className="inline-block h-2 w-2 rounded-full flex-shrink-0"
+            style={{ backgroundColor: color }}
+          />
+          <h3 className="text-sm font-bold text-gray-900 dark:text-white leading-tight break-words line-clamp-2 min-h-[1.25rem]">
+            {folder.name}
+          </h3>
+        </div>
+      </div>
+
+      <div className="p-4 flex flex-col flex-grow">
+        {/* Row with Icon + Actions */}
+        <div className="flex items-start justify-between gap-2 mb-auto">
           {/* Folder icon */}
           <button
             type="button"
@@ -85,17 +100,17 @@ const FolderCard: React.FC<FolderCardProps> = ({
               if (!isRoot) onChangeEmoji();
             }}
             className={`
-              relative h-14 w-14 rounded-2xl flex items-center justify-center text-2xl
-              transition-all duration-150
+              relative h-12 w-12 rounded-2xl flex items-center justify-center text-xl
+              transition-all duration-150 shadow-sm border border-black/5 dark:border-white/5
               ${!isRoot ? 'hover:scale-110 active:scale-95' : ''}
             `}
             style={{ backgroundColor: color + '18' }}
             title={isRoot ? undefined : (labels?.changeIcon || 'Change icon')}
           >
             {folder.emoji ? (
-              <span className="text-2xl leading-none">{folder.emoji}</span>
+              <span className="text-xl leading-none">{folder.emoji}</span>
             ) : (
-              <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={1.8}>
+              <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round"
                   d="M2.25 12.75V12A2.25 2.25 0 014.5 9.75h15A2.25 2.25 0 0121.75 12v.75m-8.69-6.44l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 6v8.25A2.25 2.25 0 004.5 16.5h15a2.25 2.25 0 002.25-2.25V9A2.25 2.25 0 0019.5 6.75h-6.19z"
                 />
@@ -105,11 +120,11 @@ const FolderCard: React.FC<FolderCardProps> = ({
 
           {/* Actions — visible on hover */}
           {!isRoot && (
-            <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all duration-150 translate-y-1 group-hover:translate-y-0 mt-0.5">
+            <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all duration-150 translate-y-1 group-hover:translate-y-0">
               <button
                 type="button"
                 onClick={(ev) => { ev.stopPropagation(); onRename(); }}
-                className="h-8 w-8 rounded-xl flex items-center justify-center text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+                className="h-8 w-8 rounded-xl flex items-center justify-center text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors border border-gray-100 dark:border-gray-700"
                 title={labels?.rename || 'Rename'}
               >
                 <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
@@ -119,7 +134,7 @@ const FolderCard: React.FC<FolderCardProps> = ({
               <button
                 type="button"
                 onClick={(ev) => { ev.stopPropagation(); onDelete(); }}
-                className="h-8 w-8 rounded-xl flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                className="h-8 w-8 rounded-xl flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors border border-gray-100 dark:border-gray-700"
                 title={labels?.delete || 'Delete'}
               >
                 <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
@@ -130,34 +145,22 @@ const FolderCard: React.FC<FolderCardProps> = ({
           )}
         </div>
 
-        {/* Info */}
-        <div className="mt-4">
-          <div className="flex items-center gap-2">
-            <span
-              className="inline-block h-2 w-2 rounded-full flex-shrink-0"
-              style={{ backgroundColor: color }}
-            />
-            <h3 className="text-sm font-semibold text-gray-900 truncate leading-tight">
-              {folder.name}
-            </h3>
-          </div>
-
-          <div className="mt-2 flex items-center justify-between">
-            <span className="text-xs text-gray-400 font-medium">
-              {count} {count === 1 ? (counts?.fileSingular || 'file') : (counts?.filePlural || 'files')}
+        {/* Footer info */}
+        <div className="mt-4 pt-3 border-t border-gray-50 dark:border-gray-700 flex items-center justify-between">
+          <span className="text-xs text-gray-400 dark:text-gray-500 font-bold">
+            {count} {count === 1 ? (counts?.fileSingular || 'file') : (counts?.filePlural || 'files')}
+          </span>
+          {folder.createdAt && (
+            <span className="text-[10px] text-gray-300 dark:text-gray-600 font-medium">
+              {new Date(folder.createdAt).toLocaleDateString(locale || 'en', { day: 'numeric', month: 'short' })}
             </span>
-            {folder.createdAt && (
-              <span className="text-xs text-gray-300">
-                {new Date(folder.createdAt).toLocaleDateString(locale || 'en', { day: 'numeric', month: 'short' })}
-              </span>
-            )}
-          </div>
+          )}
         </div>
 
         {/* Drop hint */}
         {isDragOver && (
-          <div className="mt-3 flex items-center gap-1.5 text-xs font-medium" style={{ color }}>
-            <svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
+          <div className="mt-2 flex items-center justify-center gap-1.5 text-xs font-bold" style={{ color }}>
+            <svg className="h-3 w-3 animate-bounce" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 13.5L12 21m0 0l-7.5-7.5M12 21V3" />
             </svg>
             {labels?.dropHere || 'Drop here'}

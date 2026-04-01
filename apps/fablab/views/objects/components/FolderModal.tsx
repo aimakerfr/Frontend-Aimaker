@@ -74,29 +74,29 @@ const FolderModal: React.FC<FolderModalProps> = ({
         aria-label={labels?.cancel || 'Close'}
       />
 
-      <div className="relative w-full max-w-3xl rounded-3xl bg-white shadow-2xl overflow-hidden">
-        <div className="px-6 py-5 border-b border-gray-100">
-          <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
+      <div className="relative w-full max-w-3xl rounded-3xl bg-white dark:bg-gray-900 shadow-2xl overflow-hidden">
+        <div className="px-6 py-5 border-b border-gray-100 dark:border-gray-800">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{title}</h3>
         </div>
 
         <div className="px-6 py-5 space-y-5">
           <div>
-            <label className="text-xs font-semibold uppercase tracking-wide text-gray-400">
+            <label className="text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">
               {labels?.nameLabel || 'Folder name'}
             </label>
             <input
               value={name}
               onChange={(ev) => onChangeName(ev.target.value)}
               placeholder={labels?.namePlaceholder || 'Enter a name'}
-              className="mt-2 w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-700 focus:border-gray-400 focus:outline-none"
+              className="mt-2 w-full rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-3 text-sm text-gray-700 dark:text-gray-200 focus:border-gray-400 dark:focus:border-gray-500 focus:outline-none transition-colors"
             />
             {error && (
-              <p className="mt-2 text-xs text-red-500">{error}</p>
+              <p className="mt-2 text-xs text-red-500 dark:text-red-400">{error}</p>
             )}
           </div>
 
           <div>
-            <label className="text-xs font-semibold uppercase tracking-wide text-gray-400">
+            <label className="text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">
               {labels?.chooseIcon || 'Choose an icon'}
             </label>
             <div className="mt-3 grid grid-cols-10 gap-3">
@@ -108,7 +108,9 @@ const FolderModal: React.FC<FolderModalProps> = ({
                     type="button"
                     onClick={() => onSelectEmoji(icon)}
                     className={`h-14 w-14 rounded-2xl flex items-center justify-center text-3xl transition-all ${
-                      isActive ? 'bg-gray-900 text-white shadow-lg scale-105' : 'bg-gray-100 hover:bg-gray-200'
+                      isActive
+                        ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 shadow-lg scale-105'
+                        : 'bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-900 dark:text-white'
                     }`}
                   >
                     {icon}
@@ -119,7 +121,7 @@ const FolderModal: React.FC<FolderModalProps> = ({
           </div>
 
           <div>
-            <label className="text-xs font-semibold uppercase tracking-wide text-gray-400">
+            <label className="text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">
               {labels?.chooseColor || 'Choose a color'}
             </label>
             <div className="mt-3 flex flex-wrap gap-2">
@@ -131,7 +133,9 @@ const FolderModal: React.FC<FolderModalProps> = ({
                     type="button"
                     onClick={() => onSelectColor(value)}
                     className={`h-9 w-9 rounded-full border-2 transition-all ${
-                      isActive ? 'border-gray-900 scale-110' : 'border-transparent hover:scale-105'
+                      isActive
+                        ? 'border-gray-900 dark:border-white scale-110'
+                        : 'border-transparent hover:scale-105'
                     }`}
                     style={{ backgroundColor: value }}
                     aria-label={value}
@@ -142,18 +146,18 @@ const FolderModal: React.FC<FolderModalProps> = ({
           </div>
         </div>
 
-        <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-end gap-2">
+        <div className="px-6 py-4 border-t border-gray-100 dark:border-gray-800 flex items-center justify-end gap-2">
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 rounded-xl text-sm font-semibold text-gray-500 hover:text-gray-900 hover:bg-gray-100"
+            className="px-4 py-2 rounded-xl text-sm font-semibold text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
           >
             {labels?.cancel || 'Cancel'}
           </button>
           <button
             type="button"
             onClick={onSubmit}
-            className="px-5 py-2 rounded-xl text-sm font-semibold text-white bg-gray-900 hover:bg-gray-700"
+            className="px-5 py-2 rounded-xl text-sm font-semibold text-white dark:text-gray-900 bg-gray-900 dark:bg-white hover:bg-gray-700 dark:hover:bg-gray-200 transition-colors"
           >
             {submitLabel}
           </button>
