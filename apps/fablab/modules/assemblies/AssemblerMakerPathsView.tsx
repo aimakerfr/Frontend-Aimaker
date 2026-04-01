@@ -36,6 +36,22 @@ const AssemblerMakerPathsView: React.FC = () => {
 
   const [deployingId, setDeployingId] = useState<number | null>(null);
 
+  // Prevent page closure during deployment
+  useEffect(() => {
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (deployingId !== null) {
+        event.preventDefault();
+        event.returnValue = ''; // Trigger browser prompt
+        return '';
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [deployingId]);
+
   const handleDeploy = async (id: number) => {
     try {
       setDeployingId(id);
@@ -104,21 +120,36 @@ const AssemblerMakerPathsView: React.FC = () => {
                   </td>
                   <td className="py-3 px-4">
                     <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => handleDeploy(mp.id)}
-                        disabled={deployingId !== null}
-                        title={t?.assembler?.deployAssembly || 'Deploy assembly'}
-                        className={`p-2 rounded-md transition-all duration-300 text-white ${
-                          deployingId === mp.id 
-                            ? 'bg-green-700 scale-110 shadow-lg' 
-                            : 'bg-green-600 hover:bg-green-700'
-                        }`}
-                      >
-                        <Rocket 
-                          size={16} 
-                          className={deployingId === mp.id ? 'animate-rocket-deploy' : ''} 
-                        />
-                      </button>
+                      {mp.projectType === 'landing_page' ? (
+                        <span className="px-3 py-2 text-sm font-semibold text-green-600 dark:text-green-400 bg-green-100 dark:bg-green-900/30 rounded-md">
+                          {t?.products?.status?.deployed || 'Deployed'}
+                        </span>
+                      ) : (
+                        <button
+                          onClick={() => handleDeploy(mp.id)}
+                          disabled={deployingId !== null}
+                          title={t?.assembler?.deployAssembly || 'Deploy assembly'}
+                          className={`px-3 py-2 rounded-md transition-all duration-300 text-white flex items-center gap-2 ${
+                            deployingId === mp.id 
+                              ? 'bg-green-700 scale-105 shadow-lg cursor-wait' 
+                              : (mp.deploymentUrl || mp.deployment_url)
+                                ? 'bg-orange-500 hover:bg-orange-600'
+                                : 'bg-green-600 hover:bg-green-700'
+                          } ${deployingId !== null && deployingId !== mp.id ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        >
+                          <Rocket 
+                            size={16} 
+                            className={deployingId === mp.id ? 'animate-rocket-deploy' : ''} 
+                          />
+                          <span className="font-medium">
+                            {deployingId === mp.id 
+                              ? (t?.common?.loading || 'Deploying...') 
+                              : (mp.deploymentUrl || mp.deployment_url)
+                                ? (t?.assembler?.reDeployAssembly || 'Re-Deploy')
+                                : (t?.assembler?.deployAssembly || 'Deploy')}
+                          </span>
+                        </button>
+                      )}
 
                       {(mp.hasApplicationDeployment === true || 
                         mp.has_application_deployment === 1 || 

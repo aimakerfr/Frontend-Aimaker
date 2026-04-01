@@ -1415,6 +1415,7 @@ export const en: Translations = {
     title: 'Assembler Maker Paths',
     createNew: 'Create New Assembler',
     deployAssembly: 'Deploy assembly',
+    reDeployAssembly: 'Re-Deploy',
     noAssemblerMakerPaths: 'No assembler maker paths yet',
     actions: 'Actions',
     new: {
