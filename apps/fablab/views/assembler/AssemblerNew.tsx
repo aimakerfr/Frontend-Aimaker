@@ -230,7 +230,17 @@ const AssemblerNew: React.FC = () => {
       LAYOUT: layout,
       VARIABLES: variables,
     };
-  }, [canvasModules, detectedType, buildLayoutData, description, language]);
+  }, [
+    canvasModules,
+    detectedType,
+    buildLayoutData,
+    description,
+    language,
+    title,
+    protectedEnabled,
+    protectedUsername,
+    protectedPassword,
+  ]);
 
   const callAssembleEndpoint = useCallback(async (makerPathId: number) => {
     const apiBase = getApiBase();
