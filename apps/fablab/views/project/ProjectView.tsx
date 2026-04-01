@@ -8,7 +8,7 @@ const ProjectView: React.FC = () => {
   const toolId = id ? parseInt(id, 10) : null;
 
   return (
-    <div className="flex justify-center p-4 md:p-8 relative bg-gradient-to-br from-gray-50 to-indigo-50/30 min-h-screen">
+    <div className="flex justify-center p-4 md:p-8 relative bg-gradient-to-br from-gray-50 to-indigo-50/30 dark:from-slate-950 dark:to-slate-900/50 min-h-screen">
       <ToolViewCard toolId={toolId}>
         {toolId !== null && <ProjectDetails toolId={toolId} />}
       </ToolViewCard>
