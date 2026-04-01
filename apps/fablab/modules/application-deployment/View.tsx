@@ -230,8 +230,9 @@ const ApplicationDeploymentFullPage: React.FC<Props> = ({ makerPathId, DatabaseC
                     <th className="py-3 px-4">{'Title'}</th>
                     <th className="py-3 px-4">{t?.projectFlow?.databaseName || 'Database name'}</th>
                     <th className="py-3 px-4">{t?.projectFlow?.deploymentUrl || 'Deployment URL'}</th>
-                    <th className="py-3 px-4">{'Files URL'}</th>
+                    <th className="py-3 px-4">{'Project Type'}</th>
                     <th className="py-3 px-4">{t?.projectFlow?.status || 'Status'}</th>
+                    <th className="py-3 px-4">{'Files URL'}</th>
                     <th className="py-3 px-4">{t?.projectFlow?.actions || 'Actions'}</th>
                   </tr>
                 </thead>
@@ -255,6 +256,14 @@ const ApplicationDeploymentFullPage: React.FC<Props> = ({ makerPathId, DatabaseC
                         )}
                       </td>
                       <td className="py-3 px-4">
+                        <span className="px-2 py-1 text-xs font-medium rounded-full bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
+                          {(d as any).projectType || (d as any).project_type || '-'}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4">
+                        {renderStatusChip((d as any).status)}
+                      </td>
+                      <td className="py-3 px-4">
                         {(d as any).filesUrl ? (
                           <a
                             href={(d as any).filesUrl as string}
@@ -267,9 +276,6 @@ const ApplicationDeploymentFullPage: React.FC<Props> = ({ makerPathId, DatabaseC
                         ) : (
                           <span className="text-gray-400">-</span>
                         )}
-                      </td>
-                      <td className="py-3 px-4">
-                        {renderStatusChip((d as any).status)}
                       </td>
                       <td className="py-3 px-4">
                         <div className="flex items-center gap-2 flex-wrap">

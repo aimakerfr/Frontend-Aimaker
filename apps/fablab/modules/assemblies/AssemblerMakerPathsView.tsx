@@ -92,6 +92,7 @@ const AssemblerMakerPathsView: React.FC = () => {
                 <th className="py-3 px-4">{'Status'}</th>
                 <th className="py-3 px-4">{'Created At'}</th>
                 <th className="py-3 px-4">{'Deployment URL'}</th>
+                <th className="py-3 px-4">{'Project Type'}</th>
                 <th className="py-3 px-4">{'Files URL'}</th>
                 <th className="py-3 px-4">{t?.assembler?.actions || 'Actions'}</th>
               </tr>
@@ -118,6 +119,11 @@ const AssemblerMakerPathsView: React.FC = () => {
                         </span>
                       </a>
                     ) : '-'}
+                  </td>
+                  <td className="py-3 px-4">
+                    <span className="px-2 py-1 text-xs font-medium rounded-full bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
+                      {mp.projectType || mp.project_type || '-'}
+                    </span>
                   </td>
                   <td className="py-3 px-4">
                     {mp.filesUrl || mp.files_url ? (
