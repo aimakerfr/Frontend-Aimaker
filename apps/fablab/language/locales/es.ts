@@ -1365,16 +1365,60 @@ export const es: Translations = {
     },
 
   assembler: {
+    title: 'Rutas del Maker del Ensamblador',
+    createNew: 'Crear Nuevo Ensamblador',
+    deployAssembly: 'Desplegar ensamblado',
+    noAssemblerMakerPaths: 'Aún no hay rutas del maker del ensamblador',
+    actions: 'Acciones',
     new: {
-      title: 'Selecciona un tipo de proyecto',
-      notebookTitle: 'Notebook',
-      notebookDesc: 'Chat inteligente conectado a tus fuentes de datos.',
-      landingTitle: 'Landing Page',
-      landingDesc: 'Crea páginas de aterrizaje optimizadas con RAG.',
-      selected: 'Seleccionado',
+      title: 'Nuevo proyecto',
+      stationTitle: 'Ensamblador de Proyecto',
+      stationDescription: 'Selecciona los módulos que deseas incluir en tu nuevo proyecto.',
+      presetsTitle: 'Configuraciones predefinidas',
+      presets: {
+        notebook: {
+          label: 'Notebook IA',
+          description: 'Configuración ideal para un entorno interactivo con documentos.'
+        },
+        landing: {
+          label: 'Landing Page',
+          description: 'Estructura estándar para una página de presentación.'
+        }
+      },
+      customModulesTitle: 'Selecciona tus propios módulos',
+      selectedCount: '{count} / {total} seleccionados',
+      continueBtn: 'Continuar con {count} módulos →',
       titlePlaceholder: 'Título del proyecto',
       descriptionPlaceholder: 'Descripción del proyecto',
-      createCta: 'Crear Proyecto',
+      protectedDbLabel: 'Proteger con credenciales la base de datos',
+      protectedDbDesc: 'Si activas esta opción, el proyecto requerirá login antes de mostrar el contenido.',
+      usernamePlaceholder: 'Nombre de usuario',
+      passwordPlaceholder: 'Contraseña (mínimo 8 caracteres)',
+      usernameRequired: 'El usuario es obligatorio.',
+      passwordInvalid: 'La contraseña debe tener al menos 8 caracteres.',
+      layoutEditorTitle: 'Diseño de módulos',
+      layoutEditorDesc: 'Arrastra los módulos desde la paleta al canvas. Selecciona un archivo HTML para cada módulo que lo requiera y completa los textos.',
+      modules: {
+        header: 'Landing Page: Header',
+        body: 'Landing Page: Body',
+        footer: 'Landing Page: Footer',
+        rag: 'Módulo de RAG',
+        api_configuration: 'Configurador de API Key',
+        chat: 'Módulo de Chat',
+        html_input: 'HTML Input',
+        buscador: 'Buscador'
+      },
+      validation: {
+        missingHtml: 'Algunos módulos requieren un archivo HTML. Selecciona uno para cada módulo marcado antes de ensamblar.',
+        landingRequired: 'Para landing page debes incluir Header, Body y Footer.'
+      },
+      modal: {
+        selectHtml: 'Seleccionar HTML — {name}'
+      },
+      success: 'Ensamblado exitosamente.',
+      openResult: 'Abrir resultado →',
+      assembling: 'Ensamblando...',
+      createCta: 'Crear y Ensamblar',
       creatingLabel: 'Creando...',
       errorCreating: 'Error al crear el proyecto',
     },

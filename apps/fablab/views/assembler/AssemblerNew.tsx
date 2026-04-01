@@ -34,23 +34,25 @@ const AssemblerNew: React.FC = () => {
   // Object selector modal state
   const [selectorModuleKey, setSelectorModuleKey] = useState<string | null>(null);
 
+  const tr = t?.assembler?.new ?? {};
+
   const availableModules = useMemo(() => ALL_MODULES, []);
   const presets = useMemo(() => (
     [
       {
         id: 'preset_notebook',
-        label: 'Notebook IA',
-        description: 'Configuración ideal para un entorno interactivo con documentos.',
+        label: tr.presets?.notebook?.label ?? 'Notebook IA',
+        description: tr.presets?.notebook?.description ?? 'Configuración ideal para un entorno interactivo con documentos.',
         moduleIds: ['api_configuration', 'rag', 'chat'],
       },
       {
         id: 'preset_landing',
-        label: 'Landing Page',
-        description: 'Estructura estándar para una página de presentación.',
+        label: tr.presets?.landing?.label ?? 'Page de destination',
+        description: tr.presets?.landing?.description ?? 'Structure standard pour une page de présentation.',
         moduleIds: ['header', 'body', 'footer'],
       },
     ]
-  ), []);
+  ), [tr]);
   const selectedCount = selectedModuleKeys.size;
   const handlePresetClick = useCallback((moduleIds: string[]) => {
     setSelectedModuleKeys(new Set(moduleIds));
@@ -334,9 +336,8 @@ const AssemblerNew: React.FC = () => {
     ? canvasModules.find((m) => m.key === selectorModuleKey)
     : null;
 
-  const tr = t?.assembler?.new ?? {};
-  const stationTitle = tr.stationTitle ?? 'Ensamblador de Proyecto';
-  const stationDescription = tr.stationDescription ?? 'Selecciona los módulos que deseas incluir en tu nuevo proyecto.';
+  const stationTitle = tr.stationTitle ?? 'Assembleur de Projet';
+  const stationDescription = tr.stationDescription ?? 'Sélectionnez les modules que vous souhaitez inclure dans votre nouveau projet.';
   const renderPresetIcon = useCallback((presetId: string) => {
     switch (presetId) {
       case 'preset_notebook':
@@ -370,25 +371,25 @@ const AssemblerNew: React.FC = () => {
   const getModuleLabel = useCallback((key: string, fallback: string) => {
     switch (key) {
       case 'header':
-        return 'Landing Page: Header';
+        return tr.modules?.header ?? 'Landing Page: En-tête';
       case 'body':
-        return 'Landing Page: Body';
+        return tr.modules?.body ?? 'Landing Page: Corps';
       case 'footer':
-        return 'Landing Page: Footer';
+        return tr.modules?.footer ?? 'Landing Page: Pied de page';
       case 'rag':
-        return 'Módulo de RAG';
+        return tr.modules?.rag ?? 'Module RAG';
       case 'api_configuration':
-        return 'Configurador de API Key';
+        return tr.modules?.api_configuration ?? 'Configurateur de Clé API';
       case 'chat':
-        return 'Módulo de Chat';
+        return tr.modules?.chat ?? 'Module de Chat';
       case 'html_input':
-        return 'HTML Input';
+        return tr.modules?.html_input ?? 'Entrée HTML';
       case 'buscador':
-        return 'Buscador';
+        return tr.modules?.buscador ?? 'Chercheur';
       default:
         return fallback;
     }
-  }, []);
+  }, [tr]);
 
   const renderModuleIcon = useCallback((key: string) => {
     switch (key) {
@@ -460,244 +461,253 @@ const AssemblerNew: React.FC = () => {
 
   if (station === 'select') {
     return (
-      <div className="min-h-screen bg-gray-50 p-6 md:p-8">
-        <div className="max-w-4xl mx-auto space-y-8">
+      <div className="max-w-4xl mx-auto space-y-8">
+        <button
+          type="button"
+          onClick={() => navigate(-1)}
+          className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+          {t?.notebook?.header?.back ?? 'Retour'}
+
+        </button>
+
+        <div className="space-y-2">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{stationTitle}</h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400">{stationDescription}</p>
+        </div>
+
+        <section className="space-y-4">
+          <h3 className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+            {tr.presetsTitle ?? 'Configurations prédéfinies'}
+          </h3>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {presets.map((preset) => {
+              const selected = isPresetSelected(preset.moduleIds);
+              return (
+                <div
+                  key={preset.id}
+                  onClick={() => handlePresetClick(preset.moduleIds)}
+                  className={
+                    'p-4 border rounded-xl cursor-pointer transition-all ' +
+                    (selected
+                      ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 ring-1 ring-blue-500 shadow-sm'
+                      : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-gray-300 dark:hover:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700/50')
+                  }
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center">
+                      <div className="w-9 h-9 rounded-lg border border-gray-200 dark:border-gray-700 flex items-center justify-center text-gray-700 dark:text-gray-300">
+                        {renderPresetIcon(preset.id)}
+                      </div>
+                      <h4 className={`ml-3 font-bold ${selected ? 'text-gray-900 dark:text-white' : 'text-gray-900 dark:text-white'}`}>
+                        {preset.label}
+                      </h4>
+                    </div>
+                    {selected && (
+                        // eslint-disable-next-line i18next/no-literal-string
+                      <span className="text-blue-600 dark:text-blue-400 text-sm font-semibold">✓</span>
+                    )}
+                  </div>
+                  <p className={`text-xs ${selected ? 'text-blue-700 dark:text-blue-300' : 'text-gray-500 dark:text-gray-400'}`}>
+                    {preset.description}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+
+        <section className="space-y-4">
+          <div className="flex justify-between items-end">
+            <h3 className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+              {tr.customModulesTitle ?? 'Sélectionnez vos propres modules'}
+            </h3>
+            <span className="bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-xs font-bold px-3 py-1 rounded-full border dark:border-gray-700">
+              {tr.selectedCount?.replace('{count}', selectedCount.toString()).replace('{total}', availableModules.length.toString()) ?? `${selectedCount} / ${availableModules.length} sélectionnés`}
+            </span>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {availableModules.map((mod) => {
+              const isSelected = selectedModuleKeys.has(mod.key);
+              return (
+                <div
+                  key={mod.key}
+                  onClick={() => toggleSelectedModule(mod.key)}
+                  className={
+                    'flex items-center p-4 border rounded-xl cursor-pointer transition-all ' +
+                    (isSelected
+                      ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 shadow-sm'
+                      : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-gray-300 dark:hover:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700/50')
+                  }
+                >
+                  <div
+                    className={
+                      'flex-shrink-0 w-5 h-5 rounded border flex items-center justify-center mr-3 transition-colors ' +
+                      (isSelected ? 'bg-blue-500 border-blue-500 text-white' : 'border-gray-300 dark:border-gray-600')
+                    }
+                  >
+                    {isSelected && <span className="text-[10px] font-bold">✓</span>}
+                  </div>
+                  <div className="w-8 h-8 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 flex items-center justify-center mr-3">
+                    {renderModuleIcon(mod.key)}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className={`font-medium text-sm ${isSelected ? 'text-blue-900 dark:text-blue-200' : 'text-gray-700 dark:text-gray-300'}`}>
+                        {getModuleLabel(mod.key, mod.label)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+
+        <div className="pt-4 flex justify-end">
           <button
             type="button"
-            onClick={() => navigate(-1)}
-            className="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900"
+            disabled={selectedCount === 0}
+            onClick={() => setStation('builder')}
+            className={
+              'px-6 py-2.5 font-medium rounded-lg transition-colors flex items-center ' +
+              (selectedCount > 0
+                ? 'bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600'
+                : 'bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-600 cursor-not-allowed')
+            }
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
-            {t?.notebook?.header?.back ?? 'Volver'}
+            {tr.continueBtn?.replace('{count}', selectedCount.toString()) ?? `Continuer avec ${selectedCount} modules →`}
           </button>
 
-          <div className="space-y-2">
-            <h1 className="text-3xl font-bold text-gray-900">{stationTitle}</h1>
-            <p className="text-sm text-gray-500">{stationDescription}</p>
-          </div>
-
-          <section className="space-y-4">
-            <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider">
-              Configuraciones predefinidas
-            </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {presets.map((preset) => {
-                const selected = isPresetSelected(preset.moduleIds);
-                return (
-                  <div
-                    key={preset.id}
-                    onClick={() => handlePresetClick(preset.moduleIds)}
-                    className={
-                      'p-4 border rounded-xl cursor-pointer transition-all ' +
-                      (selected
-                        ? 'border-blue-500 bg-blue-50 ring-1 ring-blue-500 shadow-sm'
-                        : 'border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50')
-                    }
-                  >
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center">
-                        <div className="w-9 h-9 rounded-lg border border-gray-200 flex items-center justify-center text-gray-700">
-                          {renderPresetIcon(preset.id)}
-                        </div>
-                        <h4 className={`ml-3 font-bold ${selected ? 'text-gray-900' : 'text-gray-900'}`}>
-                          {preset.label}
-                        </h4>
-                      </div>
-                      {selected && (
-                        <span className="text-blue-600 text-sm font-semibold">✓</span>
-                      )}
-                    </div>
-                    <p className={`text-xs ${selected ? 'text-blue-700' : 'text-gray-500'}`}>
-                      {preset.description}
-                    </p>
-                  </div>
-                );
-              })}
-            </div>
-          </section>
-
-          <section className="space-y-4">
-            <div className="flex justify-between items-end">
-              <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider">Selecciona tus propios módulos</h3>
-              <span className="bg-gray-100 text-gray-700 text-xs font-bold px-3 py-1 rounded-full">
-                {selectedCount} / {availableModules.length} seleccionados
-              </span>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {availableModules.map((mod) => {
-                const isSelected = selectedModuleKeys.has(mod.key);
-                return (
-                  <div
-                    key={mod.key}
-                    onClick={() => toggleSelectedModule(mod.key)}
-                    className={
-                      'flex items-center p-4 border rounded-xl cursor-pointer transition-all ' +
-                      (isSelected
-                        ? 'border-blue-500 bg-blue-50 shadow-sm'
-                        : 'border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50')
-                    }
-                  >
-                    <div
-                      className={
-                        'flex-shrink-0 w-5 h-5 rounded border flex items-center justify-center mr-3 transition-colors ' +
-                        (isSelected ? 'bg-blue-500 border-blue-500 text-white' : 'border-gray-300')
-                      }
-                    >
-                      {isSelected && <span className="text-[10px] font-bold">✓</span>}
-                    </div>
-                    <div className="w-8 h-8 rounded-lg border border-gray-200 text-gray-700 flex items-center justify-center mr-3">
-                      {renderModuleIcon(mod.key)}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className={`font-medium text-sm ${isSelected ? 'text-blue-900' : 'text-gray-700'}`}>
-                          {getModuleLabel(mod.key, mod.label)}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </section>
-
-          <div className="pt-4 flex justify-end">
-            <button
-              type="button"
-              disabled={selectedCount === 0}
-              onClick={() => setStation('builder')}
-              className={
-                'px-6 py-2.5 font-medium rounded-lg transition-colors flex items-center ' +
-                (selectedCount > 0
-                  ? 'bg-gray-200 text-gray-800 hover:bg-gray-300'
-                  : 'bg-gray-100 text-gray-400 cursor-not-allowed')
-              }
-            >
-              Continuar con {selectedCount} módulos →
-            </button>
-          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6 md:p-8">
-      <div className="max-w-4xl mx-auto space-y-8">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white mt-2">{tr.title ?? 'Nuevo proyecto'}</h1>
+    <div className="max-w-4xl mx-auto space-y-8">
+      <h1 className="text-3xl font-bold text-gray-900 dark:text-white mt-2">{tr.title ?? 'Nuevo proyecto'}</h1>
 
-          <input
-            type="text"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder={tr.titlePlaceholder ?? 'Título del proyecto'}
-            className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500"
-          />
-          <textarea
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            rows={3}
-            placeholder={tr.descriptionPlaceholder ?? 'Descripción del proyecto'}
-            className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500"
-          />
+        <input
+          type="text"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder={tr.titlePlaceholder ?? 'Titre du projet'}
+          className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-3 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-500"
+        />
+        <textarea
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          rows={3}
+          placeholder={tr.descriptionPlaceholder ?? 'Description du projet'}
+          className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-3 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-500"
+        />
 
-          <div className="rounded-xl border border-dashed border-gray-200 p-4 text-sm text-gray-600">
-            <label className="flex items-start gap-3">
-              <input
-                type="checkbox"
-                checked={protectedEnabled}
-                onChange={(e) => setProtectedEnabled(e.target.checked)}
-                className="mt-1 h-4 w-4 rounded border-gray-300 text-brand-600 focus:ring-brand-500"
-              />
-              <span>
-                <span className="font-semibold text-gray-900">
-                  Proteger con credenciales la base de datos
-                </span>
-                <span className="block text-xs text-gray-500">
-                  Si activas esta opción, el proyecto requerirá login antes de mostrar el contenido.
-                </span>
+        <div className="rounded-xl border border-dashed border-gray-200 dark:border-gray-700 p-4 text-sm text-gray-600 dark:text-gray-400">
+          <label className="flex items-start gap-3">
+            <input
+              type="checkbox"
+              checked={protectedEnabled}
+              onChange={(e) => setProtectedEnabled(e.target.checked)}
+              className="mt-1 h-4 w-4 rounded border-gray-300 dark:border-gray-600 text-brand-600 focus:ring-brand-500 bg-white dark:bg-gray-800"
+            />
+            <span>
+              <span className="font-semibold text-gray-900 dark:text-gray-100">
+                {tr.protectedDbLabel ?? 'Protéger la base de données avec des identifiants'}
               </span>
-            </label>
+              <span className="block text-xs text-gray-500 dark:text-gray-400">
+                {tr.protectedDbDesc ?? "Si vous activez cette option, le projet nécessitera une connexion avant d'afficher le contenu."}
+              </span>
+            </span>
 
-            {protectedEnabled && (
-              <div className="mt-4 grid gap-3 md:grid-cols-2">
-                <input
-                  type="text"
-                  value={protectedUsername}
-                  onChange={(e) => setProtectedUsername(e.target.value)}
-                  placeholder="Nombre de usuario"
-                  className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500"
-                />
-                <input
-                  type="password"
-                  value={protectedPassword}
-                  onChange={(e) => setProtectedPassword(e.target.value)}
-                  placeholder="Contraseña (mínimo 8 caracteres)"
-                  className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500"
-                />
-                {!protectedUsernameValid && (
-                  <div className="text-xs text-amber-600">
-                    El usuario es obligatorio.
-                  </div>
-                )}
-                {!protectedPasswordValid && (
-                  <div className="text-xs text-amber-600">
-                    La contraseña debe tener al menos 8 caracteres.
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        
+          </label>
 
-        <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm space-y-6">
-          <div>
-            <h2 className="text-lg font-semibold text-gray-900">
-              {tr.layoutEditorTitle ?? 'Diseño de módulos'}
-            </h2>
-            <p className="text-sm text-gray-500">
-              {tr.layoutEditorDesc ?? 'Arrastra los módulos desde la paleta al canvas. Selecciona un archivo HTML para cada módulo que lo requiera y completa los textos.'}
-            </p>
-          </div>
+          {protectedEnabled && (
+            <div className="mt-4 grid gap-3 md:grid-cols-2">
+              <input
+                type="text"
+                value={protectedUsername}
+                onChange={(e) => setProtectedUsername(e.target.value)}
+                placeholder={tr.usernamePlaceholder ?? "Nom d'utilisateur"}
+                className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-3 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-500"
+              />
+              <input
+                type="password"
+                value={protectedPassword}
+                onChange={(e) => setProtectedPassword(e.target.value)}
+                placeholder={tr.passwordPlaceholder ?? 'Mot de passe (minimum 8 caractères)'}
+                className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-3 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-500"
+              />
+              {!protectedUsernameValid && (
+                <div className="text-xs text-amber-600 dark:text-amber-400">
+                  {tr.usernameRequired ?? "L'utilisateur est obligatoire."}
+                </div>
+              )}
+              {!protectedPasswordValid && (
+                <div className="text-xs text-amber-600 dark:text-amber-400">
+                  {tr.passwordInvalid ?? 'Le mot de passe doit comporter au moins 8 caractères.'}
+                </div>
+              )}
+            </div>
 
-          <div className="space-y-4">
-            <ModulesPalette
-              modules={paletteModules}
-              canvasModules={canvasModules}
-              groups={filteredGroups}
-              ungrouped={filteredUngrouped}
-            />
-          </div>
-
-          <div className="h-[min(70vh,640px)]">
-            <DragDropCanvas
-              modules={canvasModules}
-              onChange={setCanvasModules}
-              onSelectObject={handleSelectObject}
-              onTextChange={handleTextChange}
-            />
-          </div>
+          )}
         </div>
+
+
+      <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-6 shadow-sm space-y-6">
+        <div>
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+            {tr.layoutEditorTitle ?? 'Conception des modules'}
+          </h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            {tr.layoutEditorDesc ?? 'Faites glisser les modules de la palette vers le canevas. Sélectionnez un fichier HTML pour chaque module qui en nécessite un et complétez les textes.'}
+          </p>
+        </div>
+
+        <div className="space-y-4">
+          <ModulesPalette
+            modules={paletteModules}
+            canvasModules={canvasModules}
+            groups={filteredGroups}
+            ungrouped={filteredUngrouped}
+          />
+        </div>
+
+        <div className="h-[min(70vh,640px)]">
+          <DragDropCanvas
+            modules={canvasModules}
+            onChange={setCanvasModules}
+            onSelectObject={handleSelectObject}
+            onTextChange={handleTextChange}
+          />
+        </div>
+      </div>
+
 
         {/* Validation warning for needsObject modules without object */}
         {canvasModules.some((m) => m.needsObject && !m.objectId) && (
-          <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
-            Algunos módulos requieren un archivo HTML. Selecciona uno para cada módulo marcado antes de ensamblar.
+          <div className="rounded-md border border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-900/20 px-3 py-2 text-xs text-amber-800 dark:text-amber-200">
+            {tr.validation?.missingHtml ?? 'Certains modules nécessitent un fichier HTML. Sélectionnez-en un pour chaque module marqué avant l\'assemblage.'}
           </div>
+
         )}
 
         {detectedType === 'landing_page' && !landingModulesReady && (
-          <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
-            Para landing page debes incluir Header, Body y Footer.
+          <div className="rounded-md border border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-900/20 px-3 py-2 text-xs text-amber-800 dark:text-amber-200">
+            {tr.validation?.landingRequired ?? 'Pour la page de destination, vous devez inclure En-tête, Corps et Pied de page.'}
           </div>
         )}
+
 
         {/* Object selector modal */}
         <AssemblerModal
           isOpen={selectorModuleKey !== null}
-          title={`Seleccionar HTML — ${selectorModule?.label ?? selectorModuleKey ?? ''}`}
+          title={tr.modal?.selectHtml?.replace('{name}', selectorModule?.label ?? selectorModuleKey ?? '') ?? `Sélectionner HTML — ${selectorModule?.label ?? selectorModuleKey ?? ''}`}
           onClose={() => setSelectorModuleKey(null)}
         >
+
           <GenericObjectSelector
             type={(selectorModule?.type as any) ?? 'HTML'}
             product_type_for_assembly={detectedType ?? undefined}
@@ -712,7 +722,7 @@ const AssemblerNew: React.FC = () => {
         </AssemblerModal>
 
         {/* Create & Assemble button + results */}
-        <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+        <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-6 shadow-sm">
           <div className="space-y-4">
             {error && (
               <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-900/50 dark:bg-red-900/30 dark:text-red-100">
@@ -722,14 +732,14 @@ const AssemblerNew: React.FC = () => {
 
             {resultUrl && (
               <div className="rounded-md border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800 dark:border-green-900/40 dark:bg-green-900/20 dark:text-green-100">
-                <span className="font-semibold">Ensamblado exitosamente.</span>{' '}
+                <span className="font-semibold">{tr.success ?? 'Assemblage réussi.'}</span>{' '}
                 <a
                   href={resultUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="underline hover:text-green-900 dark:hover:text-green-50"
                 >
-                  Abrir resultado →
+                  {tr.openResult ?? 'Ouvrir le résultat →'}
                 </a>
               </div>
             )}
@@ -773,12 +783,12 @@ const AssemblerNew: React.FC = () => {
                 {isSubmitting ? (
                   <>
                     <svg className="animate-spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" opacity="0.25"/><path d="M4 12a8 8 0 0 1 8-8"/></svg>
-                    Ensamblando...
+                    {tr.assembling ?? 'Assemblage en cours...'}
                   </>
                 ) : (
                   <>
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
-                    Crear y Ensamblar
+                    {tr.createCta ?? 'Créer et Assembler'}
                   </>
                 )}
               </button>
@@ -786,7 +796,6 @@ const AssemblerNew: React.FC = () => {
           </div>
         </div>
       </div>
-    </div>
   );
 };
 

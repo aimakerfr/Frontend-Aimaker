@@ -1364,16 +1364,60 @@ export const fr: Translations = {
   },
 
   assembler: {
+    title: 'Assembler Maker Paths',
+    createNew: 'Créer un nouvel assembleur',
+    deployAssembly: 'Déployer l’assemblage',
+    noAssemblerMakerPaths: 'Pas encore de chemins de maker d’assembleur',
+    actions: 'Actions',
     new: {
-      title: 'Sélectionnez un type de projet',
-      notebookTitle: 'Notebook',
-      notebookDesc: 'Chat intelligent connecté à vos sources de données.',
-      landingTitle: 'Landing Page',
-      landingDesc: "Créez des pages d'atterrissage optimisées avec RAG.",
-      selected: 'Sélectionné',
+      title: 'Nouveau projet',
+      stationTitle: 'Assembleur de Projet',
+      stationDescription: 'Sélectionnez les modules que vous souhaitez inclure dans votre nouveau projet.',
+      presetsTitle: 'Configurations prédéfinies',
+      presets: {
+        notebook: {
+          label: 'Notebook IA',
+          description: 'Configuration idéale pour un environnement interactif avec documents.'
+        },
+        landing: {
+          label: 'Page de destination',
+          description: 'Structure standard pour une page de présentation.'
+        }
+      },
+      customModulesTitle: 'Sélectionnez vos propres modules',
+      selectedCount: '{count} / {total} sélectionnés',
+      continueBtn: 'Continuer avec {count} modules →',
       titlePlaceholder: 'Titre du projet',
       descriptionPlaceholder: 'Description du projet',
-      createCta: 'Créer Projet',
+      protectedDbLabel: 'Protéger la base de données avec des identifiants',
+      protectedDbDesc: 'Si vous activez cette option, le projet nécessitera une connexion avant d\'afficher le contenu.',
+      usernamePlaceholder: 'Nom d\'utilisateur',
+      passwordPlaceholder: 'Mot de passe (minimum 8 caractères)',
+      usernameRequired: 'L\'utilisateur est obligatoire.',
+      passwordInvalid: 'Le mot de passe doit comporter au moins 8 caractères.',
+      layoutEditorTitle: 'Conception des modules',
+      layoutEditorDesc: 'Faites glisser les modules de la palette vers le canevas. Sélectionnez un fichier HTML pour chaque module qui en nécessite un et complétez les textes.',
+      modules: {
+        header: 'Landing Page: En-tête',
+        body: 'Landing Page: Corps',
+        footer: 'Landing Page: Pied de page',
+        rag: 'Module RAG',
+        api_configuration: 'Configurateur de Clé API',
+        chat: 'Module de Chat',
+        html_input: 'Entrée HTML',
+        buscador: 'Chercheur'
+      },
+      validation: {
+        missingHtml: 'Certains modules nécessitent un fichier HTML. Sélectionnez-en un pour chaque module marqué avant l\'assemblage.',
+        landingRequired: 'Pour la page de destination, vous devez inclure En-tête, Corps et Pied de page.'
+      },
+      modal: {
+        selectHtml: 'Sélectionner HTML — {name}'
+      },
+      success: 'Assemblage réussi.',
+      openResult: 'Ouvrir le résultat →',
+      assembling: 'Assemblage en cours...',
+      createCta: 'Créer et Assembler',
       creatingLabel: 'Création...',
       errorCreating: 'Erreur lors de la création du projet',
     },
