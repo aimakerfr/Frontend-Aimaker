@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useLanguage } from '@apps/fablab/language/useLanguage';
 import { createProductFromTemplate } from '@core/products';
+import { Rocket, Loader2 } from 'lucide-react';
 import {
   applicationDeploymentService,
   type ApplicationDeployment,
@@ -32,6 +33,7 @@ const ApplicationDeploymentFullPage: React.FC<Props> = ({ makerPathId, DatabaseC
     const s = (status || '').toLowerCase();
     let label = s || '-';
     let classes = 'inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200';
+    let Icon = null;
 
     if (s === 'deployed_successful') {
       classes = 'inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-200';
@@ -39,6 +41,7 @@ const ApplicationDeploymentFullPage: React.FC<Props> = ({ makerPathId, DatabaseC
     } else if (s === 'deployment_in_progress') {
       classes = 'inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-200';
       label = t?.projectFlow?.statusDeploymentInProgress || 'In progress';
+      Icon = <Loader2 className="w-3 h-3 animate-spin mr-1" />;
     } else if (s === 'waiting_files') {
       classes = 'inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-200';
       label = t?.projectFlow?.statusWaitingFiles || 'Waiting files';
@@ -47,7 +50,12 @@ const ApplicationDeploymentFullPage: React.FC<Props> = ({ makerPathId, DatabaseC
       label = t?.projectFlow?.statusDeploymentFailed || 'Failed';
     }
 
-    return <span className={classes}>{label}</span>;
+    return (
+      <span className={classes}>
+        {Icon}
+        {label}
+      </span>
+    );
   };
 
   useEffect(() => {
@@ -93,6 +101,23 @@ const ApplicationDeploymentFullPage: React.FC<Props> = ({ makerPathId, DatabaseC
     };
     load();
   }, [makerPathId]);
+
+  useEffect(() => {
+    const isDeploying = deployments.some(d => (d as any).status === 'deployment_in_progress');
+
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (isDeploying) {
+        event.preventDefault();
+        event.returnValue = ''; // Trigger browser prompt
+        return '';
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [deployments]);
 
   const refresh = async () => {
     if (!makerPathId) return;
