@@ -108,17 +108,16 @@ const AssemblerMakerPathsView: React.FC = () => {
                         onClick={() => handleDeploy(mp.id)}
                         disabled={deployingId !== null}
                         title={t?.assembler?.deployAssembly || 'Deploy assembly'}
-                        className={`p-2 rounded-md transition-colors text-white ${
+                        className={`p-2 rounded-md transition-all duration-300 text-white ${
                           deployingId === mp.id 
-                            ? 'bg-gray-400 cursor-not-allowed' 
+                            ? 'bg-green-700 scale-110 shadow-lg' 
                             : 'bg-green-600 hover:bg-green-700'
                         }`}
                       >
-                        {deployingId === mp.id ? (
-                          <span className="text-xs animate-pulse">...</span>
-                        ) : (
-                          <Rocket size={16} />
-                        )}
+                        <Rocket 
+                          size={16} 
+                          className={deployingId === mp.id ? 'animate-rocket-deploy' : ''} 
+                        />
                       </button>
 
                       {(mp.hasApplicationDeployment === true || 
