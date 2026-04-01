@@ -230,6 +230,7 @@ const ApplicationDeploymentFullPage: React.FC<Props> = ({ makerPathId, DatabaseC
                     <th className="py-3 px-4">{'Title'}</th>
                     <th className="py-3 px-4">{t?.projectFlow?.databaseName || 'Database name'}</th>
                     <th className="py-3 px-4">{t?.projectFlow?.deploymentUrl || 'Deployment URL'}</th>
+                    <th className="py-3 px-4">{'Files URL'}</th>
                     <th className="py-3 px-4">{t?.projectFlow?.status || 'Status'}</th>
                     <th className="py-3 px-4">{t?.projectFlow?.actions || 'Actions'}</th>
                   </tr>
@@ -248,6 +249,20 @@ const ApplicationDeploymentFullPage: React.FC<Props> = ({ makerPathId, DatabaseC
                             className="text-blue-600 hover:underline break-all"
                           >
                             {(d as any).deploymentUrl as string}
+                          </a>
+                        ) : (
+                          <span className="text-gray-400">-</span>
+                        )}
+                      </td>
+                      <td className="py-3 px-4">
+                        {(d as any).filesUrl ? (
+                          <a
+                            href={(d as any).filesUrl as string}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:underline break-all"
+                          >
+                            {(d as any).filesUrl as string}
                           </a>
                         ) : (
                           <span className="text-gray-400">-</span>
