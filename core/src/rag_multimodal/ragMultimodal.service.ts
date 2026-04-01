@@ -58,6 +58,9 @@ export interface PostRagMultimodalSourceResponse {
   id: number;
   name: string;
   type: string;
+  objectId?: number | null;
+  relativePath?: string | null;
+  url?: string | null;
   filePath?: string | null;
   createdAt: string;
 }
@@ -248,7 +251,7 @@ export const deleteRagMultimodalSource = async (sourceId: number): Promise<void>
  */
 export const getRagMultimodalSourceContent = async (
   sourceId: number
-): Promise<{ content: string; isUrl: boolean; type: string; name: string }> => {
-  const resp = await httpClient.get<{ content: string; isUrl: boolean; type: string; name: string }>(`/api/v1/rag-multimodal-sources/${sourceId}/content`);
+): Promise<{ content: string; isUrl: boolean; type: string; name: string; filePath?: string; relativePath?: string; url?: string }> => {
+  const resp = await httpClient.get<{ content: string; isUrl: boolean; type: string; name: string; filePath?: string; relativePath?: string; url?: string }>(`/api/v1/rag-multimodal-sources/${sourceId}/content`);
   return { ...resp, type: resp.type === 'pdf' ? 'doc' : resp.type };
 };

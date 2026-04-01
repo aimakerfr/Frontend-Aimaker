@@ -29,6 +29,7 @@ const FIXED_TYPES: ProductType[] = [
   'api_key_maker',
   'api_key_html_injector',
   'profile_b2b_maker',
+  'api_cost_manager',
   'perplexity_search',
   'prompt_optimizer',
   'creation_path',
@@ -75,6 +76,7 @@ const getProductRoute = (type: ProductType, id: number): string => {
     api_key_maker: 'api-key',
     api_key_html_injector: 'api-key-html',
     profile_b2b_maker: 'profile-b2b',
+    api_cost_manager: 'api-cost',
     perplexity_search: 'perplexity-search',
     prompt_optimizer: 'prompt-optimizer',
     creation_path: 'creation-path',
@@ -104,6 +106,7 @@ const getTypeColor = (type: ProductType): string => {
     api_key_maker: 'bg-gradient-to-br from-cyan-500 to-blue-600',
     api_key_html_injector: 'bg-gradient-to-br from-violet-500 to-fuchsia-600',
     profile_b2b_maker: 'bg-gradient-to-br from-teal-500 to-cyan-600',
+    api_cost_manager: 'bg-gradient-to-br from-teal-600 to-emerald-600',
     app: 'bg-gradient-to-br from-emerald-500 to-teal-600',
     custom: 'bg-gradient-to-br from-gray-500 to-gray-600',
     perplexity_search: 'bg-gradient-to-br from-blue-500 to-sky-600',
@@ -168,6 +171,11 @@ const AIContext: React.FC = () => {
           type: 'perplexity_search',
           title: (t.products.fixed as any).perplexitySearchTitle || 'Búsqueda Perplexity',
           description: (t.products.fixed as any).perplexitySearchDesc || 'Búsqueda inteligente potenciada con Perplexity AI.',
+        },
+        {
+          type: 'api_cost_manager',
+          title: (t.products.fixed as any).apiCostManagerTitle || 'Gestor de costos API',
+          description: (t.products.fixed as any).apiCostManagerDesc || 'Analiza costos, modelos disponibles e historial de reportes de una API key.',
         },
         {
           type: 'prompt_optimizer',
@@ -265,6 +273,7 @@ const AIContext: React.FC = () => {
     if (item.type === 'style_transfer_maker') return t.products.fixed.styleTransferTitle;
     if (item.type === 'translation_maker') return t.products.fixed.translationTitle;
     if (item.type === 'perplexity_search') return (t.products.fixed as any).perplexitySearchTitle || 'Búsqueda Perplexity';
+    if (item.type === 'api_cost_manager') return (t.products.fixed as any).apiCostManagerTitle || 'Gestor de costos API';
     if (item.type === 'prompt_optimizer') return (t.products.fixed as any).promptOptimizerTitle || 'Optimizador de Prompt';
     if (item.type === 'creation_path') return (t.products.fixed as any).creationPathTitle || 'Creation-Path';
     return item.title || item.type;
@@ -279,6 +288,7 @@ const AIContext: React.FC = () => {
     if (item.type === 'style_transfer_maker') return t.products.fixed.styleTransferDesc;
     if (item.type === 'translation_maker') return t.products.fixed.translationDesc;
     if (item.type === 'perplexity_search') return (t.products.fixed as any).perplexitySearchDesc || 'Búsqueda inteligente con Perplexity AI.';
+    if (item.type === 'api_cost_manager') return (t.products.fixed as any).apiCostManagerDesc || 'Analiza costos, modelos disponibles e historial de reportes de una API key.';
     if (item.type === 'prompt_optimizer') return (t.products.fixed as any).promptOptimizerDesc || 'Optimiza tus prompts con IA.';
     if (item.type === 'creation_path') return (t.products.fixed as any).creationPathDesc || 'Ruta de creación guiada paso a paso.';
     return item.description || '';
