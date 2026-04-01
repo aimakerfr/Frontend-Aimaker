@@ -49,7 +49,7 @@ const ProductsView: React.FC<ProductsViewProps> = ({
   const [notebookTitle, setNotebookTitle] = useState('');
   const [notebookDescription, setNotebookDescription] = useState('');
   const [createError, setCreateError] = useState<string | null>(null);
-  const FIXED_TYPES: ProductType[] = ['landing_page_maker', 'image_generator_rag', 'translation_maker', 'style_transfer_maker', 'api_key_maker', 'api_key_html_injector', 'profile_b2b_maker', 'perplexity_search', 'prompt_optimizer', 'creation_path'];
+  const FIXED_TYPES: ProductType[] = ['landing_page_maker', 'image_generator_rag', 'translation_maker', 'style_transfer_maker', 'api_key_maker', 'api_key_html_injector', 'profile_b2b_maker', 'api_cost_manager', 'perplexity_search', 'prompt_optimizer', 'creation_path'];
   
   // Function to get the correct route based on product type
   const getProductRoute = (type: string, id: number): string => {
@@ -62,6 +62,7 @@ const ProductsView: React.FC<ProductsViewProps> = ({
       'api_key_maker': 'api-key',
       'api_key_html_injector': 'api-key-html',
       'profile_b2b_maker': 'profile-b2b',
+      'api_cost_manager': 'api-cost',
       'perplexity_search': 'perplexity-search',
       'prompt_optimizer': 'prompt-optimizer',
       'creation_path': 'creation-path',
@@ -174,6 +175,7 @@ const ProductsView: React.FC<ProductsViewProps> = ({
       'api_key_maker': 'API Key Inspector',
       'api_key_html_injector': 'Inyección API Key HTML',
       'profile_b2b_maker': t.products.fixed.profileB2BTitle || 'Profile B2B',
+      'api_cost_manager': (t.products.fixed as any).apiCostManagerTitle || 'Gestor de costos API',
       'perplexity_search': (t.products.fixed as any).perplexitySearchTitle || 'Búsqueda Perplexity',
       'prompt_optimizer': (t.products.fixed as any).promptOptimizerTitle || 'Optimizador de Prompt',
       'creation_path': (t.products.fixed as any).creationPathTitle || 'Creation-Path',
@@ -195,6 +197,7 @@ const ProductsView: React.FC<ProductsViewProps> = ({
       'api_key_maker': 'bg-gradient-to-br from-cyan-500 to-blue-600',
       'api_key_html_injector': 'bg-gradient-to-br from-violet-500 to-fuchsia-600',
       'profile_b2b_maker': 'bg-gradient-to-br from-teal-500 to-cyan-600',
+      'api_cost_manager': 'bg-gradient-to-br from-teal-600 to-emerald-600',
       'perplexity_search': 'bg-gradient-to-br from-blue-500 to-sky-600',
       'prompt_optimizer': 'bg-gradient-to-br from-indigo-500 to-purple-600',
       'creation_path': 'bg-gradient-to-br from-emerald-500 to-green-600',
@@ -510,6 +513,26 @@ const Products = () => {
           type: 'profile_b2b_maker',
           title: t.products.fixed.profileB2BTitle || 'Profile B2B',
           description: t.products.fixed.profileB2BDesc || 'Pipeline B2B de OSINT, persona, matching y landing personalizada con IA.'
+        },
+        {
+          type: 'api_cost_manager',
+          title: (t.products.fixed as any).apiCostManagerTitle || 'Gestor de costos API',
+          description: (t.products.fixed as any).apiCostManagerDesc || 'Analiza costos, modelos disponibles e historial de reportes de una API key.'
+        },
+        {
+          type: 'perplexity_search',
+          title: (t.products.fixed as any).perplexitySearchTitle || 'Búsqueda Perplexity',
+          description: (t.products.fixed as any).perplexitySearchDesc || 'Búsqueda inteligente potenciada con Perplexity AI.'
+        },
+        {
+          type: 'prompt_optimizer',
+          title: (t.products.fixed as any).promptOptimizerTitle || 'Optimizador de Prompt',
+          description: (t.products.fixed as any).promptOptimizerDesc || 'Optimiza tus prompts con IA para mejorar su precisión y estructura.'
+        },
+        {
+          type: 'creation_path',
+          title: (t.products.fixed as any).creationPathTitle || 'Creation-Path',
+          description: (t.products.fixed as any).creationPathDesc || 'Ruta de creación guiada paso a paso con asistencia de IA.'
         },
       ];
 

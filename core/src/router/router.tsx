@@ -23,10 +23,11 @@ import ApiKeyInspectorView from '@apps/fablab/views/product/ApiKeyInspectorView'
 import ApiKeyHtmlInjectionView from '@apps/fablab/views/product/ApiKeyHtmlInjectionView';
 import ProfileB2BView from '@apps/fablab/views/product/ProfileB2BView';
 import ApiKeyManager from '@apps/fablab/views/api-proxy/ApiKeyManager';
-import { LandingPageEntry, ImageGeneratorEntry, TranslationEntry, StyleTransferEntry, ApiKeyEntry, ApiKeyHtmlInjectionEntry, ProfileB2BEntry, PerplexitySearchEntry, PromptOptimizerEntry, CreationPathEntry } from '@apps/fablab/views/product/FixedProductEntry';
+import { LandingPageEntry, ImageGeneratorEntry, TranslationEntry, StyleTransferEntry, ApiKeyEntry, ApiKeyHtmlInjectionEntry, ProfileB2BEntry, PerplexitySearchEntry, PromptOptimizerEntry, CreationPathEntry, ApiCostManagerEntry } from '@apps/fablab/views/product/FixedProductEntry';
 import PromptOptimizerView from '@apps/fablab/views/product/PromptOptimizerView';
 import PerplexitySearchView from '@apps/fablab/views/product/PerplexitySearchView';
 import CreationPathView from '@apps/fablab/views/product/CreationPathView';
+import ApiCostManagerView from '@apps/fablab/views/product/ApiCostManagerView';
 import TemplateSelector from '@apps/frontend_template_visualizer/components/TemplateSelector';
 import PublicPromptDetails from '@apps/fablab/views/public/prompt/PublicPromptDetails';
 import PublicAssistantDetails from '@apps/fablab/views/public/assistant/PublicAssistantDetails';
@@ -246,6 +247,14 @@ export function AppRouter() {
             </ProtectedRoute>
           }
         />
+        <Route
+          path="/product/api-cost"
+          element={
+            <ProtectedRoute>
+              <ApiCostManagerEntry />
+            </ProtectedRoute>
+          }
+        />
         
         {/* Public Landing Page Product View */}
         <Route path="/product/landing-page/:id" element={<LandingPageView />} />
@@ -266,6 +275,7 @@ export function AppRouter() {
         <Route path="/product/prompt-optimizer/:id" element={<PromptOptimizerView />} />
         <Route path="/product/perplexity-search/:id" element={<PerplexitySearchView />} />
         <Route path="/product/creation-path/:id" element={<CreationPathView />} />
+        <Route path="/product/api-cost/:id" element={<ApiCostManagerView />} />
         
         {/* Public Prompt - No auth required, read-only (config view) */}
         <Route path="/public/prompt/:id" element={<PublicPromptWrapper />} />

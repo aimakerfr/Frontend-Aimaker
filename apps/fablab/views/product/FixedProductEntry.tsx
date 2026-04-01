@@ -137,4 +137,13 @@ export const CreationPathEntry = () => (
   />
 );
 
+export const ApiCostManagerEntry = () => (
+  <FixedProductEntry
+    type="api_cost_manager"
+    route="api-cost"
+    title="Gestor de costos API"
+    description="Analiza costos, modelos disponibles e historial de reportes de una API key."
+  />
+);
+
 export default FixedProductEntry;
