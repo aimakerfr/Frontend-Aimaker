@@ -1,9 +1,12 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
+  ArrowLeft,
   Globe,
+  Moon,
   Plus,
   Send,
+  Sun,
   Download,
   KeyRound,
 } from 'lucide-react';
@@ -25,6 +28,7 @@ import { useLanguage } from '../../language/useLanguage';
 const STEP_CONFIG = 1;
 const STEP_CHAT   = 2;
 const STEP_STATS  = 3;
+const THEME_STORAGE_KEY = 'aimaker:api_key_theme';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -58,6 +62,7 @@ type CatalogModel = {
 };
 
 type ModelCapability = 'text' | 'image' | 'audio' | 'video' | 'search' | 'unknown';
+type ChatMode = ModelCapability;
 
 type EnrichedModelOption = {
   id: string;
@@ -240,28 +245,145 @@ const parseCatalogModels = (raw: string): CatalogModel[] => {
   } catch { return []; }
 };
 
+const optimizeShortText = (raw: string, maxChars = 400): string => {
+  const text = raw.replace(/\s+/g, ' ').trim();
+  if (!text) return '';
+
+  const core = text
+    .replace(/^eres\s+un\s+/i, '')
+    .replace(/^tu\s+eres\s+/i, '')
+    .replace(/^actua\s+como\s+/i, '')
+    .trim();
+
+  const base = [
+    'Objetivo: responder de forma precisa y accionable.',
+    `Contexto clave: ${core}`,
+    'Formato: breve, claro, con pasos concretos y sin relleno.',
+  ].join(' ');
+
+  if (base.length <= maxChars) return base;
+  return `${base.slice(0, Math.max(0, maxChars - 1)).trimEnd()}...`;
+};
+
+const RUNTIME_STYLE_PROMPT = [
+  'Return only the final answer for the user.',
+  'Use plain text with short paragraphs and concise bullet points when helpful.',
+  'Do not output markdown headings, code fences, HTML tags, JSON traces, tool logs, or internal thoughts.',
+].join(' ');
+
+const buildRuntimeSystemPrompt = (basePrompt: string): string => {
+  const blocks = [basePrompt.trim(), RUNTIME_STYLE_PROMPT].filter(Boolean);
+  return blocks.join('\n\n');
+};
+
+const tryParseToolTraceObject = (raw: string): Record<string, unknown> | null => {
+  try {
+    const parsed = JSON.parse(raw) as Record<string, unknown>;
+    if (!parsed || typeof parsed !== 'object') return null;
+    const hasAction = typeof parsed.action === 'string';
+    const hasActionInput = typeof parsed.action_input === 'string';
+    const hasThought = typeof parsed.thought === 'string';
+    return hasAction && hasActionInput && hasThought ? parsed : null;
+  } catch {
+    return null;
+  }
+};
+
+const stripLeadingToolTrace = (raw: string): string => {
+  let text = raw.trim();
+  if (!text) return '';
+
+  text = text.replace(/^Refining the response\.\.\./i, '').trim();
+  text = text.replace(/\n\s*Refining the response\.\.\./gi, '\n').trim();
+
+  // Handle ```json ... ``` wrappers containing action traces.
+  const fenced = text.match(/^```(?:json)?\s*([\s\S]*?)\s*```\s*([\s\S]*)$/i);
+  if (fenced) {
+    const maybeTrace = tryParseToolTraceObject((fenced[1] || '').trim());
+    if (maybeTrace) {
+      text = (fenced[2] || '').trim();
+    }
+  }
+
+  // Handle raw JSON trace prefix at the beginning.
+  if (text.startsWith('{')) {
+    let depth = 0;
+    let cutIndex = -1;
+    for (let i = 0; i < text.length; i += 1) {
+      const ch = text[i];
+      if (ch === '{') depth += 1;
+      if (ch === '}') {
+        depth -= 1;
+        if (depth === 0) {
+          cutIndex = i;
+          break;
+        }
+      }
+    }
+    if (cutIndex > 0) {
+      const head = text.slice(0, cutIndex + 1).trim();
+      const tail = text.slice(cutIndex + 1).trim();
+      const maybeTrace = tryParseToolTraceObject(head);
+      if (maybeTrace) {
+        text = tail;
+      }
+    }
+  }
+
+  text = text.replace(/^\s*Refining the response\.\.\.\s*/i, '').trim();
+  return text;
+};
+
+const stripPresentationFormatting = (raw: string): string => {
+  let text = raw;
+
+  // Remove HTML embeds often returned by generic model renderers.
+  text = text.replace(/<img\b[^>]*>/gi, '');
+  text = text.replace(/<br\s*\/?>/gi, '\n');
+  text = text.replace(/<[^>]+>/g, '');
+
+  // Convert markdown headings and decorations to plain readable text.
+  text = text.replace(/^\s{0,3}#{1,6}\s*/gm, '');
+  text = text.replace(/\*\*(.*?)\*\*/g, '$1');
+  text = text.replace(/__(.*?)__/g, '$1');
+  text = text.replace(/`([^`]+)`/g, '$1');
+  text = text.replace(/^\s*[-*]\s+/gm, '- ');
+  text = text.replace(/^\s*---+\s*$/gm, '');
+
+  // Remove empty fenced blocks that sometimes leak from tool traces.
+  text = text.replace(/```(?:[a-z0-9_-]+)?\s*([\s\S]*?)\s*```/gi, '$1');
+
+  return text.replace(/\n{3,}/g, '\n\n').trim();
+};
+
+const normalizeAssistantOutput = (raw: string): string => {
+  const cleaned = stripPresentationFormatting(stripLeadingToolTrace(raw));
+  return cleaned || stripPresentationFormatting(raw.trim()) || '(sin contenido)';
+};
+
 // ─── Small reusable UI pieces ─────────────────────────────────────────────────
 
 /** Sidebar collapsible section wrapper */
 const SidebarSection: React.FC<{
   title: string;
   open: boolean;
+  isDark?: boolean;
   onToggle: () => void;
   onAdd?: () => void;
   addDisabled?: boolean;
   addTitle?: string;
   children: React.ReactNode;
-}> = ({ title, open, onToggle, onAdd, addDisabled, addTitle, children }) => (
-  <section className="mt-4 border-t border-[#a7d7c5] pt-3">
+}> = ({ title, open, isDark = false, onToggle, onAdd, addDisabled, addTitle, children }) => (
+  <section className={`mt-4 border-t pt-3 ${isDark ? 'border-slate-700' : 'border-[#a7d7c5]'}`}>
     <div className="flex items-center gap-1 mb-1">
       <button
         onClick={onToggle}
-        className="text-[#6b8f84] w-3.5 text-center text-sm leading-none select-none bg-transparent border-none cursor-pointer p-0"
+        className={`w-3.5 text-center text-sm leading-none select-none bg-transparent border-none cursor-pointer p-0 ${isDark ? 'text-slate-400' : 'text-[#6b8f84]'}`}
         aria-expanded={open}
       >
         {open ? '▾' : '▸'}
       </button>
-      <span className="text-[0.8rem] font-semibold text-[#3d7a6d] uppercase tracking-[0.03em] flex-1 select-none">
+      <span className={`text-[0.8rem] font-semibold uppercase tracking-[0.03em] flex-1 select-none ${isDark ? 'text-slate-300' : 'text-[#3d7a6d]'}`}>
         {title}
       </span>
       {onAdd && (
@@ -269,7 +391,11 @@ const SidebarSection: React.FC<{
           onClick={onAdd}
           disabled={addDisabled}
           title={addTitle}
-          className="bg-transparent border border-[#99d8c9] rounded w-6 h-6 text-base leading-none cursor-pointer text-[#3d7a6d] flex items-center justify-center hover:bg-[#d1fae5] hover:text-[#0f2a24] disabled:opacity-40 transition-colors"
+          className={`bg-transparent border rounded w-6 h-6 text-base leading-none cursor-pointer flex items-center justify-center disabled:opacity-40 transition-colors ${
+            isDark
+              ? 'border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-slate-100'
+              : 'border-[#99d8c9] text-[#3d7a6d] hover:bg-[#d1fae5] hover:text-[#0f2a24]'
+          }`}
         >
           +
         </button>
@@ -286,11 +412,15 @@ const SidebarSection: React.FC<{
 
 /** Bottom sidebar button */
 const SidebarBtn: React.FC<
-  React.ButtonHTMLAttributes<HTMLButtonElement> & { children: React.ReactNode }
-> = ({ children, className = '', ...props }) => (
+  React.ButtonHTMLAttributes<HTMLButtonElement> & { children: React.ReactNode; isDark?: boolean }
+> = ({ children, className = '', isDark = false, ...props }) => (
   <button
     {...props}
-    className={`bg-transparent border border-[#99e6d0] rounded-lg py-[7px] px-2.5 text-[0.82rem] font-[inherit] cursor-pointer text-[#6b8f84] hover:bg-[#d1fae5] hover:text-[#0f2a24] text-center transition-colors ${className}`}
+    className={`bg-transparent border rounded-lg py-[7px] px-2.5 text-[0.82rem] font-[inherit] cursor-pointer text-center transition-colors ${
+      isDark
+        ? 'border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-slate-100'
+        : 'border-[#99e6d0] text-[#6b8f84] hover:bg-[#d1fae5] hover:text-[#0f2a24]'
+    } ${className}`}
   >
     {children}
   </button>
@@ -393,6 +523,20 @@ const ApiKeyInspectorView: React.FC = () => {
   const [catalogModels,    setCatalogModels]    = useState<CatalogModel[]>([]);
   const [remoteModels,     setRemoteModels]     = useState<ProviderModelInfo[]>([]);
   const [hasValidatedKey,  setHasValidatedKey]  = useState(false);
+  const [lastValidatedAt,  setLastValidatedAt]  = useState<string>('');
+
+  // ── UX helpers ──
+  const [isDarkTheme,        setIsDarkTheme]        = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    return window.localStorage.getItem(THEME_STORAGE_KEY) === 'dark';
+  });
+  const [webSearchEnabled,   setWebSearchEnabled]   = useState(false);
+  const [showPromptPicker,   setShowPromptPicker]   = useState(false);
+  const [attachedContext,    setAttachedContext]    = useState('');
+  const [isListening,        setIsListening]        = useState(false);
+  const attachmentInputRef = useRef<HTMLInputElement | null>(null);
+  const importInputRef = useRef<HTMLInputElement | null>(null);
+  const speechRecognitionRef = useRef<any>(null);
 
   // ── UI toggles ──
   const [isRolesOpen,         setIsRolesOpen]         = useState(true);
@@ -414,7 +558,7 @@ const ApiKeyInspectorView: React.FC = () => {
 
   // ── Operation mode ──
   const [testMode,  setTestMode]  = useState<ModelCapability>('text');
-  const [chatMode,  setChatMode]  = useState<ModelCapability>('text');
+  const [chatMode,  setChatMode]  = useState<ChatMode>('text');
 
   // ── Async status ──
   const [isValidatingKey, setIsValidatingKey] = useState(false);
@@ -424,6 +568,20 @@ const ApiKeyInspectorView: React.FC = () => {
 
   const fixedTitle       = t.products?.fixed?.apiKeyTitle || 'Inspector de API Keys';
   const fixedDescription = t.products?.fixed?.apiKeyDesc  || 'Valida formato y conectividad de API keys por proveedor.';
+
+  const themeStyle = useMemo<React.CSSProperties>(() => {
+    return isDarkTheme
+      ? {
+          backgroundColor: '#0b1220',
+          color: '#e5e7eb',
+          fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+        }
+      : {
+          backgroundColor: '#f8fffe',
+          color: '#0f2a24',
+          fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+        };
+  }, [isDarkTheme]);
 
   // ─── Derived / memoised ───────────────────────────────────────────────────
 
@@ -464,6 +622,21 @@ const ApiKeyInspectorView: React.FC = () => {
 
   const modelOptions = useMemo(() => validatedModelOptions, [validatedModelOptions]);
 
+  const textModelOptions = useMemo(
+    () => validatedModelOptions.filter((m) => m.capabilities.includes('text') || m.capabilities.includes('search')),
+    [validatedModelOptions]
+  );
+
+  const imageModelOptions = useMemo(
+    () => validatedModelOptions.filter((m) => m.capabilities.includes('image')),
+    [validatedModelOptions]
+  );
+
+  const otherModelOptions = useMemo(
+    () => validatedModelOptions.filter((m) => !m.capabilities.includes('text') && !m.capabilities.includes('search') && !m.capabilities.includes('image')),
+    [validatedModelOptions]
+  );
+
   const activeConversation = useMemo(
     () => conversations.find(c => c.id === activeConversationId) ?? null,
     [conversations, activeConversationId]
@@ -499,6 +672,10 @@ const ApiKeyInspectorView: React.FC = () => {
   // ─── Persist helpers ──────────────────────────────────────────────────────
 
   const persistConfig = async (productId: number, override?: Partial<Record<string, unknown>>) => {
+    const resolvedLastValidatedAt = hasValidatedKey
+      ? (lastValidatedAt || new Date().toISOString())
+      : '';
+
     await updateProductStepProgress({
       productId,
       stepId: STEP_CONFIG,
@@ -506,6 +683,8 @@ const ApiKeyInspectorView: React.FC = () => {
       resultText: {
         provider, selectedModel, systemPrompt, selectedRoleId,
         apiKeyEncoded: encodeSecret(apiKey),
+        validatedModels: remoteModels,
+        lastValidatedAt: resolvedLastValidatedAt,
         updatedAt: new Date().toISOString(),
         ...override,
       },
@@ -555,6 +734,11 @@ const ApiKeyInspectorView: React.FC = () => {
   }, [activeConversationId, conversations]);
 
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+    window.localStorage.setItem(THEME_STORAGE_KEY, isDarkTheme ? 'dark' : 'light');
+  }, [isDarkTheme]);
+
+  useEffect(() => {
     (async () => {
       try {
         setIsLoading(true);
@@ -589,7 +773,10 @@ const ApiKeyInspectorView: React.FC = () => {
             setRemoteModels(config.validatedModels as ProviderModelInfo[]);
             setHasValidatedKey((config.validatedModels as ProviderModelInfo[]).length > 0);
           }
-          if (typeof config.lastValidatedAt === 'string') setHasValidatedKey(true);
+          if (typeof config.lastValidatedAt === 'string' && config.lastValidatedAt.trim()) {
+            setLastValidatedAt(config.lastValidatedAt);
+            setHasValidatedKey(true);
+          }
         }
 
         const newConv = () => {
@@ -618,8 +805,16 @@ const ApiKeyInspectorView: React.FC = () => {
   }, [id, isAuthenticated, fixedTitle, fixedDescription, t.apiKeyProductView]);
 
   useEffect(() => {
-    if (!selectedModel && modelOptions.length > 0) setSelectedModel(modelOptions[0].id);
-  }, [selectedModel, modelOptions]);
+    if (!selectedModel && modelOptions.length > 0) {
+      const preferred = textModelOptions[0] ?? modelOptions[0];
+      setSelectedModel(preferred.id);
+      if (preferred.capabilities.includes('image')) setChatMode('image');
+      else if (preferred.capabilities.includes('audio')) setChatMode('audio');
+      else if (preferred.capabilities.includes('video')) setChatMode('video');
+      else if (preferred.capabilities.includes('search')) setChatMode('search');
+      else setChatMode('text');
+    }
+  }, [selectedModel, modelOptions, textModelOptions]);
 
   useEffect(() => {
     if (!availableTestModes.includes(testMode)) setTestMode(availableTestModes[0] ?? 'text');
@@ -651,8 +846,10 @@ const ApiKeyInspectorView: React.FC = () => {
     try {
       setIsValidatingKey(true);
       const result = await validateProviderKey({ provider, apiKey: apiKey.trim() });
+      const validatedAt = new Date().toISOString();
       setRemoteModels(result.models || []);
       setHasValidatedKey(true);
+      setLastValidatedAt(validatedAt);
       if (!selectedModel && result.models.length > 0) {
         const firstUsable = result.models.find(m => {
           const catalog = catalogMap.get(m.id) ?? catalogMap.get(normalizeModelId(m.id));
@@ -662,7 +859,7 @@ const ApiKeyInspectorView: React.FC = () => {
         setSelectedModel(firstUsable?.id ?? '');
       }
       await persistConfig(product.id, {
-        lastValidatedAt: new Date().toISOString(),
+        lastValidatedAt: validatedAt,
         validatedModels: result.models,
       });
       setStatusText('API key validada correctamente y modelos cargados.');
@@ -681,8 +878,14 @@ const ApiKeyInspectorView: React.FC = () => {
     if (!apiKey.trim())        { setErrorText('Debes ingresar una API key.');   return; }
     if (!selectedModel.trim()) { setErrorText('Debes elegir un modelo.');        return; }
 
+    const composedPrompt = [
+      text,
+      attachedContext ? `\n\n[Contexto adjunto]\n${attachedContext}` : '',
+      webSearchEnabled ? '\n\n[Modo búsqueda web activo] Responde con referencias de fuente cuando aplique.' : '',
+    ].join('').trim();
+
     const userMessage: ChatItem = {
-      id: `u-${Date.now()}`, role: 'user', content: text,
+      id: `u-${Date.now()}`, role: 'user', content: composedPrompt,
       createdAt: new Date().toISOString(),
     };
     const nextChatBase = [...getCurrentMessages(), userMessage];
@@ -701,12 +904,12 @@ const ApiKeyInspectorView: React.FC = () => {
 
       const response = await providerChat({
         provider, apiKey: apiKey.trim(), model: selectedModel,
-        systemPrompt: effectiveSystemPrompt, messages: payloadMessages,
+        systemPrompt: buildRuntimeSystemPrompt(effectiveSystemPrompt), messages: payloadMessages,
       });
 
       const assistantMessage: ChatItem = {
         id: `a-${Date.now()}`, role: 'assistant',
-        content: response.content || '(sin contenido)',
+        content: normalizeAssistantOutput(response.content || ''),
         createdAt: new Date().toISOString(), outputKind: 'text',
       };
       const nextChat = [...nextChatBase, assistantMessage];
@@ -737,6 +940,7 @@ const ApiKeyInspectorView: React.FC = () => {
         persistConfig(product.id),
       ]);
       if (!isTest) setMessageInput('');
+      if (!isTest) setAttachedContext('');
       setStatusText(isTest ? 'Modelo probado correctamente.' : 'Respuesta recibida y guardada.');
     } catch (err: any) {
       setErrorText(err?.message || 'No se pudo completar el chat con el proveedor.');
@@ -774,7 +978,7 @@ const ApiKeyInspectorView: React.FC = () => {
       const kind = response.outputKind || (capability === 'image' || capability === 'audio' || capability === 'video' ? capability : 'text');
       const assistantMessage: ChatItem = {
         id: `cap-${Date.now()}`, role: 'assistant',
-        content: response.message || 'Prueba ejecutada',
+        content: normalizeAssistantOutput(response.message || 'Prueba ejecutada'),
         createdAt: new Date().toISOString(),
         outputKind: kind,
         outputPreview: response.outputPreview,
@@ -839,7 +1043,7 @@ const ApiKeyInspectorView: React.FC = () => {
   const handleCreateRole = async () => {
     const title    = roleTitleInput.trim();
     const behavior = roleBehaviorInput.trim();
-    if (!title || !behavior) { setErrorText('Debes completar título y comportamiento.'); return; }
+    if (!title || !behavior) { setErrorText(t.apiKeyProductView?.roleValidation || 'Debes completar título y comportamiento.'); return; }
     const newRole: RoleRecord = {
       id: `role-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, title, behavior,
     };
@@ -849,7 +1053,7 @@ const ApiKeyInspectorView: React.FC = () => {
     setShowRoleModal(false);
     setRoleTitleInput('');
     setRoleBehaviorInput('');
-    setStatusText('Rol guardado.');
+    setStatusText(t.apiKeyProductView?.roleSaved || 'Rol guardado.');
     if (product) {
       await persistChat(product.id, { roles: nextRoles });
       await persistConfig(product.id, { selectedRoleId: newRole.id });
@@ -859,7 +1063,7 @@ const ApiKeyInspectorView: React.FC = () => {
   const handleCreatePrompt = async () => {
     const title  = promptTitleInput.trim();
     const prompt = promptContentInput.trim();
-    if (!title || !prompt) { setErrorText('Debes completar título y contenido.'); return; }
+    if (!title || !prompt) { setErrorText(t.apiKeyProductView?.promptValidation || 'Debes completar título y contenido.'); return; }
     const newPrompt: PromptRecord = {
       id: `prompt-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, title, prompt,
     };
@@ -868,13 +1072,13 @@ const ApiKeyInspectorView: React.FC = () => {
     setShowPromptModal(false);
     setPromptTitleInput('');
     setPromptContentInput('');
-    setStatusText('Prompt guardado.');
+    setStatusText(t.apiKeyProductView?.promptSaved || 'Prompt guardado.');
     if (product) await persistChat(product.id, { prompts: nextPrompts });
   };
 
   const handleUsePrompt = (prompt: PromptRecord) => {
     setMessageInput(prompt.prompt);
-    setStatusText('Prompt aplicado al cuadro de chat.');
+    setStatusText(t.apiKeyProductView?.promptApplied || 'Prompt aplicado al cuadro de chat.');
   };
 
   const handleSelectConversation = (conversationId: string) => {
@@ -903,9 +1107,199 @@ const ApiKeyInspectorView: React.FC = () => {
     anchor.download = `${safeTitle}_${new Date().toISOString().slice(0, 10)}.txt`;
     document.body.appendChild(anchor);
     anchor.click();
-    document.body.removeChild(anchor);
+    anchor.remove();
     URL.revokeObjectURL(url);
     setStatusText('Conversación descargada.');
+  };
+
+  const handleExportWorkspace = () => {
+    const payload = {
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      config: {
+        provider,
+        selectedModel,
+        systemPrompt,
+        selectedRoleId,
+        validatedModels: remoteModels,
+      },
+      chat: {
+        roles,
+        prompts,
+        conversations,
+        activeConversationId,
+      },
+      stats,
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = `chatbot_llm_export_${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    URL.revokeObjectURL(url);
+    setStatusText(t.apiKeyProductView?.exportSuccess || 'Exportación completada.');
+  };
+
+  const handleImportWorkspaceFile = async (file: File) => {
+    try {
+      const text = await file.text();
+      const parsed = JSON.parse(text);
+
+      const nextProvider = parsed?.config?.provider as ApiRuntimeProvider | undefined;
+      const nextModel = String(parsed?.config?.selectedModel || '');
+      const nextSystemPrompt = String(parsed?.config?.systemPrompt || '');
+      const nextSelectedRoleId = String(parsed?.config?.selectedRoleId || '');
+      const nextRoles = Array.isArray(parsed?.chat?.roles) ? parsed.chat.roles as RoleRecord[] : [];
+      const nextPrompts = Array.isArray(parsed?.chat?.prompts) ? parsed.chat.prompts as PromptRecord[] : [];
+      const nextConversations = Array.isArray(parsed?.chat?.conversations)
+        ? parsed.chat.conversations as ConversationRecord[]
+        : [];
+      const nextActiveConversationId = String(parsed?.chat?.activeConversationId || '');
+      const nextStats = parsed?.stats && typeof parsed.stats === 'object'
+        ? ({ ...EMPTY_STATS, ...(parsed.stats as RuntimeStats) })
+        : EMPTY_STATS;
+      const nextValidatedModels = Array.isArray(parsed?.config?.validatedModels)
+        ? parsed.config.validatedModels as ProviderModelInfo[]
+        : [];
+      const nextLastValidatedAt = typeof parsed?.config?.lastValidatedAt === 'string'
+        ? parsed.config.lastValidatedAt
+        : (nextValidatedModels.length > 0 ? new Date().toISOString() : '');
+
+      if (nextProvider) setProvider(nextProvider);
+      setSelectedModel(nextModel);
+      setSystemPrompt(nextSystemPrompt);
+      setSelectedRoleId(nextSelectedRoleId);
+      setRoles(nextRoles);
+      setPrompts(nextPrompts);
+      setConversations(nextConversations);
+      setActiveConversationId(nextActiveConversationId || nextConversations[0]?.id || '');
+      setStats(nextStats);
+      setRemoteModels(nextValidatedModels);
+      setHasValidatedKey(nextValidatedModels.length > 0);
+      setLastValidatedAt(nextLastValidatedAt);
+
+      if (product) {
+        await Promise.all([
+          persistConfig(product.id, {
+            provider: nextProvider ?? provider,
+            selectedModel: nextModel,
+            systemPrompt: nextSystemPrompt,
+            selectedRoleId: nextSelectedRoleId,
+            validatedModels: nextValidatedModels,
+            lastValidatedAt: nextLastValidatedAt,
+          }),
+          persistChat(product.id, {
+            roles: nextRoles,
+            prompts: nextPrompts,
+            conversations: nextConversations,
+            activeConversationId: nextActiveConversationId || nextConversations[0]?.id || '',
+          }),
+          persistStats(product.id, nextStats),
+        ]);
+      }
+
+      setStatusText(t.apiKeyProductView?.importSuccess || 'Importación completada.');
+      setErrorText('');
+    } catch (err: any) {
+      setErrorText(err?.message || t.apiKeyProductView?.importError || 'No se pudo importar el archivo.');
+    }
+  };
+
+  const handleImportWorkspaceClick = () => {
+    importInputRef.current?.click();
+  };
+
+  const handleImportWorkspaceChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    await handleImportWorkspaceFile(file);
+    event.target.value = '';
+  };
+
+  const readAttachmentAsContext = async (file: File): Promise<string> => {
+    const isTextLike = file.type.startsWith('text/') || /\.(txt|md|json|csv|xml|html|js|ts|tsx|jsx)$/i.test(file.name);
+    if (!isTextLike) {
+      return `${file.name} (${file.type || 'binary'})`;
+    }
+    const text = await file.text();
+    return `${file.name}: ${text.replace(/\s+/g, ' ').trim().slice(0, 900)}`;
+  };
+
+  const handleAttachClick = () => {
+    attachmentInputRef.current?.click();
+  };
+
+  const handleAttachmentChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files || []);
+    if (files.length === 0) return;
+    const parts = await Promise.all(files.map(readAttachmentAsContext));
+    const merged = parts.filter(Boolean).join('\n');
+    setAttachedContext(prev => [prev, merged].filter(Boolean).join('\n').slice(0, 1800));
+    setStatusText(t.apiKeyProductView?.attachmentReady || 'Contexto adjunto listo.');
+    event.target.value = '';
+  };
+
+  const handleEnhanceMessage = () => {
+    if (!messageInput.trim()) return;
+    setMessageInput(optimizeShortText(messageInput, 400));
+    setStatusText(t.apiKeyProductView?.inputOptimized || 'Texto optimizado.');
+  };
+
+  const handleOptimizeRoleBehavior = () => {
+    if (!roleBehaviorInput.trim()) return;
+    setRoleBehaviorInput(optimizeShortText(roleBehaviorInput, 400));
+  };
+
+  const handleOptimizePromptContent = () => {
+    if (!promptContentInput.trim()) return;
+    setPromptContentInput(optimizeShortText(promptContentInput, 400));
+  };
+
+  const handlePromptPickerToggle = () => {
+    setShowPromptPicker((prev) => !prev);
+  };
+
+  const handleMicToggle = () => {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      setErrorText(t.apiKeyProductView?.voiceNotSupported || 'Tu navegador no soporta dictado por voz.');
+      return;
+    }
+
+    if (isListening) {
+      speechRecognitionRef.current?.stop?.();
+      setIsListening(false);
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'es-ES';
+    recognition.interimResults = true;
+    recognition.continuous = false;
+    speechRecognitionRef.current = recognition;
+
+    recognition.onresult = (evt: any) => {
+      const transcript = Array.from(evt.results)
+        .map((r: any) => r[0]?.transcript || '')
+        .join(' ')
+        .trim();
+      if (transcript) {
+        setMessageInput((prev) => `${prev}${prev ? ' ' : ''}${transcript}`.slice(0, 3000));
+      }
+    };
+
+    recognition.onerror = () => {
+      setIsListening(false);
+      setErrorText(t.apiKeyProductView?.voiceError || 'No se pudo procesar el dictado.');
+    };
+
+    recognition.onend = () => setIsListening(false);
+
+    setIsListening(true);
+    recognition.start();
   };
 
   // ─── Loading / not-found screens ─────────────────────────────────────────
@@ -935,28 +1329,41 @@ const ApiKeyInspectorView: React.FC = () => {
   }
 
   // ─── Shared CSS fragments (as template strings for readability) ───────────
-  const selectCls = 'text-[0.8rem] font-[inherit] px-2 py-1 border border-[#99e6d0] rounded-md bg-white text-[#0f2a24] cursor-pointer outline-none focus:border-[#0f766e] disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-[#ecfdf5]';
-  const inputCls  = 'font-[inherit] text-[0.9rem] px-3 py-2 border border-[#99e6d0] rounded-lg outline-none bg-[#f8fffe] text-[#0f2a24] focus:border-[#6b8f84] transition-colors';
-  const modalBtnCancelCls = 'font-[inherit] text-[0.85rem] px-[18px] py-2 rounded-[10px] cursor-pointer bg-[#ecfdf5] text-[#3d7a6d] border-none hover:bg-[#d1fae5] transition-colors';
+  const selectCls = isDarkTheme
+    ? 'text-[0.8rem] font-[inherit] px-2 py-1 border border-slate-600 rounded-md bg-slate-800 text-slate-100 cursor-pointer outline-none focus:border-cyan-400 disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-slate-700'
+    : 'text-[0.8rem] font-[inherit] px-2 py-1 border border-[#99e6d0] rounded-md bg-white text-[#0f2a24] cursor-pointer outline-none focus:border-[#0f766e] disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-[#ecfdf5]';
+  const inputCls  = isDarkTheme
+    ? 'font-[inherit] text-[0.9rem] px-3 py-2 border border-slate-600 rounded-lg outline-none bg-slate-800 text-slate-100 focus:border-cyan-400 transition-colors'
+    : 'font-[inherit] text-[0.9rem] px-3 py-2 border border-[#99e6d0] rounded-lg outline-none bg-[#f8fffe] text-[#0f2a24] focus:border-[#6b8f84] transition-colors';
+  const modalBtnCancelCls = isDarkTheme
+    ? 'font-[inherit] text-[0.85rem] px-[18px] py-2 rounded-[10px] cursor-pointer bg-slate-700 text-slate-200 border-none hover:bg-slate-600 transition-colors'
+    : 'font-[inherit] text-[0.85rem] px-[18px] py-2 rounded-[10px] cursor-pointer bg-[#ecfdf5] text-[#3d7a6d] border-none hover:bg-[#d1fae5] transition-colors';
   const modalBtnSaveCls   = 'font-[inherit] text-[0.85rem] px-[18px] py-2 rounded-[10px] cursor-pointer bg-[#0f766e] text-white border-none hover:opacity-85 transition-opacity';
 
   // ─── Render ───────────────────────────────────────────────────────────────
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[#f8fffe] text-[#0f2a24]" style={{ fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" }}>
+    <div className="flex h-screen overflow-hidden" style={themeStyle}>
 
       {/* ── Sidebar toggle (fixed) ─────────────────────────────────────── */}
       <button
         onClick={() => setSidebarCollapsed(v => !v)}
-        title="Ocultar panel"
-        className={`fixed top-2.5 z-[100] bg-[#ecfdf5] border border-[#99e6d0] rounded-md p-1 cursor-pointer text-[#6b8f84] flex items-center justify-center hover:text-[#0f2a24] hover:bg-[#d1fae5] transition-all duration-[250ms] ${sidebarCollapsed ? 'left-2' : 'left-[224px]'}`}
+        title={sidebarCollapsed ? (t.apiKeyProductView?.expandSidebar || 'Mostrar panel') : (t.apiKeyProductView?.collapseSidebar || 'Ocultar panel')}
+        className={`fixed top-3 z-[100] border rounded-md p-1 cursor-pointer flex items-center justify-center transition-all duration-[250ms] ${
+          isDarkTheme
+            ? 'bg-slate-800 border-slate-600 text-slate-300 hover:text-slate-100 hover:bg-slate-700'
+            : 'bg-[#ecfdf5] border-[#99e6d0] text-[#6b8f84] hover:text-[#0f2a24] hover:bg-[#d1fae5]'
+        }`}
+        style={{ left: sidebarCollapsed ? 8 : 286 }}
       >
         <IconPanel />
       </button>
 
       {/* ── Sidebar ───────────────────────────────────────────────────── */}
       <aside
-        className="bg-[#ecfdf5] flex flex-col border-r border-[#a7d7c5] transition-all duration-[250ms] overflow-hidden"
+        className={`flex flex-col border-r transition-all duration-[250ms] overflow-hidden ${
+          isDarkTheme ? 'bg-[#111827] border-slate-700' : 'bg-[#ecfdf5] border-[#a7d7c5]'
+        }`}
         style={{
           width:    sidebarCollapsed ? 0 : 300,
           minWidth: sidebarCollapsed ? 0 : 240,
@@ -966,14 +1373,14 @@ const ApiKeyInspectorView: React.FC = () => {
         }}
       >
         {/* Header */}
-        <h1 className="text-[1.6rem] font-extrabold mb-1 text-[#0f2a24] flex items-center justify-center gap-2 tracking-[-0.02em]">
+        <h1 className={`text-[1.6rem] font-extrabold mb-1 flex items-center justify-center gap-2 tracking-[-0.02em] ${isDarkTheme ? 'text-slate-100' : 'text-[#0f2a24]'}`}>
           <KeyRound size={28} className="text-[#0f766e] flex-shrink-0" />
           <span className="whitespace-nowrap">FabLab AIMaker</span>
           <span className="text-[0.45em] font-semibold opacity-50 align-super">v2.3</span>
         </h1>
         <a
           href="#"
-          className="block text-center text-[0.7rem] text-[#6b8f84] no-underline mb-5 hover:text-[#0f2a24] hover:underline transition-colors"
+          className={`block text-center text-[0.7rem] no-underline mb-5 hover:underline transition-colors ${isDarkTheme ? 'text-slate-400 hover:text-slate-100' : 'text-[#6b8f84] hover:text-[#0f2a24]'}`}
         >
           by DoItAndShare
         </a>
@@ -993,14 +1400,15 @@ const ApiKeyInspectorView: React.FC = () => {
           <SidebarSection
             title={t.apiKeyProductView?.rolesTitle || 'Roles'}
             open={isRolesOpen}
+            isDark={isDarkTheme}
             onToggle={() => setIsRolesOpen(v => !v)}
             onAdd={() => setShowRoleModal(true)}
             addDisabled={!isOwner}
-            addTitle="Crear rol"
+            addTitle={t.apiKeyProductView?.addRoleTitle || 'Crear rol'}
           >
             <div className="flex flex-col gap-0.5 mt-1">
               {roles.length === 0 && (
-                <p className="text-xs text-[#6b8f84]">{t.apiKeyProductView?.emptyRoles || 'Sin roles guardados'}</p>
+                <p className={`text-xs ${isDarkTheme ? 'text-slate-400' : 'text-[#6b8f84]'}`}>{t.apiKeyProductView?.emptyRoles || 'Sin roles guardados'}</p>
               )}
               {roles.map(role => (
                 <button
@@ -1009,7 +1417,9 @@ const ApiKeyInspectorView: React.FC = () => {
                     setSelectedRoleId(role.id);
                     if (product) persistConfig(product.id, { selectedRoleId: role.id }).catch(console.error);
                   }}
-                  className={`w-full text-left px-2.5 py-1.5 rounded-lg text-[0.82rem] font-medium transition-colors cursor-pointer border-none ${selectedRoleId === role.id ? 'bg-[#a7f3d0] text-[#0f2a24]' : 'bg-transparent hover:bg-[#d1fae5] text-[#0f2a24]'}`}
+                  className={`w-full text-left px-2.5 py-1.5 rounded-lg text-[0.82rem] font-medium transition-colors cursor-pointer border-none ${selectedRoleId === role.id
+                    ? (isDarkTheme ? 'bg-slate-700 text-slate-100' : 'bg-[#a7f3d0] text-[#0f2a24]')
+                    : (isDarkTheme ? 'bg-transparent hover:bg-slate-700 text-slate-200' : 'bg-transparent hover:bg-[#d1fae5] text-[#0f2a24]')}`}
                 >
                   {role.title}
                 </button>
@@ -1021,23 +1431,24 @@ const ApiKeyInspectorView: React.FC = () => {
           <SidebarSection
             title={t.apiKeyProductView?.promptsTitle || 'Prompts guardados'}
             open={isPromptsOpen}
+            isDark={isDarkTheme}
             onToggle={() => setIsPromptsOpen(v => !v)}
             onAdd={() => setShowPromptModal(true)}
             addDisabled={!isOwner}
-            addTitle="Crear prompt"
+            addTitle={t.apiKeyProductView?.addPromptTitle || 'Crear prompt'}
           >
             <div className="flex flex-col gap-0.5 mt-1">
               {prompts.length === 0 && (
-                <p className="text-xs text-[#6b8f84]">{t.apiKeyProductView?.emptyPrompts || 'Sin prompts guardados'}</p>
+                <p className={`text-xs ${isDarkTheme ? 'text-slate-400' : 'text-[#6b8f84]'}`}>{t.apiKeyProductView?.emptyPrompts || 'Sin prompts guardados'}</p>
               )}
               {prompts.map(prompt => (
-                <div key={prompt.id} className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg hover:bg-[#d1fae5] transition-colors">
+                <div key={prompt.id} className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg transition-colors ${isDarkTheme ? 'hover:bg-slate-700' : 'hover:bg-[#d1fae5]'}`}>
                   <div className="flex-1 min-w-0">
-                    <p className="text-[0.82rem] font-medium text-[#0f2a24] truncate">{prompt.title}</p>
+                    <p className={`text-[0.82rem] font-medium truncate ${isDarkTheme ? 'text-slate-100' : 'text-[#0f2a24]'}`}>{prompt.title}</p>
                   </div>
                   <button
                     onClick={() => handleUsePrompt(prompt)}
-                    className="text-[0.7rem] text-[#0f766e] underline whitespace-nowrap bg-transparent border-none cursor-pointer hover:text-[#0a5a54] transition-colors"
+                    className={`text-[0.7rem] underline whitespace-nowrap bg-transparent border-none cursor-pointer transition-colors ${isDarkTheme ? 'text-teal-300 hover:text-teal-200' : 'text-[#0f766e] hover:text-[#0a5a54]'}`}
                   >
                     {t.apiKeyProductView?.usePrompt || 'Usar'}
                   </button>
@@ -1047,15 +1458,15 @@ const ApiKeyInspectorView: React.FC = () => {
           </SidebarSection>
 
           {/* Conversations */}
-          <section className="mt-4 border-t border-[#a7d7c5] pt-3 flex-1 min-h-0 flex flex-col">
+          <section className={`mt-4 border-t pt-3 flex-1 min-h-0 flex flex-col ${isDarkTheme ? 'border-slate-700' : 'border-[#a7d7c5]'}`}>
             <div className="flex items-center gap-1 mb-1">
               <button
                 onClick={() => setIsConversationsOpen(v => !v)}
-                className="text-[#6b8f84] w-3.5 text-center text-sm leading-none select-none bg-transparent border-none cursor-pointer p-0"
+                className={`w-3.5 text-center text-sm leading-none select-none bg-transparent border-none cursor-pointer p-0 ${isDarkTheme ? 'text-slate-400' : 'text-[#6b8f84]'}`}
               >
                 {isConversationsOpen ? '▾' : '▸'}
               </button>
-              <span className="text-[0.8rem] font-semibold text-[#3d7a6d] uppercase tracking-[0.03em] flex-1">
+              <span className={`text-[0.8rem] font-semibold uppercase tracking-[0.03em] flex-1 ${isDarkTheme ? 'text-slate-300' : 'text-[#3d7a6d]'}`}>
                 {t.apiKeyProductView?.conversationsTitle || 'Conversaciones'}
               </span>
             </div>
@@ -1064,21 +1475,23 @@ const ApiKeyInspectorView: React.FC = () => {
               style={{ maxHeight: isConversationsOpen ? undefined : 0, opacity: isConversationsOpen ? 1 : 0, overflow: isConversationsOpen ? 'auto' : 'hidden' }}
             >
               {conversations.length === 0 && (
-                <p className="text-xs text-[#6b8f84]">{t.apiKeyProductView?.emptyConversations || 'Sin conversaciones'}</p>
+                <p className={`text-xs ${isDarkTheme ? 'text-slate-400' : 'text-[#6b8f84]'}`}>{t.apiKeyProductView?.emptyConversations || 'Sin conversaciones'}</p>
               )}
               {conversations.map(conv => (
                 <div
                   key={conv.id}
-                  className={`flex items-start gap-0 rounded-lg cursor-pointer transition-colors ${activeConversationId === conv.id ? 'bg-[#a7f3d0]' : 'hover:bg-[#d1fae5]'}`}
+                  className={`flex items-start gap-0 rounded-lg cursor-pointer transition-colors ${activeConversationId === conv.id
+                    ? (isDarkTheme ? 'bg-slate-700' : 'bg-[#a7f3d0]')
+                    : (isDarkTheme ? 'hover:bg-slate-700' : 'hover:bg-[#d1fae5]')}`}
                 >
                   <button
                     onClick={() => handleSelectConversation(conv.id)}
                     className="flex-1 min-w-0 text-left px-3 py-2.5 bg-transparent border-none cursor-pointer"
                   >
-                    <p className="text-[0.85rem] font-medium text-[#0f2a24] truncate">
+                    <p className={`text-[0.85rem] font-medium truncate ${isDarkTheme ? 'text-slate-100' : 'text-[#0f2a24]'}`}>
                       {conv.title || 'Conversación sin título'}
                     </p>
-                    <p className="text-[0.7rem] text-[#6b8f84] mt-0.5">
+                    <p className={`text-[0.7rem] mt-0.5 ${isDarkTheme ? 'text-slate-400' : 'text-[#6b8f84]'}`}>
                       {new Date(conv.updatedAt).toLocaleDateString()}
                     </p>
                   </button>
@@ -1098,32 +1511,65 @@ const ApiKeyInspectorView: React.FC = () => {
         {/* Bottom buttons */}
         <div className="flex flex-col gap-1.5 mt-auto pt-4 relative">
           {/* Fade gradient above */}
-          <div className="absolute -top-10 -left-4 -right-4 h-10 bg-gradient-to-b from-transparent to-[#ecfdf5] pointer-events-none" />
+          <div className={`absolute -top-10 -left-4 -right-4 h-10 bg-gradient-to-b from-transparent pointer-events-none ${isDarkTheme ? 'to-[#111827]' : 'to-[#ecfdf5]'}`} />
 
           <div className="flex gap-1.5">
-            <SidebarBtn className="flex-1">⬆ Exportar</SidebarBtn>
-            <SidebarBtn className="flex-1">⬇ Importar</SidebarBtn>
+            <SidebarBtn isDark={isDarkTheme} className="flex-1" onClick={handleExportWorkspace}>⬆ {t.apiKeyProductView?.exportButton || 'Exportar'}</SidebarBtn>
+            <SidebarBtn isDark={isDarkTheme} className="flex-1" onClick={handleImportWorkspaceClick}>⬇ {t.apiKeyProductView?.importButton || 'Importar'}</SidebarBtn>
           </div>
           <SidebarBtn
+            isDark={isDarkTheme}
             onClick={() => { setIsConfigModalOpen(true); setConfigTab('budget'); }}
             className="flex items-center justify-center gap-1.5"
             >
-            <IconBarChart /> Estadísticas
+            <IconBarChart /> {t.apiKeyProductView?.statsButton || 'Estadísticas'}
           </SidebarBtn>
           <SidebarBtn
+            isDark={isDarkTheme}
             onClick={() => { setIsConfigModalOpen(true); setConfigTab('keys'); }}
             className="flex items-center justify-center gap-1.5"
           >
             <IconGear /> {t.apiKeyProductView?.apiConfigTitle || 'Configuración'}
           </SidebarBtn>
-          <SidebarBtn className="flex items-center justify-center gap-1.5">
-            ☀ Tema claro
+          <SidebarBtn
+            isDark={isDarkTheme}
+            className="flex items-center justify-center gap-1.5"
+            onClick={() => setIsDarkTheme((prev) => !prev)}
+          >
+            {isDarkTheme ? <Sun size={12} /> : <Moon size={12} />} {isDarkTheme
+              ? (t.apiKeyProductView?.lightTheme || 'Tema claro')
+              : (t.apiKeyProductView?.darkTheme || 'Tema oscuro')}
           </SidebarBtn>
+          <input
+            ref={importInputRef}
+            type="file"
+            accept="application/json"
+            className="hidden"
+            onChange={handleImportWorkspaceChange}
+          />
         </div>
       </aside>
 
       {/* ── Main ──────────────────────────────────────────────────────── */}
-      <main className="flex-1 flex flex-col h-screen overflow-hidden relative bg-[#f8fffe]">
+      <main className="flex-1 flex flex-col h-screen overflow-hidden relative" style={{ backgroundColor: isDarkTheme ? '#0f172a' : '#f8fffe' }}>
+
+        <div className="px-8 pt-4 pb-3 border-b border-[#ccfbf1] flex items-center gap-3">
+          <button
+            onClick={() => navigate('/dashboard/context')}
+            className={`h-9 w-9 inline-flex items-center justify-center rounded-lg border transition-colors ${
+              isDarkTheme
+                ? 'border-slate-600 text-slate-300 hover:bg-slate-700'
+                : 'border-[#99e6d0] text-[#3d7a6d] hover:bg-[#d1fae5]'
+            }`}
+            title={t.apiKeyProductView?.backToServer || 'Volver al servidor'}
+          >
+            <ArrowLeft size={16} />
+          </button>
+          <div>
+            <p className={`text-sm font-semibold ${isDarkTheme ? 'text-slate-100' : 'text-[#0f2a24]'}`}>{fixedTitle}</p>
+            <p className={`text-xs ${isDarkTheme ? 'text-slate-400' : 'text-[#6b8f84]'}`}>{fixedDescription}</p>
+          </div>
+        </div>
 
         {/* Chat messages */}
         <div className="flex-1 overflow-y-auto px-8 py-6 flex flex-col gap-4 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-[#99d8c9] [&::-webkit-scrollbar-thumb]:rounded-sm">
@@ -1136,17 +1582,17 @@ const ApiKeyInspectorView: React.FC = () => {
           {activeConversation?.messages.map(msg => (
             <div
               key={msg.id}
-              className={`flex flex-col max-w-[75%] ${msg.role === 'user' ? 'self-start' : 'self-end'}`}
+              className={`flex flex-col max-w-[75%] ${msg.role === 'user' ? 'self-end' : 'self-start'}`}
             >
               {/* Bubble */}
               <div
                 className={`px-[18px] py-3.5 text-[0.95rem] leading-relaxed break-words word-wrap-break-word ${
                   msg.role === 'user'
-                    ? 'bg-[#ecfdf5] rounded-[18px_18px_18px_4px]'
-                    : 'bg-[#d1fae5] rounded-[18px_18px_4px_18px]'
+                    ? (isDarkTheme ? 'bg-emerald-100 rounded-[18px_18px_4px_18px]' : 'bg-[#ecfdf5] rounded-[18px_18px_4px_18px]')
+                    : (isDarkTheme ? 'bg-emerald-200 rounded-[18px_18px_18px_4px]' : 'bg-[#d1fae5] rounded-[18px_18px_18px_4px]')
                 }`}
               >
-                <p className="whitespace-pre-wrap">{msg.content}</p>
+                <p className={`whitespace-pre-wrap ${isDarkTheme ? 'text-emerald-950' : 'text-[#0f2a24]'}`}>{msg.content}</p>
                 {msg.outputKind === 'image' && msg.outputPreview && (
                   <img
                     src={msg.outputPreview}
@@ -1163,8 +1609,8 @@ const ApiKeyInspectorView: React.FC = () => {
               </div>
 
               {/* Meta row */}
-              <div className={`flex items-center gap-1 mt-0.5 ${msg.role === 'user' ? 'justify-start' : 'justify-end'}`}>
-                <span className="text-[0.7rem] text-[#6b8f84] opacity-50">
+              <div className={`flex items-center gap-1 mt-0.5 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                <span className={`text-[0.7rem] opacity-60 ${isDarkTheme ? 'text-slate-400' : 'text-[#6b8f84]'}`}>
                   {new Date(msg.createdAt).toLocaleTimeString()}
                 </span>
               </div>
@@ -1186,45 +1632,72 @@ const ApiKeyInspectorView: React.FC = () => {
         )}
 
         {/* ── Model bar ─────────────────────────────────────────────── */}
-        <div className="flex items-center gap-2 px-8 py-2 border-t border-[#ccfbf1] flex-wrap z-[15] bg-[#f8fffe] relative">
+        <div className="flex items-center gap-2 px-8 py-2 border-t border-[#ccfbf1] flex-wrap z-[15] relative" style={{ backgroundColor: isDarkTheme ? '#0f172a' : '#f8fffe' }}>
 
           {/* Text model */}
           <label className="text-[0.8rem] text-[#6b8f84] whitespace-nowrap">
             {t.apiKeyProductView?.modelTextLabel || 'Modelo texto'}:
           </label>
           <select
-            value={selectedModel}
-            onChange={e => setSelectedModel(e.target.value)}
-            disabled={!isOwner || modelOptions.length === 0}
+            value={textModelOptions.some((m) => m.id === selectedModel) ? selectedModel : ''}
+            onChange={e => {
+              if (!e.target.value) return;
+              setSelectedModel(e.target.value);
+              setChatMode('text');
+            }}
+            disabled={!isOwner || textModelOptions.length === 0}
             className={selectCls}
           >
-            {modelOptions.length === 0 && <option value="">—</option>}
-            {modelOptions.map(m => (
+            {textModelOptions.length === 0 && <option value="">—</option>}
+            {textModelOptions.map(m => (
               <option key={m.id} value={m.id}>{m.displayLabel}</option>
             ))}
           </select>
 
-          {/* Provider */}
           <label className="text-[0.8rem] text-[#6b8f84] whitespace-nowrap">
-            {t.apiKeyProductView?.providerLabel || 'Proveedor'}:
+            {t.apiKeyProductView?.modelImageLabel || 'Modelo imagen'}:
           </label>
           <select
-            value={provider}
+            value={imageModelOptions.some((m) => m.id === selectedModel) ? selectedModel : ''}
             onChange={e => {
-              setProvider(e.target.value as ApiRuntimeProvider);
-              setRemoteModels([]); setSelectedModel(''); setHasValidatedKey(false);
+              if (!e.target.value) return;
+              setSelectedModel(e.target.value);
+              setChatMode('image');
             }}
-            disabled={!isOwner}
+            disabled={!isOwner || imageModelOptions.length === 0}
             className={selectCls}
           >
-            {PROVIDERS.map(p => (
-              <option key={p.value} value={p.value}>{p.label}</option>
+            {imageModelOptions.length === 0 && <option value="">—</option>}
+            {imageModelOptions.map(m => (
+              <option key={m.id} value={m.id}>{m.displayLabel}</option>
+            ))}
+          </select>
+
+          <label className="text-[0.8rem] text-[#6b8f84] whitespace-nowrap">
+            {t.apiKeyProductView?.modelOtherLabel || 'Modelo otros'}:
+          </label>
+          <select
+            value={otherModelOptions.some((m) => m.id === selectedModel) ? selectedModel : ''}
+            onChange={e => {
+              if (!e.target.value) return;
+              const selected = otherModelOptions.find((m) => m.id === e.target.value);
+              setSelectedModel(e.target.value);
+              if (selected?.capabilities.includes('audio')) setChatMode('audio');
+              else if (selected?.capabilities.includes('video')) setChatMode('video');
+              else setChatMode('text');
+            }}
+            disabled={!isOwner || otherModelOptions.length === 0}
+            className={selectCls}
+          >
+            {otherModelOptions.length === 0 && <option value="">—</option>}
+            {otherModelOptions.map(m => (
+              <option key={m.id} value={m.id}>{m.displayLabel}</option>
             ))}
           </select>
 
           {/* Chat mode */}
           <label className="text-[0.8rem] text-[#6b8f84] whitespace-nowrap">
-            Modo:
+            {t.apiKeyProductView?.chatModeLabel || 'Modo'}:
           </label>
           <select
             value={chatMode}
@@ -1261,34 +1734,51 @@ const ApiKeyInspectorView: React.FC = () => {
         </div>
 
         {/* ── Token bar ─────────────────────────────────────────────── */}
-        <div className="flex justify-between px-8 py-[6px] text-[0.75rem] text-[#6b8f84] border-t border-[#ccfbf1] z-[15] bg-[#f8fffe] tabular-nums">
+        <div className="flex justify-between px-8 py-[6px] text-[0.75rem] text-[#6b8f84] border-t border-[#ccfbf1] z-[15] tabular-nums" style={{ backgroundColor: isDarkTheme ? '#0f172a' : '#f8fffe' }}>
           <span>
-            Tokens — entrada: {stats.totalInputTokens} | salida: {stats.totalOutputTokens}
+            {(t.apiKeyProductView?.tokenBar || 'Tokens')} - {(t.apiKeyProductView?.tokensInput || 'entrada')}: {stats.totalInputTokens} | {(t.apiKeyProductView?.tokensOutput || 'salida')}: {stats.totalOutputTokens}
           </span>
           <span>
-            Costo estimado: ${stats.totalEstimatedCost.toFixed(4)}
+            {(t.apiKeyProductView?.costEstimatedLabel || 'Costo estimado')}: ${stats.totalEstimatedCost.toFixed(4)}
           </span>
         </div>
 
         {/* ── Input area ────────────────────────────────────────────── */}
-        <div className="px-8 pb-6 pt-4 border-t border-[#ccfbf1] flex flex-col items-center gap-1.5 bg-[#f8fffe] z-[15]">
+        <div className="px-8 pb-6 pt-4 border-t border-[#ccfbf1] flex flex-col items-center gap-1.5 z-[15]" style={{ backgroundColor: isDarkTheme ? '#0f172a' : '#f8fffe' }}>
           <div className="flex flex-col gap-1.5 w-full max-w-[800px]">
             {/* Wrapper */}
-            <div className="flex items-center w-full border-2 border-[#99e6d0] rounded-[20px] py-2 pl-3 pr-2 gap-1.5 bg-white focus-within:border-[#0f766e] focus-within:shadow-[0_0_0_3px_rgba(15,118,110,0.10)] transition-all duration-200">
+            <div className={`flex items-center w-full border-2 rounded-[20px] py-2 pl-3 pr-2 gap-1.5 focus-within:border-[#0f766e] focus-within:shadow-[0_0_0_3px_rgba(15,118,110,0.10)] transition-all duration-200 ${isDarkTheme ? 'border-slate-600 bg-slate-800' : 'border-[#99e6d0] bg-white'}`}>
 
               {/* Attach */}
               <button
+                onClick={handleAttachClick}
                 disabled={!isOwner}
-                title="Adjuntar archivo"
-                className="bg-transparent border border-[#99e6d0] rounded-full w-7 h-7 min-w-[28px] min-h-[28px] cursor-pointer text-[#6b8f84] flex items-center justify-center flex-shrink-0 hover:text-[#0f2a24] disabled:opacity-40 transition-colors"
+                title={t.apiKeyProductView?.attachButton || 'Adjuntar archivo'}
+                className={`bg-transparent border rounded-full w-7 h-7 min-w-[28px] min-h-[28px] cursor-pointer flex items-center justify-center flex-shrink-0 disabled:opacity-40 transition-colors ${
+                  isDarkTheme
+                    ? 'border-slate-600 text-slate-300 hover:text-slate-100 hover:bg-slate-700'
+                    : 'border-[#99e6d0] text-[#6b8f84] hover:text-[#0f2a24]'
+                }`}
               >
                 <Plus size={14} />
               </button>
+              <input
+                ref={attachmentInputRef}
+                type="file"
+                multiple
+                className="hidden"
+                onChange={handleAttachmentChange}
+              />
 
               {/* Web search toggle */}
               <button
-                title="Búsqueda web"
-                className="bg-transparent border border-[#99e6d0] rounded-md cursor-pointer text-[#6b8f84] p-[3px_5px] flex items-center justify-center flex-shrink-0 hover:text-[#0f2a24] hover:bg-[#d1fae5] transition-colors"
+                title={t.apiKeyProductView?.webSearchButton || 'Búsqueda web'}
+                onClick={() => setWebSearchEnabled((prev) => !prev)}
+                className={`bg-transparent border rounded-md cursor-pointer p-[3px_5px] flex items-center justify-center flex-shrink-0 transition-colors ${
+                  isDarkTheme
+                    ? (webSearchEnabled ? 'border-slate-500 bg-slate-700 text-slate-100' : 'border-slate-600 text-slate-300 hover:text-slate-100 hover:bg-slate-700')
+                    : (webSearchEnabled ? 'border-[#99e6d0] bg-[#d1fae5] text-[#0f2a24]' : 'border-[#99e6d0] text-[#6b8f84] hover:text-[#0f2a24] hover:bg-[#d1fae5]')
+                }`}
               >
                 <Globe size={16} />
               </button>
@@ -1300,7 +1790,9 @@ const ApiKeyInspectorView: React.FC = () => {
                 disabled={!isOwner || isSending}
                 rows={1}
                 placeholder={t.apiKeyProductView?.chatPlaceholder || 'Escribe tu mensaje...'}
-                className="flex-1 min-w-0 border-none outline-none text-[0.95rem] font-[inherit] resize-none max-h-[200px] leading-[1.5] py-1 bg-transparent align-middle text-[#0f2a24] placeholder:text-[#6b8f84]"
+                className={`flex-1 min-w-0 border-none outline-none text-[0.95rem] font-[inherit] resize-none max-h-[200px] leading-[1.5] py-1 bg-transparent align-middle ${
+                  isDarkTheme ? 'text-slate-100 placeholder:text-slate-400' : 'text-[#0f2a24] placeholder:text-[#6b8f84]'
+                }`}
                 onKeyDown={e => {
                   if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendMessage(); }
                 }}
@@ -1308,25 +1800,52 @@ const ApiKeyInspectorView: React.FC = () => {
 
               {/* Enhance prompt */}
               <button
-                title="Mejorar prompt"
+                title={t.apiKeyProductView?.optimizeInputButton || 'Optimizar mensaje'}
                 disabled={!isOwner || !messageInput.trim()}
+                onClick={handleEnhanceMessage}
                 className="bg-transparent border-none cursor-pointer p-1 text-[#6b8f84] flex-shrink-0 flex items-center justify-center hover:text-amber-500 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
               >
                 <IconSparkle />
               </button>
 
               {/* Prompt picker */}
-              <button
-                title="Insertar prompt guardado"
-                className="bg-transparent border-none cursor-pointer p-1 text-[#6b8f84] flex-shrink-0 flex items-center justify-center hover:text-[#0f2a24] transition-colors"
-              >
-                <IconList />
-              </button>
+              <div className="relative">
+                <button
+                  title={t.apiKeyProductView?.promptPickerButton || 'Insertar prompt guardado'}
+                  onClick={handlePromptPickerToggle}
+                  className={`bg-transparent border-none cursor-pointer p-1 flex-shrink-0 flex items-center justify-center transition-colors ${isDarkTheme ? 'text-slate-300 hover:text-slate-100' : 'text-[#6b8f84] hover:text-[#0f2a24]'}`}
+                >
+                  <IconList />
+                </button>
+                {showPromptPicker && (
+                  <div className={`absolute bottom-9 right-0 w-72 max-h-56 overflow-y-auto rounded-lg border shadow-lg z-20 p-1.5 ${isDarkTheme ? 'border-slate-600 bg-slate-800' : 'border-[#99e6d0] bg-white'}`}>
+                    {prompts.length === 0 && (
+                      <p className={`px-2 py-1 text-xs ${isDarkTheme ? 'text-slate-300' : 'text-[#6b8f84]'}`}>{t.apiKeyProductView?.emptyPrompts || 'Sin prompts guardados'}</p>
+                    )}
+                    {prompts.map((prompt) => (
+                      <button
+                        key={`picker-${prompt.id}`}
+                        onClick={() => {
+                          handleUsePrompt(prompt);
+                          setShowPromptPicker(false);
+                        }}
+                        className={`w-full text-left rounded-md px-2 py-1.5 transition-colors ${isDarkTheme ? 'hover:bg-slate-700' : 'hover:bg-[#ecfdf5]'}`}
+                      >
+                        <p className={`text-xs font-semibold truncate ${isDarkTheme ? 'text-slate-100' : 'text-[#0f2a24]'}`}>{prompt.title}</p>
+                        <p className={`text-[11px] truncate ${isDarkTheme ? 'text-slate-400' : 'text-[#6b8f84]'}`}>{prompt.prompt}</p>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
 
               {/* Mic */}
               <button
-                title="Dictar"
-                className="bg-transparent border-none cursor-pointer p-1 text-[#6b8f84] flex-shrink-0 flex items-center justify-center mb-0.5 hover:text-[#0f2a24] transition-colors"
+                title={t.apiKeyProductView?.voiceButton || 'Dictar'}
+                onClick={handleMicToggle}
+                className={`bg-transparent border-none cursor-pointer p-1 flex-shrink-0 flex items-center justify-center mb-0.5 transition-colors ${
+                  isListening ? 'text-red-500' : (isDarkTheme ? 'text-slate-300 hover:text-slate-100' : 'text-[#6b8f84] hover:text-[#0f2a24]')
+                }`}
               >
                 <IconMic />
               </button>
@@ -1347,6 +1866,19 @@ const ApiKeyInspectorView: React.FC = () => {
               </button>
             </div>
 
+            {attachedContext && (
+              <div className={`w-full rounded-lg border px-3 py-2 text-xs flex items-start justify-between gap-2 ${isDarkTheme ? 'border-slate-600 bg-slate-800 text-slate-200' : 'border-[#a7d7c5] bg-[#ecfdf5] text-[#3d7a6d]'}`}>
+                <p className="line-clamp-2">{attachedContext}</p>
+                <button
+                  onClick={() => setAttachedContext('')}
+                  className="text-[#6b8f84] hover:text-red-600 transition-colors"
+                  title={t.apiKeyProductView?.clearAttachment || 'Limpiar adjunto'}
+                >
+                  ✕
+                </button>
+              </div>
+            )}
+
             <span className="text-[0.75rem] text-[#6b8f84] text-center">
               {t.apiKeyProductView?.chatHint || 'Enter para enviar · Shift+Enter para nueva línea'}
             </span>
@@ -1358,24 +1890,24 @@ const ApiKeyInspectorView: React.FC = () => {
       {isConfigModalOpen && (
         <ModalOverlay>
           <div
-            className="bg-white rounded-2xl overflow-hidden flex flex-row shadow-[0_12px_40px_rgba(0,0,0,0.15)]"
+            className={`rounded-2xl overflow-hidden flex flex-row shadow-[0_12px_40px_rgba(0,0,0,0.15)] ${isDarkTheme ? 'bg-slate-900' : 'bg-white'}`}
             style={{ width: 620, maxWidth: '90vw', height: 520, maxHeight: '80vh' }}
           >
             {/* Tab rail */}
-            <div className="flex flex-col gap-0.5 p-5 border-r border-[#99e6d0] min-w-[120px] bg-[#ecfdf5] rounded-l-2xl flex-shrink-0">
+            <div className={`flex flex-col gap-0.5 p-5 min-w-[120px] rounded-l-2xl flex-shrink-0 border-r ${isDarkTheme ? 'border-slate-700 bg-slate-800' : 'border-[#99e6d0] bg-[#ecfdf5]'}`}>
               {(['keys', 'models', 'budget'] as const).map(tab => (
                 <button
                   key={tab}
                   onClick={() => setConfigTab(tab)}
                   className={`text-left px-3 py-2 rounded-md text-[0.82rem] font-[inherit] cursor-pointer border-none transition-colors ${
                     configTab === tab
-                      ? 'bg-white text-[#0f2a24] font-semibold'
-                      : 'bg-transparent text-[#6b8f84] hover:bg-[#d1fae5] hover:text-[#0f2a24]'
+                      ? (isDarkTheme ? 'bg-slate-700 text-slate-100 font-semibold' : 'bg-white text-[#0f2a24] font-semibold')
+                      : (isDarkTheme ? 'bg-transparent text-slate-300 hover:bg-slate-700 hover:text-slate-100' : 'bg-transparent text-[#6b8f84] hover:bg-[#d1fae5] hover:text-[#0f2a24]')
                   }`}
                 >
-                  {tab === 'keys'   ? 'Claves API'  : ''}
-                  {tab === 'models' ? 'Modelos'     : ''}
-                  {tab === 'budget' ? 'Estadísticas': ''}
+                  {tab === 'keys'   ? (t.apiKeyProductView?.configTabKeys || 'Claves API') : ''}
+                  {tab === 'models' ? (t.apiKeyProductView?.configTabModels || 'Modelos') : ''}
+                  {tab === 'budget' ? (t.apiKeyProductView?.configTabStats || 'Estadísticas') : ''}
                 </button>
               ))}
             </div>
@@ -1386,11 +1918,11 @@ const ApiKeyInspectorView: React.FC = () => {
               {/* ── Keys tab ── */}
               {configTab === 'keys' && (
                 <>
-                  <h3 className="text-[1.1rem] font-semibold text-[#0f2a24] mb-1">
+                  <h3 className={`text-[1.1rem] font-semibold mb-1 ${isDarkTheme ? 'text-slate-100' : 'text-[#0f2a24]'}`}>
                     {t.apiKeyProductView?.apiConfigTitle || 'Configuración de API'}
                   </h3>
-                  <p className="text-[0.8rem] text-[#6b8f84] leading-relaxed mb-4">
-                    Agrega tu clave API para usar la IA directamente, sin límite de mensajes.
+                  <p className={`text-[0.8rem] leading-relaxed mb-4 ${isDarkTheme ? 'text-slate-400' : 'text-[#6b8f84]'}`}>
+                    {t.apiKeyProductView?.keysTabDescription || 'Agrega tu clave API para usar la IA directamente, sin límite de mensajes.'}
                   </p>
 
                   <div className="flex flex-col gap-3 flex-1">
@@ -1400,7 +1932,7 @@ const ApiKeyInspectorView: React.FC = () => {
                         value={provider}
                         onChange={e => {
                           setProvider(e.target.value as ApiRuntimeProvider);
-                          setRemoteModels([]); setSelectedModel(''); setHasValidatedKey(false);
+                          setRemoteModels([]); setSelectedModel(''); setHasValidatedKey(false); setLastValidatedAt('');
                         }}
                         disabled={!isOwner}
                         className={`${selectCls} flex-shrink-0`}
@@ -1419,8 +1951,8 @@ const ApiKeyInspectorView: React.FC = () => {
                       />
                       <button
                         onClick={() => setShowApiKey(v => !v)}
-                        className="bg-transparent border border-[#99e6d0] rounded-lg px-2 py-2 cursor-pointer text-[#6b8f84] flex items-center justify-center hover:text-[#0f2a24] hover:bg-[#d1fae5] transition-colors flex-shrink-0"
-                        title="Mostrar/ocultar"
+                        className={`bg-transparent border rounded-lg px-2 py-2 cursor-pointer flex items-center justify-center transition-colors flex-shrink-0 ${isDarkTheme ? 'border-slate-600 text-slate-300 hover:text-slate-100 hover:bg-slate-700' : 'border-[#99e6d0] text-[#6b8f84] hover:text-[#0f2a24] hover:bg-[#d1fae5]'}`}
+                        title={t.apiKeyProductView?.toggleApiKeyVisibility || 'Mostrar/ocultar'}
                       >
                         <IconEye />
                       </button>
@@ -1438,7 +1970,7 @@ const ApiKeyInspectorView: React.FC = () => {
                       <button
                         onClick={handleTestModel}
                         disabled={!isOwner || isSending || !selectedModel || !apiKey.trim()}
-                        className="flex-1 bg-transparent border border-[#0f766e] text-[#0f766e] font-[inherit] text-[0.85rem] py-2 rounded-lg cursor-pointer font-semibold hover:bg-[#ecfdf5] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        className={`flex-1 bg-transparent border font-[inherit] text-[0.85rem] py-2 rounded-lg cursor-pointer font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-colors ${isDarkTheme ? 'border-teal-700 text-teal-300 hover:bg-slate-700' : 'border-[#0f766e] text-[#0f766e] hover:bg-[#ecfdf5]'}`}
                       >
                         {t.apiKeyProductView?.testModel || 'Probar modelo'}
                       </button>
@@ -1472,8 +2004,8 @@ const ApiKeyInspectorView: React.FC = () => {
                     />
 
                     {selectedRole && (
-                      <p className="text-[0.8rem] text-[#6b8f84]">
-                        Rol activo: <strong className="text-[#0f2a24]">{selectedRole.title}</strong>
+                      <p className={`text-[0.8rem] ${isDarkTheme ? 'text-slate-400' : 'text-[#6b8f84]'}`}>
+                        Rol activo: <strong className={isDarkTheme ? 'text-slate-100' : 'text-[#0f2a24]'}>{selectedRole.title}</strong>
                       </p>
                     )}
                   </div>
@@ -1483,19 +2015,19 @@ const ApiKeyInspectorView: React.FC = () => {
               {/* ── Models tab ── */}
               {configTab === 'models' && (
                 <>
-                  <h3 className="text-[1.1rem] font-semibold text-[#0f2a24] mb-1">Modelos validados</h3>
-                  <p className="text-[0.8rem] text-[#6b8f84] leading-relaxed mb-3">
+                  <h3 className={`text-[1.1rem] font-semibold mb-1 ${isDarkTheme ? 'text-slate-100' : 'text-[#0f2a24]'}`}>{t.apiKeyProductView?.validatedModelsHeading || 'Modelos validados'}</h3>
+                  <p className={`text-[0.8rem] leading-relaxed mb-3 ${isDarkTheme ? 'text-slate-400' : 'text-[#6b8f84]'}`}>
                     {hasValidatedKey
-                      ? 'Modelos disponibles para tu cuenta.'
-                      : 'Valida la API key para listar los modelos disponibles.'}
+                      ? (t.apiKeyProductView?.modelsAvailableForAccount || 'Modelos disponibles para tu cuenta.')
+                      : (t.apiKeyProductView?.validateKeyToListModels || 'Valida la API key para listar los modelos disponibles.')}
                   </p>
                   {validatedModelOptions.length > 0 && (
-                    <div className="border border-[#a7d7c5] rounded-lg overflow-hidden flex-1 overflow-y-auto">
+                    <div className={`rounded-lg overflow-hidden flex-1 overflow-y-auto ${isDarkTheme ? 'border border-slate-700' : 'border border-[#a7d7c5]'}`}>
                       {validatedModelOptions.map(model => (
-                        <div key={model.id} className="grid grid-cols-[1fr_auto_auto] gap-2 p-2.5 text-[0.8rem] border-b last:border-b-0 border-[#e6f4f0] hover:bg-[#f3fbf9] transition-colors">
+                        <div key={model.id} className={`grid grid-cols-[1fr_auto_auto] gap-2 p-2.5 text-[0.8rem] border-b last:border-b-0 transition-colors ${isDarkTheme ? 'border-slate-700 hover:bg-slate-800' : 'border-[#e6f4f0] hover:bg-[#f3fbf9]'}`}>
                           <div className="min-w-0">
-                            <p className="font-semibold text-[#0f2a24] truncate">{model.label}</p>
-                            <p className="text-[#6b8f84] truncate text-[0.7rem]">{model.id}</p>
+                            <p className={`font-semibold truncate ${isDarkTheme ? 'text-slate-100' : 'text-[#0f2a24]'}`}>{model.label}</p>
+                            <p className={`truncate text-[0.7rem] ${isDarkTheme ? 'text-slate-400' : 'text-[#6b8f84]'}`}>{model.id}</p>
                           </div>
                           <div className="flex flex-wrap gap-1 items-center">
                             {model.capabilities.map(cap => (
@@ -1515,10 +2047,10 @@ const ApiKeyInspectorView: React.FC = () => {
               {/* ── Budget / Stats tab ── */}
               {configTab === 'budget' && (
                 <>
-                  <h3 className="text-[1.1rem] font-semibold text-[#0f2a24] mb-1">
+                  <h3 className={`text-[1.1rem] font-semibold mb-1 ${isDarkTheme ? 'text-slate-100' : 'text-[#0f2a24]'}`}>
                     {t.apiKeyProductView?.usageStatsTitle || 'Estadísticas de uso'}
                   </h3>
-                  <p className="text-[0.8rem] text-[#6b8f84] leading-relaxed mb-4">
+                  <p className={`text-[0.8rem] leading-relaxed mb-4 ${isDarkTheme ? 'text-slate-400' : 'text-[#6b8f84]'}`}>
                     Consumo acumulado de tokens y costos estimados.
                   </p>
                   <div className="grid grid-cols-2 gap-3">
@@ -1530,21 +2062,21 @@ const ApiKeyInspectorView: React.FC = () => {
                       { label: 'Total tokens',    value: stats.totalTokens },
                       { label: 'Costo estimado',  value: `$${stats.totalEstimatedCost.toFixed(6)}` },
                     ].map(item => (
-                      <div key={item.label} className="bg-[#f3fbf9] border border-[#a7d7c5] rounded-lg px-3 py-2.5">
-                        <p className="text-[0.7rem] text-[#6b8f84] uppercase tracking-[0.04em] font-semibold">{item.label}</p>
-                        <p className="text-[1rem] font-bold text-[#0f2a24] mt-0.5 tabular-nums">{item.value}</p>
+                      <div key={item.label} className={`rounded-lg px-3 py-2.5 ${isDarkTheme ? 'bg-slate-800 border border-slate-700' : 'bg-[#f3fbf9] border border-[#a7d7c5]'}`}>
+                        <p className={`text-[0.7rem] uppercase tracking-[0.04em] font-semibold ${isDarkTheme ? 'text-slate-400' : 'text-[#6b8f84]'}`}>{item.label}</p>
+                        <p className={`text-[1rem] font-bold mt-0.5 tabular-nums ${isDarkTheme ? 'text-slate-100' : 'text-[#0f2a24]'}`}>{item.value}</p>
                       </div>
                     ))}
                   </div>
-                  <div className="mt-3 text-[0.8rem] text-[#6b8f84]">
-                    Proveedor: <strong className="text-[#0f2a24]">{provider}</strong> ·
-                    Modelo: <strong className="text-[#0f2a24]">{selectedModel || '—'}</strong>
+                  <div className={`mt-3 text-[0.8rem] ${isDarkTheme ? 'text-slate-400' : 'text-[#6b8f84]'}`}>
+                    {t.apiKeyProductView?.providerValueLabel || 'Proveedor'}: <strong className={isDarkTheme ? 'text-slate-100' : 'text-[#0f2a24]'}>{provider}</strong> ·
+                    {t.apiKeyProductView?.modelValueLabel || 'Modelo'}: <strong className={isDarkTheme ? 'text-slate-100' : 'text-[#0f2a24]'}>{selectedModel || '—'}</strong>
                   </div>
                 </>
               )}
 
               {/* Footer actions */}
-              <div className="flex justify-end gap-2 mt-4 pt-3 border-t border-[#ccfbf1]">
+              <div className={`flex justify-end gap-2 mt-4 pt-3 border-t ${isDarkTheme ? 'border-slate-700' : 'border-[#ccfbf1]'}`}>
                 <button
                   onClick={() => setIsConfigModalOpen(false)}
                   className={modalBtnCancelCls}
@@ -1553,10 +2085,10 @@ const ApiKeyInspectorView: React.FC = () => {
                 </button>
                 {isOwner && configTab === 'keys' && (
                   <button
-                    onClick={() => product && persistConfig(product.id).then(() => setStatusText('Configuración guardada.'))}
+                    onClick={() => product && persistConfig(product.id).then(() => setStatusText(t.apiKeyProductView?.configSaved || 'Configuración guardada.'))}
                     className={modalBtnSaveCls}
                   >
-                    Guardar
+                    {t.apiKeyProductView?.saveConfigButton || 'Guardar'}
                   </button>
                 )}
               </div>
@@ -1568,18 +2100,18 @@ const ApiKeyInspectorView: React.FC = () => {
       {/* ── Role modal ────────────────────────────────────────────────── */}
       {showRoleModal && (
         <ModalOverlay>
-          <div className="bg-white rounded-2xl p-6 w-full max-w-[480px] max-h-[80vh] overflow-y-auto flex flex-col gap-3 shadow-[0_12px_40px_rgba(0,0,0,0.15)]">
-            <h3 className="text-[1.1rem] font-semibold text-[#0f2a24] m-0">
+          <div className={`rounded-2xl p-6 w-full max-w-[480px] max-h-[80vh] overflow-y-auto flex flex-col gap-3 shadow-[0_12px_40px_rgba(0,0,0,0.15)] ${isDarkTheme ? 'bg-slate-900' : 'bg-white'}`}>
+            <h3 className={`text-[1.1rem] font-semibold m-0 ${isDarkTheme ? 'text-slate-100' : 'text-[#0f2a24]'}`}>
               {t.apiKeyProductView?.newRoleModalTitle || 'Nuevo rol'}
             </h3>
-            <label className="text-[0.8rem] font-medium text-[#3d7a6d]">Nombre</label>
+            <label className={`text-[0.8rem] font-medium ${isDarkTheme ? 'text-slate-300' : 'text-[#3d7a6d]'}`}>{t.apiKeyProductView?.nameField || 'Nombre'}</label>
             <input
               value={roleTitleInput}
               onChange={e => setRoleTitleInput(e.target.value)}
               placeholder={t.apiKeyProductView?.roleTitlePlaceholder || 'Ej: Asistente técnico'}
               className={inputCls}
             />
-            <label className="text-[0.8rem] font-medium text-[#3d7a6d]">Contenido</label>
+            <label className={`text-[0.8rem] font-medium ${isDarkTheme ? 'text-slate-300' : 'text-[#3d7a6d]'}`}>{t.apiKeyProductView?.contentField || 'Contenido'}</label>
             <textarea
               value={roleBehaviorInput}
               onChange={e => setRoleBehaviorInput(e.target.value)}
@@ -1587,13 +2119,18 @@ const ApiKeyInspectorView: React.FC = () => {
               placeholder={t.apiKeyProductView?.roleBehaviorPlaceholder || 'Eres un asistente...'}
               className={`${inputCls} resize-y min-h-[120px]`}
             />
-            <div className="flex justify-end gap-2 mt-1">
+            <div className="flex justify-between gap-2 mt-1">
+              <button onClick={handleOptimizeRoleBehavior} className={modalBtnCancelCls}>
+                {t.apiKeyProductView?.optimizeButton || 'Optimizar'}
+              </button>
+              <div className="flex gap-2">
               <button onClick={() => setShowRoleModal(false)} className={modalBtnCancelCls}>
                 {t.apiKeyProductView?.cancelButton || 'Cancelar'}
               </button>
               <button onClick={handleCreateRole} className={modalBtnSaveCls}>
                 {t.apiKeyProductView?.saveRoleButton || 'Guardar rol'}
               </button>
+              </div>
             </div>
           </div>
         </ModalOverlay>
@@ -1602,18 +2139,18 @@ const ApiKeyInspectorView: React.FC = () => {
       {/* ── Prompt modal ──────────────────────────────────────────────── */}
       {showPromptModal && (
         <ModalOverlay>
-          <div className="bg-white rounded-2xl p-6 w-full max-w-[480px] max-h-[80vh] overflow-y-auto flex flex-col gap-3 shadow-[0_12px_40px_rgba(0,0,0,0.15)]">
-            <h3 className="text-[1.1rem] font-semibold text-[#0f2a24] m-0">
+          <div className={`rounded-2xl p-6 w-full max-w-[480px] max-h-[80vh] overflow-y-auto flex flex-col gap-3 shadow-[0_12px_40px_rgba(0,0,0,0.15)] ${isDarkTheme ? 'bg-slate-900' : 'bg-white'}`}>
+            <h3 className={`text-[1.1rem] font-semibold m-0 ${isDarkTheme ? 'text-slate-100' : 'text-[#0f2a24]'}`}>
               {t.apiKeyProductView?.newPromptModalTitle || 'Nuevo Prompt'}
             </h3>
-            <label className="text-[0.8rem] font-medium text-[#3d7a6d]">Nombre</label>
+            <label className={`text-[0.8rem] font-medium ${isDarkTheme ? 'text-slate-300' : 'text-[#3d7a6d]'}`}>{t.apiKeyProductView?.nameField || 'Nombre'}</label>
             <input
               value={promptTitleInput}
               onChange={e => setPromptTitleInput(e.target.value)}
               placeholder={t.apiKeyProductView?.promptTitlePlaceholder || 'Ej: Resume este texto'}
               className={inputCls}
             />
-            <label className="text-[0.8rem] font-medium text-[#3d7a6d]">Contenido</label>
+            <label className={`text-[0.8rem] font-medium ${isDarkTheme ? 'text-slate-300' : 'text-[#3d7a6d]'}`}>{t.apiKeyProductView?.contentField || 'Contenido'}</label>
             <textarea
               value={promptContentInput}
               onChange={e => setPromptContentInput(e.target.value)}
@@ -1621,13 +2158,18 @@ const ApiKeyInspectorView: React.FC = () => {
               placeholder={t.apiKeyProductView?.promptContentPlaceholder || 'Resume el siguiente texto en 3 puntos...'}
               className={`${inputCls} resize-y min-h-[120px]`}
             />
-            <div className="flex justify-end gap-2 mt-1">
+            <div className="flex justify-between gap-2 mt-1">
+              <button onClick={handleOptimizePromptContent} className={modalBtnCancelCls}>
+                {t.apiKeyProductView?.optimizeButton || 'Optimizar'}
+              </button>
+              <div className="flex gap-2">
               <button onClick={() => setShowPromptModal(false)} className={modalBtnCancelCls}>
                 {t.apiKeyProductView?.cancelButton || 'Cancelar'}
               </button>
               <button onClick={handleCreatePrompt} className={modalBtnSaveCls}>
                 {t.apiKeyProductView?.savePromptButton || 'Guardar prompt'}
               </button>
+              </div>
             </div>
           </div>
         </ModalOverlay>
