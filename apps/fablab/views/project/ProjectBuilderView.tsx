@@ -8,16 +8,16 @@ export default function ProjectBuilderView() {
   const navigate = useNavigate();
   const options = [
     {
-      title: t.projectBuilder.deployExternalProject,
-      description: t.projectBuilder.deployExternalProjectDesc,
-      icon: CloudUpload,
-      path: '/dashboard/applications',
-    },
-    {
       title: t.projectBuilder.assembleCustomProject,
       description: t.projectBuilder.assembleCustomProjectDesc,
       icon: LayoutGrid,
       path: '/dashboard/maker-path',
+    },
+    {
+      title: t.projectBuilder.deployExternalProject,
+      description: t.projectBuilder.deployExternalProjectDesc,
+      icon: CloudUpload,
+      path: '/dashboard/applications',
     },
     {
       title: t.projectBuilder.useServerProducts,

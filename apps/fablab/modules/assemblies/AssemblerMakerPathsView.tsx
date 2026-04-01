@@ -4,6 +4,7 @@ import { getMakerPaths } from '@core/maker-path/maker-path.service';
 import { MakerPath } from '@core/maker-path/maker-path.types';
 import { useNavigate } from 'react-router-dom';
 import { deployAssembly } from './services/assemblyDeployment.service';
+import { Rocket, ExternalLink, Settings } from 'lucide-react';
 import './AssemblerMakerPathsView.css'; // Import the CSS file
 
 const AssemblerMakerPathsView: React.FC = () => {
@@ -33,11 +34,20 @@ const AssemblerMakerPathsView: React.FC = () => {
     navigate('/dashboard/assembler/new');
   };
 
+  const [deployingId, setDeployingId] = useState<number | null>(null);
+
   const handleDeploy = async (id: number) => {
     try {
+      setDeployingId(id);
       await deployAssembly(id);
-    } catch (error) {
-      // Error handled in service (alert/console)
+      
+      // Redirect to the applications deployer view for this makerPathId
+      navigate(`/dashboard/applications/deployer?id=${id}`);
+    } catch (error: any) {
+      console.error('Failed to deploy assembly:', error);
+      alert(error.message || 'Failed to deploy assembly. Check console for details.');
+    } finally {
+      setDeployingId(null);
     }
   };
 
@@ -60,28 +70,70 @@ const AssemblerMakerPathsView: React.FC = () => {
           <table className="min-w-full text-left text-sm">
             <thead className="text-gray-500 dark:text-gray-400">
               <tr>
+                <th className="py-3 px-4">{t?.products?.fixed?.idLabel || 'ID'}</th>
                 <th className="py-3 px-4">{'Title'}</th>
                 <th className="py-3 px-4">{'Description'}</th>
                 <th className="py-3 px-4">{'Status'}</th>
                 <th className="py-3 px-4">{'Created At'}</th>
+                <th className="py-3 px-4">{'Deployment URL'}</th>
                 <th className="py-3 px-4">{t?.assembler?.actions || 'Actions'}</th>
               </tr>
             </thead>
             <tbody className="text-gray-800 dark:text-gray-200">
-              {makerPaths.map((mp) => (
+              {makerPaths.map((mp: any) => (
                 <tr key={mp.id} className="border-t border-gray-100 dark:border-gray-700">
+                  <td className="py-3 px-4">{mp.id}</td>
                   <td className="py-3 px-4">{mp.title}</td>
                   <td className="py-3 px-4">{mp.description || '-'}</td>
                   <td className="py-3 px-4">{mp.status}</td>
                   <td className="py-3 px-4">{new Date(mp.createdAt).toLocaleDateString()}</td>
                   <td className="py-3 px-4">
-                    <button
-                      onClick={() => handleDeploy(mp.id)}
-                      className="px-3 py-1 text-xs font-semibold rounded-md transition-colors bg-green-600 text-white hover:bg-green-700"
-                      style={{ display: 'none' }}
-                    >
-                      {t?.assembler?.deployAssembly || 'Deploy assembly'}
-                    </button>
+                    {mp.deploymentUrl || mp.deployment_url ? (
+                      <a 
+                        href={mp.deploymentUrl || mp.deployment_url} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:underline flex items-center gap-1"
+                      >
+                        <ExternalLink size={14} />
+                        <span className="max-w-[150px] truncate block">
+                          {mp.deploymentUrl || mp.deployment_url}
+                        </span>
+                      </a>
+                    ) : '-'}
+                  </td>
+                  <td className="py-3 px-4">
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => handleDeploy(mp.id)}
+                        disabled={deployingId !== null}
+                        title={t?.assembler?.deployAssembly || 'Deploy assembly'}
+                        className={`p-2 rounded-md transition-colors text-white ${
+                          deployingId === mp.id 
+                            ? 'bg-gray-400 cursor-not-allowed' 
+                            : 'bg-green-600 hover:bg-green-700'
+                        }`}
+                      >
+                        {deployingId === mp.id ? (
+                          <span className="text-xs animate-pulse">...</span>
+                        ) : (
+                          <Rocket size={16} />
+                        )}
+                      </button>
+
+                      {(mp.hasApplicationDeployment === true || 
+                        mp.has_application_deployment === 1 || 
+                        mp.has_application_deployment === true || 
+                        mp.has_application_deployment === '1') && (
+                        <button
+                          onClick={() => navigate(`/dashboard/applications/deployer?id=${mp.id}`)}
+                          title={t?.actions?.manageProjectApplication || 'Manage project application'}
+                          className="p-2 rounded-md transition-colors bg-blue-600 text-white hover:bg-blue-700"
+                        >
+                          <Settings size={16} />
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}

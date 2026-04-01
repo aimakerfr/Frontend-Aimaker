@@ -1,29 +1,25 @@
-import { applicationDeploymentService } from '@core/application-deployment/applicationDeployment.service';
+import { httpClient } from '@core/api/http.client';
+
+export interface DeploymentResult {
+  status: string;
+  message: string;
+  deploy_url?: string;
+  detected_category?: string;
+}
 
 /**
- * Service to handle assembly deployment logic
+ * Service to handle assembly deployment logic using the simplified assembler endpoint
  */
-export const deployAssembly = async (makerPathId: number): Promise<void> => {
+export const deployAssembly = async (makerPathId: number): Promise<DeploymentResult> => {
   try {
-    console.log(`Starting deployment for makerPathId: ${makerPathId}`);
+    console.log(`Starting simplified deployment for makerPathId: ${makerPathId}`);
     
-    // 1. Create the deployment record
-    const deployment = await applicationDeploymentService.createDeployment({ 
-      maker_path_id: makerPathId 
-    });
-    
-    console.log('Deployment record created:', deployment);
-
-    // 2. Trigger the actual deployment
-    const result = await applicationDeploymentService.deploy({
-      application_deployment_id: deployment.id
-    });
+    const result = await httpClient.post<DeploymentResult>(`/api/v1/assembler/deploy/${makerPathId}`);
 
     console.log('Deployment triggered successfully:', result);
-    alert(`Deployment started successfully for ID: ${deployment.id}`);
+    return result;
   } catch (error) {
     console.error('Failed to deploy assembly:', error);
-    alert('Failed to deploy assembly. Check console for details.');
     throw error;
   }
 };
