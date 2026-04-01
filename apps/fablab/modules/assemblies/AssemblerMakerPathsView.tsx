@@ -78,6 +78,7 @@ const AssemblerMakerPathsView: React.FC = () => {
                     <button
                       onClick={() => handleDeploy(mp.id)}
                       className="px-3 py-1 text-xs font-semibold rounded-md transition-colors bg-green-600 text-white hover:bg-green-700"
+                      style={{ display: 'none' }}
                     >
                       {t?.assembler?.deployAssembly || 'Deploy assembly'}
                     </button>
