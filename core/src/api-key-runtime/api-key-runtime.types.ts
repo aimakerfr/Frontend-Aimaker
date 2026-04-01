@@ -57,3 +57,29 @@ export interface ProviderModelTestResponse {
   outputKind?: 'text' | 'image' | 'audio' | 'video' | 'none';
   outputPreview?: string;
 }
+
+export interface ProviderUsageSummaryRequest {
+  provider: ApiRuntimeProvider;
+  apiKey: string;
+  days?: number;
+}
+
+export interface ProviderUsageSummaryResponse {
+  supported: boolean;
+  provider: ApiRuntimeProvider;
+  totalRequests: number;
+  totalInputTokens: number;
+  totalOutputTokens: number;
+  totalTokens: number;
+  totalCostUsd: number;
+  currency: string;
+  source?: string;
+  reasonCode?: string;
+  requiresScope?: string;
+  message?: string;
+  range?: {
+    from: string;
+    to: string;
+    days: number;
+  };
+}
