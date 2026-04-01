@@ -126,6 +126,8 @@ const ApplicationDeploymentSection: React.FC<Props> = ({ makerPathId, t }) => {
                   <tr>
                     <th className="py-2 pr-4">{t?.projectFlow?.appName || 'App name'}</th>
                     <th className="py-2 pr-4">{t?.projectFlow?.deploymentUrl || 'Deployment URL'}</th>
+                    <th className="py-2 pr-4">{'Project Type'}</th>
+                    <th className="py-2 pr-4">{'Files URL'}</th>
                     <th className="py-2">{t?.projectFlow?.actions || 'Actions'}</th>
                   </tr>
                 </thead>
@@ -142,6 +144,25 @@ const ApplicationDeploymentSection: React.FC<Props> = ({ makerPathId, t }) => {
                             className="text-blue-600 hover:underline break-all"
                           >
                             {(d as any).deploymentUrl as string}
+                          </a>
+                        ) : (
+                          <span className="text-gray-400">-</span>
+                        )}
+                      </td>
+                      <td className="py-2 pr-4">
+                        <span className="px-2 py-0.5 text-[10px] font-medium rounded-full bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
+                          {(d as any).projectType || (d as any).project_type || '-'}
+                        </span>
+                      </td>
+                      <td className="py-2 pr-4">
+                        {(d as any).filesUrl ? (
+                          <a
+                            href={(d as any).filesUrl as string}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:underline break-all"
+                          >
+                            {(d as any).filesUrl as string}
                           </a>
                         ) : (
                           <span className="text-gray-400">-</span>
