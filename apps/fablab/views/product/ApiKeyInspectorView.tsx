@@ -41,6 +41,14 @@ type ChatItem = {
   outputPreview?: string;
 };
 
+type PendingAttachment = {
+  id: string;
+  name: string;
+  mimeType: string;
+  data: string;
+  summary: string;
+};
+
 type RuntimeStats = {
   totalRequests: number;
   totalInputTokens: number;
@@ -102,6 +110,7 @@ const PROVIDERS: Array<{ value: ApiRuntimeProvider; label: string; hint: string 
   { value: 'anthropic',   label: 'Anthropic',   hint: 'sk-ant-...'  },
   { value: 'mistral',     label: 'Mistral',     hint: 'Key token'   },
   { value: 'perplexity',  label: 'Perplexity',  hint: 'pplx-...'   },
+  { value: 'ollama',      label: 'OLLAMA / Local', hint: 'Optional local token' },
 ];
 
 const EMPTY_STATS: RuntimeStats = {
@@ -138,6 +147,7 @@ const decodeSecret = (value: string): string => {
 
 const isLikelyKeyFormat = (provider: ApiRuntimeProvider, apiKey: string): boolean => {
   const k = apiKey.trim();
+  if (provider === 'ollama') return true;
   if (!k) return false;
   switch (provider) {
     case 'google':     return /^AIza[0-9A-Za-z\-_]{20,}$/.test(k);
@@ -151,6 +161,21 @@ const isLikelyKeyFormat = (provider: ApiRuntimeProvider, apiKey: string): boolea
 
 const normalizeModelId = (value: string): string =>
   value.replace(/^models\//, '').trim().toLowerCase();
+
+const toBase64 = async (file: File): Promise<string> => {
+  const dataUrl = await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ''));
+    reader.onerror = () => reject(new Error('No se pudo leer el archivo.'));
+    reader.readAsDataURL(file);
+  });
+  const idx = dataUrl.indexOf(',');
+  return idx >= 0 ? dataUrl.slice(idx + 1) : '';
+};
+
+const isTextLikeFile = (file: File): boolean => {
+  return file.type.startsWith('text/') || /\.(txt|md|json|csv|xml|html|js|ts|tsx|jsx|py|php|yml|yaml|sql)$/i.test(file.name);
+};
 
 const inferCapabilitiesFromId = (modelId: string): ModelCapability[] => {
   const v = normalizeModelId(modelId);
@@ -506,7 +531,11 @@ const ApiKeyInspectorView: React.FC = () => {
   // ── Config state ──
   const [provider,       setProvider]       = useState<ApiRuntimeProvider>('google');
   const [apiKey,         setApiKey]         = useState('');
+  const [baseUrl,        setBaseUrl]        = useState('');
   const [selectedModel,  setSelectedModel]  = useState('');
+  const [selectedTextModelId, setSelectedTextModelId] = useState('');
+  const [selectedImageModelId, setSelectedImageModelId] = useState('');
+  const [selectedOtherModelId, setSelectedOtherModelId] = useState('');
   const [systemPrompt,   setSystemPrompt]   = useState('');
   const [selectedRoleId, setSelectedRoleId] = useState('');
   const [showApiKey,     setShowApiKey]     = useState(false);
@@ -533,6 +562,7 @@ const ApiKeyInspectorView: React.FC = () => {
   const [webSearchEnabled,   setWebSearchEnabled]   = useState(false);
   const [showPromptPicker,   setShowPromptPicker]   = useState(false);
   const [attachedContext,    setAttachedContext]    = useState('');
+  const [pendingAttachments, setPendingAttachments] = useState<PendingAttachment[]>([]);
   const [isListening,        setIsListening]        = useState(false);
   const attachmentInputRef = useRef<HTMLInputElement | null>(null);
   const importInputRef = useRef<HTMLInputElement | null>(null);
@@ -568,6 +598,8 @@ const ApiKeyInspectorView: React.FC = () => {
 
   const fixedTitle       = t.products?.fixed?.apiKeyTitle || 'Inspector de API Keys';
   const fixedDescription = t.products?.fixed?.apiKeyDesc  || 'Valida formato y conectividad de API keys por proveedor.';
+  const requiresApiKey = provider !== 'ollama';
+  const requiresBaseUrl = provider === 'ollama';
 
   const themeStyle = useMemo<React.CSSProperties>(() => {
     return isDarkTheme
@@ -658,12 +690,6 @@ const ApiKeyInspectorView: React.FC = () => {
     return dedup.length > 0 ? dedup : ['text'];
   }, [selectedModelInfo]);
 
-  const availableChatModes = useMemo<ModelCapability[]>(() => {
-    if (!selectedModelInfo) return ['text'];
-    const dedup = Array.from(new Set(selectedModelInfo.capabilities));
-    return dedup.length > 0 ? dedup : ['text'];
-  }, [selectedModelInfo]);
-
   const effectiveSystemPrompt = useMemo(() => {
     const blocks = [systemPrompt.trim(), selectedRole?.behavior?.trim() ?? ''].filter(Boolean);
     return blocks.join('\n\n');
@@ -681,7 +707,14 @@ const ApiKeyInspectorView: React.FC = () => {
       stepId: STEP_CONFIG,
       status: 'success',
       resultText: {
-        provider, selectedModel, systemPrompt, selectedRoleId,
+        provider,
+        baseUrl,
+        selectedModel,
+        selectedTextModelId,
+        selectedImageModelId,
+        selectedOtherModelId,
+        systemPrompt,
+        selectedRoleId,
         apiKeyEncoded: encodeSecret(apiKey),
         validatedModels: remoteModels,
         lastValidatedAt: resolvedLastValidatedAt,
@@ -765,7 +798,11 @@ const ApiKeyInspectorView: React.FC = () => {
 
         if (config) {
           if (typeof config.provider       === 'string') setProvider(config.provider as ApiRuntimeProvider);
+          if (typeof config.baseUrl        === 'string') setBaseUrl(config.baseUrl);
           if (typeof config.selectedModel  === 'string') setSelectedModel(config.selectedModel);
+          if (typeof config.selectedTextModelId === 'string') setSelectedTextModelId(config.selectedTextModelId);
+          if (typeof config.selectedImageModelId === 'string') setSelectedImageModelId(config.selectedImageModelId);
+          if (typeof config.selectedOtherModelId === 'string') setSelectedOtherModelId(config.selectedOtherModelId);
           if (typeof config.systemPrompt   === 'string') setSystemPrompt(config.systemPrompt);
           if (typeof config.selectedRoleId === 'string') setSelectedRoleId(config.selectedRoleId);
           if (typeof config.apiKeyEncoded  === 'string') setApiKey(decodeSecret(config.apiKeyEncoded));
@@ -776,6 +813,15 @@ const ApiKeyInspectorView: React.FC = () => {
           if (typeof config.lastValidatedAt === 'string' && config.lastValidatedAt.trim()) {
             setLastValidatedAt(config.lastValidatedAt);
             setHasValidatedKey(true);
+          }
+
+          if (!config.selectedTextModelId && !config.selectedImageModelId && !config.selectedOtherModelId && typeof config.selectedModel === 'string') {
+            const legacyModelId = config.selectedModel;
+            const legacyCatalog = catalogMap.get(legacyModelId) ?? catalogMap.get(normalizeModelId(legacyModelId));
+            const legacyCaps = legacyCatalog?.capabilities?.length ? legacyCatalog.capabilities : inferCapabilitiesFromId(legacyModelId);
+            if (legacyCaps.includes('image')) setSelectedImageModelId(legacyModelId);
+            else if (legacyCaps.includes('audio') || legacyCaps.includes('video')) setSelectedOtherModelId(legacyModelId);
+            else setSelectedTextModelId(legacyModelId);
           }
         }
 
@@ -805,24 +851,33 @@ const ApiKeyInspectorView: React.FC = () => {
   }, [id, isAuthenticated, fixedTitle, fixedDescription, t.apiKeyProductView]);
 
   useEffect(() => {
-    if (!selectedModel && modelOptions.length > 0) {
-      const preferred = textModelOptions[0] ?? modelOptions[0];
-      setSelectedModel(preferred.id);
-      if (preferred.capabilities.includes('image')) setChatMode('image');
-      else if (preferred.capabilities.includes('audio')) setChatMode('audio');
-      else if (preferred.capabilities.includes('video')) setChatMode('video');
-      else if (preferred.capabilities.includes('search')) setChatMode('search');
-      else setChatMode('text');
+    if (!selectedTextModelId && textModelOptions.length > 0) {
+      setSelectedTextModelId(textModelOptions[0].id);
     }
-  }, [selectedModel, modelOptions, textModelOptions]);
+  }, [selectedTextModelId, textModelOptions]);
+
+  useEffect(() => {
+    if (!selectedImageModelId && imageModelOptions.length > 0) {
+      setSelectedImageModelId(imageModelOptions[0].id);
+    }
+  }, [selectedImageModelId, imageModelOptions]);
+
+  useEffect(() => {
+    if (!selectedOtherModelId && otherModelOptions.length > 0) {
+      setSelectedOtherModelId(otherModelOptions[0].id);
+    }
+  }, [selectedOtherModelId, otherModelOptions]);
+
+  useEffect(() => {
+    const fallbackModelId = selectedTextModelId || selectedImageModelId || selectedOtherModelId || modelOptions[0]?.id || '';
+    if (!selectedModel && fallbackModelId) {
+      setSelectedModel(fallbackModelId);
+    }
+  }, [selectedModel, selectedTextModelId, selectedImageModelId, selectedOtherModelId, modelOptions]);
 
   useEffect(() => {
     if (!availableTestModes.includes(testMode)) setTestMode(availableTestModes[0] ?? 'text');
   }, [availableTestModes, testMode]);
-
-  useEffect(() => {
-    if (!availableChatModes.includes(chatMode)) setChatMode(availableChatModes[0] ?? 'text');
-  }, [availableChatModes, chatMode]);
 
   useEffect(() => {
     if (!selectedModel) return;
@@ -830,6 +885,54 @@ const ApiKeyInspectorView: React.FC = () => {
   }, [selectedModel, modelOptions]);
 
   // ─── Handlers ────────────────────────────────────────────────────────────
+
+  const detectPromptCapability = (rawPrompt: string): ModelCapability => {
+    const text = rawPrompt.toLowerCase();
+    if (/\b(video|clip|animacion|animación|veo)\b/.test(text)) return 'video';
+    if (/\b(audio|voz|tts|speech|narraci[oó]n|narrar)\b/.test(text)) return 'audio';
+    if (/\b(imagen|image|foto|photoreal|render|ilustra|dibuja|draw|thumbnail)\b/.test(text)) return 'image';
+    if (webSearchEnabled || /\b(busca|buscar|search|investiga|research|fuentes)\b/.test(text)) return 'search';
+    return 'text';
+  };
+
+  const resolveRoutedModel = (desired: ModelCapability): { mode: ModelCapability; modelId: string; fallbackNotice: string } => {
+    const findOtherByCapability = (cap: ModelCapability): string => {
+      const selectedOther = validatedModelOptions.find((item) => item.id === selectedOtherModelId);
+      if (selectedOther?.capabilities.includes(cap)) return selectedOther.id;
+      return otherModelOptions.find((item) => item.capabilities.includes(cap))?.id || '';
+    };
+
+    if (desired === 'image') {
+      if (selectedImageModelId) return { mode: 'image', modelId: selectedImageModelId, fallbackNotice: '' };
+      if (selectedTextModelId) return { mode: 'text', modelId: selectedTextModelId, fallbackNotice: t.apiKeyProductView?.autoFallbackImageToText || 'No hay modelo de imagen seleccionado. Se usó modelo de texto.' };
+      return { mode: 'text', modelId: '', fallbackNotice: '' };
+    }
+
+    if (desired === 'audio') {
+      const audioModel = findOtherByCapability('audio');
+      if (audioModel) return { mode: 'audio', modelId: audioModel, fallbackNotice: '' };
+      if (selectedTextModelId) return { mode: 'text', modelId: selectedTextModelId, fallbackNotice: t.apiKeyProductView?.autoFallbackAudioToText || 'No hay modelo de audio seleccionado. Se usó modelo de texto.' };
+      return { mode: 'text', modelId: '', fallbackNotice: '' };
+    }
+
+    if (desired === 'video') {
+      const videoModel = findOtherByCapability('video');
+      if (videoModel) return { mode: 'video', modelId: videoModel, fallbackNotice: '' };
+      if (selectedTextModelId) return { mode: 'text', modelId: selectedTextModelId, fallbackNotice: t.apiKeyProductView?.autoFallbackVideoToText || 'No hay modelo de video seleccionado. Se usó modelo de texto.' };
+      return { mode: 'text', modelId: '', fallbackNotice: '' };
+    }
+
+    if (desired === 'search') {
+      if (selectedTextModelId) return { mode: 'search', modelId: selectedTextModelId, fallbackNotice: '' };
+      return { mode: 'text', modelId: selectedImageModelId || selectedOtherModelId || '', fallbackNotice: t.apiKeyProductView?.autoFallbackTextToAny || 'No hay modelo de texto seleccionado. Se usó un modelo alterno.' };
+    }
+
+    return {
+      mode: 'text',
+      modelId: selectedTextModelId || selectedImageModelId || selectedOtherModelId || '',
+      fallbackNotice: selectedTextModelId ? '' : (t.apiKeyProductView?.autoFallbackTextToAny || 'No hay modelo de texto seleccionado. Se usó un modelo alterno.'),
+    };
+  };
 
   const patchConversation = (
     conversationId: string,
@@ -839,44 +942,78 @@ const ApiKeyInspectorView: React.FC = () => {
   const handleValidateKey = async () => {
     if (!product) return;
     setErrorText(''); setStatusText('');
-    if (!isLikelyKeyFormat(provider, apiKey)) {
+    if (requiresBaseUrl && !baseUrl.trim()) {
+      setErrorText(t.apiKeyProductView?.localEndpointRequired || 'Debes indicar la URL local del proveedor.');
+      return;
+    }
+    if (requiresApiKey && !isLikelyKeyFormat(provider, apiKey)) {
       setErrorText('Formato de API key no válido para el proveedor elegido.');
       return;
     }
     try {
       setIsValidatingKey(true);
-      const result = await validateProviderKey({ provider, apiKey: apiKey.trim() });
+      const result = await validateProviderKey({
+        provider,
+        apiKey: apiKey.trim(),
+        baseUrl: requiresBaseUrl ? baseUrl.trim() : undefined,
+      });
       const validatedAt = new Date().toISOString();
       setRemoteModels(result.models || []);
       setHasValidatedKey(true);
       setLastValidatedAt(validatedAt);
+
+      const firstText = result.models.find((m) => {
+        const catalog = catalogMap.get(m.id) ?? catalogMap.get(normalizeModelId(m.id));
+        const caps = catalog?.capabilities?.length ? catalog.capabilities : inferCapabilitiesFromId(m.id);
+        return caps.includes('text') || caps.includes('search');
+      });
+      const firstImage = result.models.find((m) => {
+        const catalog = catalogMap.get(m.id) ?? catalogMap.get(normalizeModelId(m.id));
+        const caps = catalog?.capabilities?.length ? catalog.capabilities : inferCapabilitiesFromId(m.id);
+        return caps.includes('image');
+      });
+      const firstOther = result.models.find((m) => {
+        const catalog = catalogMap.get(m.id) ?? catalogMap.get(normalizeModelId(m.id));
+        const caps = catalog?.capabilities?.length ? catalog.capabilities : inferCapabilitiesFromId(m.id);
+        return caps.includes('audio') || caps.includes('video');
+      });
+
+      if (firstText?.id) setSelectedTextModelId(firstText.id);
+      if (firstImage?.id) setSelectedImageModelId(firstImage.id);
+      if (firstOther?.id) setSelectedOtherModelId(firstOther.id);
+
       if (!selectedModel && result.models.length > 0) {
-        const firstUsable = result.models.find(m => {
-          const catalog = catalogMap.get(m.id) ?? catalogMap.get(normalizeModelId(m.id));
-          const caps    = catalog?.capabilities?.length ? catalog.capabilities : inferCapabilitiesFromId(m.id);
-          return caps.includes('text') || caps.includes('search');
-        });
-        setSelectedModel(firstUsable?.id ?? '');
+        setSelectedModel(firstText?.id || firstImage?.id || firstOther?.id || result.models[0]?.id || '');
       }
       await persistConfig(product.id, {
         lastValidatedAt: validatedAt,
         validatedModels: result.models,
       });
-      setStatusText('API key validada correctamente y modelos cargados.');
+      setStatusText(requiresApiKey
+        ? 'API key validada correctamente y modelos cargados.'
+        : (t.apiKeyProductView?.localValidationSuccess || 'Endpoint local validado y modelos cargados.'));
     } catch (err: any) {
-      setErrorText(err?.message || 'No se pudo validar la API key.');
+      setErrorText(err?.message || (requiresApiKey ? 'No se pudo validar la API key.' : 'No se pudo validar el endpoint local.'));
     } finally { setIsValidatingKey(false); }
   };
 
   const getCurrentMessages = (): ChatItem[] => activeConversation?.messages ?? [];
 
-  const runChat = async (text: string, isTest: boolean) => {
+  const runChat = async (text: string, isTest: boolean, modelOverride?: string) => {
     if (!product || !activeConversation) {
       setErrorText('Debes crear o seleccionar una conversación.');
       return;
     }
-    if (!apiKey.trim())        { setErrorText('Debes ingresar una API key.');   return; }
-    if (!selectedModel.trim()) { setErrorText('Debes elegir un modelo.');        return; }
+    if (requiresApiKey && !apiKey.trim()) {
+      setErrorText('Debes ingresar una API key.');
+      return;
+    }
+    if (requiresBaseUrl && !baseUrl.trim()) {
+      setErrorText(t.apiKeyProductView?.localEndpointRequired || 'Debes indicar la URL local del proveedor.');
+      return;
+    }
+    const modelToUse = (modelOverride || selectedModel).trim();
+    if (!modelToUse) { setErrorText('Debes elegir un modelo.'); return; }
 
     const composedPrompt = [
       text,
@@ -888,6 +1025,11 @@ const ApiKeyInspectorView: React.FC = () => {
       id: `u-${Date.now()}`, role: 'user', content: composedPrompt,
       createdAt: new Date().toISOString(),
     };
+    const runtimeAttachments = pendingAttachments.map((item) => ({
+      name: item.name,
+      mimeType: item.mimeType,
+      data: item.data,
+    }));
     const nextChatBase = [...getCurrentMessages(), userMessage];
     patchConversation(activeConversation.id, conv => ({
       ...conv,
@@ -900,10 +1042,17 @@ const ApiKeyInspectorView: React.FC = () => {
     try {
       const payloadMessages: ProviderChatMessage[] = nextChatBase
         .slice(-20)
-        .map(m => ({ role: m.role, content: m.content }));
+        .map(m => ({
+          role: m.role,
+          content: m.content,
+          attachments: m.id === userMessage.id && m.role === 'user' ? runtimeAttachments : undefined,
+        }));
 
       const response = await providerChat({
-        provider, apiKey: apiKey.trim(), model: selectedModel,
+        provider,
+        apiKey: apiKey.trim(),
+        baseUrl: requiresBaseUrl ? baseUrl.trim() : undefined,
+        model: modelToUse,
         systemPrompt: buildRuntimeSystemPrompt(effectiveSystemPrompt), messages: payloadMessages,
       });
 
@@ -917,7 +1066,7 @@ const ApiKeyInspectorView: React.FC = () => {
         ...conv, messages: nextChat, updatedAt: new Date().toISOString(),
       }));
 
-      const estimatedCost = estimateCost(selectedModel, response.usage.inputTokens, response.usage.outputTokens, catalogMap);
+      const estimatedCost = estimateCost(modelToUse, response.usage.inputTokens, response.usage.outputTokens, catalogMap);
       const nextStats: RuntimeStats = {
         totalRequests:      stats.totalRequests + 1,
         totalInputTokens:   stats.totalInputTokens  + response.usage.inputTokens,
@@ -940,20 +1089,31 @@ const ApiKeyInspectorView: React.FC = () => {
         persistConfig(product.id),
       ]);
       if (!isTest) setMessageInput('');
-      if (!isTest) setAttachedContext('');
+      if (!isTest) {
+        setAttachedContext('');
+        setPendingAttachments([]);
+      }
       setStatusText(isTest ? 'Modelo probado correctamente.' : 'Respuesta recibida y guardada.');
     } catch (err: any) {
       setErrorText(err?.message || 'No se pudo completar el chat con el proveedor.');
     } finally { setIsSending(false); }
   };
 
-  const runCapabilityGeneration = async (capability: ModelCapability, promptText: string, isTest: boolean) => {
+  const runCapabilityGeneration = async (capability: ModelCapability, promptText: string, isTest: boolean, modelOverride?: string) => {
     if (!product || !activeConversation) {
       setErrorText('Debes crear o seleccionar una conversación.');
       return;
     }
-    if (!apiKey.trim())        { setErrorText('Debes ingresar una API key.'); return; }
-    if (!selectedModel.trim()) { setErrorText('Debes elegir un modelo.');      return; }
+    if (requiresApiKey && !apiKey.trim()) {
+      setErrorText('Debes ingresar una API key.');
+      return;
+    }
+    if (requiresBaseUrl && !baseUrl.trim()) {
+      setErrorText(t.apiKeyProductView?.localEndpointRequired || 'Debes indicar la URL local del proveedor.');
+      return;
+    }
+    const modelToUse = (modelOverride || selectedModel).trim();
+    if (!modelToUse) { setErrorText('Debes elegir un modelo.'); return; }
 
     const userMessage: ChatItem = {
       id: `u-${Date.now()}`, role: 'user', content: promptText,
@@ -970,10 +1130,20 @@ const ApiKeyInspectorView: React.FC = () => {
 
     setErrorText(''); setStatusText(''); setIsSending(true);
     try {
+      const runtimeAttachments = pendingAttachments.map((item) => ({
+        name: item.name,
+        mimeType: item.mimeType,
+        data: item.data,
+      }));
+
       const response = await providerTestModel({
-        provider, apiKey: apiKey.trim(), model: selectedModel,
+        provider,
+        apiKey: apiKey.trim(),
+        baseUrl: requiresBaseUrl ? baseUrl.trim() : undefined,
+        model: modelToUse,
         capability: capability === 'unknown' ? 'text' : capability,
         prompt: promptText,
+        attachments: runtimeAttachments,
       });
       const kind = response.outputKind || (capability === 'image' || capability === 'audio' || capability === 'video' ? capability : 'text');
       const assistantMessage: ChatItem = {
@@ -1000,6 +1170,10 @@ const ApiKeyInspectorView: React.FC = () => {
         persistConfig(product.id),
       ]);
       if (!isTest) setMessageInput('');
+      if (!isTest) {
+        setAttachedContext('');
+        setPendingAttachments([]);
+      }
       setStatusText(isTest ? 'Modelo probado correctamente.' : 'Generación ejecutada y guardada.');
     } catch (err: any) {
       setErrorText(err?.message || 'No se pudo ejecutar la generación para este modo.');
@@ -1008,25 +1182,50 @@ const ApiKeyInspectorView: React.FC = () => {
 
   const handleSendMessage = async () => {
     const text = messageInput.trim();
-    if (!text) return;
-    if (chatMode === 'text' || chatMode === 'search') {
-      if (selectedModelInfo && !selectedModelInfo.usableInChat) {
-        setErrorText('Este modelo no soporta chat de texto.');
-        return;
-      }
-      await runChat(text, false);
-    } else {
-      await runCapabilityGeneration(chatMode, text, false);
+    if (!text && pendingAttachments.length === 0) return;
+
+    const normalizedText = text || (t.apiKeyProductView?.attachmentOnlyPrompt || 'Analiza los archivos adjuntos y responde con hallazgos accionables.');
+
+    const desiredCapability = detectPromptCapability(normalizedText);
+    const routing = resolveRoutedModel(desiredCapability);
+
+    if (!routing.modelId) {
+      setErrorText(t.apiKeyProductView?.selectModelFirst || 'Debes seleccionar un modelo.');
+      return;
     }
+
+    setSelectedModel(routing.modelId);
+    setChatMode(routing.mode);
+
+    if (routing.fallbackNotice) {
+      setStatusText(routing.fallbackNotice);
+    }
+
+    if (routing.mode === 'text' || routing.mode === 'search') {
+      await runChat(normalizedText, false, routing.modelId);
+      return;
+    }
+
+    await runCapabilityGeneration(routing.mode, normalizedText, false, routing.modelId);
   };
 
   const handleTestModel = async () => {
-    if (!selectedModelInfo) { setErrorText('Debes seleccionar un modelo.'); return; }
-    if (!availableTestModes.includes(testMode)) { setErrorText('Esta modalidad no está disponible.'); return; }
+    const modelForTest =
+      (testMode === 'image' ? selectedImageModelId : '') ||
+      (testMode === 'text' || testMode === 'search' ? selectedTextModelId : '') ||
+      ((testMode === 'audio' || testMode === 'video') ? selectedOtherModelId : '') ||
+      selectedModel ||
+      selectedTextModelId ||
+      selectedImageModelId ||
+      selectedOtherModelId;
+    if (!modelForTest) { setErrorText(t.apiKeyProductView?.selectModelFirst || 'Debes seleccionar un modelo.'); return; }
+    if (!availableTestModes.includes(testMode)) { setErrorText(t.apiKeyProductView?.invalidTestMode || 'Esta modalidad no está disponible.'); return; }
+    setSelectedModel(modelForTest);
     await runCapabilityGeneration(
       testMode,
       testMode === 'image' ? 'Create a small test image with the word AIMAKER' : 'Reply only with OK',
-      true
+      true,
+      modelForTest
     );
   };
 
@@ -1118,7 +1317,11 @@ const ApiKeyInspectorView: React.FC = () => {
       exportedAt: new Date().toISOString(),
       config: {
         provider,
+        baseUrl,
         selectedModel,
+        selectedTextModelId,
+        selectedImageModelId,
+        selectedOtherModelId,
         systemPrompt,
         selectedRoleId,
         validatedModels: remoteModels,
@@ -1149,7 +1352,11 @@ const ApiKeyInspectorView: React.FC = () => {
       const parsed = JSON.parse(text);
 
       const nextProvider = parsed?.config?.provider as ApiRuntimeProvider | undefined;
+      const nextBaseUrl = String(parsed?.config?.baseUrl || '');
       const nextModel = String(parsed?.config?.selectedModel || '');
+      const nextTextModelId = String(parsed?.config?.selectedTextModelId || '');
+      const nextImageModelId = String(parsed?.config?.selectedImageModelId || '');
+      const nextOtherModelId = String(parsed?.config?.selectedOtherModelId || '');
       const nextSystemPrompt = String(parsed?.config?.systemPrompt || '');
       const nextSelectedRoleId = String(parsed?.config?.selectedRoleId || '');
       const nextRoles = Array.isArray(parsed?.chat?.roles) ? parsed.chat.roles as RoleRecord[] : [];
@@ -1169,7 +1376,11 @@ const ApiKeyInspectorView: React.FC = () => {
         : (nextValidatedModels.length > 0 ? new Date().toISOString() : '');
 
       if (nextProvider) setProvider(nextProvider);
+      setBaseUrl(nextBaseUrl);
       setSelectedModel(nextModel);
+      setSelectedTextModelId(nextTextModelId);
+      setSelectedImageModelId(nextImageModelId);
+      setSelectedOtherModelId(nextOtherModelId);
       setSystemPrompt(nextSystemPrompt);
       setSelectedRoleId(nextSelectedRoleId);
       setRoles(nextRoles);
@@ -1185,7 +1396,11 @@ const ApiKeyInspectorView: React.FC = () => {
         await Promise.all([
           persistConfig(product.id, {
             provider: nextProvider ?? provider,
+            baseUrl: nextBaseUrl,
             selectedModel: nextModel,
+            selectedTextModelId: nextTextModelId,
+            selectedImageModelId: nextImageModelId,
+            selectedOtherModelId: nextOtherModelId,
             systemPrompt: nextSystemPrompt,
             selectedRoleId: nextSelectedRoleId,
             validatedModels: nextValidatedModels,
@@ -1219,13 +1434,36 @@ const ApiKeyInspectorView: React.FC = () => {
     event.target.value = '';
   };
 
-  const readAttachmentAsContext = async (file: File): Promise<string> => {
-    const isTextLike = file.type.startsWith('text/') || /\.(txt|md|json|csv|xml|html|js|ts|tsx|jsx)$/i.test(file.name);
-    if (!isTextLike) {
-      return `${file.name} (${file.type || 'binary'})`;
+  const readAttachment = async (file: File): Promise<{ contextLine: string; attachment?: PendingAttachment }> => {
+    const mimeType = file.type || 'application/octet-stream';
+
+    if (isTextLikeFile(file)) {
+      const text = await file.text();
+      return {
+        contextLine: `${file.name}: ${text.replace(/\s+/g, ' ').trim().slice(0, 900)}`,
+      };
     }
-    const text = await file.text();
-    return `${file.name}: ${text.replace(/\s+/g, ' ').trim().slice(0, 900)}`;
+
+    const maxBinarySize = 6 * 1024 * 1024;
+    if (file.size > maxBinarySize) {
+      return {
+        contextLine: `${file.name} (${mimeType}) - ${(file.size / (1024 * 1024)).toFixed(1)}MB (omitido por tamano)`,
+      };
+    }
+
+    const data = await toBase64(file);
+    const summary = `${file.name} (${mimeType}, ${Math.max(1, Math.round(file.size / 1024))}KB)`;
+
+    return {
+      contextLine: summary,
+      attachment: {
+        id: `att-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        name: file.name,
+        mimeType,
+        data,
+        summary,
+      },
+    };
   };
 
   const handleAttachClick = () => {
@@ -1235,9 +1473,14 @@ const ApiKeyInspectorView: React.FC = () => {
   const handleAttachmentChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []);
     if (files.length === 0) return;
-    const parts = await Promise.all(files.map(readAttachmentAsContext));
-    const merged = parts.filter(Boolean).join('\n');
-    setAttachedContext(prev => [prev, merged].filter(Boolean).join('\n').slice(0, 1800));
+    const parsed = await Promise.all(files.map(readAttachment));
+    const merged = parsed.map((item) => item.contextLine).filter(Boolean).join('\n');
+    const newAttachments = parsed
+      .map((item) => item.attachment)
+      .filter((item): item is PendingAttachment => Boolean(item));
+
+    setAttachedContext(prev => [prev, merged].filter(Boolean).join('\n').slice(0, 3000));
+    setPendingAttachments((prev) => [...prev, ...newAttachments].slice(-8));
     setStatusText(t.apiKeyProductView?.attachmentReady || 'Contexto adjunto listo.');
     event.target.value = '';
   };
@@ -1639,11 +1882,11 @@ const ApiKeyInspectorView: React.FC = () => {
             {t.apiKeyProductView?.modelTextLabel || 'Modelo texto'}:
           </label>
           <select
-            value={textModelOptions.some((m) => m.id === selectedModel) ? selectedModel : ''}
+            value={selectedTextModelId}
             onChange={e => {
               if (!e.target.value) return;
+              setSelectedTextModelId(e.target.value);
               setSelectedModel(e.target.value);
-              setChatMode('text');
             }}
             disabled={!isOwner || textModelOptions.length === 0}
             className={selectCls}
@@ -1658,11 +1901,10 @@ const ApiKeyInspectorView: React.FC = () => {
             {t.apiKeyProductView?.modelImageLabel || 'Modelo imagen'}:
           </label>
           <select
-            value={imageModelOptions.some((m) => m.id === selectedModel) ? selectedModel : ''}
+            value={selectedImageModelId}
             onChange={e => {
               if (!e.target.value) return;
-              setSelectedModel(e.target.value);
-              setChatMode('image');
+              setSelectedImageModelId(e.target.value);
             }}
             disabled={!isOwner || imageModelOptions.length === 0}
             className={selectCls}
@@ -1677,14 +1919,10 @@ const ApiKeyInspectorView: React.FC = () => {
             {t.apiKeyProductView?.modelOtherLabel || 'Modelo otros'}:
           </label>
           <select
-            value={otherModelOptions.some((m) => m.id === selectedModel) ? selectedModel : ''}
+            value={selectedOtherModelId}
             onChange={e => {
               if (!e.target.value) return;
-              const selected = otherModelOptions.find((m) => m.id === e.target.value);
-              setSelectedModel(e.target.value);
-              if (selected?.capabilities.includes('audio')) setChatMode('audio');
-              else if (selected?.capabilities.includes('video')) setChatMode('video');
-              else setChatMode('text');
+              setSelectedOtherModelId(e.target.value);
             }}
             disabled={!isOwner || otherModelOptions.length === 0}
             className={selectCls}
@@ -1695,20 +1933,9 @@ const ApiKeyInspectorView: React.FC = () => {
             ))}
           </select>
 
-          {/* Chat mode */}
-          <label className="text-[0.8rem] text-[#6b8f84] whitespace-nowrap">
-            {t.apiKeyProductView?.chatModeLabel || 'Modo'}:
-          </label>
-          <select
-            value={chatMode}
-            onChange={e => setChatMode(e.target.value as ModelCapability)}
-            disabled={!isOwner || !selectedModel}
-            className={selectCls}
-          >
-            {availableChatModes.map(mode => (
-              <option key={mode} value={mode}>{capabilityLabel(mode, t)}</option>
-            ))}
-          </select>
+          <div className={`text-[0.74rem] rounded-md px-2 py-1 border ${isDarkTheme ? 'border-slate-600 text-slate-300 bg-slate-800' : 'border-[#99e6d0] text-[#3d7a6d] bg-[#ecfdf5]'}`}>
+            {t.apiKeyProductView?.autoRoutingLabel || 'Ruteo automático por prompt'}
+          </div>
 
           {/* Spacer */}
           <span className="flex-1" />
@@ -1860,17 +2087,25 @@ const ApiKeyInspectorView: React.FC = () => {
                   ? <span className="inline-block h-3 w-3 rounded-full border-2 border-white/50 border-t-white animate-spin" />
                   : <Send size={13} />
                 }
-                {chatMode === 'text' || chatMode === 'search'
-                  ? (t.apiKeyProductView?.sendButton || 'OK')
-                  : (t.apiKeyProductView?.generateButton || 'Generar')}
+                {t.apiKeyProductView?.sendButton || 'Enviar'}
               </button>
             </div>
 
-            {attachedContext && (
+            {(attachedContext || pendingAttachments.length > 0) && (
               <div className={`w-full rounded-lg border px-3 py-2 text-xs flex items-start justify-between gap-2 ${isDarkTheme ? 'border-slate-600 bg-slate-800 text-slate-200' : 'border-[#a7d7c5] bg-[#ecfdf5] text-[#3d7a6d]'}`}>
-                <p className="line-clamp-2">{attachedContext}</p>
+                <div className="min-w-0 flex-1">
+                  <p className="line-clamp-2">{attachedContext || (t.apiKeyProductView?.binaryAttachmentReady || 'Archivos binarios listos para enviar')}</p>
+                  {pendingAttachments.length > 0 && (
+                    <p className={`mt-1 ${isDarkTheme ? 'text-slate-400' : 'text-[#6b8f84]'}`}>
+                      {(t.apiKeyProductView?.multimodalFilesReady || '{count} archivos multimodales listos').replace('{count}', String(pendingAttachments.length))}
+                    </p>
+                  )}
+                </div>
                 <button
-                  onClick={() => setAttachedContext('')}
+                  onClick={() => {
+                    setAttachedContext('');
+                    setPendingAttachments([]);
+                  }}
                   className="text-[#6b8f84] hover:text-red-600 transition-colors"
                   title={t.apiKeyProductView?.clearAttachment || 'Limpiar adjunto'}
                 >
@@ -1932,7 +2167,13 @@ const ApiKeyInspectorView: React.FC = () => {
                         value={provider}
                         onChange={e => {
                           setProvider(e.target.value as ApiRuntimeProvider);
-                          setRemoteModels([]); setSelectedModel(''); setHasValidatedKey(false); setLastValidatedAt('');
+                          setRemoteModels([]);
+                          setSelectedModel('');
+                          setSelectedTextModelId('');
+                          setSelectedImageModelId('');
+                          setSelectedOtherModelId('');
+                          setHasValidatedKey(false);
+                          setLastValidatedAt('');
                         }}
                         disabled={!isOwner}
                         className={`${selectCls} flex-shrink-0`}
@@ -1945,7 +2186,9 @@ const ApiKeyInspectorView: React.FC = () => {
                         value={apiKey}
                         onChange={e => setApiKey(e.target.value)}
                         disabled={!isOwner}
-                        placeholder={PROVIDERS.find(p => p.value === provider)?.hint || 'API key'}
+                        placeholder={provider === 'ollama'
+                          ? (t.apiKeyProductView?.localApiKeyOptional || 'Token local opcional')
+                          : (PROVIDERS.find(p => p.value === provider)?.hint || 'API key')}
                         type={showApiKey ? 'text' : 'password'}
                         className={`${inputCls} flex-1`}
                       />
@@ -1958,18 +2201,28 @@ const ApiKeyInspectorView: React.FC = () => {
                       </button>
                     </div>
 
+                    {provider === 'ollama' && (
+                      <input
+                        value={baseUrl}
+                        onChange={e => setBaseUrl(e.target.value)}
+                        disabled={!isOwner}
+                        placeholder={t.apiKeyProductView?.localEndpointPlaceholder || 'http://localhost:11434'}
+                        className={`${inputCls} w-full`}
+                      />
+                    )}
+
                     {/* Action buttons */}
                     <div className="flex gap-2">
                       <button
                         onClick={handleValidateKey}
-                        disabled={!isOwner || isValidatingKey || !apiKey.trim()}
+                        disabled={!isOwner || isValidatingKey || (requiresApiKey ? !apiKey.trim() : !baseUrl.trim())}
                         className="flex-1 bg-[#0f766e] text-white font-[inherit] text-[0.85rem] py-2 rounded-lg cursor-pointer font-semibold hover:opacity-85 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity"
                       >
                         {isValidatingKey ? 'Validando...' : (t.apiKeyProductView?.validateKey || 'Validar key')}
                       </button>
                       <button
                         onClick={handleTestModel}
-                        disabled={!isOwner || isSending || !selectedModel || !apiKey.trim()}
+                        disabled={!isOwner || isSending || !selectedModel || (requiresApiKey ? !apiKey.trim() : !baseUrl.trim())}
                         className={`flex-1 bg-transparent border font-[inherit] text-[0.85rem] py-2 rounded-lg cursor-pointer font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-colors ${isDarkTheme ? 'border-teal-700 text-teal-300 hover:bg-slate-700' : 'border-[#0f766e] text-[#0f766e] hover:bg-[#ecfdf5]'}`}
                       >
                         {t.apiKeyProductView?.testModel || 'Probar modelo'}
