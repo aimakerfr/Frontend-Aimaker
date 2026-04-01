@@ -1,4 +1,4 @@
-export type ApiRuntimeProvider = 'google' | 'openai' | 'anthropic' | 'mistral' | 'perplexity';
+export type ApiRuntimeProvider = 'google' | 'openai' | 'anthropic' | 'mistral' | 'perplexity' | 'ollama';
 
 export interface ProviderModelInfo {
   id: string;
@@ -8,6 +8,7 @@ export interface ProviderModelInfo {
 export interface ValidateProviderKeyRequest {
   provider: ApiRuntimeProvider;
   apiKey: string;
+  baseUrl?: string;
 }
 
 export interface ValidateProviderKeyResponse {
@@ -18,11 +19,17 @@ export interface ValidateProviderKeyResponse {
 export interface ProviderChatMessage {
   role: 'user' | 'assistant';
   content: string;
+  attachments?: Array<{
+    name?: string;
+    mimeType: string;
+    data: string;
+  }>;
 }
 
 export interface ProviderChatRequest {
   provider: ApiRuntimeProvider;
   apiKey: string;
+  baseUrl?: string;
   model: string;
   messages: ProviderChatMessage[];
   systemPrompt?: string;
@@ -44,9 +51,15 @@ export type ProviderModelCapability = 'text' | 'image' | 'audio' | 'video' | 'se
 export interface ProviderModelTestRequest {
   provider: ApiRuntimeProvider;
   apiKey: string;
+  baseUrl?: string;
   model: string;
   capability: ProviderModelCapability;
   prompt?: string;
+  attachments?: Array<{
+    name?: string;
+    mimeType: string;
+    data: string;
+  }>;
 }
 
 export interface ProviderModelTestResponse {
@@ -61,6 +74,7 @@ export interface ProviderModelTestResponse {
 export interface ProviderUsageSummaryRequest {
   provider: ApiRuntimeProvider;
   apiKey: string;
+  baseUrl?: string;
   days?: number;
 }
 
@@ -81,5 +95,17 @@ export interface ProviderUsageSummaryResponse {
     from: string;
     to: string;
     days: number;
+  };
+  localTracked?: {
+    totalRequests: number;
+    totalInputTokens: number;
+    totalOutputTokens: number;
+    totalTokens: number;
+    estimatedCostUsd: number;
+    chatRequests: number;
+    imageRequests: number;
+    otherRequests: number;
+    lastRequestAt?: string | null;
+    source?: string;
   };
 }

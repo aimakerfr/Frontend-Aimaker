@@ -28,6 +28,7 @@ const ImageGeneratorView: React.FC = () => {
   const { t } = useLanguage();
   const isAuthenticated = !!tokenStorage.get();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const mountedRef = useRef(true);
 
   // ── Product ───────────────────────────────────────────────────
   const [product, setProduct] = useState<Product | null>(null);
@@ -65,6 +66,7 @@ const ImageGeneratorView: React.FC = () => {
 
   // ── Load product ───────────────────────────────────────────────
   useEffect(() => {
+    mountedRef.current = true;
     const load = async () => {
       try {
         setIsLoading(true);
@@ -105,6 +107,9 @@ const ImageGeneratorView: React.FC = () => {
       }
     };
     load();
+    return () => {
+      mountedRef.current = false;
+    };
   }, [id]);
 
   // ── Auto-resize textarea ──────────────────────────────────────
@@ -299,28 +304,36 @@ const ImageGeneratorView: React.FC = () => {
 
   // ── Image Generation ──────────────────────────────────────────
   const generateImage = async () => {
+    if (isGenerating) return;
     if (!prompt.trim()) {
       setError(t.imageGeneratorTranslations?.errorEmptyPrompt ?? 'El prompt no puede estar vacío');
       return;
     }
     if (!product?.id) return;
 
-    setIsGenerating(true);
-    setError(null);
+    if (mountedRef.current) {
+      setIsGenerating(true);
+      setError(null);
+    }
 
     try {
       const contextPrompt = getContextPrompt();
       const finalPrompt = contextPrompt
         ? `${prompt.trim()}\n\n[CONTEXTO DE FUENTE]\n${contextPrompt}`
         : prompt.trim();
-      console.log('[ImageGeneratorView] Sending prompt:', finalPrompt);
+      const boundedPrompt = finalPrompt.slice(0, 2600);
+      console.log('[ImageGeneratorView] Sending prompt length:', boundedPrompt.length);
 
-      const result = await generateImageFromPrompt(finalPrompt);
+      const result = await generateImageFromPrompt(boundedPrompt);
+      if (!result?.imageUrl) {
+        throw new Error(t.imageGeneratorTranslations?.errorGenerating || 'Respuesta inválida del generador de imagen');
+      }
       console.log('[ImageGeneratorView] Image generated ✓  size:', result.size, 'type:', result.contentType);
 
-      setGeneratedImageUrl(result.imageUrl);
-      setIsGenerating(false);
-      setIsDownloaded(false);
+      if (mountedRef.current) {
+        setGeneratedImageUrl(result.imageUrl);
+        setIsDownloaded(false);
+      }
 
       // Save prompt to product_step_progress (STEP_IA_GENERATOR)
       await updateProductStepProgress({
@@ -328,7 +341,7 @@ const ImageGeneratorView: React.FC = () => {
         stepId: STEP_IA_GENERATOR,
         status: 'success',
         resultText: {
-          prompt: finalPrompt,
+          prompt: boundedPrompt,
           userPrompt: prompt.trim(),
           useSourceContext: selectedContextSources.length > 0,
           contextSourceIds: selectedContextSources.map((source) => source.id),
@@ -351,8 +364,13 @@ const ImageGeneratorView: React.FC = () => {
       console.log('[ImageGeneratorView] Progress saved to product_step_progress');
     } catch (err: any) {
       console.error('[ImageGeneratorView] Generation error:', err);
-      setError(`Error al generar imagen: ${err.message || err}`);
-      setIsGenerating(false);
+      if (mountedRef.current) {
+        setError(`Error al generar imagen: ${err.message || err}`);
+      }
+    } finally {
+      if (mountedRef.current) {
+        setIsGenerating(false);
+      }
     }
   };
 
