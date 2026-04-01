@@ -25,6 +25,11 @@ type LinkedUsageStats = {
   totalOutputTokens: number;
   totalTokens: number;
   totalEstimatedCost: number;
+  chatRequests: number;
+  imageRequests: number;
+  otherRequests: number;
+  source?: string;
+  lastRequestAt?: string | null;
 };
 
 type CostReport = {
@@ -99,6 +104,11 @@ const EMPTY_LINKED_USAGE: LinkedUsageStats = {
   totalOutputTokens: 0,
   totalTokens: 0,
   totalEstimatedCost: 0,
+  chatRequests: 0,
+  imageRequests: 0,
+  otherRequests: 0,
+  source: 'app.api_key_usage',
+  lastRequestAt: null,
 };
 
 const emptyProviderUsage = (
@@ -261,6 +271,11 @@ const ApiCostManagerView: React.FC = () => {
         totalOutputTokens: Number(rawStats.totalOutputTokens ?? 0),
         totalTokens: Number(rawStats.totalTokens ?? 0),
         totalEstimatedCost: Number(rawStats.totalEstimatedCost ?? 0),
+        chatRequests: 0,
+        imageRequests: 0,
+        otherRequests: 0,
+        source: 'legacy.chatbot_stats',
+        lastRequestAt: null,
       };
     } catch {
       return EMPTY_LINKED_USAGE;
@@ -496,6 +511,7 @@ const ApiCostManagerView: React.FC = () => {
       const validatedModels = Array.isArray(validated.models) ? validated.models : [];
 
       let providerUsage = emptyProviderUsage(activeCapsule.provider);
+      let usageSnapshot = await loadLinkedUsageStats();
       try {
         const usageResponse = await providerUsageSummary({
           provider: activeCapsule.provider,
@@ -518,6 +534,21 @@ const ApiCostManagerView: React.FC = () => {
           range: usageResponse.range,
           fetchedAt: new Date().toISOString(),
         };
+
+        if (usageResponse.localTracked) {
+          usageSnapshot = {
+            totalRequests: Number(usageResponse.localTracked.totalRequests ?? 0),
+            totalInputTokens: Number(usageResponse.localTracked.totalInputTokens ?? 0),
+            totalOutputTokens: Number(usageResponse.localTracked.totalOutputTokens ?? 0),
+            totalTokens: Number(usageResponse.localTracked.totalTokens ?? 0),
+            totalEstimatedCost: Number(usageResponse.localTracked.estimatedCostUsd ?? 0),
+            chatRequests: Number(usageResponse.localTracked.chatRequests ?? 0),
+            imageRequests: Number(usageResponse.localTracked.imageRequests ?? 0),
+            otherRequests: Number(usageResponse.localTracked.otherRequests ?? 0),
+            source: usageResponse.localTracked.source || 'app.api_key_usage',
+            lastRequestAt: usageResponse.localTracked.lastRequestAt ?? null,
+          };
+        }
       } catch (usageErr: any) {
         providerUsage = emptyProviderUsage(
           activeCapsule.provider,
@@ -541,8 +572,6 @@ const ApiCostManagerView: React.FC = () => {
           pricedModels += 1;
         }
       }
-
-      const usageSnapshot = await loadLinkedUsageStats();
 
       const report: CostReport = {
         id: `rep-${Date.now()}`,
@@ -824,9 +853,9 @@ const ApiCostManagerView: React.FC = () => {
         </section>
 
         <section className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-5">
-          <h2 className="text-base font-semibold text-gray-900 dark:text-white mb-1">{tr.usageTitle || 'Uso registrado (chatbot LLM)'}</h2>
+          <h2 className="text-base font-semibold text-gray-900 dark:text-white mb-1">{tr.usageTitle || 'Uso registrado global (app)'}</h2>
           <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
-            {tr.usageSubtitle || 'Estos valores se leen del historial guardado del producto Chatbot con gestor de LLM.'}
+            {tr.usageSubtitle || 'Estos valores se calculan con el tracking interno por API key en todo el proyecto.'}
           </p>
           <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
             {[
@@ -841,6 +870,15 @@ const ApiCostManagerView: React.FC = () => {
                 <p className="text-lg font-bold text-gray-900 dark:text-white mt-1 break-all">{item.value}</p>
               </div>
             ))}
+          </div>
+          <div className="mt-3 text-xs text-gray-600 dark:text-gray-300 space-y-1">
+            <p>
+              {tr.usageBreakdown || 'Desglose'}: {tr.usageChatRequests || 'chat'} {activeCapsule.linkedUsage.chatRequests} · {tr.usageImageRequests || 'imagen'} {activeCapsule.linkedUsage.imageRequests} · {tr.usageOtherRequests || 'otros'} {activeCapsule.linkedUsage.otherRequests}
+            </p>
+            <p>
+              {tr.usageSource || 'Fuente'}: {activeCapsule.linkedUsage.source || 'app.api_key_usage'}
+              {activeCapsule.linkedUsage.lastRequestAt ? ` · ${tr.usageLastRequest || 'Última petición'}: ${new Date(activeCapsule.linkedUsage.lastRequestAt).toLocaleString()}` : ''}
+            </p>
           </div>
         </section>
 
