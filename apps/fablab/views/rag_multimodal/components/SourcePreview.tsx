@@ -25,11 +25,18 @@ interface SourcePreviewProps {
 
 const openSourceFilePathUrl = (link?: string) => {
     if (!link) return;
-    window.open(link, '_blank', 'noopener,noreferrer');
+    const base = import.meta.env.VITE_API_URL || window.location.origin;
+    const normalized = /^(https?:\/\/|blob:|data:)/i.test(link) ? link : new URL(link, base).toString();
+    window.open(normalized, '_blank', 'noopener,noreferrer');
 };
 
 const getPreviewLink = (previewSource?: Source | null) => previewSource?.previewUrl || previewSource?.url;
 const getUrlLink = (previewSource?: Source | null) => previewSource?.url;
+const getContentLink = (previewSource?: Source | null) => {
+    const raw = String(previewSource?.content || '').trim();
+    if (!raw) return undefined;
+    return /^(https?:\/\/|blob:|data:|\/)/i.test(raw) ? raw : undefined;
+};
 
 const getConfigFilename = (source: Source) => {
     const baseName = source.title || 'config';
@@ -106,7 +113,8 @@ const openTextFileInNewTab = (content: string) => {
 const downloadFileFromUrl = async (url: string, filename: string) => {
     try {
         const apiUrl = import.meta.env.VITE_API_URL || '';
-        const proxyUrl = `${apiUrl}/api/v1/notebook-modules/download-file?url=${encodeURIComponent(url)}&filename=${encodeURIComponent(filename)}`;
+        const normalizedUrl = /^(https?:\/\/|blob:|data:)/i.test(url) ? url : new URL(url, apiUrl || window.location.origin).toString();
+        const proxyUrl = `${apiUrl}/api/v1/notebook-modules/download-file?url=${encodeURIComponent(normalizedUrl)}&filename=${encodeURIComponent(filename)}`;
         const token = localStorage.getItem('aimaker_jwt_token') || '';
         const response = await fetch(proxyUrl, {
             credentials: 'include',
@@ -116,7 +124,7 @@ const downloadFileFromUrl = async (url: string, filename: string) => {
         await downloadStreamAsFile(response, filename);
     } catch (err) {
         console.error('[SourcePreview] Error downloading file:', err);
-        window.open(url, '_blank', 'noopener,noreferrer');
+        openSourceFilePathUrl(url);
     }
 };
 
@@ -131,14 +139,20 @@ const SourcePreview: React.FC<SourcePreviewProps> = ({ isOpen, source, onClose, 
 
     const previewLink = getPreviewLink(source);
     const urlLink = getUrlLink(source);
-    const documentFilename = getDocumentDownloadFilename(source, previewLink);
-    const hasLink = Boolean(previewLink || urlLink);
-    const canOpen = hasLink || source.type === 'text' || source.type === 'config' || source.type === 'code';
+    const contentLink = getContentLink(source);
+    const htmlContent = source.type === 'html' && /<[^>]+>/.test(String(source.content || ''))
+        ? String(source.content)
+        : '';
+    const primaryLink = previewLink || urlLink || contentLink;
+    const documentFilename = getDocumentDownloadFilename(source, primaryLink);
+    const hasLink = Boolean(primaryLink);
+    const canOpen = hasLink || source.type === 'text' || source.type === 'config' || source.type === 'code' || Boolean(htmlContent);
+    const canDownload = hasLink || source.type === 'text' || source.type === 'config' || source.type === 'code' || (source.type === 'html' && Boolean(htmlContent));
     const displayType = source.backendType || source.type;
 
     const handleOpenPrimary = () => {
-        if (previewLink) return openSourceFilePathUrl(previewLink);
-        if (urlLink) return openSourceFilePathUrl(urlLink);
+        if (primaryLink) return openSourceFilePathUrl(primaryLink);
+        if (source.type === 'html' && htmlContent) return openBlobInNewTab(new Blob([htmlContent], { type: 'text/html;charset=utf-8' }));
         if (source.type === 'text') return openTextFileInNewTab(source.content || '');
         if (source.type === 'config') return openTextFileInNewTab(source.content || '');
         if (source.type === 'code') return openTextFileInNewTab(source.content || '');
@@ -160,11 +174,11 @@ const SourcePreview: React.FC<SourcePreviewProps> = ({ isOpen, source, onClose, 
             return downloadTextFile(filename, source.content || '');
         }
         if (source.type === 'pdf' || source.type === 'html' || source.type === 'image' || source.type === 'video' || source.type === 'translation') {
-            if (previewLink) return downloadFileFromUrl(previewLink, documentFilename);
-            if (urlLink) return downloadFileFromUrl(urlLink, documentFilename);
+            if (primaryLink) return downloadFileFromUrl(primaryLink, documentFilename);
+            if (source.type === 'html' && htmlContent) return downloadTextFile(documentFilename, htmlContent);
         }
-        if (source.type === 'url' && (urlLink || previewLink)) {
-            return openSourceFilePathUrl(urlLink || previewLink);
+        if (source.type === 'url' && primaryLink) {
+            return openSourceFilePathUrl(primaryLink);
         }
     };
 
@@ -207,9 +221,9 @@ const SourcePreview: React.FC<SourcePreviewProps> = ({ isOpen, source, onClose, 
                             </button>
                             <button
                                 onClick={handleDownload}
-                                disabled={!(hasLink || source.type === 'text' || source.type === 'config' || source.type === 'code')}
+                                disabled={!canDownload}
                                 className={`w-full flex flex-wrap items-center gap-2 px-4 py-3 rounded-xl text-[11px] font-black uppercase tracking-widest border transition-all text-left ${
-                                    hasLink || source.type === 'text' || source.type === 'config' || source.type === 'code'
+                                    canDownload
                                         ? 'bg-white text-indigo-700 border-indigo-200 hover:border-indigo-400'
                                         : 'bg-gray-50 text-gray-500 border-gray-200 cursor-not-allowed'
                                 }`}
@@ -220,13 +234,32 @@ const SourcePreview: React.FC<SourcePreviewProps> = ({ isOpen, source, onClose, 
                     </div>
                     <div className="p-8 md:p-12">
                         <div className="w-full h-full flex items-center justify-center">
-                            {(source.type === 'pdf' || source.type === 'html') && (
-                                <div className="bg-white p-10 rounded-[3rem] shadow-xl border border-gray-100 max-w-md w-full text-center">
-                                    <FileText size={56} className={`mx-auto mb-8 ${source.type === 'html' ? 'text-blue-600' : 'text-red-500'}`} />
-                                    <h4 className="text-2xl font-black text-gray-900 mb-2">{source.type === 'html' ? tp.preview.htmlDocument : tp.preview.document}</h4>
-                                    <p className="text-gray-400 text-[10px] font-bold uppercase tracking-widest mb-10">{tp.preview.ragHint}</p>
-                                    <div className="flex flex-col gap-4">
-                                    </div>
+                            {source.type === 'pdf' && (
+                                <div className="bg-white p-8 rounded-[2rem] shadow-xl border border-gray-100 w-full max-w-4xl">
+                                    {primaryLink ? (
+                                        <iframe title="pdf-preview" src={primaryLink} className="w-full h-[60vh] rounded-xl border border-gray-200" />
+                                    ) : (
+                                        <div className="text-center py-16">
+                                            <FileText size={56} className="mx-auto mb-8 text-red-500" />
+                                            <h4 className="text-2xl font-black text-gray-900 mb-2">{tp.preview.document}</h4>
+                                            <p className="text-gray-400 text-[10px] font-bold uppercase tracking-widest">{tp.preview.ragHint}</p>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                            {source.type === 'html' && (
+                                <div className="bg-white p-8 rounded-[2rem] shadow-xl border border-gray-100 w-full max-w-5xl">
+                                    {primaryLink ? (
+                                        <iframe title="html-preview" src={primaryLink} className="w-full h-[62vh] rounded-xl border border-gray-200 bg-white" />
+                                    ) : htmlContent ? (
+                                        <iframe title="html-srcdoc-preview" srcDoc={htmlContent} className="w-full h-[62vh] rounded-xl border border-gray-200 bg-white" />
+                                    ) : (
+                                        <div className="text-center py-16">
+                                            <Globe size={56} className="mx-auto mb-8 text-blue-600" />
+                                            <h4 className="text-2xl font-black text-gray-900 mb-2">{tp.preview.htmlDocument}</h4>
+                                            <p className="text-gray-400 text-[10px] font-bold uppercase tracking-widest">{tp.preview.ragHint}</p>
+                                        </div>
+                                    )}
                                 </div>
                             )}
                             {source.type === 'text' && (
@@ -244,10 +277,10 @@ const SourcePreview: React.FC<SourcePreviewProps> = ({ isOpen, source, onClose, 
                                     <pre className="whitespace-pre-wrap font-mono text-gray-800 leading-relaxed text-xs md:text-sm mb-6">{source.content}</pre>
                                 </div>
                             )}
-                            {source.type === 'image' && previewLink && (
+                            {source.type === 'image' && primaryLink && (
                                 <div className="flex flex-col items-center gap-5">
                                     <img
-                                        src={previewLink}
+                                        src={primaryLink}
                                         alt={source.title}
                                         className="max-w-full max-h-[60vh] object-contain rounded-3xl shadow-2xl border-[12px] border-white"
                                     />
@@ -255,10 +288,10 @@ const SourcePreview: React.FC<SourcePreviewProps> = ({ isOpen, source, onClose, 
                             )}
                             {source.type === 'video' && (
                                 <div className="w-full max-w-3xl bg-black rounded-[2.5rem] overflow-hidden shadow-2xl ring-8 ring-white">
-                                    {previewLink && !videoPreviewError ? (
+                                    {primaryLink && !videoPreviewError ? (
                                         <div className="w-full">
                                             <video
-                                                src={previewLink}
+                                                src={primaryLink}
                                                 controls
                                                 className="w-full aspect-video"
                                                 onError={() => setVideoPreviewError(true)}
