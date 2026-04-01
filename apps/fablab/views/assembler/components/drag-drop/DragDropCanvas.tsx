@@ -192,8 +192,7 @@ const DragDropCanvas: React.FC<Props> = ({ modules, onChange, onSelectObject, on
   return (
     <div
       ref={gridRef}
-      className="relative select-none rounded-2xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/40 overflow-hidden"
-      style={{ aspectRatio: '1 / 1' }}
+      className="relative select-none rounded-2xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/40 overflow-hidden w-full h-full"
       onPointerMove={handleGridPointerMove}
       onPointerUp={handleGridPointerUp}
       onDragOver={handleDragOver}

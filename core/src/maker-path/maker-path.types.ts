@@ -2,7 +2,7 @@
  * Maker Path Types
  */
 
-export type MakerPathType = 'architect_ai' | 'module_connector' | 'custom' | 'rag_chat_maker' | 'landing_page_maker' | 'image_generator_rag' | 'translation_maker' | 'style_transfer_maker';
+export type MakerPathType = 'architect_ai' | 'module_connector' | 'custom' | 'rag_chat_maker' | 'landing_page_maker' | 'image_generator_rag' | 'translation_maker' | 'style_transfer_maker' | 'assembler';
 export type MakerPathStatus = 'draft' | 'in_progress' | 'completed';
 
 export interface MakerPath {
@@ -16,6 +16,7 @@ export interface MakerPath {
   projectName: string | null;
   projectMission: string | null;
   hasDatabase: boolean | null;
+  hasApplicationDeployment?: boolean;
   optimizationProvider: string | null;
   apiSource: string | null;
   selectedTool: string | null;
@@ -38,6 +39,7 @@ export interface MakerPath {
 
 export interface MakerPathsParams {
   type?: MakerPathType;
+  hasApplicationDeployment?: boolean;
 }
 
 export interface CreateMakerPathRequest {

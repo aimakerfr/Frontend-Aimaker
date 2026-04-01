@@ -1365,16 +1365,60 @@ export const en: Translations = {
   },
 
   assembler: {
+    title: 'Assembler Maker Paths',
+    createNew: 'Create New Assembler',
+    deployAssembly: 'Deploy assembly',
+    noAssemblerMakerPaths: 'No assembler maker paths yet',
+    actions: 'Actions',
     new: {
-      title: 'Select a project type',
-      notebookTitle: 'Notebook',
-      notebookDesc: 'Smart chat connected to your data sources.',
-      landingTitle: 'Landing Page',
-      landingDesc: 'Create landing pages optimized with RAG.',
-      selected: 'Selected',
+      title: 'New project',
+      stationTitle: 'Project Assembler',
+      stationDescription: 'Select the modules you want to include in your new project.',
+      presetsTitle: 'Predefined configurations',
+      presets: {
+        notebook: {
+          label: 'AI Notebook',
+          description: 'Ideal configuration for an interactive environment with documents.'
+        },
+        landing: {
+          label: 'Landing Page',
+          description: 'Standard structure for a presentation page.'
+        }
+      },
+      customModulesTitle: 'Select your own modules',
+      selectedCount: '{count} / {total} selected',
+      continueBtn: 'Continue with {count} modules →',
       titlePlaceholder: 'Project title',
       descriptionPlaceholder: 'Project description',
-      createCta: 'Create Project',
+      protectedDbLabel: 'Protect database with credentials',
+      protectedDbDesc: 'If you activate this option, the project will require login before showing the content.',
+      usernamePlaceholder: 'Username',
+      passwordPlaceholder: 'Password (minimum 8 characters)',
+      usernameRequired: 'Username is required.',
+      passwordInvalid: 'Password must be at least 8 characters.',
+      layoutEditorTitle: 'Module design',
+      layoutEditorDesc: 'Drag modules from the palette to the canvas. Select an HTML file for each module that requires one and complete the texts.',
+      modules: {
+        header: 'Landing Page: Header',
+        body: 'Landing Page: Body',
+        footer: 'Landing Page: Footer',
+        rag: 'RAG Module',
+        api_configuration: 'API Key Configurator',
+        chat: 'Chat Module',
+        html_input: 'HTML Input',
+        buscador: 'Searcher'
+      },
+      validation: {
+        missingHtml: 'Some modules require an HTML file. Select one for each marked module before assembling.',
+        landingRequired: 'For a landing page you must include Header, Body and Footer.'
+      },
+      modal: {
+        selectHtml: 'Select HTML — {name}'
+      },
+      success: 'Assembled successfully.',
+      openResult: 'Open result →',
+      assembling: 'Assembling...',
+      createCta: 'Create and Assemble',
       creatingLabel: 'Creating...',
       errorCreating: 'Error creating project',
     },
