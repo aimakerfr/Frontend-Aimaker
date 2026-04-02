@@ -70,10 +70,13 @@ type CatalogModel = {
 };
 
 type ModelCapability = 'text' | 'image' | 'audio' | 'video' | 'search' | 'unknown';
-type ChatMode = ModelCapability;
 
 type EnrichedModelOption = {
   id: string;
+  rawModelId: string;
+  profileId: string;
+  profileLabel: string;
+  provider: ApiRuntimeProvider;
   label: string;
   displayLabel: string;
   capabilities: ModelCapability[];
@@ -102,6 +105,50 @@ type ConversationRecord = {
   messages: ChatItem[];
 };
 
+type ProviderProfile = {
+  id: string;
+  label: string;
+  provider: ApiRuntimeProvider;
+  apiKeyEncoded: string;
+  baseUrl?: string;
+  validatedModels: ProviderModelInfo[];
+  lastValidatedAt?: string;
+};
+
+type StarterSkill = {
+  id: string;
+  label: string;
+  subtitle: string;
+  icon: string;
+  mode: GuidedSkillMode;
+  baseInstruction: string;
+  capability: Exclude<ModelCapability, 'unknown'>;
+};
+
+type GuidedSkillMode = 'image' | 'video' | 'search' | 'write' | 'ideas' | 'learn';
+
+type GuidedSkillOptions = {
+  imageStyle: 'photorealistic' | 'illustration' | '3d' | 'cinematic';
+  imageQuality: 'draft' | 'high' | 'ultra';
+  imageAspect: '1:1' | '16:9' | '9:16';
+  videoStyle: 'cinematic' | 'ugc' | 'minimal';
+  videoDuration: '8s' | '15s' | '30s';
+  videoPace: 'calm' | 'balanced' | 'dynamic';
+  searchDepth: 'quick' | 'standard' | 'deep';
+  searchOutput: 'briefing' | 'table' | 'bullet';
+  searchSources: 'required' | 'optional';
+  writingTone: 'professional' | 'friendly' | 'sales';
+  writingFormat: 'paragraph' | 'bullet' | 'framework';
+  writingLength: 'short' | 'medium' | 'long';
+  writingAudience: 'general' | 'executive' | 'technical';
+  ideasHorizon: 'today' | 'week' | 'month';
+  ideasRisk: 'safe' | 'balanced' | 'bold';
+  ideasCount: '5' | '7' | '10';
+  learningLevel: 'beginner' | 'intermediate' | 'advanced';
+  learningMethod: 'step_by_step' | 'socratic' | 'project';
+  learningPractice: 'light' | 'guided' | 'intensive';
+};
+
 // ─── Static data ─────────────────────────────────────────────────────────────
 
 const PROVIDERS: Array<{ value: ApiRuntimeProvider; label: string; hint: string }> = [
@@ -112,6 +159,9 @@ const PROVIDERS: Array<{ value: ApiRuntimeProvider; label: string; hint: string 
   { value: 'perplexity',  label: 'Perplexity',  hint: 'pplx-...'   },
   { value: 'ollama',      label: 'OLLAMA / Local', hint: 'Optional local token' },
 ];
+
+const providerLabel = (value: ApiRuntimeProvider): string =>
+  PROVIDERS.find((item) => item.value === value)?.label || value;
 
 const EMPTY_STATS: RuntimeStats = {
   totalRequests: 0,
@@ -161,6 +211,19 @@ const isLikelyKeyFormat = (provider: ApiRuntimeProvider, apiKey: string): boolea
 
 const normalizeModelId = (value: string): string =>
   value.replace(/^models\//, '').trim().toLowerCase();
+
+const MODEL_BIND_SEP = '::';
+
+const encodeModelBindingId = (profileId: string, modelId: string): string => `${profileId}${MODEL_BIND_SEP}${modelId}`;
+
+const decodeModelBindingId = (bindingId: string): { profileId: string; modelId: string } | null => {
+  const idx = bindingId.indexOf(MODEL_BIND_SEP);
+  if (idx <= 0) return null;
+  return {
+    profileId: bindingId.slice(0, idx),
+    modelId: bindingId.slice(idx + MODEL_BIND_SEP.length),
+  };
+};
 
 const toBase64 = async (file: File): Promise<string> => {
   const dataUrl = await new Promise<string>((resolve, reject) => {
@@ -532,10 +595,18 @@ const ApiKeyInspectorView: React.FC = () => {
   const [provider,       setProvider]       = useState<ApiRuntimeProvider>('google');
   const [apiKey,         setApiKey]         = useState('');
   const [baseUrl,        setBaseUrl]        = useState('');
+  const [profileLabel,   setProfileLabel]   = useState('');
+  const [providerProfiles, setProviderProfiles] = useState<ProviderProfile[]>([]);
   const [selectedModel,  setSelectedModel]  = useState('');
   const [selectedTextModelId, setSelectedTextModelId] = useState('');
   const [selectedImageModelId, setSelectedImageModelId] = useState('');
   const [selectedOtherModelId, setSelectedOtherModelId] = useState('');
+  const [selectedSearchModelId, setSelectedSearchModelId] = useState('');
+  const [selectedSummaryModelId, setSelectedSummaryModelId] = useState('');
+  const [selectedPromptOptimizerModelId, setSelectedPromptOptimizerModelId] = useState('');
+  const [selectedRoleOptimizerModelId, setSelectedRoleOptimizerModelId] = useState('');
+  const [selectedSpeechSynthesisModelId, setSelectedSpeechSynthesisModelId] = useState('');
+  const [selectedSpeechTranscriptionModelId, setSelectedSpeechTranscriptionModelId] = useState('');
   const [systemPrompt,   setSystemPrompt]   = useState('');
   const [selectedRoleId, setSelectedRoleId] = useState('');
   const [showApiKey,     setShowApiKey]     = useState(false);
@@ -546,6 +617,28 @@ const ApiKeyInspectorView: React.FC = () => {
   const [conversations,       setConversations]       = useState<ConversationRecord[]>([]);
   const [activeConversationId,setActiveConversationId]= useState('');
   const [messageInput,        setMessageInput]        = useState('');
+  const [activeSkillId,       setActiveSkillId]       = useState('');
+  const [guidedSkillOptions,  setGuidedSkillOptions]  = useState<GuidedSkillOptions>({
+    imageStyle: 'photorealistic',
+    imageQuality: 'high',
+    imageAspect: '1:1',
+    videoStyle: 'cinematic',
+    videoDuration: '15s',
+    videoPace: 'balanced',
+    searchDepth: 'standard',
+    searchOutput: 'briefing',
+    searchSources: 'required',
+    writingTone: 'professional',
+    writingFormat: 'bullet',
+    writingLength: 'medium',
+    writingAudience: 'general',
+    ideasHorizon: 'week',
+    ideasRisk: 'balanced',
+    ideasCount: '7',
+    learningLevel: 'beginner',
+    learningMethod: 'step_by_step',
+    learningPractice: 'guided',
+  });
 
   // ── Stats / models ──
   const [stats,            setStats]            = useState<RuntimeStats>(EMPTY_STATS);
@@ -566,6 +659,7 @@ const ApiKeyInspectorView: React.FC = () => {
   const [isListening,        setIsListening]        = useState(false);
   const attachmentInputRef = useRef<HTMLInputElement | null>(null);
   const importInputRef = useRef<HTMLInputElement | null>(null);
+  const messageTextareaRef = useRef<HTMLTextAreaElement | null>(null);
   const speechRecognitionRef = useRef<any>(null);
 
   // ── UI toggles ──
@@ -588,7 +682,6 @@ const ApiKeyInspectorView: React.FC = () => {
 
   // ── Operation mode ──
   const [testMode,  setTestMode]  = useState<ModelCapability>('text');
-  const [chatMode,  setChatMode]  = useState<ChatMode>('text');
 
   // ── Async status ──
   const [isValidatingKey, setIsValidatingKey] = useState(false);
@@ -628,20 +721,27 @@ const ApiKeyInspectorView: React.FC = () => {
 
   const validatedModelOptions = useMemo<EnrichedModelOption[]>(() => {
     const options: EnrichedModelOption[] = [];
-    for (const remote of remoteModels) {
-      const catalog      = catalogMap.get(remote.id) ?? catalogMap.get(normalizeModelId(remote.id));
-      const capabilities = (catalog?.capabilities?.length ? catalog.capabilities : inferCapabilitiesFromId(remote.id)) as ModelCapability[];
-      const usableInChat = capabilities.includes('text') || capabilities.includes('search');
-      const priceLabel   = formatPriceLabel(catalog);
-      options.push({
-        id: remote.id,
-        label: remote.label || remote.id,
-        displayLabel: `${remote.label || remote.id} (${priceLabel})`,
-        capabilities,
-        priceLabel,
-        usableInChat,
-        sortPrice: modelSortPrice(catalog),
-      });
+    for (const profile of providerProfiles) {
+      for (const remote of profile.validatedModels || []) {
+        const catalog      = catalogMap.get(remote.id) ?? catalogMap.get(normalizeModelId(remote.id));
+        const capabilities = (catalog?.capabilities?.length ? catalog.capabilities : inferCapabilitiesFromId(remote.id)) as ModelCapability[];
+        const usableInChat = capabilities.includes('text') || capabilities.includes('search');
+        const priceLabel   = formatPriceLabel(catalog);
+        const label = remote.label || remote.id;
+        options.push({
+          id: encodeModelBindingId(profile.id, remote.id),
+          rawModelId: remote.id,
+          profileId: profile.id,
+          profileLabel: profile.label || providerLabel(profile.provider),
+          provider: profile.provider,
+          label,
+          displayLabel: `${profile.label || providerLabel(profile.provider)} · ${label} (${priceLabel})`,
+          capabilities,
+          priceLabel,
+          usableInChat,
+          sortPrice: modelSortPrice(catalog),
+        });
+      }
     }
     return options.sort((a, b) => {
       const rankDiff  = capabilityRank(a.capabilities) - capabilityRank(b.capabilities);
@@ -650,7 +750,7 @@ const ApiKeyInspectorView: React.FC = () => {
       if (priceDiff !== 0) return priceDiff;
       return a.label.localeCompare(b.label);
     });
-  }, [remoteModels, catalogMap]);
+  }, [providerProfiles, catalogMap]);
 
   const modelOptions = useMemo(() => validatedModelOptions, [validatedModelOptions]);
 
@@ -664,10 +764,42 @@ const ApiKeyInspectorView: React.FC = () => {
     [validatedModelOptions]
   );
 
-  const otherModelOptions = useMemo(
-    () => validatedModelOptions.filter((m) => !m.capabilities.includes('text') && !m.capabilities.includes('search') && !m.capabilities.includes('image')),
+  const audioModelOptions = useMemo(
+    () => validatedModelOptions.filter((m) => m.capabilities.includes('audio')),
     [validatedModelOptions]
   );
+
+  const searchModelOptions = useMemo(
+    () => validatedModelOptions.filter((m) => m.capabilities.includes('search') || m.capabilities.includes('text')),
+    [validatedModelOptions]
+  );
+
+  const textFocusModelOptions = useMemo(
+    () => validatedModelOptions.filter((m) => m.capabilities.includes('text') || m.capabilities.includes('search')),
+    [validatedModelOptions]
+  );
+
+  const otherModelOptions = useMemo(
+    () => validatedModelOptions.filter((m) => m.capabilities.includes('video')),
+    [validatedModelOptions]
+  );
+
+  const buildOptgroupsByProfile = (options: EnrichedModelOption[]) => {
+    const grouped = new Map<string, EnrichedModelOption[]>();
+    for (const option of options) {
+      const key = `${providerLabel(option.provider)} · ${option.profileLabel}`;
+      if (!grouped.has(key)) grouped.set(key, []);
+      grouped.get(key)?.push(option);
+    }
+
+    return Array.from(grouped.entries()).map(([groupLabel, items]) => (
+      <optgroup key={groupLabel} label={`─ ${groupLabel} ─`}>
+        {items.map((item) => (
+          <option key={item.id} value={item.id}>{item.label} ({item.priceLabel})</option>
+        ))}
+      </optgroup>
+    ));
+  };
 
   const activeConversation = useMemo(
     () => conversations.find(c => c.id === activeConversationId) ?? null,
@@ -684,16 +816,145 @@ const ApiKeyInspectorView: React.FC = () => {
     [validatedModelOptions, selectedModel]
   );
 
+  const resolveBindingRuntime = (bindingId: string): {
+    model: EnrichedModelOption;
+    profile: ProviderProfile;
+    apiKey: string;
+    baseUrl?: string;
+  } | null => {
+    const model = validatedModelOptions.find((item) => item.id === bindingId);
+    if (!model) return null;
+    const profile = providerProfiles.find((item) => item.id === model.profileId);
+    if (!profile) return null;
+    return {
+      model,
+      profile,
+      apiKey: decodeSecret(profile.apiKeyEncoded),
+      baseUrl: profile.baseUrl,
+    };
+  };
+
   const availableTestModes = useMemo<ModelCapability[]>(() => {
-    if (!selectedModelInfo) return ['text'];
-    const dedup = Array.from(new Set(selectedModelInfo.capabilities));
+    const modes: ModelCapability[] = [];
+    if (selectedTextModelId) {
+      modes.push('text');
+    }
+    if (selectedSearchModelId) {
+      modes.push('search');
+    }
+    if (selectedImageModelId) {
+      modes.push('image');
+    }
+    if (selectedSpeechSynthesisModelId || selectedSpeechTranscriptionModelId) {
+      modes.push('audio');
+    }
+    if (selectedOtherModelId) {
+      const opt = validatedModelOptions.find((item) => item.id === selectedOtherModelId);
+      if (opt?.capabilities.includes('video')) modes.push('video');
+    }
+    const dedup = Array.from(new Set(modes));
     return dedup.length > 0 ? dedup : ['text'];
-  }, [selectedModelInfo]);
+  }, [selectedTextModelId, selectedSearchModelId, selectedImageModelId, selectedSpeechSynthesisModelId, selectedSpeechTranscriptionModelId, selectedOtherModelId, validatedModelOptions]);
 
   const effectiveSystemPrompt = useMemo(() => {
     const blocks = [systemPrompt.trim(), selectedRole?.behavior?.trim() ?? ''].filter(Boolean);
     return blocks.join('\n\n');
   }, [systemPrompt, selectedRole]);
+
+  const starterSkills = useMemo<StarterSkill[]>(() => {
+    const items: StarterSkill[] = [];
+
+    if (selectedImageModelId) {
+      items.push({
+        id: 'starter-image',
+        label: t.apiKeyProductView?.starterImage || 'Crear imagen',
+        subtitle: t.apiKeyProductView?.starterImageSub || 'Concepto visual en segundos',
+        icon: '🖼️',
+        mode: 'image',
+        baseInstruction: 'Diseña una imagen promocional moderna para mi producto, con copy corto y CTA.',
+        capability: 'image',
+      });
+    }
+
+    if (selectedOtherModelId) {
+      items.push({
+        id: 'starter-video',
+        label: t.apiKeyProductView?.starterVideo || 'Crear video',
+        subtitle: t.apiKeyProductView?.starterVideoSub || 'Storyboard y guion visual',
+        icon: '🎬',
+        mode: 'video',
+        baseInstruction: 'Crea un concepto de video corto para redes sociales con guion visual claro.',
+        capability: 'video',
+      });
+    }
+
+    if (selectedSearchModelId) {
+      items.push({
+        id: 'starter-search',
+        label: t.apiKeyProductView?.starterSearch || 'Buscar y contrastar',
+        subtitle: t.apiKeyProductView?.starterSearchSub || 'Investigación con fuentes',
+        icon: '🔎',
+        mode: 'search',
+        baseInstruction: 'Investiga este tema con fuentes confiables y entrega recomendaciones accionables.',
+        capability: 'search',
+      });
+    }
+
+    if (textModelOptions.length > 0) {
+      items.push(
+        {
+          id: 'starter-write',
+          label: t.apiKeyProductView?.starterWrite || 'Escribir cualquier cosa',
+          subtitle: t.apiKeyProductView?.starterWriteSub || 'Texto claro y persuasivo',
+          icon: '✍️',
+          mode: 'write',
+          baseInstruction: 'Ayúdame a escribir un texto claro y persuasivo para presentar mi servicio.',
+          capability: 'text',
+        },
+        {
+          id: 'starter-ideas',
+          label: t.apiKeyProductView?.starterIdeas || 'Dale un impulso a mi día',
+          subtitle: t.apiKeyProductView?.starterIdeasSub || 'Ideas de alto impacto',
+          icon: '🚀',
+          mode: 'ideas',
+          baseInstruction: 'Dame ideas concretas para avanzar en mi proyecto, ordenadas por impacto y esfuerzo.',
+          capability: 'text',
+        },
+        {
+          id: 'starter-learn',
+          label: t.apiKeyProductView?.starterLearn || 'Ayúdame a aprender',
+          subtitle: t.apiKeyProductView?.starterLearnSub || 'Explicación guiada y práctica',
+          icon: '🧠',
+          mode: 'learn',
+          baseInstruction: 'Explícame este tema de forma estructurada y ayúdame a practicar.',
+          capability: 'text',
+        }
+      );
+    }
+
+    return items.slice(0, 6);
+  }, [selectedImageModelId, selectedOtherModelId, selectedSearchModelId, textModelOptions.length, t.apiKeyProductView]);
+
+  const activeStarterSkill = useMemo(
+    () => starterSkills.find((skill) => skill.id === activeSkillId) ?? null,
+    [starterSkills, activeSkillId]
+  );
+
+  const groupedModelSections = useMemo(() => {
+    const sections = new Map<string, EnrichedModelOption[]>();
+    for (const model of validatedModelOptions) {
+      const key = `${providerLabel(model.provider)} · ${model.profileLabel}`;
+      if (!sections.has(key)) sections.set(key, []);
+      sections.get(key)?.push(model);
+    }
+    return Array.from(sections.entries()).map(([title, models]) => ({ title, models }));
+  }, [validatedModelOptions]);
+
+  useEffect(() => {
+    if (activeSkillId && !starterSkills.some((skill) => skill.id === activeSkillId)) {
+      setActiveSkillId('');
+    }
+  }, [activeSkillId, starterSkills]);
 
   // ─── Persist helpers ──────────────────────────────────────────────────────
 
@@ -709,12 +970,20 @@ const ApiKeyInspectorView: React.FC = () => {
       resultText: {
         provider,
         baseUrl,
+        profileLabel,
         selectedModel,
         selectedTextModelId,
         selectedImageModelId,
         selectedOtherModelId,
+        selectedSearchModelId,
+        selectedSummaryModelId,
+        selectedPromptOptimizerModelId,
+        selectedRoleOptimizerModelId,
+        selectedSpeechSynthesisModelId,
+        selectedSpeechTranscriptionModelId,
         systemPrompt,
         selectedRoleId,
+        providerProfiles,
         apiKeyEncoded: encodeSecret(apiKey),
         validatedModels: remoteModels,
         lastValidatedAt: resolvedLastValidatedAt,
@@ -772,6 +1041,16 @@ const ApiKeyInspectorView: React.FC = () => {
   }, [isDarkTheme]);
 
   useEffect(() => {
+    const el = messageTextareaRef.current;
+    if (!el) return;
+
+    el.style.height = 'auto';
+    const nextHeight = Math.min(160, Math.max(38, el.scrollHeight));
+    el.style.height = `${nextHeight}px`;
+    el.style.overflowY = el.scrollHeight > 160 ? 'auto' : 'hidden';
+  }, [messageInput]);
+
+  useEffect(() => {
     (async () => {
       try {
         setIsLoading(true);
@@ -799,16 +1078,48 @@ const ApiKeyInspectorView: React.FC = () => {
         if (config) {
           if (typeof config.provider       === 'string') setProvider(config.provider as ApiRuntimeProvider);
           if (typeof config.baseUrl        === 'string') setBaseUrl(config.baseUrl);
+          if (typeof config.profileLabel   === 'string') setProfileLabel(config.profileLabel);
           if (typeof config.selectedModel  === 'string') setSelectedModel(config.selectedModel);
           if (typeof config.selectedTextModelId === 'string') setSelectedTextModelId(config.selectedTextModelId);
           if (typeof config.selectedImageModelId === 'string') setSelectedImageModelId(config.selectedImageModelId);
           if (typeof config.selectedOtherModelId === 'string') setSelectedOtherModelId(config.selectedOtherModelId);
+          if (typeof config.selectedSearchModelId === 'string') setSelectedSearchModelId(config.selectedSearchModelId);
+          if (typeof config.selectedSummaryModelId === 'string') setSelectedSummaryModelId(config.selectedSummaryModelId);
+          if (typeof config.selectedPromptOptimizerModelId === 'string') setSelectedPromptOptimizerModelId(config.selectedPromptOptimizerModelId);
+          if (typeof config.selectedRoleOptimizerModelId === 'string') setSelectedRoleOptimizerModelId(config.selectedRoleOptimizerModelId);
+          if (typeof config.selectedSpeechSynthesisModelId === 'string') setSelectedSpeechSynthesisModelId(config.selectedSpeechSynthesisModelId);
+          if (typeof config.selectedSpeechTranscriptionModelId === 'string') setSelectedSpeechTranscriptionModelId(config.selectedSpeechTranscriptionModelId);
           if (typeof config.systemPrompt   === 'string') setSystemPrompt(config.systemPrompt);
           if (typeof config.selectedRoleId === 'string') setSelectedRoleId(config.selectedRoleId);
           if (typeof config.apiKeyEncoded  === 'string') setApiKey(decodeSecret(config.apiKeyEncoded));
           if (Array.isArray(config.validatedModels)) {
             setRemoteModels(config.validatedModels as ProviderModelInfo[]);
             setHasValidatedKey((config.validatedModels as ProviderModelInfo[]).length > 0);
+          }
+
+          if (Array.isArray(config.providerProfiles)) {
+            const hydratedProfiles = (config.providerProfiles as ProviderProfile[])
+              .filter((item) => item && typeof item.id === 'string' && typeof item.provider === 'string')
+              .map((item) => ({
+                ...item,
+                validatedModels: Array.isArray(item.validatedModels) ? item.validatedModels : [],
+                label: item.label || providerLabel(item.provider),
+              }));
+            setProviderProfiles(hydratedProfiles);
+            setHasValidatedKey(hydratedProfiles.some((item) => (item.validatedModels || []).length > 0));
+          } else if (typeof config.provider === 'string' && typeof config.apiKeyEncoded === 'string' && config.apiKeyEncoded) {
+            const legacyModels = Array.isArray(config.validatedModels) ? (config.validatedModels as ProviderModelInfo[]) : [];
+            const legacyProfile: ProviderProfile = {
+              id: `profile-${Date.now()}-legacy`,
+              label: providerLabel(config.provider as ApiRuntimeProvider),
+              provider: config.provider as ApiRuntimeProvider,
+              apiKeyEncoded: config.apiKeyEncoded,
+              baseUrl: typeof config.baseUrl === 'string' ? config.baseUrl : '',
+              validatedModels: legacyModels,
+              lastValidatedAt: typeof config.lastValidatedAt === 'string' ? config.lastValidatedAt : '',
+            };
+            setProviderProfiles([legacyProfile]);
+            setHasValidatedKey(legacyModels.length > 0);
           }
           if (typeof config.lastValidatedAt === 'string' && config.lastValidatedAt.trim()) {
             setLastValidatedAt(config.lastValidatedAt);
@@ -869,11 +1180,47 @@ const ApiKeyInspectorView: React.FC = () => {
   }, [selectedOtherModelId, otherModelOptions]);
 
   useEffect(() => {
-    const fallbackModelId = selectedTextModelId || selectedImageModelId || selectedOtherModelId || modelOptions[0]?.id || '';
+    if (!selectedSearchModelId && searchModelOptions.length > 0) {
+      setSelectedSearchModelId(searchModelOptions[0].id);
+    }
+  }, [selectedSearchModelId, searchModelOptions]);
+
+  useEffect(() => {
+    if (!selectedSummaryModelId && textFocusModelOptions.length > 0) {
+      setSelectedSummaryModelId(textFocusModelOptions[0].id);
+    }
+  }, [selectedSummaryModelId, textFocusModelOptions]);
+
+  useEffect(() => {
+    if (!selectedPromptOptimizerModelId && textFocusModelOptions.length > 0) {
+      setSelectedPromptOptimizerModelId(textFocusModelOptions[0].id);
+    }
+  }, [selectedPromptOptimizerModelId, textFocusModelOptions]);
+
+  useEffect(() => {
+    if (!selectedRoleOptimizerModelId && textFocusModelOptions.length > 0) {
+      setSelectedRoleOptimizerModelId(textFocusModelOptions[0].id);
+    }
+  }, [selectedRoleOptimizerModelId, textFocusModelOptions]);
+
+  useEffect(() => {
+    if (!selectedSpeechSynthesisModelId && audioModelOptions.length > 0) {
+      setSelectedSpeechSynthesisModelId(audioModelOptions[0].id);
+    }
+  }, [selectedSpeechSynthesisModelId, audioModelOptions]);
+
+  useEffect(() => {
+    if (!selectedSpeechTranscriptionModelId && audioModelOptions.length > 0) {
+      setSelectedSpeechTranscriptionModelId(audioModelOptions[0].id);
+    }
+  }, [selectedSpeechTranscriptionModelId, audioModelOptions]);
+
+  useEffect(() => {
+    const fallbackModelId = selectedTextModelId || selectedSearchModelId || selectedImageModelId || selectedOtherModelId || modelOptions[0]?.id || '';
     if (!selectedModel && fallbackModelId) {
       setSelectedModel(fallbackModelId);
     }
-  }, [selectedModel, selectedTextModelId, selectedImageModelId, selectedOtherModelId, modelOptions]);
+  }, [selectedModel, selectedTextModelId, selectedSearchModelId, selectedImageModelId, selectedOtherModelId, modelOptions]);
 
   useEffect(() => {
     if (!availableTestModes.includes(testMode)) setTestMode(availableTestModes[0] ?? 'text');
@@ -883,6 +1230,51 @@ const ApiKeyInspectorView: React.FC = () => {
     if (!selectedModel) return;
     if (!modelOptions.some(m => m.id === selectedModel)) setSelectedModel(modelOptions[0]?.id ?? '');
   }, [selectedModel, modelOptions]);
+
+  useEffect(() => {
+    if (validatedModelOptions.length === 0) return;
+
+    const normalizeLegacyBinding = (value: string): string => {
+      if (!value) return '';
+      if (decodeModelBindingId(value)) return value;
+      const exact = validatedModelOptions.find((item) => item.rawModelId === value || item.id === value);
+      return exact?.id || '';
+    };
+
+    const nText = normalizeLegacyBinding(selectedTextModelId);
+    const nImage = normalizeLegacyBinding(selectedImageModelId);
+    const nVideo = normalizeLegacyBinding(selectedOtherModelId);
+    const nSearch = normalizeLegacyBinding(selectedSearchModelId);
+    const nSummary = normalizeLegacyBinding(selectedSummaryModelId);
+    const nPrompt = normalizeLegacyBinding(selectedPromptOptimizerModelId);
+    const nRole = normalizeLegacyBinding(selectedRoleOptimizerModelId);
+    const nSynth = normalizeLegacyBinding(selectedSpeechSynthesisModelId);
+    const nTrans = normalizeLegacyBinding(selectedSpeechTranscriptionModelId);
+    const nSelected = normalizeLegacyBinding(selectedModel);
+
+    if (selectedTextModelId && nText && nText !== selectedTextModelId) setSelectedTextModelId(nText);
+    if (selectedImageModelId && nImage && nImage !== selectedImageModelId) setSelectedImageModelId(nImage);
+    if (selectedOtherModelId && nVideo && nVideo !== selectedOtherModelId) setSelectedOtherModelId(nVideo);
+    if (selectedSearchModelId && nSearch && nSearch !== selectedSearchModelId) setSelectedSearchModelId(nSearch);
+    if (selectedSummaryModelId && nSummary && nSummary !== selectedSummaryModelId) setSelectedSummaryModelId(nSummary);
+    if (selectedPromptOptimizerModelId && nPrompt && nPrompt !== selectedPromptOptimizerModelId) setSelectedPromptOptimizerModelId(nPrompt);
+    if (selectedRoleOptimizerModelId && nRole && nRole !== selectedRoleOptimizerModelId) setSelectedRoleOptimizerModelId(nRole);
+    if (selectedSpeechSynthesisModelId && nSynth && nSynth !== selectedSpeechSynthesisModelId) setSelectedSpeechSynthesisModelId(nSynth);
+    if (selectedSpeechTranscriptionModelId && nTrans && nTrans !== selectedSpeechTranscriptionModelId) setSelectedSpeechTranscriptionModelId(nTrans);
+    if (selectedModel && nSelected && nSelected !== selectedModel) setSelectedModel(nSelected);
+  }, [
+    validatedModelOptions,
+    selectedTextModelId,
+    selectedImageModelId,
+    selectedOtherModelId,
+    selectedSearchModelId,
+    selectedSummaryModelId,
+    selectedPromptOptimizerModelId,
+    selectedRoleOptimizerModelId,
+    selectedSpeechSynthesisModelId,
+    selectedSpeechTranscriptionModelId,
+    selectedModel,
+  ]);
 
   // ─── Handlers ────────────────────────────────────────────────────────────
 
@@ -895,43 +1287,131 @@ const ApiKeyInspectorView: React.FC = () => {
     return 'text';
   };
 
-  const resolveRoutedModel = (desired: ModelCapability): { mode: ModelCapability; modelId: string; fallbackNotice: string } => {
+  const resolveRoutedModel = (desired: ModelCapability, rawPrompt: string): { mode: ModelCapability; modelId: string; fallbackNotice: string } => {
+    const normalizedPrompt = rawPrompt.toLowerCase();
+    const summaryIntent = /\b(resume|resumen|sumariza|summar|sintetiza)\b/.test(normalizedPrompt);
+    const promptIntent = /\b(mejora.*prompt|optimiza.*prompt|refina.*prompt|improve.*prompt)\b/.test(normalizedPrompt);
+    const roleIntent = /\b(mejora.*rol|optimiza.*rol|role\s*optimi|role\s*tune)\b/.test(normalizedPrompt);
+
+    const preferredTextModel =
+      (summaryIntent && selectedSummaryModelId)
+      || (promptIntent && selectedPromptOptimizerModelId)
+      || (roleIntent && selectedRoleOptimizerModelId)
+      || selectedTextModelId;
+
     const findOtherByCapability = (cap: ModelCapability): string => {
       const selectedOther = validatedModelOptions.find((item) => item.id === selectedOtherModelId);
       if (selectedOther?.capabilities.includes(cap)) return selectedOther.id;
-      return otherModelOptions.find((item) => item.capabilities.includes(cap))?.id || '';
+      return validatedModelOptions.find((item) => item.capabilities.includes(cap))?.id || '';
     };
 
     if (desired === 'image') {
       if (selectedImageModelId) return { mode: 'image', modelId: selectedImageModelId, fallbackNotice: '' };
-      if (selectedTextModelId) return { mode: 'text', modelId: selectedTextModelId, fallbackNotice: t.apiKeyProductView?.autoFallbackImageToText || 'No hay modelo de imagen seleccionado. Se usó modelo de texto.' };
+      if (preferredTextModel) return { mode: 'text', modelId: preferredTextModel, fallbackNotice: t.apiKeyProductView?.autoFallbackImageToText || 'No hay modelo de imagen seleccionado. Se usó modelo de texto.' };
       return { mode: 'text', modelId: '', fallbackNotice: '' };
     }
 
     if (desired === 'audio') {
-      const audioModel = findOtherByCapability('audio');
+      const audioModel = selectedSpeechSynthesisModelId || selectedSpeechTranscriptionModelId || findOtherByCapability('audio');
       if (audioModel) return { mode: 'audio', modelId: audioModel, fallbackNotice: '' };
-      if (selectedTextModelId) return { mode: 'text', modelId: selectedTextModelId, fallbackNotice: t.apiKeyProductView?.autoFallbackAudioToText || 'No hay modelo de audio seleccionado. Se usó modelo de texto.' };
+      if (preferredTextModel) return { mode: 'text', modelId: preferredTextModel, fallbackNotice: t.apiKeyProductView?.autoFallbackAudioToText || 'No hay modelo de audio seleccionado. Se usó modelo de texto.' };
       return { mode: 'text', modelId: '', fallbackNotice: '' };
     }
 
     if (desired === 'video') {
-      const videoModel = findOtherByCapability('video');
+      const videoModel = selectedOtherModelId || findOtherByCapability('video');
       if (videoModel) return { mode: 'video', modelId: videoModel, fallbackNotice: '' };
-      if (selectedTextModelId) return { mode: 'text', modelId: selectedTextModelId, fallbackNotice: t.apiKeyProductView?.autoFallbackVideoToText || 'No hay modelo de video seleccionado. Se usó modelo de texto.' };
+      if (preferredTextModel) return { mode: 'text', modelId: preferredTextModel, fallbackNotice: t.apiKeyProductView?.autoFallbackVideoToText || 'No hay modelo de video seleccionado. Se usó modelo de texto.' };
       return { mode: 'text', modelId: '', fallbackNotice: '' };
     }
 
     if (desired === 'search') {
-      if (selectedTextModelId) return { mode: 'search', modelId: selectedTextModelId, fallbackNotice: '' };
+      if (selectedSearchModelId) return { mode: 'search', modelId: selectedSearchModelId, fallbackNotice: '' };
+      if (preferredTextModel) return { mode: 'search', modelId: preferredTextModel, fallbackNotice: '' };
       return { mode: 'text', modelId: selectedImageModelId || selectedOtherModelId || '', fallbackNotice: t.apiKeyProductView?.autoFallbackTextToAny || 'No hay modelo de texto seleccionado. Se usó un modelo alterno.' };
     }
 
     return {
       mode: 'text',
-      modelId: selectedTextModelId || selectedImageModelId || selectedOtherModelId || '',
-      fallbackNotice: selectedTextModelId ? '' : (t.apiKeyProductView?.autoFallbackTextToAny || 'No hay modelo de texto seleccionado. Se usó un modelo alterno.'),
+      modelId: preferredTextModel || selectedImageModelId || selectedOtherModelId || '',
+      fallbackNotice: preferredTextModel ? '' : (t.apiKeyProductView?.autoFallbackTextToAny || 'No hay modelo de texto seleccionado. Se usó un modelo alterno.'),
     };
+  };
+
+  const composeGuidedSkillPrompt = (skill: StarterSkill | null, rawInput: string): string => {
+    if (!skill) return rawInput;
+    const objective = rawInput.trim() || skill.baseInstruction;
+
+    if (skill.mode === 'image') {
+      return [
+        `[Skill: ${skill.label}]`,
+        `Objetivo del usuario: ${objective}`,
+        `Parametros de imagen:`,
+        `- Estilo visual: ${guidedSkillOptions.imageStyle}`,
+        `- Calidad: ${guidedSkillOptions.imageQuality}`,
+        `- Formato: ${guidedSkillOptions.imageAspect}`,
+        `Entrega: prompt final listo para generar + 2 variaciones cortas con enfoque de conversion.`,
+      ].join('\n');
+    }
+
+    if (skill.mode === 'video') {
+      return [
+        `[Skill: ${skill.label}]`,
+        `Objetivo del usuario: ${objective}`,
+        `Parametros de video:`,
+        `- Estilo: ${guidedSkillOptions.videoStyle}`,
+        `- Duracion objetivo: ${guidedSkillOptions.videoDuration}`,
+        `- Ritmo: ${guidedSkillOptions.videoPace}`,
+        `Entrega: storyboard por escenas + guion de voz + CTA final.`,
+      ].join('\n');
+    }
+
+    if (skill.mode === 'search') {
+      return [
+        `[Skill: ${skill.label}]`,
+        `Pregunta principal: ${objective}`,
+        `Parametros de investigacion:`,
+        `- Profundidad: ${guidedSkillOptions.searchDepth}`,
+        `- Formato de salida: ${guidedSkillOptions.searchOutput}`,
+        `- Citas y fuentes: ${guidedSkillOptions.searchSources}`,
+        `Entrega: hallazgos clave, comparativa y recomendaciones accionables.`,
+      ].join('\n');
+    }
+
+    if (skill.mode === 'write') {
+      return [
+        `[Skill: ${skill.label}]`,
+        `Solicitud base: ${objective}`,
+        `Parametros editoriales:`,
+        `- Tono: ${guidedSkillOptions.writingTone}`,
+        `- Formato: ${guidedSkillOptions.writingFormat}`,
+        `- Extension: ${guidedSkillOptions.writingLength}`,
+        `- Audiencia: ${guidedSkillOptions.writingAudience}`,
+        `Entrega: version final lista para usar + alternativa mas directa.`,
+      ].join('\n');
+    }
+
+    if (skill.mode === 'ideas') {
+      return [
+        `[Skill: ${skill.label}]`,
+        `Contexto: ${objective}`,
+        `Parametros de ideacion:`,
+        `- Horizonte: ${guidedSkillOptions.ideasHorizon}`,
+        `- Riesgo: ${guidedSkillOptions.ideasRisk}`,
+        `- Numero de ideas: ${guidedSkillOptions.ideasCount}`,
+        `Entrega: ideas priorizadas por impacto/esfuerzo con primer paso concreto.`,
+      ].join('\n');
+    }
+
+    return [
+      `[Skill: ${skill.label}]`,
+      `Tema: ${objective}`,
+      `Parametros de aprendizaje:`,
+      `- Nivel: ${guidedSkillOptions.learningLevel}`,
+      `- Metodo: ${guidedSkillOptions.learningMethod}`,
+      `- Practica: ${guidedSkillOptions.learningPractice}`,
+      `Entrega: explicacion clara + mini practica + checklist de comprension.`,
+    ].join('\n');
   };
 
   const patchConversation = (
@@ -962,6 +1442,30 @@ const ApiKeyInspectorView: React.FC = () => {
       setHasValidatedKey(true);
       setLastValidatedAt(validatedAt);
 
+      const encodedKey = encodeSecret(apiKey.trim());
+      const resolvedLabel = profileLabel.trim() || `${providerLabel(provider)} ${providerProfiles.length + 1}`;
+      const existingProfile = providerProfiles.find((item) =>
+        item.provider === provider
+        && (item.baseUrl || '') === (baseUrl.trim() || '')
+        && item.apiKeyEncoded === encodedKey
+      );
+      const profileId = existingProfile?.id || `profile-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+      const nextProfile: ProviderProfile = {
+        id: profileId,
+        label: resolvedLabel,
+        provider,
+        apiKeyEncoded: encodedKey,
+        baseUrl: baseUrl.trim(),
+        validatedModels: result.models || [],
+        lastValidatedAt: validatedAt,
+      };
+
+      const nextProfiles = existingProfile
+        ? providerProfiles.map((item) => item.id === existingProfile.id ? nextProfile : item)
+        : [nextProfile, ...providerProfiles];
+
+      setProviderProfiles(nextProfiles);
+
       const firstText = result.models.find((m) => {
         const catalog = catalogMap.get(m.id) ?? catalogMap.get(normalizeModelId(m.id));
         const caps = catalog?.capabilities?.length ? catalog.capabilities : inferCapabilitiesFromId(m.id);
@@ -972,20 +1476,44 @@ const ApiKeyInspectorView: React.FC = () => {
         const caps = catalog?.capabilities?.length ? catalog.capabilities : inferCapabilitiesFromId(m.id);
         return caps.includes('image');
       });
+      const firstAudio = result.models.find((m) => {
+        const catalog = catalogMap.get(m.id) ?? catalogMap.get(normalizeModelId(m.id));
+        const caps = catalog?.capabilities?.length ? catalog.capabilities : inferCapabilitiesFromId(m.id);
+        return caps.includes('audio');
+      });
+      const firstVideo = result.models.find((m) => {
+        const catalog = catalogMap.get(m.id) ?? catalogMap.get(normalizeModelId(m.id));
+        const caps = catalog?.capabilities?.length ? catalog.capabilities : inferCapabilitiesFromId(m.id);
+        return caps.includes('video');
+      });
       const firstOther = result.models.find((m) => {
         const catalog = catalogMap.get(m.id) ?? catalogMap.get(normalizeModelId(m.id));
         const caps = catalog?.capabilities?.length ? catalog.capabilities : inferCapabilitiesFromId(m.id);
-        return caps.includes('audio') || caps.includes('video');
+        return caps.includes('video') || caps.includes('audio');
       });
 
-      if (firstText?.id) setSelectedTextModelId(firstText.id);
-      if (firstImage?.id) setSelectedImageModelId(firstImage.id);
-      if (firstOther?.id) setSelectedOtherModelId(firstOther.id);
+      if (firstText?.id) setSelectedTextModelId(encodeModelBindingId(profileId, firstText.id));
+      if (firstText?.id) setSelectedSearchModelId(encodeModelBindingId(profileId, firstText.id));
+      if (firstText?.id) setSelectedSummaryModelId(encodeModelBindingId(profileId, firstText.id));
+      if (firstText?.id) setSelectedPromptOptimizerModelId(encodeModelBindingId(profileId, firstText.id));
+      if (firstText?.id) setSelectedRoleOptimizerModelId(encodeModelBindingId(profileId, firstText.id));
+      if (firstImage?.id) setSelectedImageModelId(encodeModelBindingId(profileId, firstImage.id));
+      if (firstVideo?.id) setSelectedOtherModelId(encodeModelBindingId(profileId, firstVideo.id));
+      if (firstAudio?.id) setSelectedSpeechSynthesisModelId(encodeModelBindingId(profileId, firstAudio.id));
+      if (firstAudio?.id) setSelectedSpeechTranscriptionModelId(encodeModelBindingId(profileId, firstAudio.id));
+      if (firstOther?.id && !firstVideo?.id) setSelectedOtherModelId(encodeModelBindingId(profileId, firstOther.id));
 
       if (!selectedModel && result.models.length > 0) {
-        setSelectedModel(firstText?.id || firstImage?.id || firstOther?.id || result.models[0]?.id || '');
+        setSelectedModel(
+          (firstText?.id && encodeModelBindingId(profileId, firstText.id))
+          || (firstImage?.id && encodeModelBindingId(profileId, firstImage.id))
+          || (firstOther?.id && encodeModelBindingId(profileId, firstOther.id))
+          || encodeModelBindingId(profileId, result.models[0]?.id || '')
+        );
       }
       await persistConfig(product.id, {
+        profileLabel: resolvedLabel,
+        providerProfiles: nextProfiles,
         lastValidatedAt: validatedAt,
         validatedModels: result.models,
       });
@@ -997,6 +1525,65 @@ const ApiKeyInspectorView: React.FC = () => {
     } finally { setIsValidatingKey(false); }
   };
 
+  const clearBindingIfProfileDeleted = (bindingId: string, deletedProfileId: string): string => {
+    const decoded = decodeModelBindingId(bindingId);
+    if (!decoded) return '';
+    return decoded.profileId === deletedProfileId ? '' : bindingId;
+  };
+
+  const handleRemoveProfile = async (profileId: string) => {
+    if (!product) return;
+    const nextProfiles = providerProfiles.filter((item) => item.id !== profileId);
+    const nextText = clearBindingIfProfileDeleted(selectedTextModelId, profileId);
+    const nextImage = clearBindingIfProfileDeleted(selectedImageModelId, profileId);
+    const nextOther = clearBindingIfProfileDeleted(selectedOtherModelId, profileId);
+    const nextSearch = clearBindingIfProfileDeleted(selectedSearchModelId, profileId);
+    const nextSummary = clearBindingIfProfileDeleted(selectedSummaryModelId, profileId);
+    const nextPromptOptimizer = clearBindingIfProfileDeleted(selectedPromptOptimizerModelId, profileId);
+    const nextRoleOptimizer = clearBindingIfProfileDeleted(selectedRoleOptimizerModelId, profileId);
+    const nextSpeechSynthesis = clearBindingIfProfileDeleted(selectedSpeechSynthesisModelId, profileId);
+    const nextSpeechTranscription = clearBindingIfProfileDeleted(selectedSpeechTranscriptionModelId, profileId);
+
+    setProviderProfiles(nextProfiles);
+    setSelectedTextModelId(nextText);
+    setSelectedImageModelId(nextImage);
+    setSelectedOtherModelId(nextOther);
+    setSelectedSearchModelId(nextSearch);
+    setSelectedSummaryModelId(nextSummary);
+    setSelectedPromptOptimizerModelId(nextPromptOptimizer);
+    setSelectedRoleOptimizerModelId(nextRoleOptimizer);
+    setSelectedSpeechSynthesisModelId(nextSpeechSynthesis);
+    setSelectedSpeechTranscriptionModelId(nextSpeechTranscription);
+
+    if (selectedModel && decodeModelBindingId(selectedModel)?.profileId === profileId) {
+      setSelectedModel('');
+    }
+
+    await persistConfig(product.id, {
+      providerProfiles: nextProfiles,
+      selectedTextModelId: nextText,
+      selectedImageModelId: nextImage,
+      selectedOtherModelId: nextOther,
+      selectedSearchModelId: nextSearch,
+      selectedSummaryModelId: nextSummary,
+      selectedPromptOptimizerModelId: nextPromptOptimizer,
+      selectedRoleOptimizerModelId: nextRoleOptimizer,
+      selectedSpeechSynthesisModelId: nextSpeechSynthesis,
+      selectedSpeechTranscriptionModelId: nextSpeechTranscription,
+      selectedModel: decodeModelBindingId(selectedModel)?.profileId === profileId ? '' : selectedModel,
+    });
+  };
+
+  const handleLoadProfileDraft = (profile: ProviderProfile) => {
+    setProvider(profile.provider);
+    setProfileLabel(profile.label || providerLabel(profile.provider));
+    setApiKey(decodeSecret(profile.apiKeyEncoded));
+    setBaseUrl(profile.baseUrl || '');
+    setRemoteModels(profile.validatedModels || []);
+    setHasValidatedKey((profile.validatedModels || []).length > 0);
+    setLastValidatedAt(profile.lastValidatedAt || '');
+  };
+
   const getCurrentMessages = (): ChatItem[] => activeConversation?.messages ?? [];
 
   const runChat = async (text: string, isTest: boolean, modelOverride?: string) => {
@@ -1004,16 +1591,27 @@ const ApiKeyInspectorView: React.FC = () => {
       setErrorText('Debes crear o seleccionar una conversación.');
       return;
     }
-    if (requiresApiKey && !apiKey.trim()) {
-      setErrorText('Debes ingresar una API key.');
+    const modelToUse = (modelOverride || selectedModel).trim();
+    if (!modelToUse) {
+      setErrorText(t.apiKeyProductView?.warningMissingModel || 'No hay un modelo configurado para esta tarea.');
       return;
     }
-    if (requiresBaseUrl && !baseUrl.trim()) {
+
+    const runtime = resolveBindingRuntime(modelToUse);
+    if (!runtime) {
+      setErrorText(t.apiKeyProductView?.warningMissingProvider || 'No se encontró la API key asociada al modelo seleccionado.');
+      return;
+    }
+
+    if (runtime.profile.provider !== 'ollama' && !runtime.apiKey.trim()) {
+      setErrorText('La API key configurada para este modelo está vacía.');
+      return;
+    }
+
+    if (runtime.profile.provider === 'ollama' && !(runtime.baseUrl || '').trim()) {
       setErrorText(t.apiKeyProductView?.localEndpointRequired || 'Debes indicar la URL local del proveedor.');
       return;
     }
-    const modelToUse = (modelOverride || selectedModel).trim();
-    if (!modelToUse) { setErrorText('Debes elegir un modelo.'); return; }
 
     const composedPrompt = [
       text,
@@ -1049,10 +1647,10 @@ const ApiKeyInspectorView: React.FC = () => {
         }));
 
       const response = await providerChat({
-        provider,
-        apiKey: apiKey.trim(),
-        baseUrl: requiresBaseUrl ? baseUrl.trim() : undefined,
-        model: modelToUse,
+        provider: runtime.profile.provider,
+        apiKey: runtime.apiKey,
+        baseUrl: runtime.profile.provider === 'ollama' ? runtime.baseUrl : undefined,
+        model: runtime.model.rawModelId,
         systemPrompt: buildRuntimeSystemPrompt(effectiveSystemPrompt), messages: payloadMessages,
       });
 
@@ -1066,7 +1664,7 @@ const ApiKeyInspectorView: React.FC = () => {
         ...conv, messages: nextChat, updatedAt: new Date().toISOString(),
       }));
 
-      const estimatedCost = estimateCost(modelToUse, response.usage.inputTokens, response.usage.outputTokens, catalogMap);
+      const estimatedCost = estimateCost(runtime.model.rawModelId, response.usage.inputTokens, response.usage.outputTokens, catalogMap);
       const nextStats: RuntimeStats = {
         totalRequests:      stats.totalRequests + 1,
         totalInputTokens:   stats.totalInputTokens  + response.usage.inputTokens,
@@ -1104,16 +1702,27 @@ const ApiKeyInspectorView: React.FC = () => {
       setErrorText('Debes crear o seleccionar una conversación.');
       return;
     }
-    if (requiresApiKey && !apiKey.trim()) {
-      setErrorText('Debes ingresar una API key.');
+    const modelToUse = (modelOverride || selectedModel).trim();
+    if (!modelToUse) {
+      setErrorText(t.apiKeyProductView?.warningMissingModel || 'No hay un modelo configurado para esta tarea.');
       return;
     }
-    if (requiresBaseUrl && !baseUrl.trim()) {
+
+    const runtime = resolveBindingRuntime(modelToUse);
+    if (!runtime) {
+      setErrorText(t.apiKeyProductView?.warningMissingProvider || 'No se encontró la API key asociada al modelo seleccionado.');
+      return;
+    }
+
+    if (runtime.profile.provider !== 'ollama' && !runtime.apiKey.trim()) {
+      setErrorText('La API key configurada para este modelo está vacía.');
+      return;
+    }
+
+    if (runtime.profile.provider === 'ollama' && !(runtime.baseUrl || '').trim()) {
       setErrorText(t.apiKeyProductView?.localEndpointRequired || 'Debes indicar la URL local del proveedor.');
       return;
     }
-    const modelToUse = (modelOverride || selectedModel).trim();
-    if (!modelToUse) { setErrorText('Debes elegir un modelo.'); return; }
 
     const userMessage: ChatItem = {
       id: `u-${Date.now()}`, role: 'user', content: promptText,
@@ -1137,10 +1746,10 @@ const ApiKeyInspectorView: React.FC = () => {
       }));
 
       const response = await providerTestModel({
-        provider,
-        apiKey: apiKey.trim(),
-        baseUrl: requiresBaseUrl ? baseUrl.trim() : undefined,
-        model: modelToUse,
+        provider: runtime.profile.provider,
+        apiKey: runtime.apiKey,
+        baseUrl: runtime.profile.provider === 'ollama' ? runtime.baseUrl : undefined,
+        model: runtime.model.rawModelId,
         capability: capability === 'unknown' ? 'text' : capability,
         prompt: promptText,
         attachments: runtimeAttachments,
@@ -1182,42 +1791,49 @@ const ApiKeyInspectorView: React.FC = () => {
 
   const handleSendMessage = async () => {
     const text = messageInput.trim();
-    if (!text && pendingAttachments.length === 0) return;
+    if (!text && pendingAttachments.length === 0 && !activeStarterSkill) return;
 
-    const normalizedText = text || (t.apiKeyProductView?.attachmentOnlyPrompt || 'Analiza los archivos adjuntos y responde con hallazgos accionables.');
+    const normalizedText = text
+      || activeStarterSkill?.baseInstruction
+      || (t.apiKeyProductView?.attachmentOnlyPrompt || 'Analiza los archivos adjuntos y responde con hallazgos accionables.');
+    const composedText = composeGuidedSkillPrompt(activeStarterSkill, normalizedText);
 
-    const desiredCapability = detectPromptCapability(normalizedText);
-    const routing = resolveRoutedModel(desiredCapability);
+    const desiredCapability = activeStarterSkill?.capability || detectPromptCapability(composedText);
+    const routing = resolveRoutedModel(desiredCapability, composedText);
 
     if (!routing.modelId) {
-      setErrorText(t.apiKeyProductView?.selectModelFirst || 'Debes seleccionar un modelo.');
+      setErrorText(t.apiKeyProductView?.warningMissingModel || 'No hay un modelo configurado para esta tarea.');
       return;
     }
 
     setSelectedModel(routing.modelId);
-    setChatMode(routing.mode);
 
     if (routing.fallbackNotice) {
       setStatusText(routing.fallbackNotice);
     }
 
     if (routing.mode === 'text' || routing.mode === 'search') {
-      await runChat(normalizedText, false, routing.modelId);
+      await runChat(composedText, false, routing.modelId);
       return;
     }
 
-    await runCapabilityGeneration(routing.mode, normalizedText, false, routing.modelId);
+    await runCapabilityGeneration(routing.mode, composedText, false, routing.modelId);
   };
 
   const handleTestModel = async () => {
     const modelForTest =
       (testMode === 'image' ? selectedImageModelId : '') ||
-      (testMode === 'text' || testMode === 'search' ? selectedTextModelId : '') ||
-      ((testMode === 'audio' || testMode === 'video') ? selectedOtherModelId : '') ||
+      (testMode === 'search' ? (selectedSearchModelId || selectedTextModelId) : '') ||
+      (testMode === 'text' ? selectedTextModelId : '') ||
+      (testMode === 'audio' ? (selectedSpeechSynthesisModelId || selectedSpeechTranscriptionModelId || selectedOtherModelId) : '') ||
+      (testMode === 'video' ? selectedOtherModelId : '') ||
       selectedModel ||
       selectedTextModelId ||
+      selectedSearchModelId ||
       selectedImageModelId ||
-      selectedOtherModelId;
+      selectedOtherModelId ||
+      selectedSpeechSynthesisModelId ||
+      selectedSpeechTranscriptionModelId;
     if (!modelForTest) { setErrorText(t.apiKeyProductView?.selectModelFirst || 'Debes seleccionar un modelo.'); return; }
     if (!availableTestModes.includes(testMode)) { setErrorText(t.apiKeyProductView?.invalidTestMode || 'Esta modalidad no está disponible.'); return; }
     setSelectedModel(modelForTest);
@@ -1280,6 +1896,15 @@ const ApiKeyInspectorView: React.FC = () => {
     setStatusText(t.apiKeyProductView?.promptApplied || 'Prompt aplicado al cuadro de chat.');
   };
 
+  const handleUseStarterSkill = (skill: StarterSkill) => {
+    setActiveSkillId(skill.id);
+    if (skill.capability === 'search') {
+      setWebSearchEnabled(true);
+    }
+    setStatusText(t.apiKeyProductView?.starterApplied || 'Skill activada. Ajusta opciones y escribe tu objetivo.');
+    messageTextareaRef.current?.focus();
+  };
+
   const handleSelectConversation = (conversationId: string) => {
     setActiveConversationId(conversationId);
     setStatusText(''); setErrorText('');
@@ -1318,10 +1943,18 @@ const ApiKeyInspectorView: React.FC = () => {
       config: {
         provider,
         baseUrl,
+        profileLabel,
+        providerProfiles,
         selectedModel,
         selectedTextModelId,
         selectedImageModelId,
         selectedOtherModelId,
+        selectedSearchModelId,
+        selectedSummaryModelId,
+        selectedPromptOptimizerModelId,
+        selectedRoleOptimizerModelId,
+        selectedSpeechSynthesisModelId,
+        selectedSpeechTranscriptionModelId,
         systemPrompt,
         selectedRoleId,
         validatedModels: remoteModels,
@@ -1353,10 +1986,20 @@ const ApiKeyInspectorView: React.FC = () => {
 
       const nextProvider = parsed?.config?.provider as ApiRuntimeProvider | undefined;
       const nextBaseUrl = String(parsed?.config?.baseUrl || '');
+      const nextProfileLabel = String(parsed?.config?.profileLabel || '');
+      const nextProviderProfiles = Array.isArray(parsed?.config?.providerProfiles)
+        ? parsed.config.providerProfiles as ProviderProfile[]
+        : [];
       const nextModel = String(parsed?.config?.selectedModel || '');
       const nextTextModelId = String(parsed?.config?.selectedTextModelId || '');
       const nextImageModelId = String(parsed?.config?.selectedImageModelId || '');
       const nextOtherModelId = String(parsed?.config?.selectedOtherModelId || '');
+      const nextSearchModelId = String(parsed?.config?.selectedSearchModelId || '');
+      const nextSummaryModelId = String(parsed?.config?.selectedSummaryModelId || '');
+      const nextPromptOptimizerModelId = String(parsed?.config?.selectedPromptOptimizerModelId || '');
+      const nextRoleOptimizerModelId = String(parsed?.config?.selectedRoleOptimizerModelId || '');
+      const nextSpeechSynthesisModelId = String(parsed?.config?.selectedSpeechSynthesisModelId || '');
+      const nextSpeechTranscriptionModelId = String(parsed?.config?.selectedSpeechTranscriptionModelId || '');
       const nextSystemPrompt = String(parsed?.config?.systemPrompt || '');
       const nextSelectedRoleId = String(parsed?.config?.selectedRoleId || '');
       const nextRoles = Array.isArray(parsed?.chat?.roles) ? parsed.chat.roles as RoleRecord[] : [];
@@ -1377,10 +2020,18 @@ const ApiKeyInspectorView: React.FC = () => {
 
       if (nextProvider) setProvider(nextProvider);
       setBaseUrl(nextBaseUrl);
+      setProfileLabel(nextProfileLabel);
+      setProviderProfiles(nextProviderProfiles);
       setSelectedModel(nextModel);
       setSelectedTextModelId(nextTextModelId);
       setSelectedImageModelId(nextImageModelId);
       setSelectedOtherModelId(nextOtherModelId);
+      setSelectedSearchModelId(nextSearchModelId);
+      setSelectedSummaryModelId(nextSummaryModelId);
+      setSelectedPromptOptimizerModelId(nextPromptOptimizerModelId);
+      setSelectedRoleOptimizerModelId(nextRoleOptimizerModelId);
+      setSelectedSpeechSynthesisModelId(nextSpeechSynthesisModelId);
+      setSelectedSpeechTranscriptionModelId(nextSpeechTranscriptionModelId);
       setSystemPrompt(nextSystemPrompt);
       setSelectedRoleId(nextSelectedRoleId);
       setRoles(nextRoles);
@@ -1389,7 +2040,8 @@ const ApiKeyInspectorView: React.FC = () => {
       setActiveConversationId(nextActiveConversationId || nextConversations[0]?.id || '');
       setStats(nextStats);
       setRemoteModels(nextValidatedModels);
-      setHasValidatedKey(nextValidatedModels.length > 0);
+      const importedModelsCount = nextProviderProfiles.reduce((acc, item) => acc + (Array.isArray(item.validatedModels) ? item.validatedModels.length : 0), 0);
+      setHasValidatedKey(importedModelsCount > 0 || nextValidatedModels.length > 0);
       setLastValidatedAt(nextLastValidatedAt);
 
       if (product) {
@@ -1397,10 +2049,18 @@ const ApiKeyInspectorView: React.FC = () => {
           persistConfig(product.id, {
             provider: nextProvider ?? provider,
             baseUrl: nextBaseUrl,
+            profileLabel: nextProfileLabel,
+            providerProfiles: nextProviderProfiles,
             selectedModel: nextModel,
             selectedTextModelId: nextTextModelId,
             selectedImageModelId: nextImageModelId,
             selectedOtherModelId: nextOtherModelId,
+            selectedSearchModelId: nextSearchModelId,
+            selectedSummaryModelId: nextSummaryModelId,
+            selectedPromptOptimizerModelId: nextPromptOptimizerModelId,
+            selectedRoleOptimizerModelId: nextRoleOptimizerModelId,
+            selectedSpeechSynthesisModelId: nextSpeechSynthesisModelId,
+            selectedSpeechTranscriptionModelId: nextSpeechTranscriptionModelId,
             systemPrompt: nextSystemPrompt,
             selectedRoleId: nextSelectedRoleId,
             validatedModels: nextValidatedModels,
@@ -1874,67 +2534,14 @@ const ApiKeyInspectorView: React.FC = () => {
           </div>
         )}
 
-        {/* ── Model bar ─────────────────────────────────────────────── */}
+        {/* ── Chat context bar ───────────────────────────────────────── */}
         <div className="flex items-center gap-2 px-8 py-2 border-t border-[#ccfbf1] flex-wrap z-[15] relative" style={{ backgroundColor: isDarkTheme ? '#0f172a' : '#f8fffe' }}>
-
-          {/* Text model */}
-          <label className="text-[0.8rem] text-[#6b8f84] whitespace-nowrap">
-            {t.apiKeyProductView?.modelTextLabel || 'Modelo texto'}:
-          </label>
-          <select
-            value={selectedTextModelId}
-            onChange={e => {
-              if (!e.target.value) return;
-              setSelectedTextModelId(e.target.value);
-              setSelectedModel(e.target.value);
-            }}
-            disabled={!isOwner || textModelOptions.length === 0}
-            className={selectCls}
-          >
-            {textModelOptions.length === 0 && <option value="">—</option>}
-            {textModelOptions.map(m => (
-              <option key={m.id} value={m.id}>{m.displayLabel}</option>
-            ))}
-          </select>
-
-          <label className="text-[0.8rem] text-[#6b8f84] whitespace-nowrap">
-            {t.apiKeyProductView?.modelImageLabel || 'Modelo imagen'}:
-          </label>
-          <select
-            value={selectedImageModelId}
-            onChange={e => {
-              if (!e.target.value) return;
-              setSelectedImageModelId(e.target.value);
-            }}
-            disabled={!isOwner || imageModelOptions.length === 0}
-            className={selectCls}
-          >
-            {imageModelOptions.length === 0 && <option value="">—</option>}
-            {imageModelOptions.map(m => (
-              <option key={m.id} value={m.id}>{m.displayLabel}</option>
-            ))}
-          </select>
-
-          <label className="text-[0.8rem] text-[#6b8f84] whitespace-nowrap">
-            {t.apiKeyProductView?.modelOtherLabel || 'Modelo otros'}:
-          </label>
-          <select
-            value={selectedOtherModelId}
-            onChange={e => {
-              if (!e.target.value) return;
-              setSelectedOtherModelId(e.target.value);
-            }}
-            disabled={!isOwner || otherModelOptions.length === 0}
-            className={selectCls}
-          >
-            {otherModelOptions.length === 0 && <option value="">—</option>}
-            {otherModelOptions.map(m => (
-              <option key={m.id} value={m.id}>{m.displayLabel}</option>
-            ))}
-          </select>
-
           <div className={`text-[0.74rem] rounded-md px-2 py-1 border ${isDarkTheme ? 'border-slate-600 text-slate-300 bg-slate-800' : 'border-[#99e6d0] text-[#3d7a6d] bg-[#ecfdf5]'}`}>
             {t.apiKeyProductView?.autoRoutingLabel || 'Ruteo automático por prompt'}
+          </div>
+
+          <div className={`text-[0.74rem] rounded-md px-2 py-1 border ${isDarkTheme ? 'border-slate-600 text-slate-300 bg-slate-800' : 'border-[#99e6d0] text-[#3d7a6d] bg-[#ecfdf5]'}`}>
+            {t.apiKeyProductView?.profilesConfigured || 'Perfiles configurados'}: {providerProfiles.length}
           </div>
 
           {/* Spacer */}
@@ -1973,6 +2580,256 @@ const ApiKeyInspectorView: React.FC = () => {
         {/* ── Input area ────────────────────────────────────────────── */}
         <div className="px-8 pb-6 pt-4 border-t border-[#ccfbf1] flex flex-col items-center gap-1.5 z-[15]" style={{ backgroundColor: isDarkTheme ? '#0f172a' : '#f8fffe' }}>
           <div className="flex flex-col gap-1.5 w-full max-w-[800px]">
+            {starterSkills.length > 0 && (
+              <div className="flex flex-wrap gap-2 pb-1">
+                {starterSkills.map((skill) => {
+                  const isActive = activeStarterSkill?.id === skill.id;
+                  return (
+                  <button
+                    key={skill.id}
+                    onClick={() => handleUseStarterSkill(skill)}
+                    className={`group min-w-[180px] rounded-2xl px-3 py-2 text-left border transition-all duration-200 ${
+                      isDarkTheme
+                        ? (isActive
+                          ? 'border-cyan-400 bg-slate-800 text-slate-100 shadow-[0_0_0_2px_rgba(34,211,238,0.2)]'
+                          : 'border-slate-600 bg-slate-900/80 text-slate-100 hover:bg-slate-800 hover:border-cyan-500')
+                        : (isActive
+                          ? 'border-[#0f766e] bg-[#ecfdf5] text-[#0f2a24] shadow-[0_0_0_2px_rgba(15,118,110,0.12)]'
+                          : 'border-[#99e6d0] bg-white text-[#0f2a24] hover:bg-[#ecfdf5] hover:border-[#0f766e]')
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className={`inline-flex h-7 w-7 items-center justify-center rounded-lg text-sm ${isDarkTheme ? 'bg-slate-700' : 'bg-[#d1fae5]'}`}>
+                        {skill.icon}
+                      </span>
+                      <div className="flex-1 min-w-0">
+                        <p className={`text-[0.86rem] font-semibold truncate ${isDarkTheme ? 'text-slate-100' : 'text-[#0f2a24]'}`}>{skill.label}</p>
+                        <p className={`text-[0.7rem] truncate ${isDarkTheme ? 'text-slate-400' : 'text-[#6b8f84]'}`}>{skill.subtitle}</p>
+                      </div>
+                      <span className={`text-[0.62rem] px-1.5 py-0.5 rounded-md uppercase tracking-[0.03em] ${isDarkTheme ? 'bg-cyan-900/50 text-cyan-200' : 'bg-[#ecfdf5] text-[#0f766e]'}`}>
+                        fn
+                      </span>
+                    </div>
+                  </button>
+                  );
+                })}
+              </div>
+            )}
+
+            {activeStarterSkill && (
+              <div className={`rounded-2xl border px-3 py-3 ${isDarkTheme ? 'border-slate-600 bg-slate-900/70' : 'border-[#99e6d0] bg-[#f5fffb]'}`}>
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className={`inline-flex h-8 w-8 items-center justify-center rounded-lg text-sm ${isDarkTheme ? 'bg-slate-700 text-slate-100' : 'bg-[#d1fae5] text-[#0f2a24]'}`}>
+                      {activeStarterSkill.icon}
+                    </span>
+                    <div className="min-w-0">
+                      <p className={`text-[0.82rem] font-semibold truncate ${isDarkTheme ? 'text-slate-100' : 'text-[#0f2a24]'}`}>
+                        {t.apiKeyProductView?.guidedSkillTitle || 'Skill guiada activa'}: {activeStarterSkill.label}
+                      </p>
+                      <p className={`text-[0.72rem] ${isDarkTheme ? 'text-slate-400' : 'text-[#6b8f84]'}`}>
+                        {t.apiKeyProductView?.guidedSkillHint || 'Ajusta parámetros para generar un contexto de mayor calidad antes de enviar.'}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setActiveSkillId('')}
+                    className={`text-[0.72rem] rounded-md px-2 py-1 border ${isDarkTheme ? 'border-slate-500 text-slate-200 hover:bg-slate-700' : 'border-[#99e6d0] text-[#3d7a6d] hover:bg-[#ecfdf5]'}`}
+                  >
+                    {t.apiKeyProductView?.guidedSkillDeactivate || 'Desactivar'}
+                  </button>
+                </div>
+
+                <div className="mt-3 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+                  {activeStarterSkill.mode === 'image' && (
+                    <>
+                      <label className="flex flex-col gap-1 text-[0.72rem]">
+                        <span className={isDarkTheme ? 'text-slate-400' : 'text-[#6b8f84]'}>{t.apiKeyProductView?.guidedImageStyle || 'Estilo visual'}</span>
+                        <select value={guidedSkillOptions.imageStyle} onChange={(e) => setGuidedSkillOptions((prev) => ({ ...prev, imageStyle: e.target.value as GuidedSkillOptions['imageStyle'] }))} className={selectCls}>
+                          <option value="photorealistic">Photorealistic</option>
+                          <option value="illustration">Illustration</option>
+                          <option value="3d">3D</option>
+                          <option value="cinematic">Cinematic</option>
+                        </select>
+                      </label>
+                      <label className="flex flex-col gap-1 text-[0.72rem]">
+                        <span className={isDarkTheme ? 'text-slate-400' : 'text-[#6b8f84]'}>{t.apiKeyProductView?.guidedImageQuality || 'Calidad'}</span>
+                        <select value={guidedSkillOptions.imageQuality} onChange={(e) => setGuidedSkillOptions((prev) => ({ ...prev, imageQuality: e.target.value as GuidedSkillOptions['imageQuality'] }))} className={selectCls}>
+                          <option value="draft">Draft</option>
+                          <option value="high">High</option>
+                          <option value="ultra">Ultra</option>
+                        </select>
+                      </label>
+                      <label className="flex flex-col gap-1 text-[0.72rem]">
+                        <span className={isDarkTheme ? 'text-slate-400' : 'text-[#6b8f84]'}>{t.apiKeyProductView?.guidedImageAspect || 'Formato'}</span>
+                        <select value={guidedSkillOptions.imageAspect} onChange={(e) => setGuidedSkillOptions((prev) => ({ ...prev, imageAspect: e.target.value as GuidedSkillOptions['imageAspect'] }))} className={selectCls}>
+                          <option value="1:1">1:1</option>
+                          <option value="16:9">16:9</option>
+                          <option value="9:16">9:16</option>
+                        </select>
+                      </label>
+                    </>
+                  )}
+
+                  {activeStarterSkill.mode === 'video' && (
+                    <>
+                      <label className="flex flex-col gap-1 text-[0.72rem]">
+                        <span className={isDarkTheme ? 'text-slate-400' : 'text-[#6b8f84]'}>{t.apiKeyProductView?.guidedVideoStyle || 'Estilo de video'}</span>
+                        <select value={guidedSkillOptions.videoStyle} onChange={(e) => setGuidedSkillOptions((prev) => ({ ...prev, videoStyle: e.target.value as GuidedSkillOptions['videoStyle'] }))} className={selectCls}>
+                          <option value="cinematic">Cinematic</option>
+                          <option value="ugc">UGC</option>
+                          <option value="minimal">Minimal</option>
+                        </select>
+                      </label>
+                      <label className="flex flex-col gap-1 text-[0.72rem]">
+                        <span className={isDarkTheme ? 'text-slate-400' : 'text-[#6b8f84]'}>{t.apiKeyProductView?.guidedVideoDuration || 'Duración'}</span>
+                        <select value={guidedSkillOptions.videoDuration} onChange={(e) => setGuidedSkillOptions((prev) => ({ ...prev, videoDuration: e.target.value as GuidedSkillOptions['videoDuration'] }))} className={selectCls}>
+                          <option value="8s">8s</option>
+                          <option value="15s">15s</option>
+                          <option value="30s">30s</option>
+                        </select>
+                      </label>
+                      <label className="flex flex-col gap-1 text-[0.72rem]">
+                        <span className={isDarkTheme ? 'text-slate-400' : 'text-[#6b8f84]'}>{t.apiKeyProductView?.guidedVideoPace || 'Ritmo'}</span>
+                        <select value={guidedSkillOptions.videoPace} onChange={(e) => setGuidedSkillOptions((prev) => ({ ...prev, videoPace: e.target.value as GuidedSkillOptions['videoPace'] }))} className={selectCls}>
+                          <option value="calm">Calm</option>
+                          <option value="balanced">Balanced</option>
+                          <option value="dynamic">Dynamic</option>
+                        </select>
+                      </label>
+                    </>
+                  )}
+
+                  {activeStarterSkill.mode === 'search' && (
+                    <>
+                      <label className="flex flex-col gap-1 text-[0.72rem]">
+                        <span className={isDarkTheme ? 'text-slate-400' : 'text-[#6b8f84]'}>{t.apiKeyProductView?.guidedSearchDepth || 'Profundidad'}</span>
+                        <select value={guidedSkillOptions.searchDepth} onChange={(e) => setGuidedSkillOptions((prev) => ({ ...prev, searchDepth: e.target.value as GuidedSkillOptions['searchDepth'] }))} className={selectCls}>
+                          <option value="quick">Quick</option>
+                          <option value="standard">Standard</option>
+                          <option value="deep">Deep</option>
+                        </select>
+                      </label>
+                      <label className="flex flex-col gap-1 text-[0.72rem]">
+                        <span className={isDarkTheme ? 'text-slate-400' : 'text-[#6b8f84]'}>{t.apiKeyProductView?.guidedSearchOutput || 'Formato de salida'}</span>
+                        <select value={guidedSkillOptions.searchOutput} onChange={(e) => setGuidedSkillOptions((prev) => ({ ...prev, searchOutput: e.target.value as GuidedSkillOptions['searchOutput'] }))} className={selectCls}>
+                          <option value="briefing">Briefing</option>
+                          <option value="table">Table</option>
+                          <option value="bullet">Bullet points</option>
+                        </select>
+                      </label>
+                      <label className="flex flex-col gap-1 text-[0.72rem]">
+                        <span className={isDarkTheme ? 'text-slate-400' : 'text-[#6b8f84]'}>{t.apiKeyProductView?.guidedSearchSources || 'Citas y fuentes'}</span>
+                        <select value={guidedSkillOptions.searchSources} onChange={(e) => setGuidedSkillOptions((prev) => ({ ...prev, searchSources: e.target.value as GuidedSkillOptions['searchSources'] }))} className={selectCls}>
+                          <option value="required">Required</option>
+                          <option value="optional">Optional</option>
+                        </select>
+                      </label>
+                    </>
+                  )}
+
+                  {activeStarterSkill.mode === 'write' && (
+                    <>
+                      <label className="flex flex-col gap-1 text-[0.72rem]">
+                        <span className={isDarkTheme ? 'text-slate-400' : 'text-[#6b8f84]'}>{t.apiKeyProductView?.guidedWritingTone || 'Tono'}</span>
+                        <select value={guidedSkillOptions.writingTone} onChange={(e) => setGuidedSkillOptions((prev) => ({ ...prev, writingTone: e.target.value as GuidedSkillOptions['writingTone'] }))} className={selectCls}>
+                          <option value="professional">Professional</option>
+                          <option value="friendly">Friendly</option>
+                          <option value="sales">Sales</option>
+                        </select>
+                      </label>
+                      <label className="flex flex-col gap-1 text-[0.72rem]">
+                        <span className={isDarkTheme ? 'text-slate-400' : 'text-[#6b8f84]'}>{t.apiKeyProductView?.guidedWritingFormat || 'Formato'}</span>
+                        <select value={guidedSkillOptions.writingFormat} onChange={(e) => setGuidedSkillOptions((prev) => ({ ...prev, writingFormat: e.target.value as GuidedSkillOptions['writingFormat'] }))} className={selectCls}>
+                          <option value="paragraph">Paragraphs</option>
+                          <option value="bullet">Bullet points</option>
+                          <option value="framework">Framework</option>
+                        </select>
+                      </label>
+                      <label className="flex flex-col gap-1 text-[0.72rem]">
+                        <span className={isDarkTheme ? 'text-slate-400' : 'text-[#6b8f84]'}>{t.apiKeyProductView?.guidedWritingLength || 'Extensión'}</span>
+                        <select value={guidedSkillOptions.writingLength} onChange={(e) => setGuidedSkillOptions((prev) => ({ ...prev, writingLength: e.target.value as GuidedSkillOptions['writingLength'] }))} className={selectCls}>
+                          <option value="short">Short</option>
+                          <option value="medium">Medium</option>
+                          <option value="long">Long</option>
+                        </select>
+                      </label>
+                      <label className="flex flex-col gap-1 text-[0.72rem]">
+                        <span className={isDarkTheme ? 'text-slate-400' : 'text-[#6b8f84]'}>{t.apiKeyProductView?.guidedWritingAudience || 'Audiencia'}</span>
+                        <select value={guidedSkillOptions.writingAudience} onChange={(e) => setGuidedSkillOptions((prev) => ({ ...prev, writingAudience: e.target.value as GuidedSkillOptions['writingAudience'] }))} className={selectCls}>
+                          <option value="general">General</option>
+                          <option value="executive">Executive</option>
+                          <option value="technical">Technical</option>
+                        </select>
+                      </label>
+                    </>
+                  )}
+
+                  {activeStarterSkill.mode === 'ideas' && (
+                    <>
+                      <label className="flex flex-col gap-1 text-[0.72rem]">
+                        <span className={isDarkTheme ? 'text-slate-400' : 'text-[#6b8f84]'}>{t.apiKeyProductView?.guidedIdeasHorizon || 'Horizonte'}</span>
+                        <select value={guidedSkillOptions.ideasHorizon} onChange={(e) => setGuidedSkillOptions((prev) => ({ ...prev, ideasHorizon: e.target.value as GuidedSkillOptions['ideasHorizon'] }))} className={selectCls}>
+                          <option value="today">Today</option>
+                          <option value="week">This week</option>
+                          <option value="month">30 days</option>
+                        </select>
+                      </label>
+                      <label className="flex flex-col gap-1 text-[0.72rem]">
+                        <span className={isDarkTheme ? 'text-slate-400' : 'text-[#6b8f84]'}>{t.apiKeyProductView?.guidedIdeasRisk || 'Riesgo'}</span>
+                        <select value={guidedSkillOptions.ideasRisk} onChange={(e) => setGuidedSkillOptions((prev) => ({ ...prev, ideasRisk: e.target.value as GuidedSkillOptions['ideasRisk'] }))} className={selectCls}>
+                          <option value="safe">Safe</option>
+                          <option value="balanced">Balanced</option>
+                          <option value="bold">Bold</option>
+                        </select>
+                      </label>
+                      <label className="flex flex-col gap-1 text-[0.72rem]">
+                        <span className={isDarkTheme ? 'text-slate-400' : 'text-[#6b8f84]'}>{t.apiKeyProductView?.guidedIdeasCount || 'Cantidad'}</span>
+                        <select value={guidedSkillOptions.ideasCount} onChange={(e) => setGuidedSkillOptions((prev) => ({ ...prev, ideasCount: e.target.value as GuidedSkillOptions['ideasCount'] }))} className={selectCls}>
+                          <option value="5">5</option>
+                          <option value="7">7</option>
+                          <option value="10">10</option>
+                        </select>
+                      </label>
+                    </>
+                  )}
+
+                  {activeStarterSkill.mode === 'learn' && (
+                    <>
+                      <label className="flex flex-col gap-1 text-[0.72rem]">
+                        <span className={isDarkTheme ? 'text-slate-400' : 'text-[#6b8f84]'}>{t.apiKeyProductView?.guidedLearningLevel || 'Nivel'}</span>
+                        <select value={guidedSkillOptions.learningLevel} onChange={(e) => setGuidedSkillOptions((prev) => ({ ...prev, learningLevel: e.target.value as GuidedSkillOptions['learningLevel'] }))} className={selectCls}>
+                          <option value="beginner">Beginner</option>
+                          <option value="intermediate">Intermediate</option>
+                          <option value="advanced">Advanced</option>
+                        </select>
+                      </label>
+                      <label className="flex flex-col gap-1 text-[0.72rem]">
+                        <span className={isDarkTheme ? 'text-slate-400' : 'text-[#6b8f84]'}>{t.apiKeyProductView?.guidedLearningMethod || 'Método'}</span>
+                        <select value={guidedSkillOptions.learningMethod} onChange={(e) => setGuidedSkillOptions((prev) => ({ ...prev, learningMethod: e.target.value as GuidedSkillOptions['learningMethod'] }))} className={selectCls}>
+                          <option value="step_by_step">Step by step</option>
+                          <option value="socratic">Socratic</option>
+                          <option value="project">Project based</option>
+                        </select>
+                      </label>
+                      <label className="flex flex-col gap-1 text-[0.72rem]">
+                        <span className={isDarkTheme ? 'text-slate-400' : 'text-[#6b8f84]'}>{t.apiKeyProductView?.guidedLearningPractice || 'Práctica'}</span>
+                        <select value={guidedSkillOptions.learningPractice} onChange={(e) => setGuidedSkillOptions((prev) => ({ ...prev, learningPractice: e.target.value as GuidedSkillOptions['learningPractice'] }))} className={selectCls}>
+                          <option value="light">Light</option>
+                          <option value="guided">Guided</option>
+                          <option value="intensive">Intensive</option>
+                        </select>
+                      </label>
+                    </>
+                  )}
+                </div>
+
+                <p className={`mt-2 text-[0.72rem] ${isDarkTheme ? 'text-slate-400' : 'text-[#6b8f84]'}`}>
+                  {t.apiKeyProductView?.guidedSkillInputHint || 'Describe tu objetivo en el cuadro principal. Al enviar, se incluirá este contexto automáticamente.'}
+                </p>
+              </div>
+            )}
+
             {/* Wrapper */}
             <div className={`flex items-center w-full border-2 rounded-[20px] py-2 pl-3 pr-2 gap-1.5 focus-within:border-[#0f766e] focus-within:shadow-[0_0_0_3px_rgba(15,118,110,0.10)] transition-all duration-200 ${isDarkTheme ? 'border-slate-600 bg-slate-800' : 'border-[#99e6d0] bg-white'}`}>
 
@@ -2012,12 +2869,13 @@ const ApiKeyInspectorView: React.FC = () => {
 
               {/* Textarea */}
               <textarea
+                ref={messageTextareaRef}
                 value={messageInput}
                 onChange={e => setMessageInput(e.target.value)}
                 disabled={!isOwner || isSending}
                 rows={1}
                 placeholder={t.apiKeyProductView?.chatPlaceholder || 'Escribe tu mensaje...'}
-                className={`flex-1 min-w-0 border-none outline-none text-[0.95rem] font-[inherit] resize-none max-h-[200px] leading-[1.5] py-1 bg-transparent align-middle ${
+                className={`flex-1 min-w-0 border-none outline-none text-[0.95rem] font-[inherit] resize-none min-h-[38px] max-h-[160px] leading-[1.45] py-1 bg-transparent align-middle ${
                   isDarkTheme ? 'text-slate-100 placeholder:text-slate-400' : 'text-[#0f2a24] placeholder:text-[#6b8f84]'
                 }`}
                 onKeyDown={e => {
@@ -2080,7 +2938,7 @@ const ApiKeyInspectorView: React.FC = () => {
               {/* Send */}
               <button
                 onClick={handleSendMessage}
-                disabled={!isOwner || isSending || !messageInput.trim()}
+                disabled={!isOwner || isSending || (!messageInput.trim() && pendingAttachments.length === 0)}
                 className="bg-[#0f766e] text-white border-none rounded-[12px] py-1.5 px-4 text-[0.9rem] font-semibold cursor-pointer whitespace-nowrap flex-shrink-0 hover:opacity-80 disabled:opacity-30 disabled:cursor-not-allowed transition-opacity flex items-center gap-1.5"
               >
                 {isSending
@@ -2161,6 +3019,25 @@ const ApiKeyInspectorView: React.FC = () => {
                   </p>
 
                   <div className="flex flex-col gap-3 flex-1">
+                    <div className={`rounded-lg border px-3 py-2 text-[0.78rem] ${isDarkTheme ? 'border-slate-700 bg-slate-800 text-slate-300' : 'border-[#a7d7c5] bg-[#f3fbf9] text-[#3d7a6d]'}`}>
+                      {(t.apiKeyProductView?.keysWizardHint || '1) Nombra tu perfil, 2) agrega proveedor y API key, 3) valida para cargar modelos, 4) asígnalos en la pestaña Modelos.')}
+                    </div>
+
+                    <p className={`text-[0.78rem] font-semibold ${isDarkTheme ? 'text-slate-300' : 'text-[#3d7a6d]'}`}>
+                      {t.apiKeyProductView?.stepProfileName || 'Paso 1: Nombre del perfil'}
+                    </p>
+                    <input
+                      value={profileLabel}
+                      onChange={e => setProfileLabel(e.target.value)}
+                      disabled={!isOwner}
+                      placeholder={t.apiKeyProductView?.profileLabelPlaceholder || 'Nombre del perfil (ej: OpenAI Marketing)'}
+                      className={`${inputCls} w-full`}
+                    />
+
+                    <p className={`text-[0.78rem] font-semibold ${isDarkTheme ? 'text-slate-300' : 'text-[#3d7a6d]'}`}>
+                      {t.apiKeyProductView?.stepProviderKey || 'Paso 2: Proveedor y credenciales'}
+                    </p>
+
                     {/* Provider + key */}
                     <div className="flex gap-2">
                       <select
@@ -2168,10 +3045,6 @@ const ApiKeyInspectorView: React.FC = () => {
                         onChange={e => {
                           setProvider(e.target.value as ApiRuntimeProvider);
                           setRemoteModels([]);
-                          setSelectedModel('');
-                          setSelectedTextModelId('');
-                          setSelectedImageModelId('');
-                          setSelectedOtherModelId('');
                           setHasValidatedKey(false);
                           setLastValidatedAt('');
                         }}
@@ -2212,6 +3085,9 @@ const ApiKeyInspectorView: React.FC = () => {
                     )}
 
                     {/* Action buttons */}
+                    <p className={`text-[0.78rem] font-semibold ${isDarkTheme ? 'text-slate-300' : 'text-[#3d7a6d]'}`}>
+                      {t.apiKeyProductView?.stepValidate || 'Paso 3: Validar y probar'}
+                    </p>
                     <div className="flex gap-2">
                       <button
                         onClick={handleValidateKey}
@@ -2222,7 +3098,7 @@ const ApiKeyInspectorView: React.FC = () => {
                       </button>
                       <button
                         onClick={handleTestModel}
-                        disabled={!isOwner || isSending || !selectedModel || (requiresApiKey ? !apiKey.trim() : !baseUrl.trim())}
+                        disabled={!isOwner || isSending || !selectedModel}
                         className={`flex-1 bg-transparent border font-[inherit] text-[0.85rem] py-2 rounded-lg cursor-pointer font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-colors ${isDarkTheme ? 'border-teal-700 text-teal-300 hover:bg-slate-700' : 'border-[#0f766e] text-[#0f766e] hover:bg-[#ecfdf5]'}`}
                       >
                         {t.apiKeyProductView?.testModel || 'Probar modelo'}
@@ -2256,6 +3132,43 @@ const ApiKeyInspectorView: React.FC = () => {
                       className={`${inputCls} resize-y min-h-[80px] w-full`}
                     />
 
+                    <div className={`rounded-lg border p-3 ${isDarkTheme ? 'border-slate-700 bg-slate-800' : 'border-[#a7d7c5] bg-[#f3fbf9]'}`}>
+                      <p className={`text-[0.78rem] font-semibold mb-2 ${isDarkTheme ? 'text-slate-200' : 'text-[#0f2a24]'}`}>
+                        {t.apiKeyProductView?.configuredProfilesTitle || 'Perfiles de API configurados'} ({providerProfiles.length})
+                      </p>
+                      <div className="flex flex-col gap-2 max-h-[180px] overflow-y-auto pr-1">
+                        {providerProfiles.length === 0 && (
+                          <p className={`text-xs ${isDarkTheme ? 'text-slate-400' : 'text-[#6b8f84]'}`}>
+                            {t.apiKeyProductView?.noProfilesConfigured || 'Aún no hay perfiles configurados.'}
+                          </p>
+                        )}
+                        {providerProfiles.map((profile) => (
+                          <div key={profile.id} className={`rounded-md border px-2 py-2 flex items-center gap-2 ${isDarkTheme ? 'border-slate-600 bg-slate-900' : 'border-[#ccfbf1] bg-white'}`}>
+                            <div className="flex-1 min-w-0">
+                              <p className={`text-[0.78rem] font-semibold truncate ${isDarkTheme ? 'text-slate-100' : 'text-[#0f2a24]'}`}>
+                                {profile.label || providerLabel(profile.provider)}
+                              </p>
+                              <p className={`text-[0.7rem] truncate ${isDarkTheme ? 'text-slate-400' : 'text-[#6b8f84]'}`}>
+                                {providerLabel(profile.provider)} · {(profile.validatedModels || []).length} modelos
+                              </p>
+                            </div>
+                            <button
+                              onClick={() => handleLoadProfileDraft(profile)}
+                              className={`text-[0.72rem] px-2 py-1 rounded border ${isDarkTheme ? 'border-slate-500 text-slate-200 hover:bg-slate-700' : 'border-[#99e6d0] text-[#0f766e] hover:bg-[#ecfdf5]'}`}
+                            >
+                              {t.apiKeyProductView?.loadProfileButton || 'Cargar'}
+                            </button>
+                            <button
+                              onClick={() => handleRemoveProfile(profile.id)}
+                              className="text-[0.72rem] px-2 py-1 rounded border border-red-300 text-red-600 hover:bg-red-50"
+                            >
+                              {t.apiKeyProductView?.removeProfileButton || 'Quitar'}
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
                     {selectedRole && (
                       <p className={`text-[0.8rem] ${isDarkTheme ? 'text-slate-400' : 'text-[#6b8f84]'}`}>
                         Rol activo: <strong className={isDarkTheme ? 'text-slate-100' : 'text-[#0f2a24]'}>{selectedRole.title}</strong>
@@ -2270,26 +3183,180 @@ const ApiKeyInspectorView: React.FC = () => {
                 <>
                   <h3 className={`text-[1.1rem] font-semibold mb-1 ${isDarkTheme ? 'text-slate-100' : 'text-[#0f2a24]'}`}>{t.apiKeyProductView?.validatedModelsHeading || 'Modelos validados'}</h3>
                   <p className={`text-[0.8rem] leading-relaxed mb-3 ${isDarkTheme ? 'text-slate-400' : 'text-[#6b8f84]'}`}>
-                    {hasValidatedKey
-                      ? (t.apiKeyProductView?.modelsAvailableForAccount || 'Modelos disponibles para tu cuenta.')
+                    {providerProfiles.length > 0
+                      ? (t.apiKeyProductView?.modelsByFocusHint || 'Selecciona el modelo por enfoque. Puedes usar API keys distintas en cada uno.')
                       : (t.apiKeyProductView?.validateKeyToListModels || 'Valida la API key para listar los modelos disponibles.')}
                   </p>
+
+                  <div className="grid grid-cols-1 gap-2 mb-3">
+                    <div className="grid grid-cols-[160px_1fr] gap-2 items-center">
+                      <label className="text-[0.8rem] text-[#6b8f84]">{t.apiKeyProductView?.modelTextLabel || 'Modelo texto'}</label>
+                      <select
+                        value={selectedTextModelId}
+                        onChange={e => {
+                          setSelectedTextModelId(e.target.value);
+                          if (product) persistConfig(product.id, { selectedTextModelId: e.target.value }).catch(console.error);
+                        }}
+                        disabled={!isOwner || textModelOptions.length === 0}
+                        className={selectCls}
+                      >
+                        <option value="">{t.apiKeyProductView?.noneOption || 'Ninguno'}</option>
+                        {buildOptgroupsByProfile(textModelOptions)}
+                      </select>
+                    </div>
+
+                    <div className="grid grid-cols-[160px_1fr] gap-2 items-center">
+                      <label className="text-[0.8rem] text-[#6b8f84]">{t.apiKeyProductView?.modelImageLabel || 'Modelo imagen'}</label>
+                      <select
+                        value={selectedImageModelId}
+                        onChange={e => {
+                          setSelectedImageModelId(e.target.value);
+                          if (product) persistConfig(product.id, { selectedImageModelId: e.target.value }).catch(console.error);
+                        }}
+                        disabled={!isOwner || imageModelOptions.length === 0}
+                        className={selectCls}
+                      >
+                        <option value="">{t.apiKeyProductView?.noneOption || 'Ninguno'}</option>
+                        {buildOptgroupsByProfile(imageModelOptions)}
+                      </select>
+                    </div>
+
+                    <div className="grid grid-cols-[160px_1fr] gap-2 items-center">
+                      <label className="text-[0.8rem] text-[#6b8f84]">{t.apiKeyProductView?.modelVideoLabel || 'Modelo video'}</label>
+                      <select
+                        value={selectedOtherModelId}
+                        onChange={e => {
+                          setSelectedOtherModelId(e.target.value);
+                          if (product) persistConfig(product.id, { selectedOtherModelId: e.target.value }).catch(console.error);
+                        }}
+                        disabled={!isOwner || otherModelOptions.length === 0}
+                        className={selectCls}
+                      >
+                        <option value="">{t.apiKeyProductView?.noneOption || 'Ninguno'}</option>
+                        {buildOptgroupsByProfile(otherModelOptions)}
+                      </select>
+                    </div>
+
+                    <div className="grid grid-cols-[160px_1fr] gap-2 items-center">
+                      <label className="text-[0.8rem] text-[#6b8f84]">{t.apiKeyProductView?.modelSearchLabel || 'Modelo búsqueda'}</label>
+                      <select
+                        value={selectedSearchModelId}
+                        onChange={e => {
+                          setSelectedSearchModelId(e.target.value);
+                          if (product) persistConfig(product.id, { selectedSearchModelId: e.target.value }).catch(console.error);
+                        }}
+                        disabled={!isOwner || searchModelOptions.length === 0}
+                        className={selectCls}
+                      >
+                        <option value="">{t.apiKeyProductView?.noneOption || 'Ninguno'}</option>
+                        {buildOptgroupsByProfile(searchModelOptions)}
+                      </select>
+                    </div>
+
+                    <div className="grid grid-cols-[160px_1fr] gap-2 items-center">
+                      <label className="text-[0.8rem] text-[#6b8f84]">{t.apiKeyProductView?.modelSummaryLabel || 'Resumen IA'}</label>
+                      <select
+                        value={selectedSummaryModelId}
+                        onChange={e => {
+                          setSelectedSummaryModelId(e.target.value);
+                          if (product) persistConfig(product.id, { selectedSummaryModelId: e.target.value }).catch(console.error);
+                        }}
+                        disabled={!isOwner || textFocusModelOptions.length === 0}
+                        className={selectCls}
+                      >
+                        <option value="">{t.apiKeyProductView?.noneOption || 'Ninguno'}</option>
+                        {buildOptgroupsByProfile(textFocusModelOptions)}
+                      </select>
+                    </div>
+
+                    <div className="grid grid-cols-[160px_1fr] gap-2 items-center">
+                      <label className="text-[0.8rem] text-[#6b8f84]">{t.apiKeyProductView?.modelPromptOptimizeLabel || 'Mejora de prompts'}</label>
+                      <select
+                        value={selectedPromptOptimizerModelId}
+                        onChange={e => {
+                          setSelectedPromptOptimizerModelId(e.target.value);
+                          if (product) persistConfig(product.id, { selectedPromptOptimizerModelId: e.target.value }).catch(console.error);
+                        }}
+                        disabled={!isOwner || textFocusModelOptions.length === 0}
+                        className={selectCls}
+                      >
+                        <option value="">{t.apiKeyProductView?.noneOption || 'Ninguno'}</option>
+                        {buildOptgroupsByProfile(textFocusModelOptions)}
+                      </select>
+                    </div>
+
+                    <div className="grid grid-cols-[160px_1fr] gap-2 items-center">
+                      <label className="text-[0.8rem] text-[#6b8f84]">{t.apiKeyProductView?.modelRoleOptimizeLabel || 'Optimización de rol'}</label>
+                      <select
+                        value={selectedRoleOptimizerModelId}
+                        onChange={e => {
+                          setSelectedRoleOptimizerModelId(e.target.value);
+                          if (product) persistConfig(product.id, { selectedRoleOptimizerModelId: e.target.value }).catch(console.error);
+                        }}
+                        disabled={!isOwner || textFocusModelOptions.length === 0}
+                        className={selectCls}
+                      >
+                        <option value="">{t.apiKeyProductView?.noneOption || 'Ninguno'}</option>
+                        {buildOptgroupsByProfile(textFocusModelOptions)}
+                      </select>
+                    </div>
+
+                    <div className="grid grid-cols-[160px_1fr] gap-2 items-center">
+                      <label className="text-[0.8rem] text-[#6b8f84]">{t.apiKeyProductView?.modelSpeechSynthesisLabel || 'Síntesis vocal'}</label>
+                      <select
+                        value={selectedSpeechSynthesisModelId}
+                        onChange={e => {
+                          setSelectedSpeechSynthesisModelId(e.target.value);
+                          if (product) persistConfig(product.id, { selectedSpeechSynthesisModelId: e.target.value }).catch(console.error);
+                        }}
+                        disabled={!isOwner || audioModelOptions.length === 0}
+                        className={selectCls}
+                      >
+                        <option value="">{t.apiKeyProductView?.noneOption || 'Ninguno'}</option>
+                        {buildOptgroupsByProfile(audioModelOptions)}
+                      </select>
+                    </div>
+
+                    <div className="grid grid-cols-[160px_1fr] gap-2 items-center">
+                      <label className="text-[0.8rem] text-[#6b8f84]">{t.apiKeyProductView?.modelSpeechTranscriptionLabel || 'Transcripción (micro)'}</label>
+                      <select
+                        value={selectedSpeechTranscriptionModelId}
+                        onChange={e => {
+                          setSelectedSpeechTranscriptionModelId(e.target.value);
+                          if (product) persistConfig(product.id, { selectedSpeechTranscriptionModelId: e.target.value }).catch(console.error);
+                        }}
+                        disabled={!isOwner || audioModelOptions.length === 0}
+                        className={selectCls}
+                      >
+                        <option value="">{t.apiKeyProductView?.noneOption || 'Ninguno'}</option>
+                        {buildOptgroupsByProfile(audioModelOptions)}
+                      </select>
+                    </div>
+                  </div>
+
                   {validatedModelOptions.length > 0 && (
                     <div className={`rounded-lg overflow-hidden flex-1 overflow-y-auto ${isDarkTheme ? 'border border-slate-700' : 'border border-[#a7d7c5]'}`}>
-                      {validatedModelOptions.map(model => (
-                        <div key={model.id} className={`grid grid-cols-[1fr_auto_auto] gap-2 p-2.5 text-[0.8rem] border-b last:border-b-0 transition-colors ${isDarkTheme ? 'border-slate-700 hover:bg-slate-800' : 'border-[#e6f4f0] hover:bg-[#f3fbf9]'}`}>
-                          <div className="min-w-0">
-                            <p className={`font-semibold truncate ${isDarkTheme ? 'text-slate-100' : 'text-[#0f2a24]'}`}>{model.label}</p>
-                            <p className={`truncate text-[0.7rem] ${isDarkTheme ? 'text-slate-400' : 'text-[#6b8f84]'}`}>{model.id}</p>
+                      {groupedModelSections.map((section) => (
+                        <div key={section.title} className={`border-b last:border-b-0 ${isDarkTheme ? 'border-slate-700' : 'border-[#d9efe8]'}`}>
+                          <div className={`px-2.5 py-1.5 text-[0.72rem] font-semibold uppercase tracking-[0.03em] ${isDarkTheme ? 'bg-slate-900 text-cyan-300' : 'bg-[#ecfdf5] text-[#0f766e]'}`}>
+                            {section.title}
                           </div>
-                          <div className="flex flex-wrap gap-1 items-center">
-                            {model.capabilities.map(cap => (
-                              <span key={`${model.id}-${cap}`} className="px-1.5 py-0.5 rounded bg-[#d1fae5] text-[#0f766e] border border-[#a7d7c5] text-[0.65rem]">
-                                {capabilityLabel(cap, t)}
-                              </span>
-                            ))}
-                          </div>
-                          <p className="text-[#0f766e] font-semibold whitespace-nowrap">{model.priceLabel}</p>
+                          {section.models.map((model) => (
+                            <div key={model.id} className={`grid grid-cols-[1fr_auto_auto] gap-2 p-2.5 text-[0.8rem] border-t transition-colors ${isDarkTheme ? 'border-slate-700 hover:bg-slate-800' : 'border-[#e6f4f0] hover:bg-[#f3fbf9]'}`}>
+                              <div className="min-w-0">
+                                <p className={`font-semibold truncate ${isDarkTheme ? 'text-slate-100' : 'text-[#0f2a24]'}`}>{model.label}</p>
+                                <p className={`truncate text-[0.7rem] ${isDarkTheme ? 'text-slate-400' : 'text-[#6b8f84]'}`}>{model.rawModelId}</p>
+                              </div>
+                              <div className="flex flex-wrap gap-1 items-center">
+                                {model.capabilities.map(cap => (
+                                  <span key={`${model.id}-${cap}`} className="px-1.5 py-0.5 rounded bg-[#d1fae5] text-[#0f766e] border border-[#a7d7c5] text-[0.65rem]">
+                                    {capabilityLabel(cap, t)}
+                                  </span>
+                                ))}
+                              </div>
+                              <p className="text-[#0f766e] font-semibold whitespace-nowrap">{model.priceLabel}</p>
+                            </div>
+                          ))}
                         </div>
                       ))}
                     </div>
@@ -2322,8 +3389,8 @@ const ApiKeyInspectorView: React.FC = () => {
                     ))}
                   </div>
                   <div className={`mt-3 text-[0.8rem] ${isDarkTheme ? 'text-slate-400' : 'text-[#6b8f84]'}`}>
-                    {t.apiKeyProductView?.providerValueLabel || 'Proveedor'}: <strong className={isDarkTheme ? 'text-slate-100' : 'text-[#0f2a24]'}>{provider}</strong> ·
-                    {t.apiKeyProductView?.modelValueLabel || 'Modelo'}: <strong className={isDarkTheme ? 'text-slate-100' : 'text-[#0f2a24]'}>{selectedModel || '—'}</strong>
+                    {t.apiKeyProductView?.providerValueLabel || 'Proveedor'}: <strong className={isDarkTheme ? 'text-slate-100' : 'text-[#0f2a24]'}>{selectedModelInfo ? providerLabel(selectedModelInfo.provider) : provider}</strong> ·
+                    {t.apiKeyProductView?.modelValueLabel || 'Modelo'}: <strong className={isDarkTheme ? 'text-slate-100' : 'text-[#0f2a24]'}>{selectedModelInfo?.rawModelId || '—'}</strong>
                   </div>
                 </>
               )}
