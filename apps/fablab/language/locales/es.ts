@@ -1921,6 +1921,10 @@ export const es: Translations = {
     template_placeholder: '/* Selectores listos para que otra IA agregue estilos */',
   },
 
+  databaseManager: {
+    explanation: 'Inspecciona las tablas de la base de datos para texto que no está en el objeto `locales`. Usa consultas SQL directas para gestionar contenido multilingüe. Esto puede requerir configuración especial de base de datos para diferentes locales. Pide ayuda al administrador del servidor si es necesario.',
+  },
+
   apiKeyHtmlInjectionViewTranslations: {
     notFound: 'Producto no encontrado o no es público.',
     backToProducts: 'Volver a productos',

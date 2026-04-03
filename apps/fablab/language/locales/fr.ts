@@ -2298,6 +2298,10 @@ export const fr: Translations = {
     providerHistoryLine: 'Fournisseur',
     providerHistoryUnavailable: 'pas de données historiques',
   },
+  databaseManager: {
+    explanation: 'Inspectez les tables de la base de données pour le texte qui n\'est pas dans l\'objet `locales`. Utilisez des requêtes SQL directes pour gérer le contenu multilingue. Cela peut nécessiter une configuration de base de données spéciale pour différents locales. Demandez de l\'aide à l\'administrateur du serveur si nécessaire.',
+  },
+
   creationPath: {
     title: 'Creation-Path',
     subtitle: 'Chemin de création guidé étape par étape avec assistance IA',

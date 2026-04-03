@@ -132,7 +132,7 @@ const DatabaseManagerModal: React.FC<Props> = ({ isOpen, onClose, deploymentId, 
         </div>
 
         <p className="text-xs text-gray-600 dark:text-gray-300 mb-4">
-          {(t as any)?.databaseManager?.subtitle || 'This is a prototype manager. Actions are non-functional.'}
+          {(t as any)?.databaseManager?.explanation}
         </p>
 
         {databaseName && (

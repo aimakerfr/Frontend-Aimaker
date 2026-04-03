@@ -1933,6 +1933,10 @@ export const en: Translations = {
     template_placeholder: '/* Selectors ready for another AI to style */',
   },
 
+  databaseManager: {
+    explanation: 'Inspect database tables for text not in the `locales` object. Use direct SQL queries to manage multilingual content. This may require special database configuration for different locales. Ask the server admin for help if needed.',
+  },
+
   apiKeyHtmlInjectionViewTranslations: {
     notFound: 'Product not found or not public.',
     backToProducts: 'Back to products',
