@@ -26,6 +26,7 @@ import { UserProfile } from '../../types';
 import ApplicationsManagement from '../applications/ApplicationsManagement';
 import ApiKeyManager from '../api-proxy/ApiKeyManager';
 import { useLanguage } from '../../language/useLanguage';
+import FablabChatView from '../chat/FablabChatView';
 
 type Props = {
   user: UserProfile;
@@ -48,6 +49,7 @@ const FabLabLayout: React.FC<Props> = ({
 }) => {
   const location = useLocation();
   const { t } = useLanguage();
+  const isChatRoute = location.pathname.startsWith('/dashboard/chat');
 
   // Compute breadcrumbs only for specific routes
   const { showBreadcrumbs, items: breadcrumbItems } = useMemo(() => {
@@ -130,60 +132,93 @@ const FabLabLayout: React.FC<Props> = ({
           title="dashboard"
         />
 
-        <main className="flex-1 overflow-y-auto p-6 md:p-8">
-          <div className="max-w-7xl mx-auto">
-            {showBreadcrumbs && (
-              <nav className="mb-4 text-sm" aria-label="Breadcrumb">
-                <ol className="flex flex-wrap items-center gap-1 text-gray-500 dark:text-gray-400">
-                  {breadcrumbItems.map((item, idx) => {
-                    const isLast = idx === breadcrumbItems.length - 1;
-                    return (
-                      <li key={`${item.href}-${idx}`} className="flex items-center">
-                        {isLast ? (
-                          <span className="font-medium text-gray-900 dark:text-gray-100">{item.name}</span>
-                        ) : (
-                          <Link to={item.href} className="hover:text-gray-700 dark:hover:text-gray-200 transition-colors">
-                            {item.name}
-                          </Link>
-                        )}
-                        {!isLast && <span className="mx-2 text-gray-400">/</span>}
-                      </li>
-                    );
-                  })}
-                </ol>
-              </nav>
-            )}
-            <Routes>
-              {/* Rutas específicas para cada sección */}
-              <Route path="/" element={<MyDashboard />} />
-              <Route path="/library" element={<Library />} />
-              {/* Home routes */}
-              <Route path="/objects-library" element={<ObjectsLibrary />} />
-              <Route path="/objects-library/:id" element={<ProjectExplorer />} />
+        <main className={isChatRoute ? 'flex-1 overflow-hidden' : 'flex-1 overflow-y-auto p-6 md:p-8'}>
+          {isChatRoute ? (
+            <div className="h-full">
+              <Routes>
+                {/* Rutas específicas para cada sección */}
+                <Route path="/" element={<MyDashboard />} />
+                <Route path="/chat" element={<FablabChatView />} />
+                <Route path="/library" element={<Library />} />
+                {/* Home routes */}
+                <Route path="/objects-library" element={<ObjectsLibrary />} />
+                <Route path="/objects-library/:id" element={<ProjectExplorer />} />
 
-              <Route path="/profile" element={<ProfileSection user={user} />} />
-              <Route path="/context" element={<AIContext />} />
-              <Route path="/maker-path" element={<MakerPathView />} />
-              <Route path="/maker-path/:id" element={<ProjectPlanner />} />
-              <Route path="/project-builder" element={<ProjectBuilderView />} />
-              <Route path="/creation-path" element={<CreationPathView />} />
-              <Route path="/maker-path/modules/:id" element={<PathCreationModules />} />
-              <Route path="/assembler" element={<AssemblerMakerPathsView />} /> {/* New route for assembler listing */}
-              <Route path="/assembler/notebook" element={<NotebookAssembler />} />
-              <Route path="/assembler/landing_page" element={<LandingPageAssembler />} />
-              <Route path="/assembler/new" element={<AssemblerNew />} />
-              <Route path="/applications/new" element={<DeployerNew />} />
-              <Route path="/applications/deployer" element={<Deployer />} />
-              <Route path="/applications" element={<ApplicationsManagement />} />
-              <Route path="/products" element={<Products />} />
-              <Route path="/api-key-manager" element={<ApiKeyManager />} />
-              <Route path="/tools" element={<ExternalAccess />} />
-            </Routes>
-          </div>
+                <Route path="/profile" element={<ProfileSection user={user} />} />
+                <Route path="/context" element={<AIContext />} />
+                <Route path="/maker-path" element={<MakerPathView />} />
+                <Route path="/maker-path/:id" element={<ProjectPlanner />} />
+                <Route path="/project-builder" element={<ProjectBuilderView />} />
+                <Route path="/creation-path" element={<CreationPathView />} />
+                <Route path="/maker-path/modules/:id" element={<PathCreationModules />} />
+                <Route path="/assembler" element={<AssemblerMakerPathsView />} /> {/* New route for assembler listing */}
+                <Route path="/assembler/notebook" element={<NotebookAssembler />} />
+                <Route path="/assembler/landing_page" element={<LandingPageAssembler />} />
+                <Route path="/assembler/new" element={<AssemblerNew />} />
+                <Route path="/applications/new" element={<DeployerNew />} />
+                <Route path="/applications/deployer" element={<Deployer />} />
+                <Route path="/applications" element={<ApplicationsManagement />} />
+                <Route path="/products" element={<Products />} />
+                <Route path="/api-key-manager" element={<ApiKeyManager />} />
+                <Route path="/tools" element={<ExternalAccess />} />
+              </Routes>
+            </div>
+          ) : (
+            <div className="max-w-7xl mx-auto">
+              {showBreadcrumbs && (
+                <nav className="mb-4 text-sm" aria-label="Breadcrumb">
+                  <ol className="flex flex-wrap items-center gap-1 text-gray-500 dark:text-gray-400">
+                    {breadcrumbItems.map((item, idx) => {
+                      const isLast = idx === breadcrumbItems.length - 1;
+                      return (
+                        <li key={`${item.href}-${idx}`} className="flex items-center">
+                          {isLast ? (
+                            <span className="font-medium text-gray-900 dark:text-gray-100">{item.name}</span>
+                          ) : (
+                            <Link to={item.href} className="hover:text-gray-700 dark:hover:text-gray-200 transition-colors">
+                              {item.name}
+                            </Link>
+                          )}
+                          {!isLast && <span className="mx-2 text-gray-400">/</span>}
+                        </li>
+                      );
+                    })}
+                  </ol>
+                </nav>
+              )}
+              <Routes>
+                {/* Rutas específicas para cada sección */}
+                <Route path="/" element={<MyDashboard />} />
+                <Route path="/chat" element={<FablabChatView />} />
+                <Route path="/library" element={<Library />} />
+                {/* Home routes */}
+                <Route path="/objects-library" element={<ObjectsLibrary />} />
+                <Route path="/objects-library/:id" element={<ProjectExplorer />} />
+
+                <Route path="/profile" element={<ProfileSection user={user} />} />
+                <Route path="/context" element={<AIContext />} />
+                <Route path="/maker-path" element={<MakerPathView />} />
+                <Route path="/maker-path/:id" element={<ProjectPlanner />} />
+                <Route path="/project-builder" element={<ProjectBuilderView />} />
+                <Route path="/creation-path" element={<CreationPathView />} />
+                <Route path="/maker-path/modules/:id" element={<PathCreationModules />} />
+                <Route path="/assembler" element={<AssemblerMakerPathsView />} /> {/* New route for assembler listing */}
+                <Route path="/assembler/notebook" element={<NotebookAssembler />} />
+                <Route path="/assembler/landing_page" element={<LandingPageAssembler />} />
+                <Route path="/assembler/new" element={<AssemblerNew />} />
+                <Route path="/applications/new" element={<DeployerNew />} />
+                <Route path="/applications/deployer" element={<Deployer />} />
+                <Route path="/applications" element={<ApplicationsManagement />} />
+                <Route path="/products" element={<Products />} />
+                <Route path="/api-key-manager" element={<ApiKeyManager />} />
+                <Route path="/tools" element={<ExternalAccess />} />
+              </Routes>
+            </div>
+          )}
         </main>
       </div>
 
-      <AIChat />
+      {!location.pathname.startsWith('/dashboard/chat') && <AIChat />}
     </div>
   );
 };
