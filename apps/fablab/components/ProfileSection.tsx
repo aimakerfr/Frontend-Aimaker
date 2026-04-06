@@ -6,6 +6,7 @@ import { httpClient } from '@core/api/http.client';
 import type { UserProfile as ApiUserProfile } from '@core/profile/profile.types';
 import { useLanguage } from '../language/useLanguage';
 import ProductMetricsModule from './ProductMetricsModule';
+import ProfileChatRuntimeConfig from './profile/ProfileChatRuntimeConfig';
 
 // ProfileSection Component - Shows user profile information
 const ProfileSection: React.FC<{ user: UserProfile | null }> = () => {
@@ -287,6 +288,8 @@ const ProfileSection: React.FC<{ user: UserProfile | null }> = () => {
           </div>
         </div>
       </div>
+
+      <ProfileChatRuntimeConfig />
 
       <ProductMetricsModule />
 

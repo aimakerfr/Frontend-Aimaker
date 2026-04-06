@@ -70,6 +70,7 @@ export interface Translations {
   sidebar: {
     dashboard: string;
     myDashboard?: string;
+    fablabChat?: string;
     library: string;
     profile: string;
     context: string;

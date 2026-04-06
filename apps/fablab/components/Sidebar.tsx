@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Server, ExternalLink, LogOut, Boxes, Package, LayoutDashboard, Rocket, Blocks, Hammer } from 'lucide-react';
+import { Server, ExternalLink, LogOut, Boxes, Package, LayoutDashboard, Rocket, Blocks, Hammer, MessageSquare } from 'lucide-react';
 import { useLanguage } from '../language/useLanguage';
 
 interface SidebarProps {
@@ -13,6 +13,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onLogout }) => {
   const { t } = useLanguage();
 
   const menuItems: { path: string; label: string; icon: React.ReactNode }[] = [
+    { path: '/dashboard/chat', label: (t.sidebar as any)?.fablabChat || 'Fablab Chat', icon: <MessageSquare size={20} /> },
     { path: '/dashboard', label: t.sidebar.myDashboard ?? t.sidebar.dashboard, icon: <LayoutDashboard size={20} /> },
     { path: '/dashboard/objects-library', label: t.sidebar.objectsLibrary, icon: <Boxes size={20} /> },
     { path: '/dashboard/project-builder', label: t.sidebar.projectBuilder, icon: <Hammer size={20} /> },
