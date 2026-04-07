@@ -967,20 +967,31 @@ const AssemblerNew: React.FC = () => {
             </p>
           </div>
 
-          <div className="h-[min(70vh,640px)]">
-            <DragDropCanvas
-              modules={canvasModules}
-              onChange={setCanvasModules}
-              onSelectObject={handleSelectObject}
-              onTextChange={handleTextChange}
-              ragObjects={ragSelectedObjects.map((obj) => ({
-                id: obj.id,
-                name: obj.name ?? obj.title ?? `Objeto #${obj.id}`,
-              }))}
-              onRagOpenModal={openRagModal}
-              onRagRemove={handleRagRemove}
-              onRagDrop={handleRagDrop}
-            />
+          <div className="grid gap-6 lg:grid-cols-[280px_minmax(0,1fr)]">
+            <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/40 p-4">
+              <ModulesPalette
+                modules={paletteModules}
+                canvasModules={canvasModules}
+                groups={filteredGroups}
+                ungrouped={filteredUngrouped}
+              />
+            </div>
+
+            <div className="h-[min(70vh,640px)]">
+              <DragDropCanvas
+                modules={canvasModules}
+                onChange={setCanvasModules}
+                onSelectObject={handleSelectObject}
+                onTextChange={handleTextChange}
+                ragObjects={ragSelectedObjects.map((obj) => ({
+                  id: obj.id,
+                  name: obj.name ?? obj.title ?? `Objeto #${obj.id}`,
+                }))}
+                onRagOpenModal={openRagModal}
+                onRagRemove={handleRagRemove}
+                onRagDrop={handleRagDrop}
+              />
+            </div>
           </div>
         </div>
 
