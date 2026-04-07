@@ -17,7 +17,16 @@ const ApplicationsManagement: React.FC = () => {
       try {
         setLoading(true);
         const data = await getMakerPaths();
-        if (isMounted) setItems(data);
+        // Only include maker paths that are marked as having an application deployment
+        const filtered = Array.isArray(data)
+          ? data.filter((mp: any) =>
+              mp?.hasApplicationDeployment === true ||
+              mp?.has_application_deployment === 1 ||
+              mp?.has_application_deployment === true ||
+              mp?.has_application_deployment === '1'
+            )
+          : [];
+        if (isMounted) setItems(filtered);
       } catch (e: any) {
         if (isMounted) setError(e?.message ?? 'Failed to load applications');
       } finally {
@@ -29,6 +38,27 @@ const ApplicationsManagement: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      {/* CTA: Déployer un projet (moved from /dashboard/maker-path to be at top here) */}
+      <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-5 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+        <div>
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+            {/* i18n fallback in FR as requested */}
+            {(t as any)?.projectsHubTranslations?.card2Title ?? 'Déployer un projet'}
+          </h2>
+          <p className="text-sm text-gray-600 dark:text-gray-300">
+            {(t as any)?.projectsHubTranslations?.card2Desc ?? 'Connectez et déployez votre code existant.'}
+          </p>
+        </div>
+        <div>
+          <button
+            type="button"
+            onClick={() => navigate('/dashboard/applications/new')}
+            className="inline-flex items-center px-4 py-2 rounded-xl bg-gray-900 dark:bg-gray-700 hover:bg-gray-800 dark:hover:bg-gray-600 text-white text-sm font-semibold transition-colors"
+          >
+            {(t as any)?.projectsHubTranslations?.continueBtn ?? 'Continuer'}
+          </button>
+        </div>
+      </div>
       <div>
         <h1 className="text-2xl font-semibold mb-2">
           {(t as any)?.applicationsManagement?.title ?? 'Applications Management'}
@@ -71,7 +101,7 @@ const ApplicationsManagement: React.FC = () => {
                   <td className="px-4 py-3 text-sm">
                     <button
                       type="button"
-                      onClick={() => navigate(`/dashboard/deployer?id=${item.id}`)}
+                      onClick={() => navigate(`/dashboard/applications/deployer?id=${item.id}`)}
                       className="inline-flex items-center px-3 py-1.5 rounded-md bg-brand-600 text-white hover:bg-brand-700 text-sm transition-colors"
                     >
                       {(t as any)?.actions?.manageProjectApplication ?? (t as any)?.deployProjectTranslations?.title ?? "Manage Project's Application"}

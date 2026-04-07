@@ -234,6 +234,83 @@ export async function getProjectFile(objectId: string | number, path: string): P
   return httpClient.get<ProjectFileResponse>(`${ENDPOINT}/${objectId}/file?path=${encoded}`);
 }
 
+const buildAbsoluteApiUrl = (endpoint: string): string => {
+  const apiUrl = import.meta.env.VITE_API_URL;
+  if (!apiUrl) {
+    throw new Error('VITE_API_URL is not defined');
+  }
+
+  const cleanBase = apiUrl.endsWith('/') ? apiUrl.slice(0, -1) : apiUrl;
+  const cleanEndpoint = endpoint.startsWith('/') ? endpoint.slice(1) : endpoint;
+  return `${cleanBase}/${cleanEndpoint}`;
+};
+
+export async function getObjectDownloadBlob(objectId: string | number): Promise<Blob> {
+  const url = buildAbsoluteApiUrl(`${ENDPOINT}/${objectId}/download`);
+  const headers: Record<string, string> = {};
+  const token = tokenStorage.get();
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+
+  const response = await fetch(url, {
+    method: 'GET',
+    headers,
+    cache: 'no-store',
+  });
+
+  if (!response.ok) {
+    const text = await response.text().catch(() => '');
+    throw new Error(text || `Download failed with status ${response.status}`);
+  }
+
+  return response.blob();
+}
+
+export async function getObjectDownloadText(objectId: string | number, maxChars = 14000): Promise<string> {
+  const blob = await getObjectDownloadBlob(objectId);
+  const mime = (blob.type || '').toLowerCase();
+  const isTextMime =
+    mime.startsWith('text/')
+    || mime.includes('json')
+    || mime.includes('xml')
+    || mime.includes('javascript')
+    || mime.includes('typescript');
+
+  if (!isTextMime) {
+    return '';
+  }
+
+  const raw = (await blob.text()).replace(/\u0000/g, '').trim();
+  if (!raw) return '';
+  if (raw.length <= maxChars) return raw;
+  return `${raw.slice(0, maxChars)}\n\n[Truncated content]`;
+}
+
+const blobToBase64 = async (blob: Blob): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const value = String(reader.result || '');
+      const idx = value.indexOf(',');
+      resolve(idx >= 0 ? value.slice(idx + 1) : value);
+    };
+    reader.onerror = () => reject(new Error('Unable to read object blob as base64.'));
+    reader.readAsDataURL(blob);
+  });
+};
+
+export async function getObjectDownloadBase64(
+  objectId: string | number
+): Promise<{ base64: string; mimeType: string }> {
+  const blob = await getObjectDownloadBlob(objectId);
+  const base64 = await blobToBase64(blob);
+  return {
+    base64,
+    mimeType: blob.type || 'application/octet-stream',
+  };
+}
+
 const extractFilenameFromDisposition = (header: string): string | null => {
   const match = header.match(/filename\*=UTF-8''([^;]+)|filename="?([^";]+)"?/i);
   if (!match) return null;

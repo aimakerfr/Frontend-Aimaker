@@ -14,6 +14,8 @@ const ENDPOINT = '/api/v1/image/generate';
 
 export interface GenerateImageRequest {
   prompt: string;
+  apiKey?: string;
+  model?: string;
 }
 
 export interface GenerateImageResponse {
@@ -28,7 +30,12 @@ export interface GenerateImageResponse {
  * Returns a base64 data URI that can be used directly as an `<img src>`.
  */
 export const generateImageFromPrompt = async (
-  prompt: string
+  prompt: string,
+  options?: { apiKey?: string; model?: string }
 ): Promise<GenerateImageResponse> => {
-  return httpClient.post<GenerateImageResponse>(ENDPOINT, { prompt });
+  return httpClient.post<GenerateImageResponse>(ENDPOINT, {
+    prompt,
+    ...(options?.apiKey ? { apiKey: options.apiKey } : {}),
+    ...(options?.model ? { model: options.model } : {}),
+  });
 };

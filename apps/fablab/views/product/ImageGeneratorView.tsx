@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Globe, Lock, Copy, Check, ArrowLeft, Wand2, Download, ExternalLink, Save, RefreshCw, Loader2 } from 'lucide-react';
 import SourcePanel from '../rag_multimodal/components/SourcePanel.tsx';
@@ -28,6 +28,7 @@ const ImageGeneratorView: React.FC = () => {
   const { t } = useLanguage();
   const isAuthenticated = !!tokenStorage.get();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const mountedRef = useRef(true);
 
   // ── Product ───────────────────────────────────────────────────
   const [product, setProduct] = useState<Product | null>(null);
@@ -50,8 +51,22 @@ const ImageGeneratorView: React.FC = () => {
   const [isDownloaded, setIsDownloaded] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
+  const resolveSourceLink = (link?: string | null): string => {
+    if (!link) return '';
+    if (/^(https?:\/\/|blob:|data:)/i.test(link)) return link;
+
+    const base = import.meta.env.VITE_API_URL || window.location.origin;
+    const normalized = link.startsWith('/') ? link : `/${link}`;
+    try {
+      return new URL(normalized, base).toString();
+    } catch {
+      return normalized;
+    }
+  };
+
   // ── Load product ───────────────────────────────────────────────
   useEffect(() => {
+    mountedRef.current = true;
     const load = async () => {
       try {
         setIsLoading(true);
@@ -92,6 +107,9 @@ const ImageGeneratorView: React.FC = () => {
       }
     };
     load();
+    return () => {
+      mountedRef.current = false;
+    };
   }, [id]);
 
   // ── Auto-resize textarea ──────────────────────────────────────
@@ -125,8 +143,19 @@ const ImageGeneratorView: React.FC = () => {
       // Load prompt from STEP_IA_GENERATOR
       const generatorProgress = progressData.find(p => p.stepId === STEP_IA_GENERATOR);
       if (generatorProgress?.resultText?.prompt) {
-        setPrompt(generatorProgress.resultText.prompt);
+        setPrompt(generatorProgress.resultText.userPrompt || generatorProgress.resultText.prompt);
         console.log('[ImageGeneratorView] Loaded previous prompt');
+      }
+      const savedContextSourceIds = Array.isArray(generatorProgress?.resultText?.contextSourceIds)
+        ? generatorProgress.resultText.contextSourceIds.map((id: unknown) => String(id)).filter(Boolean)
+        : (typeof generatorProgress?.resultText?.contextSourceId === 'string' && generatorProgress.resultText.contextSourceId
+          ? [generatorProgress.resultText.contextSourceId]
+          : []);
+      if (savedContextSourceIds.length > 0) {
+        setSources((prev) => prev.map((source) => ({
+          ...source,
+          selected: savedContextSourceIds.includes(source.id),
+        })));
       }
 
       // Load image from STEP_OUTPUT_SAVER
@@ -148,17 +177,32 @@ const ImageGeneratorView: React.FC = () => {
       for (const src of apiSources) {
         try {
           const data = await getRagMultimodalSourceContent(src.id);
-          const isPdfOrDoc = data.type === 'doc' || data.type === 'PDF' || data.type === 'DOC';
-          const hasContent = data.content && data.content.trim() !== '';
-          if (!hasContent && !isPdfOrDoc) continue;
+          const normalizedType = mapApiSourceType(data.type);
+          const directLink = resolveSourceLink(
+            src.url ||
+            src.relativePath ||
+            src.filePath ||
+            data.url ||
+            data.relativePath ||
+            data.filePath ||
+            ''
+          );
+          const hasContent = Boolean(data.content && data.content.trim() !== '');
+          const isPreviewableType = ['pdf', 'html', 'image', 'video', 'url'].includes(normalizedType);
+          if (!hasContent && !isPreviewableType && !directLink) continue;
+
+          const fallbackContent = normalizedType === 'url'
+            ? (directLink || data.content || '')
+            : `[${data.name} - pendiente de procesamiento]`;
+
           loaded.push({
             id: src.id.toString(),
             title: data.name || `Source ${src.id}`,
-            type: mapApiSourceType(data.type),
+            type: normalizedType,
             backendType: data.type,
-            content: hasContent ? data.content : `[${data.name} - pendiente de procesamiento]`,
-            url: src.filePath || '',
-            previewUrl: src.filePath || '',
+            content: hasContent ? data.content : fallbackContent,
+            url: directLink,
+            previewUrl: directLink,
             dateAdded: src.createdAt ? new Date(src.createdAt) : new Date(),
             selected: true,
           });
@@ -225,6 +269,33 @@ const ImageGeneratorView: React.FC = () => {
   const fixedTitle = t.products.fixed.imageTitle ?? 'Generador de imágenes con IA';
   const fixedDescription = t.products.fixed.imageDesc ?? '';
 
+  const contextCandidates = useMemo(
+    () => sources.filter((s) => ['image', 'text', 'html', 'pdf'].includes(s.type)),
+    [sources]
+  );
+
+  const selectedContextSources = useMemo(
+    () => contextCandidates.filter((source) => source.selected),
+    [contextCandidates]
+  );
+
+  const getContextPrompt = (): string => {
+    if (selectedContextSources.length === 0) return '';
+    const blocks = selectedContextSources.slice(0, 6).map((source, index) => {
+      const compactContent = String(source.content || '').replace(/\s+/g, ' ').trim().slice(0, 420);
+      return [
+        `Fuente ${index + 1}: ${source.title}`,
+        `Tipo: ${source.type}`,
+        compactContent ? `Resumen: ${compactContent}` : 'Resumen: fuente visual cargada por el usuario.',
+      ].join('\n');
+    });
+    return [
+      '[CONTEXTO DE FUENTES SELECCIONADAS]',
+      ...blocks,
+      'Usa estas fuentes como referencia visual, estilo y composición para la imagen final.',
+    ].join('\n\n');
+  };
+
   const handleCopyUrl = () => {
     navigator.clipboard.writeText(`${window.location.origin}/product/image-generator/${product?.id}`);
     setUrlCopied(true);
@@ -233,25 +304,36 @@ const ImageGeneratorView: React.FC = () => {
 
   // ── Image Generation ──────────────────────────────────────────
   const generateImage = async () => {
+    if (isGenerating) return;
     if (!prompt.trim()) {
       setError(t.imageGeneratorTranslations?.errorEmptyPrompt ?? 'El prompt no puede estar vacío');
       return;
     }
     if (!product?.id) return;
 
-    setIsGenerating(true);
-    setError(null);
+    if (mountedRef.current) {
+      setIsGenerating(true);
+      setError(null);
+    }
 
     try {
-      const finalPrompt = prompt.trim();
-      console.log('[ImageGeneratorView] Sending prompt:', finalPrompt);
+      const contextPrompt = getContextPrompt();
+      const finalPrompt = contextPrompt
+        ? `${prompt.trim()}\n\n[CONTEXTO DE FUENTE]\n${contextPrompt}`
+        : prompt.trim();
+      const boundedPrompt = finalPrompt.slice(0, 2600);
+      console.log('[ImageGeneratorView] Sending prompt length:', boundedPrompt.length);
 
-      const result = await generateImageFromPrompt(finalPrompt);
+      const result = await generateImageFromPrompt(boundedPrompt);
+      if (!result?.imageUrl) {
+        throw new Error(t.imageGeneratorTranslations?.errorGenerating || 'Respuesta inválida del generador de imagen');
+      }
       console.log('[ImageGeneratorView] Image generated ✓  size:', result.size, 'type:', result.contentType);
 
-      setGeneratedImageUrl(result.imageUrl);
-      setIsGenerating(false);
-      setIsDownloaded(false);
+      if (mountedRef.current) {
+        setGeneratedImageUrl(result.imageUrl);
+        setIsDownloaded(false);
+      }
 
       // Save prompt to product_step_progress (STEP_IA_GENERATOR)
       await updateProductStepProgress({
@@ -259,7 +341,10 @@ const ImageGeneratorView: React.FC = () => {
         stepId: STEP_IA_GENERATOR,
         status: 'success',
         resultText: {
-          prompt: finalPrompt,
+          prompt: boundedPrompt,
+          userPrompt: prompt.trim(),
+          useSourceContext: selectedContextSources.length > 0,
+          contextSourceIds: selectedContextSources.map((source) => source.id),
           imageSize: result.size,
           contentType: result.contentType
         }
@@ -279,8 +364,13 @@ const ImageGeneratorView: React.FC = () => {
       console.log('[ImageGeneratorView] Progress saved to product_step_progress');
     } catch (err: any) {
       console.error('[ImageGeneratorView] Generation error:', err);
-      setError(`Error al generar imagen: ${err.message || err}`);
-      setIsGenerating(false);
+      if (mountedRef.current) {
+        setError(`Error al generar imagen: ${err.message || err}`);
+      }
+    } finally {
+      if (mountedRef.current) {
+        setIsGenerating(false);
+      }
     }
   };
 
@@ -299,9 +389,10 @@ const ImageGeneratorView: React.FC = () => {
       link.href = generatedImageUrl;
       link.download = `ai-generated-image-${Date.now()}.png`;
       link.target = '_blank';
+      link.rel = 'noopener noreferrer';
       document.body.appendChild(link);
       link.click();
-      document.body.removeChild(link);
+      link.remove();
       
       setIsDownloaded(true);
       setTimeout(() => setIsDownloaded(false), 3000);
@@ -382,7 +473,7 @@ const ImageGeneratorView: React.FC = () => {
           <div className="flex-1 flex items-start gap-4">
             {isOwner && (
               <button
-                onClick={() => navigate('/dashboard/products')}
+                onClick={() => navigate('/dashboard/context')}
                 className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors flex-shrink-0 mt-1"
                 title={t.imageGeneratorTranslations?.backButton ?? 'Volver'}
               >
@@ -482,6 +573,46 @@ const ImageGeneratorView: React.FC = () => {
               <p className="text-xs text-purple-700 dark:text-purple-300">
                 💡 <strong>{t.imageGeneratorTranslations?.tipLabel ?? 'Tip:'}</strong> {t.imageGeneratorTranslations?.tipText ?? 'Sé específico en tu prompt. Describe estilo, colores, composición y detalles para mejores resultados.'}
               </p>
+            </div>
+
+            {/* Source Context */}
+            <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 space-y-3">
+              <div>
+                <p className="text-sm font-semibold text-gray-800 dark:text-gray-200">
+                  {t.imageGeneratorTranslations?.contextMultiTitle ?? t.imageGeneratorTranslations?.contextTitle ?? 'Fuentes activas como contexto'}
+                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  {t.imageGeneratorTranslations?.contextMultiSubtitle ?? 'Marca con chulo las fuentes del panel izquierdo y se agregan automáticamente al prompt.'}
+                </p>
+              </div>
+
+              <div className="flex items-center justify-between rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 px-3 py-2">
+                <span className="text-xs text-gray-600 dark:text-gray-300">
+                  {t.imageGeneratorTranslations?.contextSelectedCountLabel ?? 'Fuentes seleccionadas'}
+                </span>
+                <span className="text-xs font-bold text-purple-700 dark:text-purple-300">
+                  {selectedContextSources.length}/{contextCandidates.length}
+                </span>
+              </div>
+
+              {selectedContextSources.length === 0 ? (
+                <p className="text-xs text-amber-600 dark:text-amber-300">
+                  {t.imageGeneratorTranslations?.contextEmptySelection || 'No hay fuentes activas para contexto. Activa al menos una desde el listado.'}
+                </p>
+              ) : (
+                <div className="flex flex-wrap gap-1.5">
+                  {selectedContextSources.slice(0, 8).map((source) => (
+                    <span key={source.id} className="px-2 py-1 rounded-md text-[11px] bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800">
+                      {source.title}
+                    </span>
+                  ))}
+                  {selectedContextSources.length > 8 && (
+                    <span className="px-2 py-1 rounded-md text-[11px] bg-gray-100 dark:bg-gray-900 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700">
+                      +{selectedContextSources.length - 8}
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Prompt Input */}

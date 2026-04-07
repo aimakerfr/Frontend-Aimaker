@@ -174,7 +174,7 @@ const ObjectsTable: React.FC<ObjectsTableProps> = ({ items, isLoading, error, t,
                     </button>
                     <button
                       type="button"
-                      className="inline-flex items-center px-3 py-1.5 rounded-md text-sm font-medium bg-brand-50 text-brand-700 border border-brand-200 hover:bg-brand-100 disabled:opacity-60"
+                      className="inline-flex items-center px-3 py-1.5 rounded-md text-sm font-medium bg-brand-50 dark:bg-brand-900/30 text-brand-700 dark:text-brand-300 border border-brand-200 dark:border-brand-800 hover:bg-brand-100 dark:hover:bg-brand-800/50 disabled:opacity-60 transition-colors"
                       onClick={() => onView(item)}
                       disabled={!item.url && !(item as any).data}
                     >
@@ -182,7 +182,7 @@ const ObjectsTable: React.FC<ObjectsTableProps> = ({ items, isLoading, error, t,
                     </button>
                     <button
                       type="button"
-                      className="inline-flex items-center px-3 py-1.5 rounded-md text-sm font-medium bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 disabled:opacity-60"
+                      className="inline-flex items-center px-3 py-1.5 rounded-md text-sm font-medium bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800 hover:bg-red-100 dark:hover:bg-red-800/50 disabled:opacity-60 transition-colors"
                       onClick={() => onDelete(item)}
                       disabled={actionId === item.id}
                     >

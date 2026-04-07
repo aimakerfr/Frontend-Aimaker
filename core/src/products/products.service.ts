@@ -81,12 +81,18 @@ export const forkProduct = async (makerPathId: number): Promise<Product> => {
 export const createProductFromTemplate = async (
   type: string,
   title: string,
-  description?: string
+  description?: string,
+  options?: {
+    productLink?: string;
+    isPublic?: boolean;
+  }
 ): Promise<Product> => {
   return httpClient.post<Product>(`${ENDPOINT}/create-from-template`, {
     type,
     title,
     description: description || '',
+    ...(options?.productLink ? { productLink: options.productLink } : {}),
+    ...(typeof options?.isPublic === 'boolean' ? { isPublic: options.isPublic } : {}),
   });
 };
 
@@ -123,23 +129,7 @@ export const getOrCreateProductByType = async (
 ): Promise<Product> => {
   const storageKey = `fixed_product_id:${type}`;
 
-  // 1) Try cached id first to keep a stable entry
-  const cachedId = typeof window !== 'undefined' ? window.localStorage.getItem(storageKey) : null;
-  if (cachedId) {
-    try {
-      const byId = await getProduct(parseInt(cachedId, 10));
-      // Si el id cacheado no coincide con el tipo, invalidamos cache y seguimos
-      if (byId?.type !== type) {
-        if (typeof window !== 'undefined') window.localStorage.removeItem(storageKey);
-      } else {
-        return byId;
-      }
-    } catch {
-      if (typeof window !== 'undefined') window.localStorage.removeItem(storageKey);
-    }
-  }
-
-  // 2) Try existing products of that type (should be user-scoped from API)
+  // 1) Resolve by type first (user-scoped) to avoid noisy 404 from stale cached IDs.
   const existing = await getProducts({ type });
   if (Array.isArray(existing) && existing.length > 0) {
     const first = existing[0];
@@ -147,7 +137,11 @@ export const getOrCreateProductByType = async (
     return first;
   }
 
-  // 3) Create once if nothing exists
+  // 2) No product found for this type: clear stale cache and create once.
+  if (typeof window !== 'undefined') {
+    window.localStorage.removeItem(storageKey);
+  }
+
   const created = await createProductFromTemplate(type, defaults.title, defaults.description ?? '');
   if (typeof window !== 'undefined') window.localStorage.setItem(storageKey, String(created.id));
   return created;

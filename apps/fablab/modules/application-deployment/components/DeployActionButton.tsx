@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useLanguage } from '@apps/fablab/language/useLanguage';
+import { Rocket, Loader2 } from 'lucide-react';
 import { applicationDeploymentService } from '../services/applicationDeployment.service';
 
 type Props = {
@@ -32,6 +33,8 @@ const DeployActionButton: React.FC<Props> = ({ deploymentId, status, hasFiles, o
     ? 'px-3 py-1.5 text-xs font-semibold rounded bg-red-600 text-white hover:bg-red-700'
     : 'px-3 py-1.5 text-xs font-semibold rounded bg-blue-600 text-white hover:bg-blue-700';
 
+  const Icon = showReDeploy ? Rocket : Rocket;
+
   return (
     <button
       disabled={busy}
@@ -47,8 +50,13 @@ const DeployActionButton: React.FC<Props> = ({ deploymentId, status, hasFiles, o
           setBusy(false);
         }
       }}
-      className={`${classes} ${busy ? 'opacity-70 cursor-not-allowed' : ''}`}
+      className={`${classes} ${busy ? 'opacity-70 cursor-not-allowed' : ''} flex items-center gap-1.5`}
     >
+      {busy ? (
+        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+      ) : (
+        <Icon className="w-3.5 h-3.5" />
+      )}
       {busy ? (t?.common?.loading || 'Loading…') : label}
     </button>
   );
