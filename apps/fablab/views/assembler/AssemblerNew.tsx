@@ -19,6 +19,7 @@ function getApiBase(): string {
 
 const AssemblerNew: React.FC = () => {
   const { t, language } = useLanguage();
+  const tr = t?.assembler?.new ?? {};
   const navigate = useNavigate();
   const [title, setTitle] = useState<string>('');
   const [description, setDescription] = useState<string>('');
@@ -490,6 +491,12 @@ const AssemblerNew: React.FC = () => {
   const selectorModule = selectorModuleKey
     ? canvasModules.find((m) => m.key === selectorModuleKey)
     : null;
+  const selectorModuleLabel = selectorModule?.label ?? selectorModuleKey ?? '';
+  const selectorModalTitle = tr.modal?.selectHtml?.replace('{name}', selectorModuleLabel)
+    ?? `Sélectionner HTML — ${selectorModuleLabel}`;
+  const selectorCurrentSelection = typeof selectorModule?.objectId === 'number'
+    ? { id: selectorModule.objectId, name: selectorModule.objectName ?? undefined }
+    : undefined;
 
   const stationTitle = tr.stationTitle ?? 'Assembleur de Projet';
   const stationDescription = tr.stationDescription ?? 'Sélectionnez les modules que vous souhaitez inclure dans votre nouveau projet.';
@@ -742,8 +749,18 @@ const AssemblerNew: React.FC = () => {
   }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8">
-      <h1 className="text-3xl font-bold text-gray-900 dark:text-white mt-2">{tr.title ?? 'Nuevo proyecto'}</h1>
+    <div className="min-h-screen bg-gray-50 p-6 md:p-8">
+      <div className="max-w-4xl mx-auto space-y-8">
+        <button
+          type="button"
+          onClick={() => navigate(-1)}
+          className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+          {t?.notebook?.header?.back ?? 'Retour'}
+        </button>
+
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white mt-2">{tr.title ?? 'Nuevo proyecto'}</h1>
 
         <input
           type="text"
@@ -761,23 +778,23 @@ const AssemblerNew: React.FC = () => {
         />
 
         <div className="rounded-xl border border-dashed border-gray-200 dark:border-gray-700 p-4 text-sm text-gray-600 dark:text-gray-400">
-          <label className="flex items-start gap-3">
+          <div className="flex items-start gap-3">
             <input
+              id="protected-enabled"
               type="checkbox"
               checked={protectedEnabled}
               onChange={(e) => setProtectedEnabled(e.target.checked)}
               className="mt-1 h-4 w-4 rounded border-gray-300 dark:border-gray-600 text-brand-600 focus:ring-brand-500 bg-white dark:bg-gray-800"
             />
-            <span>
-              <span className="font-semibold text-gray-900 dark:text-gray-100">
+            <div>
+              <div className="font-semibold text-gray-900 dark:text-gray-100">
                 {tr.protectedDbLabel ?? 'Protéger la base de données avec des identifiants'}
-              </span>
-              <span className="block text-xs text-gray-500 dark:text-gray-400">
+              </div>
+              <div className="text-xs text-gray-500 dark:text-gray-400">
                 {tr.protectedDbDesc ?? "Si vous activez cette option, le projet nécessitera une connexion avant d'afficher le contenu."}
-              </span>
-            </span>
-
-          </label>
+              </div>
+            </div>
+          </div>
 
           {protectedEnabled && (
             <div className="mt-4 grid gap-3 md:grid-cols-2">
@@ -788,86 +805,67 @@ const AssemblerNew: React.FC = () => {
                 placeholder={tr.usernamePlaceholder ?? "Nom d'utilisateur"}
                 className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-3 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-500"
               />
-              <span>
-                <span className="font-semibold text-gray-900">
-                  Proteger con credenciales la base de datos
-                </span>
-                <span className="block text-xs text-gray-500">
-                  Si activas esta opción, el proyecto requerirá login antes de mostrar el contenido.
-                </span>
-              </span>
-            </label>
-
-            {protectedEnabled && (
-              <div className="mt-4 grid gap-3 md:grid-cols-2">
-                <input
-                  type="text"
-                  value={protectedUsername}
-                  onChange={(e) => setProtectedUsername(e.target.value)}
-                  placeholder="Nombre de usuario"
-                  className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500"
-                />
-                <input
-                  type="password"
-                  value={protectedPassword}
-                  onChange={(e) => setProtectedPassword(e.target.value)}
-                  placeholder="Contraseña (mínimo 8 caracteres)"
-                  className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500"
-                />
-                {!protectedUsernameValid && (
-                  <div className="text-xs text-amber-600">
-                    El usuario es obligatorio.
-                  </div>
-                )}
-                {!protectedPasswordValid && (
-                  <div className="text-xs text-amber-600">
-                    La contraseña debe tener al menos 8 caracteres.
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-
-          <div className="rounded-xl border border-dashed border-gray-200 p-4 text-sm text-gray-600">
-            <label className="flex items-start gap-3">
               <input
-                type="checkbox"
-                checked={apiConfigEnabled}
-                onChange={(e) => handleApiConfigToggle(e.target.checked)}
-                className="mt-1 h-4 w-4 rounded border-gray-300 text-brand-600 focus:ring-brand-500"
+                type="password"
+                value={protectedPassword}
+                onChange={(e) => setProtectedPassword(e.target.value)}
+                placeholder={tr.passwordPlaceholder ?? 'Mot de passe (minimum 8 caractères)'}
+                className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-3 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-500"
               />
-              <span>
-                <span className="font-semibold text-gray-900">
-                  Configurar API key
-                </span>
-                <span className="block text-xs text-gray-500">
-                  Inyecta una API key fija en el exportable. El usuario final podrá editarla si también arrastras el bloque.
-                </span>
-              </span>
-            </label>
-
-            {apiConfigEnabled && (
-              <div className="mt-4 flex flex-col gap-2">
-                <div className="text-xs text-gray-500">
-                  {apiConfigValue
-                    ? 'API key configurada y lista para el exportable.'
-                    : 'Aun no has configurado la API key.'}
+              {!protectedUsernameValid && (
+                <div className="text-xs text-amber-600">
+                  El usuario es obligatorio.
                 </div>
-                <button
-                  type="button"
-                  onClick={openApiConfigModal}
-                  className="self-start rounded-lg border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-700 hover:border-brand-400 hover:text-brand-600"
-                >
-                  Abrir modal de API key
-                </button>
-                {!apiConfigValueValid && (
-                  <div className="text-xs text-amber-600">
-                    La API key es obligatoria.
-                  </div>
-                )}
+              )}
+              {!protectedPasswordValid && (
+                <div className="text-xs text-amber-600">
+                  La contraseña debe tener al menos 8 caracteres.
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        <div className="rounded-xl border border-dashed border-gray-200 p-4 text-sm text-gray-600">
+          <div className="flex items-start gap-3">
+            <input
+              id="api-config-enabled"
+              type="checkbox"
+              checked={apiConfigEnabled}
+              onChange={(e) => handleApiConfigToggle(e.target.checked)}
+              className="mt-1 h-4 w-4 rounded border-gray-300 text-brand-600 focus:ring-brand-500"
+            />
+            <div>
+              <div className="font-semibold text-gray-900">
+                Configurar API key
               </div>
-            )}
+              <div className="text-xs text-gray-500">
+                Inyecta una API key fija en el exportable. El usuario final podrá editarla si también arrastras el bloque.
+              </div>
+            </div>
           </div>
+
+          {apiConfigEnabled && (
+            <div className="mt-4 flex flex-col gap-2">
+              <div className="text-xs text-gray-500">
+                {apiConfigValue
+                  ? 'API key configurada y lista para el exportable.'
+                  : 'Aun no has configurado la API key.'}
+              </div>
+              <button
+                type="button"
+                onClick={openApiConfigModal}
+                className="self-start rounded-lg border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-700 hover:border-brand-400 hover:text-brand-600"
+              >
+                Abrir modal de API key
+              </button>
+              {!apiConfigValueValid && (
+                <div className="text-xs text-amber-600">
+                  La API key es obligatoria.
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         <AssemblerModal
@@ -959,25 +957,15 @@ const AssemblerNew: React.FC = () => {
           </div>
         </AssemblerModal>
 
-        <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm space-y-6">
+        <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-6 shadow-sm space-y-6">
           <div>
-            <h2 className="text-lg font-semibold text-gray-900">
-              {tr.layoutEditorTitle ?? 'Diseño de módulos'}
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+              {tr.layoutEditorTitle ?? 'Conception des modules'}
             </h2>
-            <p className="text-sm text-gray-500">
-              {tr.layoutEditorDesc ?? 'Arrastra los módulos desde la paleta al canvas. Selecciona un archivo HTML para cada módulo que lo requiera y completa los textos.'}
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              {tr.layoutEditorDesc ?? 'Faites glisser les modules de la palette vers le canevas. Sélectionnez un fichier HTML pour chaque module qui en nécessite un et complétez les textes.'}
             </p>
           </div>
-
-      <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-6 shadow-sm space-y-6">
-        <div>
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-            {tr.layoutEditorTitle ?? 'Conception des modules'}
-          </h2>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            {tr.layoutEditorDesc ?? 'Faites glisser les modules de la palette vers le canevas. Sélectionnez un fichier HTML pour chaque module qui en nécessite un et complétez les textes.'}
-          </p>
-        </div>
 
           <div className="h-[min(70vh,640px)]">
             <DragDropCanvas
@@ -995,7 +983,6 @@ const AssemblerNew: React.FC = () => {
             />
           </div>
         </div>
-      </div>
 
 
         {/* Validation warning for needsObject modules without object */}
@@ -1016,7 +1003,7 @@ const AssemblerNew: React.FC = () => {
         {/* Object selector modal */}
         <AssemblerModal
           isOpen={selectorModuleKey !== null}
-          title={tr.modal?.selectHtml?.replace('{name}', selectorModule?.label ?? selectorModuleKey ?? '') ?? `Sélectionner HTML — ${selectorModule?.label ?? selectorModuleKey ?? ''}`}
+          title={selectorModalTitle}
           onClose={() => setSelectorModuleKey(null)}
         >
 
@@ -1025,11 +1012,7 @@ const AssemblerNew: React.FC = () => {
             product_type_for_assembly={detectedType ?? undefined}
             module_name_for_assembly={selectorModuleKey ?? undefined}
             onObjectSelectionCallback={handleObjectSelected}
-            currentSelection={
-              selectorModule?.objectId
-                ? { id: selectorModule.objectId, name: selectorModule.objectName ?? undefined }
-                : undefined
-            }
+            currentSelection={selectorCurrentSelection}
           />
         </AssemblerModal>
 
@@ -1185,6 +1168,7 @@ const AssemblerNew: React.FC = () => {
           </div>
         </div>
       </div>
+    </div>
   );
 };
 
