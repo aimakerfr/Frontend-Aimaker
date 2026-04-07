@@ -119,8 +119,6 @@ export const UNGROUPED_MODULES: ModuleDefinition[] = [
     description: 'Configura la API global del proyecto.',
     type: 'CONFIG',
     color: 'bg-amber-500',
-    textInput: true,
-    textPlaceholder: 'Pega tu API aquí',
   },
 ];
 
