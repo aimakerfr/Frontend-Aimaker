@@ -2,6 +2,11 @@ import React, { useState, useCallback, useRef, useEffect } from 'react';
 import type { ModuleDefinition, CanvasModule } from './types';
 import { GRID_SIZE } from './types';
 
+type RagInjectedObject = {
+  id: string | number;
+  name?: string | null;
+};
+
 type Props = {
   modules: CanvasModule[];
   onChange: (modules: CanvasModule[]) => void;
@@ -9,12 +14,29 @@ type Props = {
   onSelectObject?: (moduleKey: string) => void;
   /** Called when a textInput module's value changes */
   onTextChange?: (moduleKey: string, value: string) => void;
+  /** RAG injected objects (for hover list/count) */
+  ragObjects?: RagInjectedObject[];
+  /** Open the RAG injection modal */
+  onRagOpenModal?: () => void;
+  /** Remove an injected object from RAG list */
+  onRagRemove?: (objectId: string | number) => void;
+  /** Handle drop of an object id into the RAG module */
+  onRagDrop?: (objectId: number) => void;
 };
 
 /** Clamp a value between min and max */
 const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(max, v));
 
-const DragDropCanvas: React.FC<Props> = ({ modules, onChange, onSelectObject, onTextChange }) => {
+const DragDropCanvas: React.FC<Props> = ({
+  modules,
+  onChange,
+  onSelectObject,
+  onTextChange,
+  ragObjects = [],
+  onRagOpenModal,
+  onRagRemove,
+  onRagDrop,
+}) => {
   const gridRef = useRef<HTMLDivElement>(null);
 
   // ── Drag-to-reposition state ──
@@ -28,6 +50,7 @@ const DragDropCanvas: React.FC<Props> = ({ modules, onChange, onSelectObject, on
 
   // ── Drop from palette highlight ──
   const [paletteHover, setPaletteHover] = useState<{ col: number; row: number } | null>(null);
+  const [ragDropActive, setRagDropActive] = useState(false);
 
   // ── Helpers ──
   const cellSize = useCallback(() => {
@@ -54,6 +77,7 @@ const DragDropCanvas: React.FC<Props> = ({ modules, onChange, onSelectObject, on
     (key: string, e: React.PointerEvent) => {
       // Don't start drag if clicking on a button or resize handle
       if ((e.target as HTMLElement).closest('[data-resize-handle]') || (e.target as HTMLElement).closest('button')) return;
+      if (key === 'api_configuration') return;
       e.preventDefault();
       const mod = modules.find((m) => m.key === key);
       if (!mod) return;
@@ -95,6 +119,7 @@ const DragDropCanvas: React.FC<Props> = ({ modules, onChange, onSelectObject, on
   // ── RESIZE: pointer handlers on corner handle ──
   const handleResizePointerDown = useCallback(
     (key: string, e: React.PointerEvent) => {
+      if (key === 'api_configuration') return;
       e.preventDefault();
       e.stopPropagation();
       const mod = modules.find((m) => m.key === key);
@@ -162,10 +187,12 @@ const DragDropCanvas: React.FC<Props> = ({ modules, onChange, onSelectObject, on
         const mod: ModuleDefinition = JSON.parse(raw);
         if (modules.some((m) => m.key === mod.key)) return;
         const pos = posFromMouse(e.clientX, e.clientY);
-        const defaultColSpan = 4;
-        const defaultRowSpan = 2;
-        const col = clamp(pos.col, 0, GRID_SIZE - defaultColSpan);
-        const row = clamp(pos.row, 0, GRID_SIZE - defaultRowSpan);
+        const isApiConfig = mod.key === 'api_configuration';
+        const defaultColSpan = isApiConfig ? 4 : 4;
+        const defaultRowSpan = isApiConfig ? 2 : 2;
+        const fixedCol = GRID_SIZE - defaultColSpan;
+        const col = isApiConfig ? fixedCol : clamp(pos.col, 0, GRID_SIZE - defaultColSpan);
+        const row = isApiConfig ? 0 : clamp(pos.row, 0, GRID_SIZE - defaultRowSpan);
         const newMod: CanvasModule = {
           ...mod,
           index: modules.length + 1,
@@ -188,11 +215,39 @@ const DragDropCanvas: React.FC<Props> = ({ modules, onChange, onSelectObject, on
     [modules, onChange]
   );
 
+  const apiConfigModule = modules.find((m) => m.key === 'api_configuration');
+  const gridModules = modules.filter((m) => m.key !== 'api_configuration');
+
+  const handleRagDragOver = useCallback((e: React.DragEvent) => {
+    if (!onRagDrop) return;
+    const raw = e.dataTransfer.getData('text/object-id');
+    if (!raw) return;
+    e.preventDefault();
+    setRagDropActive(true);
+  }, [onRagDrop]);
+
+  const handleRagDragLeave = useCallback((e: React.DragEvent) => {
+    if (e.currentTarget.contains(e.relatedTarget as Node)) return;
+    setRagDropActive(false);
+  }, []);
+
+  const handleRagDrop = useCallback((e: React.DragEvent) => {
+    if (!onRagDrop) return;
+    const raw = e.dataTransfer.getData('text/object-id');
+    if (!raw) return;
+    e.preventDefault();
+    setRagDropActive(false);
+    const objectId = Number(raw);
+    if (!Number.isNaN(objectId) && objectId > 0) {
+      onRagDrop(objectId);
+    }
+  }, [onRagDrop]);
+
   // ── Render ──
   return (
     <div
       ref={gridRef}
-      className="relative select-none rounded-2xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/40 overflow-hidden w-full h-full"
+      className="relative select-none rounded-2xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/40 overflow-visible w-full h-full"
       onPointerMove={handleGridPointerMove}
       onPointerUp={handleGridPointerUp}
       onDragOver={handleDragOver}
@@ -239,8 +294,29 @@ const DragDropCanvas: React.FC<Props> = ({ modules, onChange, onSelectObject, on
         />
       )}
 
+      {apiConfigModule && (
+        <div
+          className="absolute top-4 -right-28 w-28 rounded-2xl border border-amber-200 bg-white shadow-md z-30"
+          style={{ minHeight: '72px' }}
+        >
+          <div className={`h-1 rounded-t-2xl ${apiConfigModule.color}`} />
+          <div className="p-2 flex flex-col gap-1">
+            <div className="text-[10px] font-semibold text-gray-900 truncate">{apiConfigModule.label}</div>
+            <div className="text-[9px] text-gray-500">Botón en exportable</div>
+          </div>
+          <button
+            type="button"
+            onClick={() => handleRemove(apiConfigModule.key)}
+            className="absolute -top-2 -right-2 h-5 w-5 rounded-full bg-white border border-gray-200 text-gray-400 hover:text-red-500 hover:border-red-300"
+            title="Remove"
+          >
+            ×
+          </button>
+        </div>
+      )}
+
       {/* Module blocks */}
-      {modules.map((mod) => {
+      {gridModules.map((mod) => {
         const isBeingDragged = draggingKey === mod.key;
         const displayCol = isBeingDragged && ghostPos ? ghostPos.col : mod.col;
         const displayRow = isBeingDragged && ghostPos ? ghostPos.row : mod.row;
@@ -250,6 +326,9 @@ const DragDropCanvas: React.FC<Props> = ({ modules, onChange, onSelectObject, on
           <div
             key={mod.key}
             onPointerDown={(e) => handleBlockPointerDown(mod.key, e)}
+            onDragOver={mod.key === 'rag' ? handleRagDragOver : undefined}
+            onDragLeave={mod.key === 'rag' ? handleRagDragLeave : undefined}
+            onDrop={mod.key === 'rag' ? handleRagDrop : undefined}
             className={
               'absolute rounded-lg border shadow-sm flex flex-col overflow-hidden transition-shadow ' +
               (isBeingDragged
@@ -330,19 +409,60 @@ const DragDropCanvas: React.FC<Props> = ({ modules, onChange, onSelectObject, on
                 </div>
               )}
 
-              {mod.key === 'api_configuration' && (
-                <div className="flex-1 flex flex-col gap-1 mt-1">
-                  <p className="text-[10px] font-semibold text-gray-600 dark:text-gray-300 text-center">
-                    API Key
+              {mod.key === 'rag' && (
+                <div className="flex-1 flex flex-col gap-2 min-h-0 mt-1">
+                  <p className="text-[9px] text-gray-500 dark:text-gray-400 leading-relaxed">
+                    Inyecta documentos del proyecto para el exportable.
                   </p>
-                  <input
-                    type="text"
-                    value={mod.textValue ?? ''}
-                    onChange={(e) => onTextChange?.(mod.key, e.target.value)}
+                  <button
+                    type="button"
                     onPointerDown={(e) => e.stopPropagation()}
-                    placeholder={mod.textPlaceholder ?? 'Pega tu API aquí'}
-                    className="w-full rounded border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-2 py-1 text-[10px] text-gray-800 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-                  />
+                    onClick={() => onRagOpenModal?.()}
+                    className="inline-flex items-center justify-center rounded-md border border-indigo-200 bg-indigo-50 text-indigo-700 text-[9px] font-semibold uppercase tracking-widest px-2 py-1 hover:bg-indigo-100"
+                  >
+                    Inyectar objetos
+                  </button>
+                  {ragObjects.length > 0 && (
+                    <div className="relative inline-flex items-center group w-fit">
+                      <span className="text-[9px] font-semibold text-gray-600 dark:text-gray-300">
+                        Objetos: {ragObjects.length}
+                      </span>
+                      <div className="absolute left-0 top-full mt-2 w-44 rounded-lg border border-gray-200 bg-white shadow-lg opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition z-40">
+                        <div className="max-h-32 overflow-auto p-2 space-y-1">
+                          {ragObjects.map((obj) => (
+                            <div key={obj.id} className="flex items-center justify-between gap-2 text-[9px] text-gray-700">
+                              <span className="truncate">{obj.name ?? `Objeto #${obj.id}`}</span>
+                              <button
+                                type="button"
+                                onPointerDown={(e) => e.stopPropagation()}
+                                onClick={() => onRagRemove?.(obj.id)}
+                                className="h-4 w-4 rounded-full border border-gray-200 text-gray-400 hover:text-red-500 hover:border-red-300 flex items-center justify-center"
+                                title="Quitar"
+                              >
+                                ×
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  <div
+                    className={
+                      'mt-auto rounded-md border border-dashed px-2 py-1 text-[9px] text-center ' +
+                      (ragDropActive
+                        ? 'border-indigo-400 bg-indigo-50 text-indigo-600'
+                        : 'border-gray-200 text-gray-400')
+                    }
+                  >
+                    Arrastra objetos aquí
+                  </div>
+                </div>
+              )}
+
+              {mod.key === 'api_configuration' && (
+                <div className="flex-1 flex items-center justify-center text-[10px] text-gray-600 dark:text-gray-300 text-center px-2">
+                  Se mostrará como botón de configuración en el exportable.
                 </div>
               )}
 

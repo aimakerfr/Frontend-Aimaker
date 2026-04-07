@@ -1,11 +1,12 @@
 import React, { useMemo, useState, useCallback, useEffect } from 'react';
 import { useLanguage } from '../../language/useLanguage';
 import { tokenStorage } from '@core/api/http.client';
+import { getAllObjects, type ObjectItem as LibraryObjectItem } from '@core/objects';
 import { createAssemblerMakerPath } from './services/makerPath.service';
 import { DragDropCanvas, ModulesPalette, ALL_MODULES, MODULE_GROUPS, UNGROUPED_MODULES } from './components/drag-drop';
 import type { CanvasModule, LayoutEntry } from './components/drag-drop';
 import GenericObjectSelector from '@apps/fablab/modules/object-selector/View/Notebook/GenericObjectSelector';
-import type { ObjectItem } from '@apps/fablab/modules/object-selector/services/api_handler';
+import type { ObjectItem as SelectorObjectItem } from '@apps/fablab/modules/object-selector/services/api_handler';
 import AssemblerModal from './components/AssemblerModal';
 import { useNavigate } from 'react-router-dom';
 
@@ -24,6 +25,12 @@ const AssemblerNew: React.FC = () => {
   const [protectedEnabled, setProtectedEnabled] = useState<boolean>(false);
   const [protectedUsername, setProtectedUsername] = useState<string>('');
   const [protectedPassword, setProtectedPassword] = useState<string>('');
+  const [apiConfigEnabled, setApiConfigEnabled] = useState<boolean>(false);
+  const [apiConfigValue, setApiConfigValue] = useState<string>('');
+  const [apiConfigModalOpen, setApiConfigModalOpen] = useState<boolean>(false);
+  const [apiConfigStep, setApiConfigStep] = useState<'form' | 'confirm' | 'loading' | 'success'>('form');
+  const [apiConfigDraft, setApiConfigDraft] = useState<string>('');
+  const [apiConfigDraftError, setApiConfigDraftError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [canvasModules, setCanvasModules] = useState<CanvasModule[]>([]);
@@ -34,7 +41,13 @@ const AssemblerNew: React.FC = () => {
   // Object selector modal state
   const [selectorModuleKey, setSelectorModuleKey] = useState<string | null>(null);
 
-  const tr = t?.assembler?.new ?? {};
+  // RAG injection modal state
+  const [ragModalOpen, setRagModalOpen] = useState<boolean>(false);
+  const [ragAvailableObjects, setRagAvailableObjects] = useState<LibraryObjectItem[]>([]);
+  const [ragSelectedObjects, setRagSelectedObjects] = useState<LibraryObjectItem[]>([]);
+  const [ragSearch, setRagSearch] = useState<string>('');
+  const [ragLoading, setRagLoading] = useState<boolean>(false);
+  const [ragError, setRagError] = useState<string | null>(null);
 
   const availableModules = useMemo(() => ALL_MODULES, []);
   const presets = useMemo(() => (
@@ -146,20 +159,74 @@ const AssemblerNew: React.FC = () => {
   const protectedUsernameValid = !protectedEnabled || protectedUsername.trim().length > 0;
   const protectedPasswordValid = !protectedEnabled || protectedPassword.trim().length >= 8;
   const protectedValid = protectedUsernameValid && protectedPasswordValid;
+  const apiConfigValueValid = !apiConfigEnabled || apiConfigValue.trim().length > 0;
 
   const canCreate = Boolean(
     title.trim().length > 0 &&
     canvasModules.length > 0 &&
     objectModulesValid &&
     landingModulesReady &&
-    protectedValid
+    protectedValid &&
+    apiConfigValueValid
   );
+
+  const openApiConfigModal = useCallback(() => {
+    setApiConfigDraft(apiConfigValue);
+    setApiConfigDraftError(null);
+    setApiConfigStep('form');
+    setApiConfigModalOpen(true);
+  }, [apiConfigValue]);
+
+  const cancelApiConfig = useCallback(() => {
+    setApiConfigEnabled(false);
+    setApiConfigValue('');
+    setApiConfigDraft('');
+    setApiConfigDraftError(null);
+    setApiConfigModalOpen(false);
+  }, []);
+
+  const handleApiConfigToggle = useCallback((checked: boolean) => {
+    setApiConfigEnabled(checked);
+    if (checked) {
+      openApiConfigModal();
+    } else {
+      setApiConfigValue('');
+    }
+  }, [openApiConfigModal]);
+
+  const handleApiConfigContinue = useCallback(() => {
+    const value = apiConfigDraft.trim();
+    if (!value) {
+      setApiConfigDraftError('Debes ingresar una API key válida.');
+      return;
+    }
+    setApiConfigDraftError(null);
+    setApiConfigStep('confirm');
+  }, [apiConfigDraft]);
+
+  const handleApiConfigConfirm = useCallback(() => {
+    const value = apiConfigDraft.trim();
+    if (!value) {
+      setApiConfigDraftError('Debes ingresar una API key válida.');
+      setApiConfigStep('form');
+      return;
+    }
+    setApiConfigStep('loading');
+    setTimeout(() => {
+      setApiConfigValue(value);
+      setApiConfigStep('success');
+    }, 2000);
+  }, [apiConfigDraft]);
+
+  const handleApiConfigDone = useCallback(() => {
+    setApiConfigModalOpen(false);
+  }, []);
 
   const handleSelectObject = useCallback((moduleKey: string) => {
     setSelectorModuleKey(moduleKey);
   }, []);
 
-  const handleObjectSelected = useCallback((obj: ObjectItem) => {
+  const handleObjectSelected = useCallback((obj: SelectorObjectItem) => {
     setCanvasModules((prev) =>
       prev.map((m) =>
         m.key === selectorModuleKey
@@ -175,6 +242,73 @@ const AssemblerNew: React.FC = () => {
       prev.map((m) => (m.key === moduleKey ? { ...m, textValue: value } : m))
     );
   }, []);
+
+  const loadRagObjects = useCallback(async () => {
+    setRagLoading(true);
+    setRagError(null);
+    try {
+      const objects = await getAllObjects();
+      setRagAvailableObjects(Array.isArray(objects) ? objects : []);
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : 'No se pudieron cargar los objetos.';
+      setRagError(message);
+    } finally {
+      setRagLoading(false);
+    }
+  }, []);
+
+  const openRagModal = useCallback(() => {
+    setRagModalOpen(true);
+    if (ragAvailableObjects.length === 0) {
+      void loadRagObjects();
+    }
+  }, [ragAvailableObjects.length, loadRagObjects]);
+
+  const ragSelectedIds = useMemo(() => (
+    new Set(ragSelectedObjects.map((obj) => String(obj.id)))
+  ), [ragSelectedObjects]);
+
+  const ragFilteredObjects = useMemo(() => {
+    const term = ragSearch.trim().toLowerCase();
+    if (!term) return ragAvailableObjects;
+    return ragAvailableObjects.filter((obj) => {
+      const name = (obj.name ?? obj.title ?? '').toString().toLowerCase();
+      return name.includes(term) || String(obj.id).includes(term);
+    });
+  }, [ragAvailableObjects, ragSearch]);
+
+  const handleRagToggle = useCallback((obj: LibraryObjectItem, checked: boolean) => {
+    setRagSelectedObjects((prev) => {
+      const exists = prev.some((item) => String(item.id) === String(obj.id));
+      if (checked && !exists) {
+        return [...prev, obj];
+      }
+      if (!checked && exists) {
+        return prev.filter((item) => String(item.id) !== String(obj.id));
+      }
+      return prev;
+    });
+  }, []);
+
+  const handleRagRemove = useCallback((objectId: string | number) => {
+    setRagSelectedObjects((prev) => prev.filter((item) => String(item.id) !== String(objectId)));
+  }, []);
+
+  const handleRagDrop = useCallback((objectId: number) => {
+    setRagSelectedObjects((prev) => {
+      if (prev.some((item) => Number(item.id) === objectId)) {
+        return prev;
+      }
+      const match = ragAvailableObjects.find((item) => Number(item.id) === objectId);
+      if (match) {
+        return [...prev, match];
+      }
+      return [...prev, { id: objectId, name: `Objeto #${objectId}` } as LibraryObjectItem];
+    });
+    if (ragAvailableObjects.length === 0) {
+      void loadRagObjects();
+    }
+  }, [ragAvailableObjects, loadRagObjects]);
 
   
   // Build layout data from canvas modules
@@ -212,6 +346,9 @@ const AssemblerNew: React.FC = () => {
       language: language ?? 'es',
       has_api_config_module: canvasModules.some((m) => m.key === 'api_configuration') ? '1' : '0',
     };
+    if (apiConfigEnabled) {
+      variables.api_configuration = apiConfigValue.trim();
+    }
     if (protectedEnabled) {
       variables.protected_enabled = '1';
       variables.protected_username = protectedUsername.trim();
@@ -225,12 +362,17 @@ const AssemblerNew: React.FC = () => {
       }
     });
 
+    const ragSources = ragSelectedObjects
+      .map((obj) => Number(obj.id))
+      .filter((value) => Number.isFinite(value) && value > 0);
+
     return {
       PRODUCT_TYPE: detectedType,
       MAKER_PATH_ID: makerPathId,
       INPUT_MODULES: inputModules,
       LAYOUT: layout,
       VARIABLES: variables,
+      ...(ragSources.length > 0 ? { RAG_SOURCES: ragSources } : {}),
     };
   }, [
     canvasModules,
@@ -239,9 +381,12 @@ const AssemblerNew: React.FC = () => {
     description,
     language,
     title,
+    apiConfigEnabled,
+    apiConfigValue,
     protectedEnabled,
     protectedUsername,
     protectedPassword,
+    ragSelectedObjects,
   ]);
 
   const callAssembleEndpoint = useCallback(async (makerPathId: number) => {
@@ -643,28 +788,186 @@ const AssemblerNew: React.FC = () => {
                 placeholder={tr.usernamePlaceholder ?? "Nom d'utilisateur"}
                 className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-3 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-500"
               />
-              <input
-                type="password"
-                value={protectedPassword}
-                onChange={(e) => setProtectedPassword(e.target.value)}
-                placeholder={tr.passwordPlaceholder ?? 'Mot de passe (minimum 8 caractères)'}
-                className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-3 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-500"
-              />
-              {!protectedUsernameValid && (
-                <div className="text-xs text-amber-600 dark:text-amber-400">
-                  {tr.usernameRequired ?? "L'utilisateur est obligatoire."}
-                </div>
-              )}
-              {!protectedPasswordValid && (
-                <div className="text-xs text-amber-600 dark:text-amber-400">
-                  {tr.passwordInvalid ?? 'Le mot de passe doit comporter au moins 8 caractères.'}
-                </div>
-              )}
-            </div>
+              <span>
+                <span className="font-semibold text-gray-900">
+                  Proteger con credenciales la base de datos
+                </span>
+                <span className="block text-xs text-gray-500">
+                  Si activas esta opción, el proyecto requerirá login antes de mostrar el contenido.
+                </span>
+              </span>
+            </label>
 
-          )}
+            {protectedEnabled && (
+              <div className="mt-4 grid gap-3 md:grid-cols-2">
+                <input
+                  type="text"
+                  value={protectedUsername}
+                  onChange={(e) => setProtectedUsername(e.target.value)}
+                  placeholder="Nombre de usuario"
+                  className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                />
+                <input
+                  type="password"
+                  value={protectedPassword}
+                  onChange={(e) => setProtectedPassword(e.target.value)}
+                  placeholder="Contraseña (mínimo 8 caracteres)"
+                  className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                />
+                {!protectedUsernameValid && (
+                  <div className="text-xs text-amber-600">
+                    El usuario es obligatorio.
+                  </div>
+                )}
+                {!protectedPasswordValid && (
+                  <div className="text-xs text-amber-600">
+                    La contraseña debe tener al menos 8 caracteres.
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          <div className="rounded-xl border border-dashed border-gray-200 p-4 text-sm text-gray-600">
+            <label className="flex items-start gap-3">
+              <input
+                type="checkbox"
+                checked={apiConfigEnabled}
+                onChange={(e) => handleApiConfigToggle(e.target.checked)}
+                className="mt-1 h-4 w-4 rounded border-gray-300 text-brand-600 focus:ring-brand-500"
+              />
+              <span>
+                <span className="font-semibold text-gray-900">
+                  Configurar API key
+                </span>
+                <span className="block text-xs text-gray-500">
+                  Inyecta una API key fija en el exportable. El usuario final podrá editarla si también arrastras el bloque.
+                </span>
+              </span>
+            </label>
+
+            {apiConfigEnabled && (
+              <div className="mt-4 flex flex-col gap-2">
+                <div className="text-xs text-gray-500">
+                  {apiConfigValue
+                    ? 'API key configurada y lista para el exportable.'
+                    : 'Aun no has configurado la API key.'}
+                </div>
+                <button
+                  type="button"
+                  onClick={openApiConfigModal}
+                  className="self-start rounded-lg border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-700 hover:border-brand-400 hover:text-brand-600"
+                >
+                  Abrir modal de API key
+                </button>
+                {!apiConfigValueValid && (
+                  <div className="text-xs text-amber-600">
+                    La API key es obligatoria.
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
 
+        <AssemblerModal
+          isOpen={apiConfigModalOpen}
+          title="Configurar API key"
+          onClose={() => setApiConfigModalOpen(false)}
+        >
+          <div className="space-y-4">
+            {apiConfigStep === 'form' && (
+              <div className="space-y-3">
+                <div className="text-sm font-semibold text-gray-900">
+                  Estas configurando informacion sensible
+                </div>
+                <p className="text-xs text-gray-500">
+                  La API key quedara inyectada en el exportable. Podras editarla luego si el modulo esta presente.
+                </p>
+                <input
+                  type="password"
+                  value={apiConfigDraft}
+                  onChange={(e) => setApiConfigDraft(e.target.value)}
+                  placeholder="Pega tu API key"
+                  className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                />
+                {apiConfigDraftError && (
+                  <div className="text-xs text-amber-600">{apiConfigDraftError}</div>
+                )}
+                <div className="flex items-center justify-between">
+                  <button
+                    type="button"
+                    onClick={cancelApiConfig}
+                    className="rounded-lg border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-600 hover:border-gray-400"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleApiConfigContinue}
+                    className="rounded-lg bg-brand-600 px-3 py-2 text-xs font-semibold text-white hover:bg-brand-700"
+                  >
+                    Continuar
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {apiConfigStep === 'confirm' && (
+              <div className="space-y-3 text-center">
+                <div className="text-sm font-semibold text-gray-900">Confirmas esta configuracion?</div>
+                <p className="text-xs text-gray-500">Se inyectara la API key en el exportable.</p>
+                <div className="flex items-center justify-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setApiConfigStep('form')}
+                    className="rounded-lg border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-600"
+                  >
+                    Volver
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleApiConfigConfirm}
+                    className="rounded-lg bg-brand-600 px-3 py-2 text-xs font-semibold text-white"
+                  >
+                    Confirmar
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {apiConfigStep === 'loading' && (
+              <div className="space-y-2 text-center">
+                <div className="text-sm font-semibold text-gray-900">Guardando configuracion...</div>
+                <p className="text-xs text-gray-500">Protegiendo tu API key.</p>
+              </div>
+            )}
+
+            {apiConfigStep === 'success' && (
+              <div className="space-y-3 text-center">
+                <div className="text-sm font-semibold text-gray-900">API key configurada correctamente</div>
+                <p className="text-xs text-gray-500">Ya puedes usar el chat en el exportable.</p>
+                <button
+                  type="button"
+                  onClick={handleApiConfigDone}
+                  className="rounded-lg bg-brand-600 px-3 py-2 text-xs font-semibold text-white"
+                >
+                  Listo
+                </button>
+              </div>
+            )}
+          </div>
+        </AssemblerModal>
+
+        <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm space-y-6">
+          <div>
+            <h2 className="text-lg font-semibold text-gray-900">
+              {tr.layoutEditorTitle ?? 'Diseño de módulos'}
+            </h2>
+            <p className="text-sm text-gray-500">
+              {tr.layoutEditorDesc ?? 'Arrastra los módulos desde la paleta al canvas. Selecciona un archivo HTML para cada módulo que lo requiera y completa los textos.'}
+            </p>
+          </div>
 
       <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-6 shadow-sm space-y-6">
         <div>
@@ -676,22 +979,21 @@ const AssemblerNew: React.FC = () => {
           </p>
         </div>
 
-        <div className="space-y-4">
-          <ModulesPalette
-            modules={paletteModules}
-            canvasModules={canvasModules}
-            groups={filteredGroups}
-            ungrouped={filteredUngrouped}
-          />
-        </div>
-
-        <div className="h-[min(70vh,640px)]">
-          <DragDropCanvas
-            modules={canvasModules}
-            onChange={setCanvasModules}
-            onSelectObject={handleSelectObject}
-            onTextChange={handleTextChange}
-          />
+          <div className="h-[min(70vh,640px)]">
+            <DragDropCanvas
+              modules={canvasModules}
+              onChange={setCanvasModules}
+              onSelectObject={handleSelectObject}
+              onTextChange={handleTextChange}
+              ragObjects={ragSelectedObjects.map((obj) => ({
+                id: obj.id,
+                name: obj.name ?? obj.title ?? `Objeto #${obj.id}`,
+              }))}
+              onRagOpenModal={openRagModal}
+              onRagRemove={handleRagRemove}
+              onRagDrop={handleRagDrop}
+            />
+          </div>
         </div>
       </div>
 
@@ -729,6 +1031,83 @@ const AssemblerNew: React.FC = () => {
                 : undefined
             }
           />
+        </AssemblerModal>
+
+        <AssemblerModal
+          isOpen={ragModalOpen}
+          title="Inyectar objetos para RAG"
+          onClose={() => setRagModalOpen(false)}
+        >
+          <div className="space-y-4">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+              <input
+                value={ragSearch}
+                onChange={(ev) => setRagSearch(ev.target.value)}
+                placeholder="Buscar objetos"
+                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700"
+              />
+              <button
+                type="button"
+                onClick={() => void loadRagObjects()}
+                disabled={ragLoading}
+                className="rounded-lg border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-600 hover:bg-gray-50 disabled:opacity-60"
+              >
+                Recargar
+              </button>
+            </div>
+
+            {ragLoading && (
+              <div className="text-sm text-gray-500">Cargando objetos...</div>
+            )}
+
+            {ragError && (
+              <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                {ragError}
+              </div>
+            )}
+
+            {!ragLoading && !ragError && ragFilteredObjects.length === 0 && (
+              <div className="text-sm text-gray-500">No hay objetos disponibles.</div>
+            )}
+
+            {!ragLoading && !ragError && ragFilteredObjects.length > 0 && (
+              <div className="max-h-72 overflow-auto space-y-2 rounded-lg border border-gray-200 p-2">
+                {ragFilteredObjects.map((obj) => {
+                  const checked = ragSelectedIds.has(String(obj.id));
+                  return (
+                    <label
+                      key={obj.id}
+                      className="flex items-center justify-between gap-3 rounded-md px-3 py-2 hover:bg-gray-50"
+                    >
+                      <div className="min-w-0">
+                        <div className="text-sm font-medium text-gray-800 truncate">
+                          {obj.name ?? obj.title ?? `Objeto #${obj.id}`}
+                        </div>
+                        <div className="text-[11px] text-gray-500">{obj.type ?? 'Documento'}</div>
+                      </div>
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={(ev) => handleRagToggle(obj, ev.target.checked)}
+                        className="h-4 w-4 rounded border-gray-300 text-indigo-600"
+                      />
+                    </label>
+                  );
+                })}
+              </div>
+            )}
+
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-gray-500">Seleccionados: {ragSelectedObjects.length}</span>
+              <button
+                type="button"
+                onClick={() => setRagModalOpen(false)}
+                className="rounded-lg bg-brand-600 px-4 py-2 text-xs font-semibold text-white"
+              >
+                Listo
+              </button>
+            </div>
+          </div>
         </AssemblerModal>
 
         {/* Create & Assemble button + results */}
