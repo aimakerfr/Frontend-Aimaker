@@ -4,6 +4,8 @@ import type {
   ProviderChatResponse,
   ProviderModelTestRequest,
   ProviderModelTestResponse,
+  ProviderUsageSummaryRequest,
+  ProviderUsageSummaryResponse,
   ValidateProviderKeyRequest,
   ValidateProviderKeyResponse,
 } from './api-key-runtime.types';
@@ -26,4 +28,10 @@ export const providerTestModel = async (
   data: ProviderModelTestRequest
 ): Promise<ProviderModelTestResponse> => {
   return httpClient.post<ProviderModelTestResponse>(`${ENDPOINT}/test-model`, data);
+};
+
+export const providerUsageSummary = async (
+  data: ProviderUsageSummaryRequest
+): Promise<ProviderUsageSummaryResponse> => {
+  return httpClient.post<ProviderUsageSummaryResponse>(`${ENDPOINT}/usage-summary`, data);
 };

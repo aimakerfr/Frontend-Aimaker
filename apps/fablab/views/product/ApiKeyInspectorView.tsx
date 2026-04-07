@@ -1,21 +1,14 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   ArrowLeft,
-  ChevronDown,
-  ChevronRight,
-  CirclePlus,
-  Copy,
-  Bot,
-  Check,
   Globe,
-  GripVertical,
-  KeyRound,
-  Lock,
+  Moon,
   Plus,
   Send,
-  ShieldCheck,
-  User,
+  Sun,
+  Download,
+  KeyRound,
 } from 'lucide-react';
 import { getOrCreateProductByType, getProduct, getPublicProduct, type Product } from '@core/products';
 import { getProductStepProgress, updateProductStepProgress } from '@core/product-step-progress';
@@ -30,9 +23,14 @@ import {
 import { tokenStorage } from '@core/api/http.client';
 import { useLanguage } from '../../language/useLanguage';
 
+// ─── Constants ───────────────────────────────────────────────────────────────
+
 const STEP_CONFIG = 1;
-const STEP_CHAT = 2;
-const STEP_STATS = 3;
+const STEP_CHAT   = 2;
+const STEP_STATS  = 3;
+const THEME_STORAGE_KEY = 'aimaker:api_key_theme';
+
+// ─── Types ───────────────────────────────────────────────────────────────────
 
 type ChatItem = {
   id: string;
@@ -41,6 +39,14 @@ type ChatItem = {
   createdAt: string;
   outputKind?: 'text' | 'image' | 'audio' | 'video' | 'none';
   outputPreview?: string;
+};
+
+type PendingAttachment = {
+  id: string;
+  name: string;
+  mimeType: string;
+  data: string;
+  summary: string;
 };
 
 type RuntimeStats = {
@@ -67,6 +73,10 @@ type ModelCapability = 'text' | 'image' | 'audio' | 'video' | 'search' | 'unknow
 
 type EnrichedModelOption = {
   id: string;
+  rawModelId: string;
+  profileId: string;
+  profileLabel: string;
+  provider: ApiRuntimeProvider;
   label: string;
   displayLabel: string;
   capabilities: ModelCapability[];
@@ -95,13 +105,63 @@ type ConversationRecord = {
   messages: ChatItem[];
 };
 
+type ProviderProfile = {
+  id: string;
+  label: string;
+  provider: ApiRuntimeProvider;
+  apiKeyEncoded: string;
+  baseUrl?: string;
+  validatedModels: ProviderModelInfo[];
+  lastValidatedAt?: string;
+};
+
+type StarterSkill = {
+  id: string;
+  label: string;
+  subtitle: string;
+  icon: string;
+  mode: GuidedSkillMode;
+  baseInstruction: string;
+  capability: Exclude<ModelCapability, 'unknown'>;
+};
+
+type GuidedSkillMode = 'image' | 'video' | 'search' | 'write' | 'ideas' | 'learn';
+
+type GuidedSkillOptions = {
+  imageStyle: 'photorealistic' | 'illustration' | '3d' | 'cinematic';
+  imageQuality: 'draft' | 'high' | 'ultra';
+  imageAspect: '1:1' | '16:9' | '9:16';
+  videoStyle: 'cinematic' | 'ugc' | 'minimal';
+  videoDuration: '8s' | '15s' | '30s';
+  videoPace: 'calm' | 'balanced' | 'dynamic';
+  searchDepth: 'quick' | 'standard' | 'deep';
+  searchOutput: 'briefing' | 'table' | 'bullet';
+  searchSources: 'required' | 'optional';
+  writingTone: 'professional' | 'friendly' | 'sales';
+  writingFormat: 'paragraph' | 'bullet' | 'framework';
+  writingLength: 'short' | 'medium' | 'long';
+  writingAudience: 'general' | 'executive' | 'technical';
+  ideasHorizon: 'today' | 'week' | 'month';
+  ideasRisk: 'safe' | 'balanced' | 'bold';
+  ideasCount: '5' | '7' | '10';
+  learningLevel: 'beginner' | 'intermediate' | 'advanced';
+  learningMethod: 'step_by_step' | 'socratic' | 'project';
+  learningPractice: 'light' | 'guided' | 'intensive';
+};
+
+// ─── Static data ─────────────────────────────────────────────────────────────
+
 const PROVIDERS: Array<{ value: ApiRuntimeProvider; label: string; hint: string }> = [
-  { value: 'google', label: 'Google', hint: 'AIza...' },
-  { value: 'openai', label: 'OpenAI', hint: 'sk-...' },
-  { value: 'anthropic', label: 'Anthropic', hint: 'sk-ant-...' },
-  { value: 'mistral', label: 'Mistral', hint: 'Key token' },
-  { value: 'perplexity', label: 'Perplexity', hint: 'pplx-...' },
+  { value: 'google',      label: 'Google',      hint: 'AIza...'     },
+  { value: 'openai',      label: 'OpenAI',      hint: 'sk-...'      },
+  { value: 'anthropic',   label: 'Anthropic',   hint: 'sk-ant-...'  },
+  { value: 'mistral',     label: 'Mistral',     hint: 'Key token'   },
+  { value: 'perplexity',  label: 'Perplexity',  hint: 'pplx-...'   },
+  { value: 'ollama',      label: 'OLLAMA / Local', hint: 'Optional local token' },
 ];
+
+const providerLabel = (value: ApiRuntimeProvider): string =>
+  PROVIDERS.find((item) => item.value === value)?.label || value;
 
 const EMPTY_STATS: RuntimeStats = {
   totalRequests: 0,
@@ -111,6 +171,8 @@ const EMPTY_STATS: RuntimeStats = {
   totalEstimatedCost: 0,
   lastLatencyMs: 0,
 };
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
 
 const createConversation = (title: string): ConversationRecord => {
   const now = new Date().toISOString();
@@ -124,84 +186,86 @@ const createConversation = (title: string): ConversationRecord => {
 };
 
 const encodeSecret = (value: string): string => {
-  try {
-    return btoa(unescape(encodeURIComponent(value)));
-  } catch {
-    return '';
-  }
+  try { return btoa(unescape(encodeURIComponent(value))); }
+  catch { return ''; }
 };
 
 const decodeSecret = (value: string): string => {
-  try {
-    return decodeURIComponent(escape(atob(value)));
-  } catch {
-    return '';
-  }
+  try { return decodeURIComponent(escape(atob(value))); }
+  catch { return ''; }
 };
 
 const isLikelyKeyFormat = (provider: ApiRuntimeProvider, apiKey: string): boolean => {
   const k = apiKey.trim();
+  if (provider === 'ollama') return true;
   if (!k) return false;
   switch (provider) {
-    case 'google':
-      return /^AIza[0-9A-Za-z\-_]{20,}$/.test(k);
-    case 'openai':
-      return /^sk-[A-Za-z0-9\-_]{20,}$/.test(k);
-    case 'anthropic':
-      return /^sk-ant-[A-Za-z0-9\-_]{12,}$/.test(k);
-    case 'perplexity':
-      return /^pplx-[A-Za-z0-9\-_]{8,}$/.test(k);
-    case 'mistral':
-      return k.length >= 16;
-    default:
-      return false;
+    case 'google':     return /^AIza[0-9A-Za-z\-_]{20,}$/.test(k);
+    case 'openai':     return /^sk-[A-Za-z0-9\-_]{20,}$/.test(k);
+    case 'anthropic':  return /^sk-ant-[A-Za-z0-9\-_]{12,}$/.test(k);
+    case 'perplexity': return /^pplx-[A-Za-z0-9\-_]{8,}$/.test(k);
+    case 'mistral':    return k.length >= 16;
+    default:           return false;
   }
 };
 
-const normalizeModelId = (value: string): string => value.replace(/^models\//, '').trim().toLowerCase();
+const normalizeModelId = (value: string): string =>
+  value.replace(/^models\//, '').trim().toLowerCase();
+
+const MODEL_BIND_SEP = '::';
+
+const encodeModelBindingId = (profileId: string, modelId: string): string => `${profileId}${MODEL_BIND_SEP}${modelId}`;
+
+const decodeModelBindingId = (bindingId: string): { profileId: string; modelId: string } | null => {
+  const idx = bindingId.indexOf(MODEL_BIND_SEP);
+  if (idx <= 0) return null;
+  return {
+    profileId: bindingId.slice(0, idx),
+    modelId: bindingId.slice(idx + MODEL_BIND_SEP.length),
+  };
+};
+
+const toBase64 = async (file: File): Promise<string> => {
+  const dataUrl = await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ''));
+    reader.onerror = () => reject(new Error('No se pudo leer el archivo.'));
+    reader.readAsDataURL(file);
+  });
+  const idx = dataUrl.indexOf(',');
+  return idx >= 0 ? dataUrl.slice(idx + 1) : '';
+};
+
+const isTextLikeFile = (file: File): boolean => {
+  return file.type.startsWith('text/') || /\.(txt|md|json|csv|xml|html|js|ts|tsx|jsx|py|php|yml|yaml|sql)$/i.test(file.name);
+};
 
 const inferCapabilitiesFromId = (modelId: string): ModelCapability[] => {
-  const value = normalizeModelId(modelId);
-
-  if (value.includes('veo') || value.includes('video')) return ['video'];
-  if (value.includes('image') || value.includes('imagen') || value.includes('nano-banana')) return ['image'];
-  if (value.includes('whisper') || value.includes('tts') || value.includes('stt') || value.includes('audio') || value.includes('voxtral')) {
-    return ['audio'];
-  }
-  if (value.includes('sonar') || value.includes('search')) return ['search'];
-  if (value.length > 0) return ['text'];
+  const v = normalizeModelId(modelId);
+  if (v.includes('veo') || v.includes('video'))  return ['video'];
+  if (v.includes('image') || v.includes('imagen') || v.includes('nano-banana')) return ['image'];
+  if (v.includes('whisper') || v.includes('tts') || v.includes('stt') || v.includes('audio') || v.includes('voxtral')) return ['audio'];
+  if (v.includes('sonar') || v.includes('search')) return ['search'];
+  if (v.length > 0) return ['text'];
   return ['unknown'];
 };
 
 const capabilityLabel = (capability: ModelCapability, t: any): string => {
   switch (capability) {
-    case 'text':
-      return t.apiKeyProductView?.capabilityText || 'Texto';
-    case 'image':
-      return t.apiKeyProductView?.capabilityImage || 'Imagen';
-    case 'audio':
-      return t.apiKeyProductView?.capabilityAudio || 'Audio';
-    case 'video':
-      return t.apiKeyProductView?.capabilityVideo || 'Video';
-    case 'search':
-      return t.apiKeyProductView?.capabilitySearch || 'Busqueda';
-    default:
-      return t.apiKeyProductView?.capabilityUnknown || 'Desconocido';
+    case 'text':    return t.apiKeyProductView?.capabilityText    || 'Texto';
+    case 'image':   return t.apiKeyProductView?.capabilityImage   || 'Imagen';
+    case 'audio':   return t.apiKeyProductView?.capabilityAudio   || 'Audio';
+    case 'video':   return t.apiKeyProductView?.capabilityVideo   || 'Video';
+    case 'search':  return t.apiKeyProductView?.capabilitySearch  || 'Búsqueda';
+    default:        return t.apiKeyProductView?.capabilityUnknown || 'Desconocido';
   }
 };
 
 const formatPriceLabel = (catalogModel?: CatalogModel): string => {
   if (!catalogModel) return 'N/A';
-
-  if (catalogModel.prix && catalogModel.prix.trim()) {
-    return catalogModel.prix.trim();
-  }
-
-  if (Number(catalogModel.imageOutput ?? 0) > 0) {
-    return `$${Number(catalogModel.imageOutput).toFixed(3)}/img`;
-  }
-
-  const input = Number(catalogModel.inputPer1M ?? 0);
+  if (catalogModel.prix?.trim()) return catalogModel.prix.trim();
+  if (Number(catalogModel.imageOutput ?? 0) > 0) return `$${Number(catalogModel.imageOutput).toFixed(3)}/img`;
+  const input  = Number(catalogModel.inputPer1M  ?? 0);
   const output = Number(catalogModel.outputPer1M ?? 0);
   if (input <= 0 && output <= 0) return 'N/A';
   return `$${input}/$${output} /1M`;
@@ -209,24 +273,19 @@ const formatPriceLabel = (catalogModel?: CatalogModel): string => {
 
 const modelSortPrice = (catalogModel?: CatalogModel): number => {
   if (!catalogModel) return Number.POSITIVE_INFINITY;
-
-  if (Number(catalogModel.imageOutput ?? 0) > 0) {
-    return Number(catalogModel.imageOutput);
-  }
-
-  const input = Number(catalogModel.inputPer1M ?? 0);
+  if (Number(catalogModel.imageOutput ?? 0) > 0) return Number(catalogModel.imageOutput);
+  const input  = Number(catalogModel.inputPer1M  ?? 0);
   const output = Number(catalogModel.outputPer1M ?? 0);
   if (input <= 0 && output <= 0) return Number.POSITIVE_INFINITY;
-
   return input + output;
 };
 
 const capabilityRank = (capabilities: ModelCapability[]): number => {
-  if (capabilities.includes('text')) return 1;
+  if (capabilities.includes('text'))   return 1;
   if (capabilities.includes('search')) return 2;
-  if (capabilities.includes('image')) return 3;
-  if (capabilities.includes('audio')) return 4;
-  if (capabilities.includes('video')) return 5;
+  if (capabilities.includes('image'))  return 3;
+  if (capabilities.includes('audio'))  return 4;
+  if (capabilities.includes('video'))  return 5;
   return 99;
 };
 
@@ -238,7 +297,7 @@ const estimateCost = (
 ): number => {
   const info = catalogMap.get(modelId) ?? catalogMap.get(normalizeModelId(modelId));
   if (!info) return 0;
-  const inputPer1M = Number(info.inputPer1M ?? 0);
+  const inputPer1M  = Number(info.inputPer1M  ?? 0);
   const outputPer1M = Number(info.outputPer1M ?? 0);
   if (inputPer1M <= 0 && outputPer1M <= 0) return 0;
   return (inputTokens / 1_000_000) * inputPer1M + (outputTokens / 1_000_000) * outputPer1M;
@@ -247,177 +306,687 @@ const estimateCost = (
 const parseCatalogModels = (raw: string): CatalogModel[] => {
   const match = raw.match(/const\s+MODELS_DATA\s*=\s*([\s\S]*?);\s*$/m);
   if (!match) return [];
-
   try {
     const parsed = new Function(`return (${match[1]});`)() as Record<string, Array<Record<string, unknown>>>;
-
     const categoryCapabilities: Record<string, ModelCapability[]> = {
-      text: ['text'],
-      image: ['image'],
-      search: ['search'],
-      tts: ['audio'],
-      stt: ['audio'],
+      text: ['text'], image: ['image'], search: ['search'], tts: ['audio'], stt: ['audio'],
     };
-
     const models: CatalogModel[] = [];
     for (const [category, items] of Object.entries(parsed || {})) {
       if (!Array.isArray(items)) continue;
       for (const item of items) {
         const id = String(item.id ?? '').trim();
         if (!id) continue;
-
         models.push({
           id,
-          label: String(item.label ?? item.id ?? ''),
-          editeur: String(item.editeur ?? '').toLowerCase(),
-          inputPer1M: Number(item.inputPer1M ?? 0),
-          outputPer1M: Number(item.outputPer1M ?? 0),
-          prix: typeof item.prix === 'string' ? item.prix : undefined,
-          imageOutput: Number(item.imageOutput ?? 0),
+          label:      String(item.label ?? item.id ?? ''),
+          editeur:    String(item.editeur ?? '').toLowerCase(),
+          inputPer1M: Number(item.inputPer1M  ?? 0),
+          outputPer1M:Number(item.outputPer1M ?? 0),
+          prix:       typeof item.prix === 'string' ? item.prix : undefined,
+          imageOutput:Number(item.imageOutput ?? 0),
           capabilities: categoryCapabilities[category] ?? inferCapabilitiesFromId(id),
         });
       }
     }
-
     return models;
+  } catch { return []; }
+};
+
+const optimizeShortText = (raw: string, maxChars = 400): string => {
+  const text = raw.replace(/\s+/g, ' ').trim();
+  if (!text) return '';
+
+  const core = text
+    .replace(/^eres\s+un\s+/i, '')
+    .replace(/^tu\s+eres\s+/i, '')
+    .replace(/^actua\s+como\s+/i, '')
+    .trim();
+
+  const base = [
+    'Objetivo: responder de forma precisa y accionable.',
+    `Contexto clave: ${core}`,
+    'Formato: breve, claro, con pasos concretos y sin relleno.',
+  ].join(' ');
+
+  if (base.length <= maxChars) return base;
+  return `${base.slice(0, Math.max(0, maxChars - 1)).trimEnd()}...`;
+};
+
+const RUNTIME_STYLE_PROMPT = [
+  'Return only the final answer for the user.',
+  'Use plain text with short paragraphs and concise bullet points when helpful.',
+  'Do not output markdown headings, code fences, HTML tags, JSON traces, tool logs, or internal thoughts.',
+].join(' ');
+
+const buildRuntimeSystemPrompt = (basePrompt: string): string => {
+  const blocks = [basePrompt.trim(), RUNTIME_STYLE_PROMPT].filter(Boolean);
+  return blocks.join('\n\n');
+};
+
+const tryParseToolTraceObject = (raw: string): Record<string, unknown> | null => {
+  try {
+    const parsed = JSON.parse(raw) as Record<string, unknown>;
+    if (!parsed || typeof parsed !== 'object') return null;
+    const hasAction = typeof parsed.action === 'string';
+    const hasActionInput = typeof parsed.action_input === 'string';
+    const hasThought = typeof parsed.thought === 'string';
+    return hasAction && hasActionInput && hasThought ? parsed : null;
   } catch {
-    return [];
+    return null;
   }
 };
 
+const stripLeadingToolTrace = (raw: string): string => {
+  let text = raw.trim();
+  if (!text) return '';
+
+  text = text.replace(/^Refining the response\.\.\./i, '').trim();
+  text = text.replace(/\n\s*Refining the response\.\.\./gi, '\n').trim();
+
+  // Handle ```json ... ``` wrappers containing action traces.
+  const fenced = text.match(/^```(?:json)?\s*([\s\S]*?)\s*```\s*([\s\S]*)$/i);
+  if (fenced) {
+    const maybeTrace = tryParseToolTraceObject((fenced[1] || '').trim());
+    if (maybeTrace) {
+      text = (fenced[2] || '').trim();
+    }
+  }
+
+  // Handle raw JSON trace prefix at the beginning.
+  if (text.startsWith('{')) {
+    let depth = 0;
+    let cutIndex = -1;
+    for (let i = 0; i < text.length; i += 1) {
+      const ch = text[i];
+      if (ch === '{') depth += 1;
+      if (ch === '}') {
+        depth -= 1;
+        if (depth === 0) {
+          cutIndex = i;
+          break;
+        }
+      }
+    }
+    if (cutIndex > 0) {
+      const head = text.slice(0, cutIndex + 1).trim();
+      const tail = text.slice(cutIndex + 1).trim();
+      const maybeTrace = tryParseToolTraceObject(head);
+      if (maybeTrace) {
+        text = tail;
+      }
+    }
+  }
+
+  text = text.replace(/^\s*Refining the response\.\.\.\s*/i, '').trim();
+  return text;
+};
+
+const stripPresentationFormatting = (raw: string): string => {
+  let text = raw;
+
+  // Remove HTML embeds often returned by generic model renderers.
+  text = text.replace(/<img\b[^>]*>/gi, '');
+  text = text.replace(/<br\s*\/?>/gi, '\n');
+  text = text.replace(/<[^>]+>/g, '');
+
+  // Convert markdown headings and decorations to plain readable text.
+  text = text.replace(/^\s{0,3}#{1,6}\s*/gm, '');
+  text = text.replace(/\*\*(.*?)\*\*/g, '$1');
+  text = text.replace(/__(.*?)__/g, '$1');
+  text = text.replace(/`([^`]+)`/g, '$1');
+  text = text.replace(/^\s*[-*]\s+/gm, '- ');
+  text = text.replace(/^\s*---+\s*$/gm, '');
+
+  // Remove empty fenced blocks that sometimes leak from tool traces.
+  text = text.replace(/```(?:[a-z0-9_-]+)?\s*([\s\S]*?)\s*```/gi, '$1');
+
+  return text.replace(/\n{3,}/g, '\n\n').trim();
+};
+
+const normalizeAssistantOutput = (raw: string): string => {
+  const cleaned = stripPresentationFormatting(stripLeadingToolTrace(raw));
+  return cleaned || stripPresentationFormatting(raw.trim()) || '(sin contenido)';
+};
+
+// ─── Small reusable UI pieces ─────────────────────────────────────────────────
+
+/** Sidebar collapsible section wrapper */
+const SidebarSection: React.FC<{
+  title: string;
+  open: boolean;
+  isDark?: boolean;
+  onToggle: () => void;
+  onAdd?: () => void;
+  addDisabled?: boolean;
+  addTitle?: string;
+  children: React.ReactNode;
+}> = ({ title, open, isDark = false, onToggle, onAdd, addDisabled, addTitle, children }) => (
+  <section className={`mt-4 border-t pt-3 ${isDark ? 'border-slate-700' : 'border-[#a7d7c5]'}`}>
+    <div className="flex items-center gap-1 mb-1">
+      <button
+        onClick={onToggle}
+        className={`w-3.5 text-center text-sm leading-none select-none bg-transparent border-none cursor-pointer p-0 ${isDark ? 'text-slate-400' : 'text-[#6b8f84]'}`}
+        aria-expanded={open}
+      >
+        {open ? '▾' : '▸'}
+      </button>
+      <span className={`text-[0.8rem] font-semibold uppercase tracking-[0.03em] flex-1 select-none ${isDark ? 'text-slate-300' : 'text-[#3d7a6d]'}`}>
+        {title}
+      </span>
+      {onAdd && (
+        <button
+          onClick={onAdd}
+          disabled={addDisabled}
+          title={addTitle}
+          className={`bg-transparent border rounded w-6 h-6 text-base leading-none cursor-pointer flex items-center justify-center disabled:opacity-40 transition-colors ${
+            isDark
+              ? 'border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-slate-100'
+              : 'border-[#99d8c9] text-[#3d7a6d] hover:bg-[#d1fae5] hover:text-[#0f2a24]'
+          }`}
+        >
+          +
+        </button>
+      )}
+    </div>
+    <div
+      className="overflow-hidden transition-all duration-200"
+      style={{ maxHeight: open ? '2000px' : '0', opacity: open ? 1 : 0 }}
+    >
+      {children}
+    </div>
+  </section>
+);
+
+/** Bottom sidebar button */
+const SidebarBtn: React.FC<
+  React.ButtonHTMLAttributes<HTMLButtonElement> & { children: React.ReactNode; isDark?: boolean }
+> = ({ children, className = '', isDark = false, ...props }) => (
+  <button
+    {...props}
+    className={`bg-transparent border rounded-lg py-[7px] px-2.5 text-[0.82rem] font-[inherit] cursor-pointer text-center transition-colors ${
+      isDark
+        ? 'border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-slate-100'
+        : 'border-[#99e6d0] text-[#6b8f84] hover:bg-[#d1fae5] hover:text-[#0f2a24]'
+    } ${className}`}
+  >
+    {children}
+  </button>
+);
+
+/** Modal overlay wrapper */
+const ModalOverlay: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <div className="fixed inset-0 z-[1000] bg-black/35 backdrop-blur-[6px] flex items-center justify-center p-3">
+    {children}
+  </div>
+);
+
+/** Icon: panel toggle */
+const IconPanel: React.FC = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="3" y="3" width="18" height="18" rx="2" /><line x1="9" y1="3" x2="9" y2="21" />
+  </svg>
+);
+
+/** Icon: bar chart (stats) */
+const IconBarChart: React.FC = () => (
+  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: '-1px' }}>
+    <rect x="18" y="3"  width="4" height="18" />
+    <rect x="10" y="8"  width="4" height="13" />
+    <rect x="2"  y="13" width="4" height="8"  />
+  </svg>
+);
+
+/** Icon: gear / settings */
+const IconGear: React.FC = () => (
+  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: '-1px' }}>
+    <circle cx="12" cy="12" r="3" />
+    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+  </svg>
+);
+
+/** Icon: eye (show/hide password) */
+const IconEye: React.FC = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" />
+  </svg>
+);
+
+/** Icon: list / prompt picker */
+const IconList: React.FC = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M4 6h16" /><path d="M4 12h16" /><path d="M4 18h10" />
+  </svg>
+);
+
+/** Icon: mic */
+const IconMic: React.FC = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="9" y="1" width="6" height="12" rx="3" />
+    <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+    <line x1="12" y1="19" x2="12" y2="23" />
+    <line x1="8"  y1="23" x2="16" y2="23" />
+  </svg>
+);
+
+/** Icon: sparkle / enhance */
+const IconSparkle: React.FC = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M15 4V2"/><path d="M15 16v-2"/><path d="M8 9h2"/><path d="M20 9h2"/>
+    <path d="M17.8 11.8L19 13"/><path d="M15 9h.01"/><path d="M17.8 6.2L19 5"/>
+    <path d="M11 6.2L9.7 5"/><path d="M11 11.8L9.7 13"/><path d="M2 21l9-9"/>
+  </svg>
+);
+
+// ─── Main Component ───────────────────────────────────────────────────────────
+
 const ApiKeyInspectorView: React.FC = () => {
-  const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
-  const { t } = useLanguage();
+  const { id }         = useParams<{ id: string }>();
+  const navigate       = useNavigate();
+  const { t }          = useLanguage();
   const isAuthenticated = !!tokenStorage.get();
 
-  const [product, setProduct] = useState<Product | null>(null);
+  // ── Product state ──
+  const [product,   setProduct]   = useState<Product | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isOwner, setIsOwner] = useState(false);
-  const [urlCopied, setUrlCopied] = useState(false);
+  const [isOwner,   setIsOwner]   = useState(false);
 
-  const [provider, setProvider] = useState<ApiRuntimeProvider>('google');
-  const [apiKey, setApiKey] = useState('');
-  const [selectedModel, setSelectedModel] = useState('');
-  const [systemPrompt, setSystemPrompt] = useState('');
-  const [messageInput, setMessageInput] = useState('');
+  // ── Config state ──
+  const [provider,       setProvider]       = useState<ApiRuntimeProvider>('google');
+  const [apiKey,         setApiKey]         = useState('');
+  const [baseUrl,        setBaseUrl]        = useState('');
+  const [profileLabel,   setProfileLabel]   = useState('');
+  const [providerProfiles, setProviderProfiles] = useState<ProviderProfile[]>([]);
+  const [selectedModel,  setSelectedModel]  = useState('');
+  const [selectedTextModelId, setSelectedTextModelId] = useState('');
+  const [selectedImageModelId, setSelectedImageModelId] = useState('');
+  const [selectedOtherModelId, setSelectedOtherModelId] = useState('');
+  const [selectedSearchModelId, setSelectedSearchModelId] = useState('');
+  const [selectedSummaryModelId, setSelectedSummaryModelId] = useState('');
+  const [selectedPromptOptimizerModelId, setSelectedPromptOptimizerModelId] = useState('');
+  const [selectedRoleOptimizerModelId, setSelectedRoleOptimizerModelId] = useState('');
+  const [selectedSpeechSynthesisModelId, setSelectedSpeechSynthesisModelId] = useState('');
+  const [selectedSpeechTranscriptionModelId, setSelectedSpeechTranscriptionModelId] = useState('');
+  const [systemPrompt,   setSystemPrompt]   = useState('');
   const [selectedRoleId, setSelectedRoleId] = useState('');
+  const [showApiKey,     setShowApiKey]     = useState(false);
 
-  const [roles, setRoles] = useState<RoleRecord[]>([]);
-  const [prompts, setPrompts] = useState<PromptRecord[]>([]);
-  const [conversations, setConversations] = useState<ConversationRecord[]>([]);
-  const [activeConversationId, setActiveConversationId] = useState('');
+  // ── Chat / sidebar state ──
+  const [roles,               setRoles]               = useState<RoleRecord[]>([]);
+  const [prompts,             setPrompts]             = useState<PromptRecord[]>([]);
+  const [conversations,       setConversations]       = useState<ConversationRecord[]>([]);
+  const [activeConversationId,setActiveConversationId]= useState('');
+  const [messageInput,        setMessageInput]        = useState('');
+  const [activeSkillId,       setActiveSkillId]       = useState('');
+  const [guidedSkillOptions,  setGuidedSkillOptions]  = useState<GuidedSkillOptions>({
+    imageStyle: 'photorealistic',
+    imageQuality: 'high',
+    imageAspect: '1:1',
+    videoStyle: 'cinematic',
+    videoDuration: '15s',
+    videoPace: 'balanced',
+    searchDepth: 'standard',
+    searchOutput: 'briefing',
+    searchSources: 'required',
+    writingTone: 'professional',
+    writingFormat: 'bullet',
+    writingLength: 'medium',
+    writingAudience: 'general',
+    ideasHorizon: 'week',
+    ideasRisk: 'balanced',
+    ideasCount: '7',
+    learningLevel: 'beginner',
+    learningMethod: 'step_by_step',
+    learningPractice: 'guided',
+  });
 
-  const [stats, setStats] = useState<RuntimeStats>(EMPTY_STATS);
-  const [catalogModels, setCatalogModels] = useState<CatalogModel[]>([]);
-  const [remoteModels, setRemoteModels] = useState<ProviderModelInfo[]>([]);
-  const [hasValidatedKey, setHasValidatedKey] = useState(false);
+  // ── Stats / models ──
+  const [stats,            setStats]            = useState<RuntimeStats>(EMPTY_STATS);
+  const [catalogModels,    setCatalogModels]    = useState<CatalogModel[]>([]);
+  const [remoteModels,     setRemoteModels]     = useState<ProviderModelInfo[]>([]);
+  const [hasValidatedKey,  setHasValidatedKey]  = useState(false);
+  const [lastValidatedAt,  setLastValidatedAt]  = useState<string>('');
 
-  const [isRolesOpen, setIsRolesOpen] = useState(true);
-  const [isPromptsOpen, setIsPromptsOpen] = useState(true);
+  // ── UX helpers ──
+  const [isDarkTheme,        setIsDarkTheme]        = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    return window.localStorage.getItem(THEME_STORAGE_KEY) === 'dark';
+  });
+  const [webSearchEnabled,   setWebSearchEnabled]   = useState(false);
+  const [showPromptPicker,   setShowPromptPicker]   = useState(false);
+  const [attachedContext,    setAttachedContext]    = useState('');
+  const [pendingAttachments, setPendingAttachments] = useState<PendingAttachment[]>([]);
+  const [isListening,        setIsListening]        = useState(false);
+  const attachmentInputRef = useRef<HTMLInputElement | null>(null);
+  const importInputRef = useRef<HTMLInputElement | null>(null);
+  const messageTextareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const speechRecognitionRef = useRef<any>(null);
+
+  // ── UI toggles ──
+  const [isRolesOpen,         setIsRolesOpen]         = useState(true);
+  const [isPromptsOpen,       setIsPromptsOpen]       = useState(true);
   const [isConversationsOpen, setIsConversationsOpen] = useState(true);
+  const [sidebarCollapsed,    setSidebarCollapsed]    = useState(false);
+  const [isConfigModalOpen,   setIsConfigModalOpen]   = useState(false);
+  const [configTab,           setConfigTab]           = useState<'keys' | 'models' | 'budget'>('keys');
 
-  const [showRoleModal, setShowRoleModal] = useState(false);
-  const [roleTitleInput, setRoleTitleInput] = useState('');
+  // ── Modal state: role ──
+  const [showRoleModal,     setShowRoleModal]     = useState(false);
+  const [roleTitleInput,    setRoleTitleInput]    = useState('');
   const [roleBehaviorInput, setRoleBehaviorInput] = useState('');
 
-  const [showPromptModal, setShowPromptModal] = useState(false);
-  const [promptTitleInput, setPromptTitleInput] = useState('');
-  const [promptContentInput, setPromptContentInput] = useState('');
+  // ── Modal state: prompt ──
+  const [showPromptModal,     setShowPromptModal]     = useState(false);
+  const [promptTitleInput,    setPromptTitleInput]    = useState('');
+  const [promptContentInput,  setPromptContentInput]  = useState('');
 
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [modelsPanelOpen, setModelsPanelOpen] = useState(false);
-  const [testMode, setTestMode] = useState<ModelCapability>('text');
-  const [chatMode, setChatMode] = useState<ModelCapability>('text');
+  // ── Operation mode ──
+  const [testMode,  setTestMode]  = useState<ModelCapability>('text');
 
+  // ── Async status ──
   const [isValidatingKey, setIsValidatingKey] = useState(false);
-  const [isSending, setIsSending] = useState(false);
-  const [statusText, setStatusText] = useState('');
-  const [errorText, setErrorText] = useState('');
+  const [isSending,       setIsSending]       = useState(false);
+  const [statusText,      setStatusText]      = useState('');
+  const [errorText,       setErrorText]       = useState('');
 
-  const fixedTitle = t.products.fixed.apiKeyTitle || 'Inspector de API Keys';
-  const fixedDescription = t.products.fixed.apiKeyDesc || 'Valida formato y conectividad de API keys por proveedor.';
+  const fixedTitle       = t.products?.fixed?.apiKeyTitle || 'Inspector de API Keys';
+  const fixedDescription = t.products?.fixed?.apiKeyDesc  || 'Valida formato y conectividad de API keys por proveedor.';
+  const requiresApiKey = provider !== 'ollama';
+  const requiresBaseUrl = provider === 'ollama';
+
+  const themeStyle = useMemo<React.CSSProperties>(() => {
+    return isDarkTheme
+      ? {
+          backgroundColor: '#0b1220',
+          color: '#e5e7eb',
+          fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+        }
+      : {
+          backgroundColor: '#f8fffe',
+          color: '#0f2a24',
+          fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+        };
+  }, [isDarkTheme]);
+
+  // ─── Derived / memoised ───────────────────────────────────────────────────
 
   const catalogMap = useMemo(() => {
     const map = new Map<string, CatalogModel>();
-    for (const model of catalogModels) {
-      map.set(model.id, model);
-      map.set(normalizeModelId(model.id), model);
+    for (const m of catalogModels) {
+      map.set(m.id, m);
+      map.set(normalizeModelId(m.id), m);
     }
     return map;
   }, [catalogModels]);
 
   const validatedModelOptions = useMemo<EnrichedModelOption[]>(() => {
     const options: EnrichedModelOption[] = [];
-    for (const remote of remoteModels) {
-      const catalog = catalogMap.get(remote.id) ?? catalogMap.get(normalizeModelId(remote.id));
-      const capabilities = (catalog?.capabilities?.length ? catalog.capabilities : inferCapabilitiesFromId(remote.id)) as ModelCapability[];
-      const usableInChat = capabilities.includes('text') || capabilities.includes('search');
-      const priceLabel = formatPriceLabel(catalog);
-      options.push({
-        id: remote.id,
-        label: remote.label || remote.id,
-        displayLabel: `${remote.label || remote.id} (${priceLabel})`,
-        capabilities,
-        priceLabel,
-        usableInChat,
-        sortPrice: modelSortPrice(catalog),
-      });
+    for (const profile of providerProfiles) {
+      for (const remote of profile.validatedModels || []) {
+        const catalog      = catalogMap.get(remote.id) ?? catalogMap.get(normalizeModelId(remote.id));
+        const capabilities = (catalog?.capabilities?.length ? catalog.capabilities : inferCapabilitiesFromId(remote.id)) as ModelCapability[];
+        const usableInChat = capabilities.includes('text') || capabilities.includes('search');
+        const priceLabel   = formatPriceLabel(catalog);
+        const label = remote.label || remote.id;
+        options.push({
+          id: encodeModelBindingId(profile.id, remote.id),
+          rawModelId: remote.id,
+          profileId: profile.id,
+          profileLabel: profile.label || providerLabel(profile.provider),
+          provider: profile.provider,
+          label,
+          displayLabel: `${profile.label || providerLabel(profile.provider)} · ${label} (${priceLabel})`,
+          capabilities,
+          priceLabel,
+          usableInChat,
+          sortPrice: modelSortPrice(catalog),
+        });
+      }
     }
     return options.sort((a, b) => {
-      const rankDiff = capabilityRank(a.capabilities) - capabilityRank(b.capabilities);
-      if (rankDiff !== 0) return rankDiff;
+      const rankDiff  = capabilityRank(a.capabilities) - capabilityRank(b.capabilities);
+      if (rankDiff  !== 0) return rankDiff;
       const priceDiff = a.sortPrice - b.sortPrice;
       if (priceDiff !== 0) return priceDiff;
       return a.label.localeCompare(b.label);
     });
-  }, [remoteModels, catalogMap]);
+  }, [providerProfiles, catalogMap]);
 
   const modelOptions = useMemo(() => validatedModelOptions, [validatedModelOptions]);
 
+  const textModelOptions = useMemo(
+    () => validatedModelOptions.filter((m) => m.capabilities.includes('text') || m.capabilities.includes('search')),
+    [validatedModelOptions]
+  );
+
+  const imageModelOptions = useMemo(
+    () => validatedModelOptions.filter((m) => m.capabilities.includes('image')),
+    [validatedModelOptions]
+  );
+
+  const audioModelOptions = useMemo(
+    () => validatedModelOptions.filter((m) => m.capabilities.includes('audio')),
+    [validatedModelOptions]
+  );
+
+  const searchModelOptions = useMemo(
+    () => validatedModelOptions.filter((m) => m.capabilities.includes('search') || m.capabilities.includes('text')),
+    [validatedModelOptions]
+  );
+
+  const textFocusModelOptions = useMemo(
+    () => validatedModelOptions.filter((m) => m.capabilities.includes('text') || m.capabilities.includes('search')),
+    [validatedModelOptions]
+  );
+
+  const otherModelOptions = useMemo(
+    () => validatedModelOptions.filter((m) => m.capabilities.includes('video')),
+    [validatedModelOptions]
+  );
+
+  const buildOptgroupsByProfile = (options: EnrichedModelOption[]) => {
+    const grouped = new Map<string, EnrichedModelOption[]>();
+    for (const option of options) {
+      const key = `${providerLabel(option.provider)} · ${option.profileLabel}`;
+      if (!grouped.has(key)) grouped.set(key, []);
+      grouped.get(key)?.push(option);
+    }
+
+    return Array.from(grouped.entries()).map(([groupLabel, items]) => (
+      <optgroup key={groupLabel} label={`─ ${groupLabel} ─`}>
+        {items.map((item) => (
+          <option key={item.id} value={item.id}>{item.label} ({item.priceLabel})</option>
+        ))}
+      </optgroup>
+    ));
+  };
+
   const activeConversation = useMemo(
-    () => conversations.find((c) => c.id === activeConversationId) ?? null,
+    () => conversations.find(c => c.id === activeConversationId) ?? null,
     [conversations, activeConversationId]
   );
 
   const selectedRole = useMemo(
-    () => roles.find((r) => r.id === selectedRoleId) ?? null,
+    () => roles.find(r => r.id === selectedRoleId) ?? null,
     [roles, selectedRoleId]
   );
 
   const selectedModelInfo = useMemo(
-    () => validatedModelOptions.find((m) => m.id === selectedModel) ?? null,
+    () => validatedModelOptions.find(m => m.id === selectedModel) ?? null,
     [validatedModelOptions, selectedModel]
   );
 
-  const availableTestModes = useMemo<ModelCapability[]>(() => {
-    if (!selectedModelInfo) return ['text'];
-    const dedup = Array.from(new Set(selectedModelInfo.capabilities));
-    return dedup.length > 0 ? dedup : ['text'];
-  }, [selectedModelInfo]);
+  const resolveBindingRuntime = (bindingId: string): {
+    model: EnrichedModelOption;
+    profile: ProviderProfile;
+    apiKey: string;
+    baseUrl?: string;
+  } | null => {
+    const model = validatedModelOptions.find((item) => item.id === bindingId);
+    if (!model) return null;
+    const profile = providerProfiles.find((item) => item.id === model.profileId);
+    if (!profile) return null;
+    return {
+      model,
+      profile,
+      apiKey: decodeSecret(profile.apiKeyEncoded),
+      baseUrl: profile.baseUrl,
+    };
+  };
 
-  const availableChatModes = useMemo<ModelCapability[]>(() => {
-    if (!selectedModelInfo) return ['text'];
-    const dedup = Array.from(new Set(selectedModelInfo.capabilities));
+  const availableTestModes = useMemo<ModelCapability[]>(() => {
+    const modes: ModelCapability[] = [];
+    if (selectedTextModelId) {
+      modes.push('text');
+    }
+    if (selectedSearchModelId) {
+      modes.push('search');
+    }
+    if (selectedImageModelId) {
+      modes.push('image');
+    }
+    if (selectedSpeechSynthesisModelId || selectedSpeechTranscriptionModelId) {
+      modes.push('audio');
+    }
+    if (selectedOtherModelId) {
+      const opt = validatedModelOptions.find((item) => item.id === selectedOtherModelId);
+      if (opt?.capabilities.includes('video')) modes.push('video');
+    }
+    const dedup = Array.from(new Set(modes));
     return dedup.length > 0 ? dedup : ['text'];
-  }, [selectedModelInfo]);
+  }, [selectedTextModelId, selectedSearchModelId, selectedImageModelId, selectedSpeechSynthesisModelId, selectedSpeechTranscriptionModelId, selectedOtherModelId, validatedModelOptions]);
 
   const effectiveSystemPrompt = useMemo(() => {
     const blocks = [systemPrompt.trim(), selectedRole?.behavior?.trim() ?? ''].filter(Boolean);
     return blocks.join('\n\n');
   }, [systemPrompt, selectedRole]);
 
+  const starterSkills = useMemo<StarterSkill[]>(() => {
+    const items: StarterSkill[] = [];
+
+    if (selectedImageModelId) {
+      items.push({
+        id: 'starter-image',
+        label: t.apiKeyProductView?.starterImage || 'Crear imagen',
+        subtitle: t.apiKeyProductView?.starterImageSub || 'Concepto visual en segundos',
+        icon: '🖼️',
+        mode: 'image',
+        baseInstruction: 'Diseña una imagen promocional moderna para mi producto, con copy corto y CTA.',
+        capability: 'image',
+      });
+    }
+
+    if (selectedOtherModelId) {
+      items.push({
+        id: 'starter-video',
+        label: t.apiKeyProductView?.starterVideo || 'Crear video',
+        subtitle: t.apiKeyProductView?.starterVideoSub || 'Storyboard y guion visual',
+        icon: '🎬',
+        mode: 'video',
+        baseInstruction: 'Crea un concepto de video corto para redes sociales con guion visual claro.',
+        capability: 'video',
+      });
+    }
+
+    if (selectedSearchModelId) {
+      items.push({
+        id: 'starter-search',
+        label: t.apiKeyProductView?.starterSearch || 'Buscar y contrastar',
+        subtitle: t.apiKeyProductView?.starterSearchSub || 'Investigación con fuentes',
+        icon: '🔎',
+        mode: 'search',
+        baseInstruction: 'Investiga este tema con fuentes confiables y entrega recomendaciones accionables.',
+        capability: 'search',
+      });
+    }
+
+    if (textModelOptions.length > 0) {
+      items.push(
+        {
+          id: 'starter-write',
+          label: t.apiKeyProductView?.starterWrite || 'Escribir cualquier cosa',
+          subtitle: t.apiKeyProductView?.starterWriteSub || 'Texto claro y persuasivo',
+          icon: '✍️',
+          mode: 'write',
+          baseInstruction: 'Ayúdame a escribir un texto claro y persuasivo para presentar mi servicio.',
+          capability: 'text',
+        },
+        {
+          id: 'starter-ideas',
+          label: t.apiKeyProductView?.starterIdeas || 'Dale un impulso a mi día',
+          subtitle: t.apiKeyProductView?.starterIdeasSub || 'Ideas de alto impacto',
+          icon: '🚀',
+          mode: 'ideas',
+          baseInstruction: 'Dame ideas concretas para avanzar en mi proyecto, ordenadas por impacto y esfuerzo.',
+          capability: 'text',
+        },
+        {
+          id: 'starter-learn',
+          label: t.apiKeyProductView?.starterLearn || 'Ayúdame a aprender',
+          subtitle: t.apiKeyProductView?.starterLearnSub || 'Explicación guiada y práctica',
+          icon: '🧠',
+          mode: 'learn',
+          baseInstruction: 'Explícame este tema de forma estructurada y ayúdame a practicar.',
+          capability: 'text',
+        }
+      );
+    }
+
+    return items.slice(0, 6);
+  }, [selectedImageModelId, selectedOtherModelId, selectedSearchModelId, textModelOptions.length, t.apiKeyProductView]);
+
+  const activeStarterSkill = useMemo(
+    () => starterSkills.find((skill) => skill.id === activeSkillId) ?? null,
+    [starterSkills, activeSkillId]
+  );
+
+  const groupedModelSections = useMemo(() => {
+    const sections = new Map<string, EnrichedModelOption[]>();
+    for (const model of validatedModelOptions) {
+      const key = `${providerLabel(model.provider)} · ${model.profileLabel}`;
+      if (!sections.has(key)) sections.set(key, []);
+      sections.get(key)?.push(model);
+    }
+    return Array.from(sections.entries()).map(([title, models]) => ({ title, models }));
+  }, [validatedModelOptions]);
+
+  useEffect(() => {
+    if (activeSkillId && !starterSkills.some((skill) => skill.id === activeSkillId)) {
+      setActiveSkillId('');
+    }
+  }, [activeSkillId, starterSkills]);
+
+  // ─── Persist helpers ──────────────────────────────────────────────────────
+
   const persistConfig = async (productId: number, override?: Partial<Record<string, unknown>>) => {
+    const resolvedLastValidatedAt = hasValidatedKey
+      ? (lastValidatedAt || new Date().toISOString())
+      : '';
+
     await updateProductStepProgress({
       productId,
       stepId: STEP_CONFIG,
       status: 'success',
       resultText: {
         provider,
+        baseUrl,
+        profileLabel,
         selectedModel,
+        selectedTextModelId,
+        selectedImageModelId,
+        selectedOtherModelId,
+        selectedSearchModelId,
+        selectedSummaryModelId,
+        selectedPromptOptimizerModelId,
+        selectedRoleOptimizerModelId,
+        selectedSpeechSynthesisModelId,
+        selectedSpeechTranscriptionModelId,
         systemPrompt,
         selectedRoleId,
+        providerProfiles,
         apiKeyEncoded: encodeSecret(apiKey),
+        validatedModels: remoteModels,
+        lastValidatedAt: resolvedLastValidatedAt,
         updatedAt: new Date().toISOString(),
         ...override,
       },
@@ -430,10 +999,7 @@ const ApiKeyInspectorView: React.FC = () => {
       stepId: STEP_CHAT,
       status: 'success',
       resultText: {
-        roles,
-        prompts,
-        conversations,
-        activeConversationId,
+        roles, prompts, conversations, activeConversationId,
         updatedAt: new Date().toISOString(),
         ...override,
       },
@@ -445,27 +1011,22 @@ const ApiKeyInspectorView: React.FC = () => {
       productId,
       stepId: STEP_STATS,
       status: 'success',
-      resultText: {
-        ...nextStats,
-        updatedAt: new Date().toISOString(),
-      },
+      resultText: { ...nextStats, updatedAt: new Date().toISOString() },
     });
   };
 
+  // ─── Effects ─────────────────────────────────────────────────────────────
+
   useEffect(() => {
-    const loadCatalog = async () => {
+    (async () => {
       try {
         const response = await fetch('/view-ApiKey/models.js');
         if (!response.ok) return;
-        const text = await response.text();
+        const text   = await response.text();
         const parsed = parseCatalogModels(text);
         setCatalogModels(parsed);
-      } catch (err) {
-        console.error('[ApiKeyInspectorView] Unable to load catalog models:', err);
-      }
-    };
-
-    loadCatalog();
+      } catch (err) { console.error('[ApiKeyInspectorView] catalog load failed:', err); }
+    })();
   }, []);
 
   useEffect(() => {
@@ -475,358 +1036,741 @@ const ApiKeyInspectorView: React.FC = () => {
   }, [activeConversationId, conversations]);
 
   useEffect(() => {
-    const load = async () => {
+    if (typeof window === 'undefined') return;
+    window.localStorage.setItem(THEME_STORAGE_KEY, isDarkTheme ? 'dark' : 'light');
+  }, [isDarkTheme]);
+
+  useEffect(() => {
+    const el = messageTextareaRef.current;
+    if (!el) return;
+
+    el.style.height = 'auto';
+    const nextHeight = Math.min(160, Math.max(38, el.scrollHeight));
+    el.style.height = `${nextHeight}px`;
+    el.style.overflowY = el.scrollHeight > 160 ? 'auto' : 'hidden';
+  }, [messageInput]);
+
+  useEffect(() => {
+    (async () => {
       try {
         setIsLoading(true);
         let productData: Product;
-
         let targetId: number | null = id ? parseInt(id, 10) : null;
         if (!targetId) {
           const ensured = await getOrCreateProductByType('api_key_maker', {
-            title: fixedTitle,
-            description: fixedDescription,
+            title: fixedTitle, description: fixedDescription,
           });
           targetId = ensured.id;
         }
-
         if (isAuthenticated) {
-          try {
-            productData = await getProduct(targetId);
-            setIsOwner(true);
-          } catch {
-            productData = await getPublicProduct(targetId);
-            setIsOwner(false);
-          }
+          try { productData = await getProduct(targetId); setIsOwner(true); }
+          catch { productData = await getPublicProduct(targetId); setIsOwner(false); }
         } else {
-          productData = await getPublicProduct(targetId);
-          setIsOwner(false);
+          productData = await getPublicProduct(targetId); setIsOwner(false);
         }
-
         setProduct(productData);
 
-        const progress = await getProductStepProgress(productData.id);
-        const config = progress.find((p) => p.stepId === STEP_CONFIG)?.resultText;
-        const chatProgress = progress.find((p) => p.stepId === STEP_CHAT)?.resultText;
-        const statsProgress = progress.find((p) => p.stepId === STEP_STATS)?.resultText;
+        const progress      = await getProductStepProgress(productData.id);
+        const config        = progress.find(p => p.stepId === STEP_CONFIG)?.resultText;
+        const chatProgress  = progress.find(p => p.stepId === STEP_CHAT)?.resultText;
+        const statsProgress = progress.find(p => p.stepId === STEP_STATS)?.resultText;
 
         if (config) {
-          if (typeof config.provider === 'string') {
-            setProvider(config.provider as ApiRuntimeProvider);
-          }
-          if (typeof config.selectedModel === 'string') {
-            setSelectedModel(config.selectedModel);
-          }
-          if (typeof config.systemPrompt === 'string') {
-            setSystemPrompt(config.systemPrompt);
-          }
-          if (typeof config.selectedRoleId === 'string') {
-            setSelectedRoleId(config.selectedRoleId);
-          }
-          if (typeof config.apiKeyEncoded === 'string') {
-            setApiKey(decodeSecret(config.apiKeyEncoded));
-          }
+          if (typeof config.provider       === 'string') setProvider(config.provider as ApiRuntimeProvider);
+          if (typeof config.baseUrl        === 'string') setBaseUrl(config.baseUrl);
+          if (typeof config.profileLabel   === 'string') setProfileLabel(config.profileLabel);
+          if (typeof config.selectedModel  === 'string') setSelectedModel(config.selectedModel);
+          if (typeof config.selectedTextModelId === 'string') setSelectedTextModelId(config.selectedTextModelId);
+          if (typeof config.selectedImageModelId === 'string') setSelectedImageModelId(config.selectedImageModelId);
+          if (typeof config.selectedOtherModelId === 'string') setSelectedOtherModelId(config.selectedOtherModelId);
+          if (typeof config.selectedSearchModelId === 'string') setSelectedSearchModelId(config.selectedSearchModelId);
+          if (typeof config.selectedSummaryModelId === 'string') setSelectedSummaryModelId(config.selectedSummaryModelId);
+          if (typeof config.selectedPromptOptimizerModelId === 'string') setSelectedPromptOptimizerModelId(config.selectedPromptOptimizerModelId);
+          if (typeof config.selectedRoleOptimizerModelId === 'string') setSelectedRoleOptimizerModelId(config.selectedRoleOptimizerModelId);
+          if (typeof config.selectedSpeechSynthesisModelId === 'string') setSelectedSpeechSynthesisModelId(config.selectedSpeechSynthesisModelId);
+          if (typeof config.selectedSpeechTranscriptionModelId === 'string') setSelectedSpeechTranscriptionModelId(config.selectedSpeechTranscriptionModelId);
+          if (typeof config.systemPrompt   === 'string') setSystemPrompt(config.systemPrompt);
+          if (typeof config.selectedRoleId === 'string') setSelectedRoleId(config.selectedRoleId);
+          if (typeof config.apiKeyEncoded  === 'string') setApiKey(decodeSecret(config.apiKeyEncoded));
           if (Array.isArray(config.validatedModels)) {
             setRemoteModels(config.validatedModels as ProviderModelInfo[]);
             setHasValidatedKey((config.validatedModels as ProviderModelInfo[]).length > 0);
           }
-          if (typeof config.lastValidatedAt === 'string') {
+
+          if (Array.isArray(config.providerProfiles)) {
+            const hydratedProfiles = (config.providerProfiles as ProviderProfile[])
+              .filter((item) => item && typeof item.id === 'string' && typeof item.provider === 'string')
+              .map((item) => ({
+                ...item,
+                validatedModels: Array.isArray(item.validatedModels) ? item.validatedModels : [],
+                label: item.label || providerLabel(item.provider),
+              }));
+            setProviderProfiles(hydratedProfiles);
+            setHasValidatedKey(hydratedProfiles.some((item) => (item.validatedModels || []).length > 0));
+          } else if (typeof config.provider === 'string' && typeof config.apiKeyEncoded === 'string' && config.apiKeyEncoded) {
+            const legacyModels = Array.isArray(config.validatedModels) ? (config.validatedModels as ProviderModelInfo[]) : [];
+            const legacyProfile: ProviderProfile = {
+              id: `profile-${Date.now()}-legacy`,
+              label: providerLabel(config.provider as ApiRuntimeProvider),
+              provider: config.provider as ApiRuntimeProvider,
+              apiKeyEncoded: config.apiKeyEncoded,
+              baseUrl: typeof config.baseUrl === 'string' ? config.baseUrl : '',
+              validatedModels: legacyModels,
+              lastValidatedAt: typeof config.lastValidatedAt === 'string' ? config.lastValidatedAt : '',
+            };
+            setProviderProfiles([legacyProfile]);
+            setHasValidatedKey(legacyModels.length > 0);
+          }
+          if (typeof config.lastValidatedAt === 'string' && config.lastValidatedAt.trim()) {
+            setLastValidatedAt(config.lastValidatedAt);
             setHasValidatedKey(true);
+          }
+
+          if (!config.selectedTextModelId && !config.selectedImageModelId && !config.selectedOtherModelId && typeof config.selectedModel === 'string') {
+            const legacyModelId = config.selectedModel;
+            const legacyCatalog = catalogMap.get(legacyModelId) ?? catalogMap.get(normalizeModelId(legacyModelId));
+            const legacyCaps = legacyCatalog?.capabilities?.length ? legacyCatalog.capabilities : inferCapabilitiesFromId(legacyModelId);
+            if (legacyCaps.includes('image')) setSelectedImageModelId(legacyModelId);
+            else if (legacyCaps.includes('audio') || legacyCaps.includes('video')) setSelectedOtherModelId(legacyModelId);
+            else setSelectedTextModelId(legacyModelId);
           }
         }
 
+        const newConv = () => {
+          const c = createConversation(t.apiKeyProductView?.newConversationDefault || 'Nueva conversación');
+          setConversations([c]);
+          setActiveConversationId(c.id);
+        };
         if (chatProgress) {
-          if (Array.isArray(chatProgress.roles)) {
-            setRoles(chatProgress.roles as RoleRecord[]);
-          }
-          if (Array.isArray(chatProgress.prompts)) {
-            setPrompts(chatProgress.prompts as PromptRecord[]);
-          }
+          if (Array.isArray(chatProgress.roles))   setRoles(chatProgress.roles as RoleRecord[]);
+          if (Array.isArray(chatProgress.prompts)) setPrompts(chatProgress.prompts as PromptRecord[]);
           if (Array.isArray(chatProgress.conversations) && chatProgress.conversations.length > 0) {
             setConversations(chatProgress.conversations as ConversationRecord[]);
-          } else {
-            const firstConversation = createConversation(t.apiKeyProductView?.newConversationDefault || 'Nueva conversacion');
-            setConversations([firstConversation]);
-            setActiveConversationId(firstConversation.id);
-          }
+          } else { newConv(); }
           if (typeof chatProgress.activeConversationId === 'string') {
             setActiveConversationId(chatProgress.activeConversationId);
           }
-        } else {
-          const firstConversation = createConversation(t.apiKeyProductView?.newConversationDefault || 'Nueva conversacion');
-          setConversations([firstConversation]);
-          setActiveConversationId(firstConversation.id);
-        }
+        } else { newConv(); }
 
         if (statsProgress && typeof statsProgress === 'object') {
           setStats({ ...EMPTY_STATS, ...(statsProgress as RuntimeStats) });
         }
-      } catch (error) {
-        console.error('[ApiKeyInspectorView] Error loading product:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    load();
+      } catch (err) {
+        console.error('[ApiKeyInspectorView] load error:', err);
+      } finally { setIsLoading(false); }
+    })();
   }, [id, isAuthenticated, fixedTitle, fixedDescription, t.apiKeyProductView]);
 
   useEffect(() => {
-    if (!selectedModel && modelOptions.length > 0) {
-      setSelectedModel(modelOptions[0].id);
+    if (!selectedTextModelId && textModelOptions.length > 0) {
+      setSelectedTextModelId(textModelOptions[0].id);
     }
-  }, [selectedModel, modelOptions]);
+  }, [selectedTextModelId, textModelOptions]);
 
   useEffect(() => {
-    if (!availableTestModes.includes(testMode)) {
-      setTestMode(availableTestModes[0] ?? 'text');
+    if (!selectedImageModelId && imageModelOptions.length > 0) {
+      setSelectedImageModelId(imageModelOptions[0].id);
     }
+  }, [selectedImageModelId, imageModelOptions]);
+
+  useEffect(() => {
+    if (!selectedOtherModelId && otherModelOptions.length > 0) {
+      setSelectedOtherModelId(otherModelOptions[0].id);
+    }
+  }, [selectedOtherModelId, otherModelOptions]);
+
+  useEffect(() => {
+    if (!selectedSearchModelId && searchModelOptions.length > 0) {
+      setSelectedSearchModelId(searchModelOptions[0].id);
+    }
+  }, [selectedSearchModelId, searchModelOptions]);
+
+  useEffect(() => {
+    if (!selectedSummaryModelId && textFocusModelOptions.length > 0) {
+      setSelectedSummaryModelId(textFocusModelOptions[0].id);
+    }
+  }, [selectedSummaryModelId, textFocusModelOptions]);
+
+  useEffect(() => {
+    if (!selectedPromptOptimizerModelId && textFocusModelOptions.length > 0) {
+      setSelectedPromptOptimizerModelId(textFocusModelOptions[0].id);
+    }
+  }, [selectedPromptOptimizerModelId, textFocusModelOptions]);
+
+  useEffect(() => {
+    if (!selectedRoleOptimizerModelId && textFocusModelOptions.length > 0) {
+      setSelectedRoleOptimizerModelId(textFocusModelOptions[0].id);
+    }
+  }, [selectedRoleOptimizerModelId, textFocusModelOptions]);
+
+  useEffect(() => {
+    if (!selectedSpeechSynthesisModelId && audioModelOptions.length > 0) {
+      setSelectedSpeechSynthesisModelId(audioModelOptions[0].id);
+    }
+  }, [selectedSpeechSynthesisModelId, audioModelOptions]);
+
+  useEffect(() => {
+    if (!selectedSpeechTranscriptionModelId && audioModelOptions.length > 0) {
+      setSelectedSpeechTranscriptionModelId(audioModelOptions[0].id);
+    }
+  }, [selectedSpeechTranscriptionModelId, audioModelOptions]);
+
+  useEffect(() => {
+    const fallbackModelId = selectedTextModelId || selectedSearchModelId || selectedImageModelId || selectedOtherModelId || modelOptions[0]?.id || '';
+    if (!selectedModel && fallbackModelId) {
+      setSelectedModel(fallbackModelId);
+    }
+  }, [selectedModel, selectedTextModelId, selectedSearchModelId, selectedImageModelId, selectedOtherModelId, modelOptions]);
+
+  useEffect(() => {
+    if (!availableTestModes.includes(testMode)) setTestMode(availableTestModes[0] ?? 'text');
   }, [availableTestModes, testMode]);
 
   useEffect(() => {
-    if (!availableChatModes.includes(chatMode)) {
-      setChatMode(availableChatModes[0] ?? 'text');
-    }
-  }, [availableChatModes, chatMode]);
-
-  useEffect(() => {
     if (!selectedModel) return;
-    const stillAvailable = modelOptions.some((m) => m.id === selectedModel);
-    if (!stillAvailable) {
-      setSelectedModel(modelOptions[0]?.id ?? '');
-    }
+    if (!modelOptions.some(m => m.id === selectedModel)) setSelectedModel(modelOptions[0]?.id ?? '');
   }, [selectedModel, modelOptions]);
 
-  const patchConversation = (conversationId: string, updater: (c: ConversationRecord) => ConversationRecord) => {
-    setConversations((prev) => prev.map((conv) => (conv.id === conversationId ? updater(conv) : conv)));
+  useEffect(() => {
+    if (validatedModelOptions.length === 0) return;
+
+    const normalizeLegacyBinding = (value: string): string => {
+      if (!value) return '';
+      if (decodeModelBindingId(value)) return value;
+      const exact = validatedModelOptions.find((item) => item.rawModelId === value || item.id === value);
+      return exact?.id || '';
+    };
+
+    const nText = normalizeLegacyBinding(selectedTextModelId);
+    const nImage = normalizeLegacyBinding(selectedImageModelId);
+    const nVideo = normalizeLegacyBinding(selectedOtherModelId);
+    const nSearch = normalizeLegacyBinding(selectedSearchModelId);
+    const nSummary = normalizeLegacyBinding(selectedSummaryModelId);
+    const nPrompt = normalizeLegacyBinding(selectedPromptOptimizerModelId);
+    const nRole = normalizeLegacyBinding(selectedRoleOptimizerModelId);
+    const nSynth = normalizeLegacyBinding(selectedSpeechSynthesisModelId);
+    const nTrans = normalizeLegacyBinding(selectedSpeechTranscriptionModelId);
+    const nSelected = normalizeLegacyBinding(selectedModel);
+
+    if (selectedTextModelId && nText && nText !== selectedTextModelId) setSelectedTextModelId(nText);
+    if (selectedImageModelId && nImage && nImage !== selectedImageModelId) setSelectedImageModelId(nImage);
+    if (selectedOtherModelId && nVideo && nVideo !== selectedOtherModelId) setSelectedOtherModelId(nVideo);
+    if (selectedSearchModelId && nSearch && nSearch !== selectedSearchModelId) setSelectedSearchModelId(nSearch);
+    if (selectedSummaryModelId && nSummary && nSummary !== selectedSummaryModelId) setSelectedSummaryModelId(nSummary);
+    if (selectedPromptOptimizerModelId && nPrompt && nPrompt !== selectedPromptOptimizerModelId) setSelectedPromptOptimizerModelId(nPrompt);
+    if (selectedRoleOptimizerModelId && nRole && nRole !== selectedRoleOptimizerModelId) setSelectedRoleOptimizerModelId(nRole);
+    if (selectedSpeechSynthesisModelId && nSynth && nSynth !== selectedSpeechSynthesisModelId) setSelectedSpeechSynthesisModelId(nSynth);
+    if (selectedSpeechTranscriptionModelId && nTrans && nTrans !== selectedSpeechTranscriptionModelId) setSelectedSpeechTranscriptionModelId(nTrans);
+    if (selectedModel && nSelected && nSelected !== selectedModel) setSelectedModel(nSelected);
+  }, [
+    validatedModelOptions,
+    selectedTextModelId,
+    selectedImageModelId,
+    selectedOtherModelId,
+    selectedSearchModelId,
+    selectedSummaryModelId,
+    selectedPromptOptimizerModelId,
+    selectedRoleOptimizerModelId,
+    selectedSpeechSynthesisModelId,
+    selectedSpeechTranscriptionModelId,
+    selectedModel,
+  ]);
+
+  // ─── Handlers ────────────────────────────────────────────────────────────
+
+  const detectPromptCapability = (rawPrompt: string): ModelCapability => {
+    const text = rawPrompt.toLowerCase();
+    if (/\b(video|clip|animacion|animación|veo)\b/.test(text)) return 'video';
+    if (/\b(audio|voz|tts|speech|narraci[oó]n|narrar)\b/.test(text)) return 'audio';
+    if (/\b(imagen|image|foto|photoreal|render|ilustra|dibuja|draw|thumbnail)\b/.test(text)) return 'image';
+    if (webSearchEnabled || /\b(busca|buscar|search|investiga|research|fuentes)\b/.test(text)) return 'search';
+    return 'text';
   };
 
-  const handleCopyUrl = () => {
-    if (!product) return;
-    navigator.clipboard.writeText(`${window.location.origin}/product/api-key/${product.id}`);
-    setUrlCopied(true);
-    setTimeout(() => setUrlCopied(false), 1800);
+  const resolveRoutedModel = (desired: ModelCapability, rawPrompt: string): { mode: ModelCapability; modelId: string; fallbackNotice: string } => {
+    const normalizedPrompt = rawPrompt.toLowerCase();
+    const summaryIntent = /\b(resume|resumen|sumariza|summar|sintetiza)\b/.test(normalizedPrompt);
+    const promptIntent = /\b(mejora.*prompt|optimiza.*prompt|refina.*prompt|improve.*prompt)\b/.test(normalizedPrompt);
+    const roleIntent = /\b(mejora.*rol|optimiza.*rol|role\s*optimi|role\s*tune)\b/.test(normalizedPrompt);
+
+    const preferredTextModel =
+      (summaryIntent && selectedSummaryModelId)
+      || (promptIntent && selectedPromptOptimizerModelId)
+      || (roleIntent && selectedRoleOptimizerModelId)
+      || selectedTextModelId;
+
+    const findOtherByCapability = (cap: ModelCapability): string => {
+      const selectedOther = validatedModelOptions.find((item) => item.id === selectedOtherModelId);
+      if (selectedOther?.capabilities.includes(cap)) return selectedOther.id;
+      return validatedModelOptions.find((item) => item.capabilities.includes(cap))?.id || '';
+    };
+
+    if (desired === 'image') {
+      if (selectedImageModelId) return { mode: 'image', modelId: selectedImageModelId, fallbackNotice: '' };
+      if (preferredTextModel) return { mode: 'text', modelId: preferredTextModel, fallbackNotice: t.apiKeyProductView?.autoFallbackImageToText || 'No hay modelo de imagen seleccionado. Se usó modelo de texto.' };
+      return { mode: 'text', modelId: '', fallbackNotice: '' };
+    }
+
+    if (desired === 'audio') {
+      const audioModel = selectedSpeechSynthesisModelId || selectedSpeechTranscriptionModelId || findOtherByCapability('audio');
+      if (audioModel) return { mode: 'audio', modelId: audioModel, fallbackNotice: '' };
+      if (preferredTextModel) return { mode: 'text', modelId: preferredTextModel, fallbackNotice: t.apiKeyProductView?.autoFallbackAudioToText || 'No hay modelo de audio seleccionado. Se usó modelo de texto.' };
+      return { mode: 'text', modelId: '', fallbackNotice: '' };
+    }
+
+    if (desired === 'video') {
+      const videoModel = selectedOtherModelId || findOtherByCapability('video');
+      if (videoModel) return { mode: 'video', modelId: videoModel, fallbackNotice: '' };
+      if (preferredTextModel) return { mode: 'text', modelId: preferredTextModel, fallbackNotice: t.apiKeyProductView?.autoFallbackVideoToText || 'No hay modelo de video seleccionado. Se usó modelo de texto.' };
+      return { mode: 'text', modelId: '', fallbackNotice: '' };
+    }
+
+    if (desired === 'search') {
+      if (selectedSearchModelId) return { mode: 'search', modelId: selectedSearchModelId, fallbackNotice: '' };
+      if (preferredTextModel) return { mode: 'search', modelId: preferredTextModel, fallbackNotice: '' };
+      return { mode: 'text', modelId: selectedImageModelId || selectedOtherModelId || '', fallbackNotice: t.apiKeyProductView?.autoFallbackTextToAny || 'No hay modelo de texto seleccionado. Se usó un modelo alterno.' };
+    }
+
+    return {
+      mode: 'text',
+      modelId: preferredTextModel || selectedImageModelId || selectedOtherModelId || '',
+      fallbackNotice: preferredTextModel ? '' : (t.apiKeyProductView?.autoFallbackTextToAny || 'No hay modelo de texto seleccionado. Se usó un modelo alterno.'),
+    };
   };
+
+  const composeGuidedSkillPrompt = (skill: StarterSkill | null, rawInput: string): string => {
+    if (!skill) return rawInput;
+    const objective = rawInput.trim() || skill.baseInstruction;
+
+    if (skill.mode === 'image') {
+      return [
+        `[Skill: ${skill.label}]`,
+        `Objetivo del usuario: ${objective}`,
+        `Parametros de imagen:`,
+        `- Estilo visual: ${guidedSkillOptions.imageStyle}`,
+        `- Calidad: ${guidedSkillOptions.imageQuality}`,
+        `- Formato: ${guidedSkillOptions.imageAspect}`,
+        `Entrega: prompt final listo para generar + 2 variaciones cortas con enfoque de conversion.`,
+      ].join('\n');
+    }
+
+    if (skill.mode === 'video') {
+      return [
+        `[Skill: ${skill.label}]`,
+        `Objetivo del usuario: ${objective}`,
+        `Parametros de video:`,
+        `- Estilo: ${guidedSkillOptions.videoStyle}`,
+        `- Duracion objetivo: ${guidedSkillOptions.videoDuration}`,
+        `- Ritmo: ${guidedSkillOptions.videoPace}`,
+        `Entrega: storyboard por escenas + guion de voz + CTA final.`,
+      ].join('\n');
+    }
+
+    if (skill.mode === 'search') {
+      return [
+        `[Skill: ${skill.label}]`,
+        `Pregunta principal: ${objective}`,
+        `Parametros de investigacion:`,
+        `- Profundidad: ${guidedSkillOptions.searchDepth}`,
+        `- Formato de salida: ${guidedSkillOptions.searchOutput}`,
+        `- Citas y fuentes: ${guidedSkillOptions.searchSources}`,
+        `Entrega: hallazgos clave, comparativa y recomendaciones accionables.`,
+      ].join('\n');
+    }
+
+    if (skill.mode === 'write') {
+      return [
+        `[Skill: ${skill.label}]`,
+        `Solicitud base: ${objective}`,
+        `Parametros editoriales:`,
+        `- Tono: ${guidedSkillOptions.writingTone}`,
+        `- Formato: ${guidedSkillOptions.writingFormat}`,
+        `- Extension: ${guidedSkillOptions.writingLength}`,
+        `- Audiencia: ${guidedSkillOptions.writingAudience}`,
+        `Entrega: version final lista para usar + alternativa mas directa.`,
+      ].join('\n');
+    }
+
+    if (skill.mode === 'ideas') {
+      return [
+        `[Skill: ${skill.label}]`,
+        `Contexto: ${objective}`,
+        `Parametros de ideacion:`,
+        `- Horizonte: ${guidedSkillOptions.ideasHorizon}`,
+        `- Riesgo: ${guidedSkillOptions.ideasRisk}`,
+        `- Numero de ideas: ${guidedSkillOptions.ideasCount}`,
+        `Entrega: ideas priorizadas por impacto/esfuerzo con primer paso concreto.`,
+      ].join('\n');
+    }
+
+    return [
+      `[Skill: ${skill.label}]`,
+      `Tema: ${objective}`,
+      `Parametros de aprendizaje:`,
+      `- Nivel: ${guidedSkillOptions.learningLevel}`,
+      `- Metodo: ${guidedSkillOptions.learningMethod}`,
+      `- Practica: ${guidedSkillOptions.learningPractice}`,
+      `Entrega: explicacion clara + mini practica + checklist de comprension.`,
+    ].join('\n');
+  };
+
+  const patchConversation = (
+    conversationId: string,
+    updater: (c: ConversationRecord) => ConversationRecord
+  ) => setConversations(prev => prev.map(conv => conv.id === conversationId ? updater(conv) : conv));
 
   const handleValidateKey = async () => {
     if (!product) return;
-    setErrorText('');
-    setStatusText('');
-
-    if (!isLikelyKeyFormat(provider, apiKey)) {
-      setErrorText('Formato de API key no valido para el proveedor elegido.');
+    setErrorText(''); setStatusText('');
+    if (requiresBaseUrl && !baseUrl.trim()) {
+      setErrorText(t.apiKeyProductView?.localEndpointRequired || 'Debes indicar la URL local del proveedor.');
       return;
     }
-
+    if (requiresApiKey && !isLikelyKeyFormat(provider, apiKey)) {
+      setErrorText('Formato de API key no válido para el proveedor elegido.');
+      return;
+    }
     try {
       setIsValidatingKey(true);
-      const result = await validateProviderKey({ provider, apiKey: apiKey.trim() });
+      const result = await validateProviderKey({
+        provider,
+        apiKey: apiKey.trim(),
+        baseUrl: requiresBaseUrl ? baseUrl.trim() : undefined,
+      });
+      const validatedAt = new Date().toISOString();
       setRemoteModels(result.models || []);
       setHasValidatedKey(true);
+      setLastValidatedAt(validatedAt);
+
+      const encodedKey = encodeSecret(apiKey.trim());
+      const resolvedLabel = profileLabel.trim() || `${providerLabel(provider)} ${providerProfiles.length + 1}`;
+      const existingProfile = providerProfiles.find((item) =>
+        item.provider === provider
+        && (item.baseUrl || '') === (baseUrl.trim() || '')
+        && item.apiKeyEncoded === encodedKey
+      );
+      const profileId = existingProfile?.id || `profile-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+      const nextProfile: ProviderProfile = {
+        id: profileId,
+        label: resolvedLabel,
+        provider,
+        apiKeyEncoded: encodedKey,
+        baseUrl: baseUrl.trim(),
+        validatedModels: result.models || [],
+        lastValidatedAt: validatedAt,
+      };
+
+      const nextProfiles = existingProfile
+        ? providerProfiles.map((item) => item.id === existingProfile.id ? nextProfile : item)
+        : [nextProfile, ...providerProfiles];
+
+      setProviderProfiles(nextProfiles);
+
+      const firstText = result.models.find((m) => {
+        const catalog = catalogMap.get(m.id) ?? catalogMap.get(normalizeModelId(m.id));
+        const caps = catalog?.capabilities?.length ? catalog.capabilities : inferCapabilitiesFromId(m.id);
+        return caps.includes('text') || caps.includes('search');
+      });
+      const firstImage = result.models.find((m) => {
+        const catalog = catalogMap.get(m.id) ?? catalogMap.get(normalizeModelId(m.id));
+        const caps = catalog?.capabilities?.length ? catalog.capabilities : inferCapabilitiesFromId(m.id);
+        return caps.includes('image');
+      });
+      const firstAudio = result.models.find((m) => {
+        const catalog = catalogMap.get(m.id) ?? catalogMap.get(normalizeModelId(m.id));
+        const caps = catalog?.capabilities?.length ? catalog.capabilities : inferCapabilitiesFromId(m.id);
+        return caps.includes('audio');
+      });
+      const firstVideo = result.models.find((m) => {
+        const catalog = catalogMap.get(m.id) ?? catalogMap.get(normalizeModelId(m.id));
+        const caps = catalog?.capabilities?.length ? catalog.capabilities : inferCapabilitiesFromId(m.id);
+        return caps.includes('video');
+      });
+      const firstOther = result.models.find((m) => {
+        const catalog = catalogMap.get(m.id) ?? catalogMap.get(normalizeModelId(m.id));
+        const caps = catalog?.capabilities?.length ? catalog.capabilities : inferCapabilitiesFromId(m.id);
+        return caps.includes('video') || caps.includes('audio');
+      });
+
+      if (firstText?.id) setSelectedTextModelId(encodeModelBindingId(profileId, firstText.id));
+      if (firstText?.id) setSelectedSearchModelId(encodeModelBindingId(profileId, firstText.id));
+      if (firstText?.id) setSelectedSummaryModelId(encodeModelBindingId(profileId, firstText.id));
+      if (firstText?.id) setSelectedPromptOptimizerModelId(encodeModelBindingId(profileId, firstText.id));
+      if (firstText?.id) setSelectedRoleOptimizerModelId(encodeModelBindingId(profileId, firstText.id));
+      if (firstImage?.id) setSelectedImageModelId(encodeModelBindingId(profileId, firstImage.id));
+      if (firstVideo?.id) setSelectedOtherModelId(encodeModelBindingId(profileId, firstVideo.id));
+      if (firstAudio?.id) setSelectedSpeechSynthesisModelId(encodeModelBindingId(profileId, firstAudio.id));
+      if (firstAudio?.id) setSelectedSpeechTranscriptionModelId(encodeModelBindingId(profileId, firstAudio.id));
+      if (firstOther?.id && !firstVideo?.id) setSelectedOtherModelId(encodeModelBindingId(profileId, firstOther.id));
 
       if (!selectedModel && result.models.length > 0) {
-        const firstUsable = result.models.find((m) => {
-          const catalog = catalogMap.get(m.id) ?? catalogMap.get(normalizeModelId(m.id));
-          const capabilities = catalog?.capabilities?.length ? catalog.capabilities : inferCapabilitiesFromId(m.id);
-          return capabilities.includes('text') || capabilities.includes('search');
-        });
-        setSelectedModel(firstUsable?.id ?? '');
+        setSelectedModel(
+          (firstText?.id && encodeModelBindingId(profileId, firstText.id))
+          || (firstImage?.id && encodeModelBindingId(profileId, firstImage.id))
+          || (firstOther?.id && encodeModelBindingId(profileId, firstOther.id))
+          || encodeModelBindingId(profileId, result.models[0]?.id || '')
+        );
       }
-
       await persistConfig(product.id, {
-        lastValidatedAt: new Date().toISOString(),
+        profileLabel: resolvedLabel,
+        providerProfiles: nextProfiles,
+        lastValidatedAt: validatedAt,
         validatedModels: result.models,
       });
-      setStatusText('API key validada correctamente y modelos cargados.');
+      setStatusText(requiresApiKey
+        ? 'API key validada correctamente y modelos cargados.'
+        : (t.apiKeyProductView?.localValidationSuccess || 'Endpoint local validado y modelos cargados.'));
     } catch (err: any) {
-      console.error('[ApiKeyInspectorView] Key validation error:', err);
-      setErrorText(err?.message || 'No se pudo validar la API key.');
-    } finally {
-      setIsValidatingKey(false);
-    }
+      setErrorText(err?.message || (requiresApiKey ? 'No se pudo validar la API key.' : 'No se pudo validar el endpoint local.'));
+    } finally { setIsValidatingKey(false); }
   };
 
-  const getCurrentMessages = (): ChatItem[] => {
-    return activeConversation?.messages ?? [];
+  const clearBindingIfProfileDeleted = (bindingId: string, deletedProfileId: string): string => {
+    const decoded = decodeModelBindingId(bindingId);
+    if (!decoded) return '';
+    return decoded.profileId === deletedProfileId ? '' : bindingId;
   };
 
-  const runChat = async (text: string, isTest: boolean) => {
+  const handleRemoveProfile = async (profileId: string) => {
     if (!product) return;
-    if (!apiKey.trim()) {
-      setErrorText('Debes ingresar una API key.');
+    const nextProfiles = providerProfiles.filter((item) => item.id !== profileId);
+    const nextText = clearBindingIfProfileDeleted(selectedTextModelId, profileId);
+    const nextImage = clearBindingIfProfileDeleted(selectedImageModelId, profileId);
+    const nextOther = clearBindingIfProfileDeleted(selectedOtherModelId, profileId);
+    const nextSearch = clearBindingIfProfileDeleted(selectedSearchModelId, profileId);
+    const nextSummary = clearBindingIfProfileDeleted(selectedSummaryModelId, profileId);
+    const nextPromptOptimizer = clearBindingIfProfileDeleted(selectedPromptOptimizerModelId, profileId);
+    const nextRoleOptimizer = clearBindingIfProfileDeleted(selectedRoleOptimizerModelId, profileId);
+    const nextSpeechSynthesis = clearBindingIfProfileDeleted(selectedSpeechSynthesisModelId, profileId);
+    const nextSpeechTranscription = clearBindingIfProfileDeleted(selectedSpeechTranscriptionModelId, profileId);
+
+    setProviderProfiles(nextProfiles);
+    setSelectedTextModelId(nextText);
+    setSelectedImageModelId(nextImage);
+    setSelectedOtherModelId(nextOther);
+    setSelectedSearchModelId(nextSearch);
+    setSelectedSummaryModelId(nextSummary);
+    setSelectedPromptOptimizerModelId(nextPromptOptimizer);
+    setSelectedRoleOptimizerModelId(nextRoleOptimizer);
+    setSelectedSpeechSynthesisModelId(nextSpeechSynthesis);
+    setSelectedSpeechTranscriptionModelId(nextSpeechTranscription);
+
+    if (selectedModel && decodeModelBindingId(selectedModel)?.profileId === profileId) {
+      setSelectedModel('');
+    }
+
+    await persistConfig(product.id, {
+      providerProfiles: nextProfiles,
+      selectedTextModelId: nextText,
+      selectedImageModelId: nextImage,
+      selectedOtherModelId: nextOther,
+      selectedSearchModelId: nextSearch,
+      selectedSummaryModelId: nextSummary,
+      selectedPromptOptimizerModelId: nextPromptOptimizer,
+      selectedRoleOptimizerModelId: nextRoleOptimizer,
+      selectedSpeechSynthesisModelId: nextSpeechSynthesis,
+      selectedSpeechTranscriptionModelId: nextSpeechTranscription,
+      selectedModel: decodeModelBindingId(selectedModel)?.profileId === profileId ? '' : selectedModel,
+    });
+  };
+
+  const handleLoadProfileDraft = (profile: ProviderProfile) => {
+    setProvider(profile.provider);
+    setProfileLabel(profile.label || providerLabel(profile.provider));
+    setApiKey(decodeSecret(profile.apiKeyEncoded));
+    setBaseUrl(profile.baseUrl || '');
+    setRemoteModels(profile.validatedModels || []);
+    setHasValidatedKey((profile.validatedModels || []).length > 0);
+    setLastValidatedAt(profile.lastValidatedAt || '');
+  };
+
+  const getCurrentMessages = (): ChatItem[] => activeConversation?.messages ?? [];
+
+  const runChat = async (text: string, isTest: boolean, modelOverride?: string) => {
+    if (!product || !activeConversation) {
+      setErrorText('Debes crear o seleccionar una conversación.');
       return;
     }
-    if (!selectedModel.trim()) {
-      setErrorText('Debes elegir un modelo.');
+    const modelToUse = (modelOverride || selectedModel).trim();
+    if (!modelToUse) {
+      setErrorText(t.apiKeyProductView?.warningMissingModel || 'No hay un modelo configurado para esta tarea.');
       return;
     }
 
-    if (!activeConversation) {
-      setErrorText(t.apiKeyProductView?.selectConversationFirst || 'Debes crear o seleccionar una conversacion.');
+    const runtime = resolveBindingRuntime(modelToUse);
+    if (!runtime) {
+      setErrorText(t.apiKeyProductView?.warningMissingProvider || 'No se encontró la API key asociada al modelo seleccionado.');
       return;
     }
+
+    if (runtime.profile.provider !== 'ollama' && !runtime.apiKey.trim()) {
+      setErrorText('La API key configurada para este modelo está vacía.');
+      return;
+    }
+
+    if (runtime.profile.provider === 'ollama' && !(runtime.baseUrl || '').trim()) {
+      setErrorText(t.apiKeyProductView?.localEndpointRequired || 'Debes indicar la URL local del proveedor.');
+      return;
+    }
+
+    const composedPrompt = [
+      text,
+      attachedContext ? `\n\n[Contexto adjunto]\n${attachedContext}` : '',
+      webSearchEnabled ? '\n\n[Modo búsqueda web activo] Responde con referencias de fuente cuando aplique.' : '',
+    ].join('').trim();
 
     const userMessage: ChatItem = {
-      id: `u-${Date.now()}`,
-      role: 'user',
-      content: text,
+      id: `u-${Date.now()}`, role: 'user', content: composedPrompt,
       createdAt: new Date().toISOString(),
     };
+    const runtimeAttachments = pendingAttachments.map((item) => ({
+      name: item.name,
+      mimeType: item.mimeType,
+      data: item.data,
+    }));
     const nextChatBase = [...getCurrentMessages(), userMessage];
-
-    patchConversation(activeConversation.id, (conv) => ({
+    patchConversation(activeConversation.id, conv => ({
       ...conv,
       title: conv.messages.length === 0 ? text.slice(0, 42) : conv.title,
       messages: nextChatBase,
       updatedAt: new Date().toISOString(),
     }));
 
-    setErrorText('');
-    setStatusText('');
-    setIsSending(true);
-
+    setErrorText(''); setStatusText(''); setIsSending(true);
     try {
       const payloadMessages: ProviderChatMessage[] = nextChatBase
         .slice(-20)
-        .map((m) => ({ role: m.role, content: m.content }));
+        .map(m => ({
+          role: m.role,
+          content: m.content,
+          attachments: m.id === userMessage.id && m.role === 'user' ? runtimeAttachments : undefined,
+        }));
 
       const response = await providerChat({
-        provider,
-        apiKey: apiKey.trim(),
-        model: selectedModel,
-        systemPrompt: effectiveSystemPrompt,
-        messages: payloadMessages,
+        provider: runtime.profile.provider,
+        apiKey: runtime.apiKey,
+        baseUrl: runtime.profile.provider === 'ollama' ? runtime.baseUrl : undefined,
+        model: runtime.model.rawModelId,
+        systemPrompt: buildRuntimeSystemPrompt(effectiveSystemPrompt), messages: payloadMessages,
       });
 
       const assistantMessage: ChatItem = {
-        id: `a-${Date.now()}`,
-        role: 'assistant',
-        content: response.content || '(sin contenido)',
-        createdAt: new Date().toISOString(),
-        outputKind: 'text',
+        id: `a-${Date.now()}`, role: 'assistant',
+        content: normalizeAssistantOutput(response.content || ''),
+        createdAt: new Date().toISOString(), outputKind: 'text',
       };
-
       const nextChat = [...nextChatBase, assistantMessage];
-      patchConversation(activeConversation.id, (conv) => ({
-        ...conv,
-        messages: nextChat,
-        updatedAt: new Date().toISOString(),
+      patchConversation(activeConversation.id, conv => ({
+        ...conv, messages: nextChat, updatedAt: new Date().toISOString(),
       }));
 
-      const estimatedCost = estimateCost(
-        selectedModel,
-        response.usage.inputTokens,
-        response.usage.outputTokens,
-        catalogMap
-      );
-
+      const estimatedCost = estimateCost(runtime.model.rawModelId, response.usage.inputTokens, response.usage.outputTokens, catalogMap);
       const nextStats: RuntimeStats = {
-        totalRequests: stats.totalRequests + 1,
-        totalInputTokens: stats.totalInputTokens + response.usage.inputTokens,
-        totalOutputTokens: stats.totalOutputTokens + response.usage.outputTokens,
-        totalTokens: stats.totalTokens + response.usage.totalTokens,
+        totalRequests:      stats.totalRequests + 1,
+        totalInputTokens:   stats.totalInputTokens  + response.usage.inputTokens,
+        totalOutputTokens:  stats.totalOutputTokens + response.usage.outputTokens,
+        totalTokens:        stats.totalTokens       + response.usage.totalTokens,
         totalEstimatedCost: stats.totalEstimatedCost + estimatedCost,
-        lastLatencyMs: response.latencyMs,
+        lastLatencyMs:      response.latencyMs,
       };
       setStats(nextStats);
 
       await Promise.all([
         persistChat(product.id, {
-          conversations: conversations.map((conv) =>
+          conversations: conversations.map(conv =>
             conv.id === activeConversation.id
-              ? {
-                  ...conv,
-                  messages: nextChat,
-                  updatedAt: new Date().toISOString(),
-                }
+              ? { ...conv, messages: nextChat, updatedAt: new Date().toISOString() }
               : conv
           ),
         }),
         persistStats(product.id, nextStats),
         persistConfig(product.id),
       ]);
-
+      if (!isTest) setMessageInput('');
       if (!isTest) {
-        setMessageInput('');
+        setAttachedContext('');
+        setPendingAttachments([]);
       }
       setStatusText(isTest ? 'Modelo probado correctamente.' : 'Respuesta recibida y guardada.');
     } catch (err: any) {
-      console.error('[ApiKeyInspectorView] Chat error:', err);
       setErrorText(err?.message || 'No se pudo completar el chat con el proveedor.');
-    } finally {
-      setIsSending(false);
-    }
+    } finally { setIsSending(false); }
   };
 
-  const runCapabilityGeneration = async (capability: ModelCapability, promptText: string, isTest: boolean) => {
-    if (!product) return;
-    if (!apiKey.trim()) {
-      setErrorText('Debes ingresar una API key.');
+  const runCapabilityGeneration = async (capability: ModelCapability, promptText: string, isTest: boolean, modelOverride?: string) => {
+    if (!product || !activeConversation) {
+      setErrorText('Debes crear o seleccionar una conversación.');
       return;
     }
-    if (!selectedModel.trim()) {
-      setErrorText('Debes elegir un modelo.');
+    const modelToUse = (modelOverride || selectedModel).trim();
+    if (!modelToUse) {
+      setErrorText(t.apiKeyProductView?.warningMissingModel || 'No hay un modelo configurado para esta tarea.');
       return;
     }
-    if (!activeConversation) {
-      setErrorText(t.apiKeyProductView?.selectConversationFirst || 'Debes crear o seleccionar una conversacion.');
+
+    const runtime = resolveBindingRuntime(modelToUse);
+    if (!runtime) {
+      setErrorText(t.apiKeyProductView?.warningMissingProvider || 'No se encontró la API key asociada al modelo seleccionado.');
+      return;
+    }
+
+    if (runtime.profile.provider !== 'ollama' && !runtime.apiKey.trim()) {
+      setErrorText('La API key configurada para este modelo está vacía.');
+      return;
+    }
+
+    if (runtime.profile.provider === 'ollama' && !(runtime.baseUrl || '').trim()) {
+      setErrorText(t.apiKeyProductView?.localEndpointRequired || 'Debes indicar la URL local del proveedor.');
       return;
     }
 
     const userMessage: ChatItem = {
-      id: `u-${Date.now()}`,
-      role: 'user',
-      content: promptText,
+      id: `u-${Date.now()}`, role: 'user', content: promptText,
       createdAt: new Date().toISOString(),
       outputKind: capability === 'text' || capability === 'search' ? 'text' : 'none',
     };
-
     const nextChatBase = [...getCurrentMessages(), userMessage];
-    patchConversation(activeConversation.id, (conv) => ({
+    patchConversation(activeConversation.id, conv => ({
       ...conv,
       title: conv.messages.length === 0 ? promptText.slice(0, 42) : conv.title,
       messages: nextChatBase,
       updatedAt: new Date().toISOString(),
     }));
 
-    setErrorText('');
-    setStatusText('');
-    setIsSending(true);
-
+    setErrorText(''); setStatusText(''); setIsSending(true);
     try {
+      const runtimeAttachments = pendingAttachments.map((item) => ({
+        name: item.name,
+        mimeType: item.mimeType,
+        data: item.data,
+      }));
+
       const response = await providerTestModel({
-        provider,
-        apiKey: apiKey.trim(),
-        model: selectedModel,
+        provider: runtime.profile.provider,
+        apiKey: runtime.apiKey,
+        baseUrl: runtime.profile.provider === 'ollama' ? runtime.baseUrl : undefined,
+        model: runtime.model.rawModelId,
         capability: capability === 'unknown' ? 'text' : capability,
         prompt: promptText,
+        attachments: runtimeAttachments,
       });
-
       const kind = response.outputKind || (capability === 'image' || capability === 'audio' || capability === 'video' ? capability : 'text');
       const assistantMessage: ChatItem = {
-        id: `cap-${Date.now()}`,
-        role: 'assistant',
-        content: response.message || 'Prueba ejecutada',
+        id: `cap-${Date.now()}`, role: 'assistant',
+        content: normalizeAssistantOutput(response.message || 'Prueba ejecutada'),
         createdAt: new Date().toISOString(),
         outputKind: kind,
         outputPreview: response.outputPreview,
       };
-
       const nextChat = [...nextChatBase, assistantMessage];
-      const nextConversations = conversations.map((conv) =>
+      const nextConversations = conversations.map(conv =>
         conv.id === activeConversation.id
-          ? {
-              ...conv,
-              messages: nextChat,
-              updatedAt: new Date().toISOString(),
-            }
+          ? { ...conv, messages: nextChat, updatedAt: new Date().toISOString() }
           : conv
       );
       setConversations(nextConversations);
 
-      const nextStats: RuntimeStats = {
-        ...stats,
-        totalRequests: stats.totalRequests + 1,
-      };
+      const nextStats: RuntimeStats = { ...stats, totalRequests: stats.totalRequests + 1 };
       setStats(nextStats);
 
       await Promise.all([
@@ -834,84 +1778,90 @@ const ApiKeyInspectorView: React.FC = () => {
         persistStats(product.id, nextStats),
         persistConfig(product.id),
       ]);
-
+      if (!isTest) setMessageInput('');
       if (!isTest) {
-        setMessageInput('');
+        setAttachedContext('');
+        setPendingAttachments([]);
       }
-
-      setStatusText(isTest ? 'Modelo probado correctamente.' : 'Generacion ejecutada y guardada.');
+      setStatusText(isTest ? 'Modelo probado correctamente.' : 'Generación ejecutada y guardada.');
     } catch (err: any) {
-      console.error('[ApiKeyInspectorView] Capability generation error:', err);
-      setErrorText(err?.message || 'No se pudo ejecutar la generacion para este modo.');
-    } finally {
-      setIsSending(false);
-    }
+      setErrorText(err?.message || 'No se pudo ejecutar la generación para este modo.');
+    } finally { setIsSending(false); }
   };
 
   const handleSendMessage = async () => {
     const text = messageInput.trim();
-    if (!text) return;
+    if (!text && pendingAttachments.length === 0 && !activeStarterSkill) return;
 
-    if (chatMode === 'text' || chatMode === 'search') {
-      if (selectedModelInfo && !selectedModelInfo.usableInChat) {
-        setErrorText(t.apiKeyProductView?.chatNotSupportedForModel || 'Este modelo no soporta chat de texto. Usa Probar modelo con su modalidad.');
-        return;
-      }
-      await runChat(text, false);
+    const normalizedText = text
+      || activeStarterSkill?.baseInstruction
+      || (t.apiKeyProductView?.attachmentOnlyPrompt || 'Analiza los archivos adjuntos y responde con hallazgos accionables.');
+    const composedText = composeGuidedSkillPrompt(activeStarterSkill, normalizedText);
+
+    const desiredCapability = activeStarterSkill?.capability || detectPromptCapability(composedText);
+    const routing = resolveRoutedModel(desiredCapability, composedText);
+
+    if (!routing.modelId) {
+      setErrorText(t.apiKeyProductView?.warningMissingModel || 'No hay un modelo configurado para esta tarea.');
       return;
     }
 
-    await runCapabilityGeneration(chatMode, text, false);
+    setSelectedModel(routing.modelId);
+
+    if (routing.fallbackNotice) {
+      setStatusText(routing.fallbackNotice);
+    }
+
+    if (routing.mode === 'text' || routing.mode === 'search') {
+      await runChat(composedText, false, routing.modelId);
+      return;
+    }
+
+    await runCapabilityGeneration(routing.mode, composedText, false, routing.modelId);
   };
 
   const handleTestModel = async () => {
-    if (!selectedModelInfo) {
-      setErrorText(t.apiKeyProductView?.selectModelFirst || 'Debes seleccionar un modelo.');
-      return;
-    }
-
-    if (!availableTestModes.includes(testMode)) {
-      setErrorText(t.apiKeyProductView?.invalidTestMode || 'Esta modalidad no esta disponible para el modelo elegido.');
-      return;
-    }
-
+    const modelForTest =
+      (testMode === 'image' ? selectedImageModelId : '') ||
+      (testMode === 'search' ? (selectedSearchModelId || selectedTextModelId) : '') ||
+      (testMode === 'text' ? selectedTextModelId : '') ||
+      (testMode === 'audio' ? (selectedSpeechSynthesisModelId || selectedSpeechTranscriptionModelId || selectedOtherModelId) : '') ||
+      (testMode === 'video' ? selectedOtherModelId : '') ||
+      selectedModel ||
+      selectedTextModelId ||
+      selectedSearchModelId ||
+      selectedImageModelId ||
+      selectedOtherModelId ||
+      selectedSpeechSynthesisModelId ||
+      selectedSpeechTranscriptionModelId;
+    if (!modelForTest) { setErrorText(t.apiKeyProductView?.selectModelFirst || 'Debes seleccionar un modelo.'); return; }
+    if (!availableTestModes.includes(testMode)) { setErrorText(t.apiKeyProductView?.invalidTestMode || 'Esta modalidad no está disponible.'); return; }
+    setSelectedModel(modelForTest);
     await runCapabilityGeneration(
       testMode,
       testMode === 'image' ? 'Create a small test image with the word AIMAKER' : 'Reply only with OK',
-      true
+      true,
+      modelForTest
     );
   };
 
   const handleCreateConversation = async () => {
-    const title = t.apiKeyProductView?.newConversationDefault || 'Nueva conversacion';
+    const title = t.apiKeyProductView?.newConversationDefault || 'Nueva conversación';
     const conversation = createConversation(title);
     const nextConversations = [conversation, ...conversations];
     setConversations(nextConversations);
     setActiveConversationId(conversation.id);
-    setStatusText(t.apiKeyProductView?.newConversationCreated || 'Nueva conversacion creada.');
-
-    if (product) {
-      await persistChat(product.id, {
-        conversations: nextConversations,
-        activeConversationId: conversation.id,
-      });
-    }
+    setStatusText('Nueva conversación creada.');
+    if (product) await persistChat(product.id, { conversations: nextConversations, activeConversationId: conversation.id });
   };
 
   const handleCreateRole = async () => {
-    const title = roleTitleInput.trim();
+    const title    = roleTitleInput.trim();
     const behavior = roleBehaviorInput.trim();
-    if (!title || !behavior) {
-      setErrorText(t.apiKeyProductView?.roleValidation || 'Debes completar titulo y comportamiento del rol.');
-      return;
-    }
-
+    if (!title || !behavior) { setErrorText(t.apiKeyProductView?.roleValidation || 'Debes completar título y comportamiento.'); return; }
     const newRole: RoleRecord = {
-      id: `role-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-      title,
-      behavior,
+      id: `role-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, title, behavior,
     };
-
     const nextRoles = [newRole, ...roles];
     setRoles(nextRoles);
     setSelectedRoleId(newRole.id);
@@ -919,7 +1869,6 @@ const ApiKeyInspectorView: React.FC = () => {
     setRoleTitleInput('');
     setRoleBehaviorInput('');
     setStatusText(t.apiKeyProductView?.roleSaved || 'Rol guardado.');
-
     if (product) {
       await persistChat(product.id, { roles: nextRoles });
       await persistConfig(product.id, { selectedRoleId: newRole.id });
@@ -927,29 +1876,19 @@ const ApiKeyInspectorView: React.FC = () => {
   };
 
   const handleCreatePrompt = async () => {
-    const title = promptTitleInput.trim();
+    const title  = promptTitleInput.trim();
     const prompt = promptContentInput.trim();
-    if (!title || !prompt) {
-      setErrorText(t.apiKeyProductView?.promptValidation || 'Debes completar titulo y contenido del prompt.');
-      return;
-    }
-
+    if (!title || !prompt) { setErrorText(t.apiKeyProductView?.promptValidation || 'Debes completar título y contenido.'); return; }
     const newPrompt: PromptRecord = {
-      id: `prompt-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-      title,
-      prompt,
+      id: `prompt-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, title, prompt,
     };
-
     const nextPrompts = [newPrompt, ...prompts];
     setPrompts(nextPrompts);
     setShowPromptModal(false);
     setPromptTitleInput('');
     setPromptContentInput('');
     setStatusText(t.apiKeyProductView?.promptSaved || 'Prompt guardado.');
-
-    if (product) {
-      await persistChat(product.id, { prompts: nextPrompts });
-    }
+    if (product) await persistChat(product.id, { prompts: nextPrompts });
   };
 
   const handleUsePrompt = (prompt: PromptRecord) => {
@@ -957,601 +1896,1603 @@ const ApiKeyInspectorView: React.FC = () => {
     setStatusText(t.apiKeyProductView?.promptApplied || 'Prompt aplicado al cuadro de chat.');
   };
 
+  const handleUseStarterSkill = (skill: StarterSkill) => {
+    setActiveSkillId(skill.id);
+    if (skill.capability === 'search') {
+      setWebSearchEnabled(true);
+    }
+    setStatusText(t.apiKeyProductView?.starterApplied || 'Skill activada. Ajusta opciones y escribe tu objetivo.');
+    messageTextareaRef.current?.focus();
+  };
+
   const handleSelectConversation = (conversationId: string) => {
     setActiveConversationId(conversationId);
-    setStatusText('');
-    setErrorText('');
-    if (product) {
-      persistChat(product.id, { activeConversationId: conversationId }).catch((err) => {
-        console.error('[ApiKeyInspectorView] Persist active conversation failed:', err);
-      });
+    setStatusText(''); setErrorText('');
+    if (product) persistChat(product.id, { activeConversationId: conversationId }).catch(console.error);
+  };
+
+  const handleDownloadConversation = (conversation: ConversationRecord) => {
+    const title     = (conversation.title || 'conversacion').trim();
+    const safeTitle = title.toLowerCase().replace(/[^a-z0-9\-_\s]/g, '').replace(/\s+/g, '_').slice(0, 60) || 'conversacion';
+    const lines: string[] = [
+      `Conversación: ${title}`,
+      `Actualizada: ${new Date(conversation.updatedAt).toLocaleString()}`, '',
+    ];
+    conversation.messages.forEach((msg, i) => {
+      const roleLabel = msg.role === 'user' ? 'Tú' : 'Asistente';
+      lines.push(`--- Mensaje ${i + 1} (${roleLabel}) - ${new Date(msg.createdAt).toLocaleString()} ---`);
+      lines.push(msg.content || '');
+      lines.push('');
+    });
+    const blob   = new Blob([lines.join('\n')], { type: 'text/plain;charset=utf-8' });
+    const url    = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href  = url;
+    anchor.download = `${safeTitle}_${new Date().toISOString().slice(0, 10)}.txt`;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    URL.revokeObjectURL(url);
+    setStatusText('Conversación descargada.');
+  };
+
+  const handleExportWorkspace = () => {
+    const payload = {
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      config: {
+        provider,
+        baseUrl,
+        profileLabel,
+        providerProfiles,
+        selectedModel,
+        selectedTextModelId,
+        selectedImageModelId,
+        selectedOtherModelId,
+        selectedSearchModelId,
+        selectedSummaryModelId,
+        selectedPromptOptimizerModelId,
+        selectedRoleOptimizerModelId,
+        selectedSpeechSynthesisModelId,
+        selectedSpeechTranscriptionModelId,
+        systemPrompt,
+        selectedRoleId,
+        validatedModels: remoteModels,
+      },
+      chat: {
+        roles,
+        prompts,
+        conversations,
+        activeConversationId,
+      },
+      stats,
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = `chatbot_llm_export_${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    URL.revokeObjectURL(url);
+    setStatusText(t.apiKeyProductView?.exportSuccess || 'Exportación completada.');
+  };
+
+  const handleImportWorkspaceFile = async (file: File) => {
+    try {
+      const text = await file.text();
+      const parsed = JSON.parse(text);
+
+      const nextProvider = parsed?.config?.provider as ApiRuntimeProvider | undefined;
+      const nextBaseUrl = String(parsed?.config?.baseUrl || '');
+      const nextProfileLabel = String(parsed?.config?.profileLabel || '');
+      const nextProviderProfiles = Array.isArray(parsed?.config?.providerProfiles)
+        ? parsed.config.providerProfiles as ProviderProfile[]
+        : [];
+      const nextModel = String(parsed?.config?.selectedModel || '');
+      const nextTextModelId = String(parsed?.config?.selectedTextModelId || '');
+      const nextImageModelId = String(parsed?.config?.selectedImageModelId || '');
+      const nextOtherModelId = String(parsed?.config?.selectedOtherModelId || '');
+      const nextSearchModelId = String(parsed?.config?.selectedSearchModelId || '');
+      const nextSummaryModelId = String(parsed?.config?.selectedSummaryModelId || '');
+      const nextPromptOptimizerModelId = String(parsed?.config?.selectedPromptOptimizerModelId || '');
+      const nextRoleOptimizerModelId = String(parsed?.config?.selectedRoleOptimizerModelId || '');
+      const nextSpeechSynthesisModelId = String(parsed?.config?.selectedSpeechSynthesisModelId || '');
+      const nextSpeechTranscriptionModelId = String(parsed?.config?.selectedSpeechTranscriptionModelId || '');
+      const nextSystemPrompt = String(parsed?.config?.systemPrompt || '');
+      const nextSelectedRoleId = String(parsed?.config?.selectedRoleId || '');
+      const nextRoles = Array.isArray(parsed?.chat?.roles) ? parsed.chat.roles as RoleRecord[] : [];
+      const nextPrompts = Array.isArray(parsed?.chat?.prompts) ? parsed.chat.prompts as PromptRecord[] : [];
+      const nextConversations = Array.isArray(parsed?.chat?.conversations)
+        ? parsed.chat.conversations as ConversationRecord[]
+        : [];
+      const nextActiveConversationId = String(parsed?.chat?.activeConversationId || '');
+      const nextStats = parsed?.stats && typeof parsed.stats === 'object'
+        ? ({ ...EMPTY_STATS, ...(parsed.stats as RuntimeStats) })
+        : EMPTY_STATS;
+      const nextValidatedModels = Array.isArray(parsed?.config?.validatedModels)
+        ? parsed.config.validatedModels as ProviderModelInfo[]
+        : [];
+      const nextLastValidatedAt = typeof parsed?.config?.lastValidatedAt === 'string'
+        ? parsed.config.lastValidatedAt
+        : (nextValidatedModels.length > 0 ? new Date().toISOString() : '');
+
+      if (nextProvider) setProvider(nextProvider);
+      setBaseUrl(nextBaseUrl);
+      setProfileLabel(nextProfileLabel);
+      setProviderProfiles(nextProviderProfiles);
+      setSelectedModel(nextModel);
+      setSelectedTextModelId(nextTextModelId);
+      setSelectedImageModelId(nextImageModelId);
+      setSelectedOtherModelId(nextOtherModelId);
+      setSelectedSearchModelId(nextSearchModelId);
+      setSelectedSummaryModelId(nextSummaryModelId);
+      setSelectedPromptOptimizerModelId(nextPromptOptimizerModelId);
+      setSelectedRoleOptimizerModelId(nextRoleOptimizerModelId);
+      setSelectedSpeechSynthesisModelId(nextSpeechSynthesisModelId);
+      setSelectedSpeechTranscriptionModelId(nextSpeechTranscriptionModelId);
+      setSystemPrompt(nextSystemPrompt);
+      setSelectedRoleId(nextSelectedRoleId);
+      setRoles(nextRoles);
+      setPrompts(nextPrompts);
+      setConversations(nextConversations);
+      setActiveConversationId(nextActiveConversationId || nextConversations[0]?.id || '');
+      setStats(nextStats);
+      setRemoteModels(nextValidatedModels);
+      const importedModelsCount = nextProviderProfiles.reduce((acc, item) => acc + (Array.isArray(item.validatedModels) ? item.validatedModels.length : 0), 0);
+      setHasValidatedKey(importedModelsCount > 0 || nextValidatedModels.length > 0);
+      setLastValidatedAt(nextLastValidatedAt);
+
+      if (product) {
+        await Promise.all([
+          persistConfig(product.id, {
+            provider: nextProvider ?? provider,
+            baseUrl: nextBaseUrl,
+            profileLabel: nextProfileLabel,
+            providerProfiles: nextProviderProfiles,
+            selectedModel: nextModel,
+            selectedTextModelId: nextTextModelId,
+            selectedImageModelId: nextImageModelId,
+            selectedOtherModelId: nextOtherModelId,
+            selectedSearchModelId: nextSearchModelId,
+            selectedSummaryModelId: nextSummaryModelId,
+            selectedPromptOptimizerModelId: nextPromptOptimizerModelId,
+            selectedRoleOptimizerModelId: nextRoleOptimizerModelId,
+            selectedSpeechSynthesisModelId: nextSpeechSynthesisModelId,
+            selectedSpeechTranscriptionModelId: nextSpeechTranscriptionModelId,
+            systemPrompt: nextSystemPrompt,
+            selectedRoleId: nextSelectedRoleId,
+            validatedModels: nextValidatedModels,
+            lastValidatedAt: nextLastValidatedAt,
+          }),
+          persistChat(product.id, {
+            roles: nextRoles,
+            prompts: nextPrompts,
+            conversations: nextConversations,
+            activeConversationId: nextActiveConversationId || nextConversations[0]?.id || '',
+          }),
+          persistStats(product.id, nextStats),
+        ]);
+      }
+
+      setStatusText(t.apiKeyProductView?.importSuccess || 'Importación completada.');
+      setErrorText('');
+    } catch (err: any) {
+      setErrorText(err?.message || t.apiKeyProductView?.importError || 'No se pudo importar el archivo.');
     }
   };
 
+  const handleImportWorkspaceClick = () => {
+    importInputRef.current?.click();
+  };
+
+  const handleImportWorkspaceChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    await handleImportWorkspaceFile(file);
+    event.target.value = '';
+  };
+
+  const readAttachment = async (file: File): Promise<{ contextLine: string; attachment?: PendingAttachment }> => {
+    const mimeType = file.type || 'application/octet-stream';
+
+    if (isTextLikeFile(file)) {
+      const text = await file.text();
+      return {
+        contextLine: `${file.name}: ${text.replace(/\s+/g, ' ').trim().slice(0, 900)}`,
+      };
+    }
+
+    const maxBinarySize = 6 * 1024 * 1024;
+    if (file.size > maxBinarySize) {
+      return {
+        contextLine: `${file.name} (${mimeType}) - ${(file.size / (1024 * 1024)).toFixed(1)}MB (omitido por tamano)`,
+      };
+    }
+
+    const data = await toBase64(file);
+    const summary = `${file.name} (${mimeType}, ${Math.max(1, Math.round(file.size / 1024))}KB)`;
+
+    return {
+      contextLine: summary,
+      attachment: {
+        id: `att-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        name: file.name,
+        mimeType,
+        data,
+        summary,
+      },
+    };
+  };
+
+  const handleAttachClick = () => {
+    attachmentInputRef.current?.click();
+  };
+
+  const handleAttachmentChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files || []);
+    if (files.length === 0) return;
+    const parsed = await Promise.all(files.map(readAttachment));
+    const merged = parsed.map((item) => item.contextLine).filter(Boolean).join('\n');
+    const newAttachments = parsed
+      .map((item) => item.attachment)
+      .filter((item): item is PendingAttachment => Boolean(item));
+
+    setAttachedContext(prev => [prev, merged].filter(Boolean).join('\n').slice(0, 3000));
+    setPendingAttachments((prev) => [...prev, ...newAttachments].slice(-8));
+    setStatusText(t.apiKeyProductView?.attachmentReady || 'Contexto adjunto listo.');
+    event.target.value = '';
+  };
+
+  const handleEnhanceMessage = () => {
+    if (!messageInput.trim()) return;
+    setMessageInput(optimizeShortText(messageInput, 400));
+    setStatusText(t.apiKeyProductView?.inputOptimized || 'Texto optimizado.');
+  };
+
+  const handleOptimizeRoleBehavior = () => {
+    if (!roleBehaviorInput.trim()) return;
+    setRoleBehaviorInput(optimizeShortText(roleBehaviorInput, 400));
+  };
+
+  const handleOptimizePromptContent = () => {
+    if (!promptContentInput.trim()) return;
+    setPromptContentInput(optimizeShortText(promptContentInput, 400));
+  };
+
+  const handlePromptPickerToggle = () => {
+    setShowPromptPicker((prev) => !prev);
+  };
+
+  const handleMicToggle = () => {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      setErrorText(t.apiKeyProductView?.voiceNotSupported || 'Tu navegador no soporta dictado por voz.');
+      return;
+    }
+
+    if (isListening) {
+      speechRecognitionRef.current?.stop?.();
+      setIsListening(false);
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'es-ES';
+    recognition.interimResults = true;
+    recognition.continuous = false;
+    speechRecognitionRef.current = recognition;
+
+    recognition.onresult = (evt: any) => {
+      const transcript = Array.from(evt.results)
+        .map((r: any) => r[0]?.transcript || '')
+        .join(' ')
+        .trim();
+      if (transcript) {
+        setMessageInput((prev) => `${prev}${prev ? ' ' : ''}${transcript}`.slice(0, 3000));
+      }
+    };
+
+    recognition.onerror = () => {
+      setIsListening(false);
+      setErrorText(t.apiKeyProductView?.voiceError || 'No se pudo procesar el dictado.');
+    };
+
+    recognition.onend = () => setIsListening(false);
+
+    setIsListening(true);
+    recognition.start();
+  };
+
+  // ─── Loading / not-found screens ─────────────────────────────────────────
+
   if (isLoading) {
     return (
-      <div className="h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
-        <span className="inline-block h-9 w-9 rounded-full border-4 border-cyan-200 border-t-cyan-600 animate-spin" />
+      <div className="h-screen flex items-center justify-center bg-[#f8fffe]">
+        <span className="inline-block h-9 w-9 rounded-full border-4 border-[#a7f3d0] border-t-[#0f766e] animate-spin" />
       </div>
     );
   }
 
   if (!product) {
     return (
-      <div className="h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+      <div className="h-screen flex items-center justify-center bg-[#f8fffe]">
         <div className="text-center">
-          <p className="text-red-500 text-lg mb-4">{t.apiKeyProductView?.notFound || 'Producto no encontrado o no es publico.'}</p>
+          <p className="text-red-500 text-lg mb-4">Producto no encontrado o no es público.</p>
           <button
             onClick={() => navigate('/dashboard/products')}
-            className="px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700"
+            className="px-4 py-2 bg-[#0f766e] text-white rounded-lg hover:opacity-90 transition-opacity"
           >
-            {t.apiKeyProductView?.backToProducts || 'Volver a productos'}
+            Volver a productos
           </button>
         </div>
       </div>
     );
   }
 
+  // ─── Shared CSS fragments (as template strings for readability) ───────────
+  const selectCls = isDarkTheme
+    ? 'text-[0.8rem] font-[inherit] px-2 py-1 border border-slate-600 rounded-md bg-slate-800 text-slate-100 cursor-pointer outline-none focus:border-cyan-400 disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-slate-700'
+    : 'text-[0.8rem] font-[inherit] px-2 py-1 border border-[#99e6d0] rounded-md bg-white text-[#0f2a24] cursor-pointer outline-none focus:border-[#0f766e] disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-[#ecfdf5]';
+  const inputCls  = isDarkTheme
+    ? 'font-[inherit] text-[0.9rem] px-3 py-2 border border-slate-600 rounded-lg outline-none bg-slate-800 text-slate-100 focus:border-cyan-400 transition-colors'
+    : 'font-[inherit] text-[0.9rem] px-3 py-2 border border-[#99e6d0] rounded-lg outline-none bg-[#f8fffe] text-[#0f2a24] focus:border-[#6b8f84] transition-colors';
+  const modalBtnCancelCls = isDarkTheme
+    ? 'font-[inherit] text-[0.85rem] px-[18px] py-2 rounded-[10px] cursor-pointer bg-slate-700 text-slate-200 border-none hover:bg-slate-600 transition-colors'
+    : 'font-[inherit] text-[0.85rem] px-[18px] py-2 rounded-[10px] cursor-pointer bg-[#ecfdf5] text-[#3d7a6d] border-none hover:bg-[#d1fae5] transition-colors';
+  const modalBtnSaveCls   = 'font-[inherit] text-[0.85rem] px-[18px] py-2 rounded-[10px] cursor-pointer bg-[#0f766e] text-white border-none hover:opacity-85 transition-opacity';
+
+  // ─── Render ───────────────────────────────────────────────────────────────
+
   return (
-    <div className="h-screen bg-[#d8e7e3] overflow-hidden">
-      <div className="h-full flex">
-        <aside className={`${sidebarCollapsed ? 'w-14' : 'w-[280px]'} transition-all duration-200 bg-[#d2e4df] border-r border-[#9ecbc2] flex-shrink-0 flex flex-col`}>
-          <div className="p-3 border-b border-[#9ecbc2] flex items-start gap-2">
-            <button
-              onClick={() => setSidebarCollapsed((v) => !v)}
-              className="p-1 rounded border border-[#87c7bc] text-[#1d7269] hover:bg-[#bfe0d9]"
-              title={t.apiKeyProductView?.collapseSidebar || 'Colapsar'}
+    <div className="flex h-screen overflow-hidden" style={themeStyle}>
+
+      {/* ── Sidebar toggle (fixed) ─────────────────────────────────────── */}
+      <button
+        onClick={() => setSidebarCollapsed(v => !v)}
+        title={sidebarCollapsed ? (t.apiKeyProductView?.expandSidebar || 'Mostrar panel') : (t.apiKeyProductView?.collapseSidebar || 'Ocultar panel')}
+        className={`fixed top-3 z-[100] border rounded-md p-1 cursor-pointer flex items-center justify-center transition-all duration-[250ms] ${
+          isDarkTheme
+            ? 'bg-slate-800 border-slate-600 text-slate-300 hover:text-slate-100 hover:bg-slate-700'
+            : 'bg-[#ecfdf5] border-[#99e6d0] text-[#6b8f84] hover:text-[#0f2a24] hover:bg-[#d1fae5]'
+        }`}
+        style={{ left: sidebarCollapsed ? 8 : 286 }}
+      >
+        <IconPanel />
+      </button>
+
+      {/* ── Sidebar ───────────────────────────────────────────────────── */}
+      <aside
+        className={`flex flex-col border-r transition-all duration-[250ms] overflow-hidden ${
+          isDarkTheme ? 'bg-[#111827] border-slate-700' : 'bg-[#ecfdf5] border-[#a7d7c5]'
+        }`}
+        style={{
+          width:    sidebarCollapsed ? 0 : 300,
+          minWidth: sidebarCollapsed ? 0 : 240,
+          padding:  sidebarCollapsed ? '24px 0' : '24px 16px',
+          opacity:  sidebarCollapsed ? 0 : 1,
+          borderRightWidth: sidebarCollapsed ? 0 : 1,
+        }}
+      >
+        {/* Header */}
+        <h1 className={`text-[1.6rem] font-extrabold mb-1 flex items-center justify-center gap-2 tracking-[-0.02em] ${isDarkTheme ? 'text-slate-100' : 'text-[#0f2a24]'}`}>
+          <KeyRound size={28} className="text-[#0f766e] flex-shrink-0" />
+          <span className="whitespace-nowrap">FabLab AIMaker</span>
+          <span className="text-[0.45em] font-semibold opacity-50 align-super">v2.3</span>
+        </h1>
+        <a
+          href="#"
+          className={`block text-center text-[0.7rem] no-underline mb-5 hover:underline transition-colors ${isDarkTheme ? 'text-slate-400 hover:text-slate-100' : 'text-[#6b8f84] hover:text-[#0f2a24]'}`}
+        >
+          by DoItAndShare
+        </a>
+
+        {/* New conversation */}
+        <button
+          onClick={handleCreateConversation}
+          className="bg-[#0f766e] text-white border border-[#0f766e] rounded-[10px] py-2.5 px-3.5 text-[0.9rem] cursor-pointer text-center font-semibold mb-4 hover:opacity-90 transition-opacity whitespace-nowrap"
+        >
+          + {t.apiKeyProductView?.newConversation || 'Nueva conversación'}
+        </button>
+
+        {/* Scrollable sections */}
+        <div className="flex-1 overflow-y-auto min-h-0 flex flex-col [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-[#99d8c9] [&::-webkit-scrollbar-thumb]:rounded-sm">
+
+          {/* Roles */}
+          <SidebarSection
+            title={t.apiKeyProductView?.rolesTitle || 'Roles'}
+            open={isRolesOpen}
+            isDark={isDarkTheme}
+            onToggle={() => setIsRolesOpen(v => !v)}
+            onAdd={() => setShowRoleModal(true)}
+            addDisabled={!isOwner}
+            addTitle={t.apiKeyProductView?.addRoleTitle || 'Crear rol'}
+          >
+            <div className="flex flex-col gap-0.5 mt-1">
+              {roles.length === 0 && (
+                <p className={`text-xs ${isDarkTheme ? 'text-slate-400' : 'text-[#6b8f84]'}`}>{t.apiKeyProductView?.emptyRoles || 'Sin roles guardados'}</p>
+              )}
+              {roles.map(role => (
+                <button
+                  key={role.id}
+                  onClick={() => {
+                    setSelectedRoleId(role.id);
+                    if (product) persistConfig(product.id, { selectedRoleId: role.id }).catch(console.error);
+                  }}
+                  className={`w-full text-left px-2.5 py-1.5 rounded-lg text-[0.82rem] font-medium transition-colors cursor-pointer border-none ${selectedRoleId === role.id
+                    ? (isDarkTheme ? 'bg-slate-700 text-slate-100' : 'bg-[#a7f3d0] text-[#0f2a24]')
+                    : (isDarkTheme ? 'bg-transparent hover:bg-slate-700 text-slate-200' : 'bg-transparent hover:bg-[#d1fae5] text-[#0f2a24]')}`}
+                >
+                  {role.title}
+                </button>
+              ))}
+            </div>
+          </SidebarSection>
+
+          {/* Saved prompts */}
+          <SidebarSection
+            title={t.apiKeyProductView?.promptsTitle || 'Prompts guardados'}
+            open={isPromptsOpen}
+            isDark={isDarkTheme}
+            onToggle={() => setIsPromptsOpen(v => !v)}
+            onAdd={() => setShowPromptModal(true)}
+            addDisabled={!isOwner}
+            addTitle={t.apiKeyProductView?.addPromptTitle || 'Crear prompt'}
+          >
+            <div className="flex flex-col gap-0.5 mt-1">
+              {prompts.length === 0 && (
+                <p className={`text-xs ${isDarkTheme ? 'text-slate-400' : 'text-[#6b8f84]'}`}>{t.apiKeyProductView?.emptyPrompts || 'Sin prompts guardados'}</p>
+              )}
+              {prompts.map(prompt => (
+                <div key={prompt.id} className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg transition-colors ${isDarkTheme ? 'hover:bg-slate-700' : 'hover:bg-[#d1fae5]'}`}>
+                  <div className="flex-1 min-w-0">
+                    <p className={`text-[0.82rem] font-medium truncate ${isDarkTheme ? 'text-slate-100' : 'text-[#0f2a24]'}`}>{prompt.title}</p>
+                  </div>
+                  <button
+                    onClick={() => handleUsePrompt(prompt)}
+                    className={`text-[0.7rem] underline whitespace-nowrap bg-transparent border-none cursor-pointer transition-colors ${isDarkTheme ? 'text-teal-300 hover:text-teal-200' : 'text-[#0f766e] hover:text-[#0a5a54]'}`}
+                  >
+                    {t.apiKeyProductView?.usePrompt || 'Usar'}
+                  </button>
+                </div>
+              ))}
+            </div>
+          </SidebarSection>
+
+          {/* Conversations */}
+          <section className={`mt-4 border-t pt-3 flex-1 min-h-0 flex flex-col ${isDarkTheme ? 'border-slate-700' : 'border-[#a7d7c5]'}`}>
+            <div className="flex items-center gap-1 mb-1">
+              <button
+                onClick={() => setIsConversationsOpen(v => !v)}
+                className={`w-3.5 text-center text-sm leading-none select-none bg-transparent border-none cursor-pointer p-0 ${isDarkTheme ? 'text-slate-400' : 'text-[#6b8f84]'}`}
+              >
+                {isConversationsOpen ? '▾' : '▸'}
+              </button>
+              <span className={`text-[0.8rem] font-semibold uppercase tracking-[0.03em] flex-1 ${isDarkTheme ? 'text-slate-300' : 'text-[#3d7a6d]'}`}>
+                {t.apiKeyProductView?.conversationsTitle || 'Conversaciones'}
+              </span>
+            </div>
+            <div
+              className="flex-1 overflow-y-auto min-h-0 flex flex-col gap-0.5 pr-0.5 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-[#99d8c9] [&::-webkit-scrollbar-thumb]:rounded-sm transition-all duration-200"
+              style={{ maxHeight: isConversationsOpen ? undefined : 0, opacity: isConversationsOpen ? 1 : 0, overflow: isConversationsOpen ? 'auto' : 'hidden' }}
             >
-              <GripVertical size={14} />
-            </button>
-            {!sidebarCollapsed && (
-              <div className="min-w-0">
-                <p className="text-xl font-extrabold text-[#0e3f3a] leading-6">FabLab AIMaker</p>
-                <p className="text-xs text-[#4b817a]">v2.3</p>
+              {conversations.length === 0 && (
+                <p className={`text-xs ${isDarkTheme ? 'text-slate-400' : 'text-[#6b8f84]'}`}>{t.apiKeyProductView?.emptyConversations || 'Sin conversaciones'}</p>
+              )}
+              {conversations.map(conv => (
+                <div
+                  key={conv.id}
+                  className={`flex items-start gap-0 rounded-lg cursor-pointer transition-colors ${activeConversationId === conv.id
+                    ? (isDarkTheme ? 'bg-slate-700' : 'bg-[#a7f3d0]')
+                    : (isDarkTheme ? 'hover:bg-slate-700' : 'hover:bg-[#d1fae5]')}`}
+                >
+                  <button
+                    onClick={() => handleSelectConversation(conv.id)}
+                    className="flex-1 min-w-0 text-left px-3 py-2.5 bg-transparent border-none cursor-pointer"
+                  >
+                    <p className={`text-[0.85rem] font-medium truncate ${isDarkTheme ? 'text-slate-100' : 'text-[#0f2a24]'}`}>
+                      {conv.title || 'Conversación sin título'}
+                    </p>
+                    <p className={`text-[0.7rem] mt-0.5 ${isDarkTheme ? 'text-slate-400' : 'text-[#6b8f84]'}`}>
+                      {new Date(conv.updatedAt).toLocaleDateString()}
+                    </p>
+                  </button>
+                  <button
+                    onClick={e => { e.stopPropagation(); handleDownloadConversation(conv); }}
+                    className="mt-1 mr-1 text-[#6b8f84] cursor-pointer p-1 rounded border-none bg-transparent hover:text-red-600 hover:bg-red-50 transition-colors flex-shrink-0"
+                    title="Descargar conversación"
+                  >
+                    <Download size={12} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </section>
+        </div>
+
+        {/* Bottom buttons */}
+        <div className="flex flex-col gap-1.5 mt-auto pt-4 relative">
+          {/* Fade gradient above */}
+          <div className={`absolute -top-10 -left-4 -right-4 h-10 bg-gradient-to-b from-transparent pointer-events-none ${isDarkTheme ? 'to-[#111827]' : 'to-[#ecfdf5]'}`} />
+
+          <div className="flex gap-1.5">
+            <SidebarBtn isDark={isDarkTheme} className="flex-1" onClick={handleExportWorkspace}>⬆ {t.apiKeyProductView?.exportButton || 'Exportar'}</SidebarBtn>
+            <SidebarBtn isDark={isDarkTheme} className="flex-1" onClick={handleImportWorkspaceClick}>⬇ {t.apiKeyProductView?.importButton || 'Importar'}</SidebarBtn>
+          </div>
+          <SidebarBtn
+            isDark={isDarkTheme}
+            onClick={() => { setIsConfigModalOpen(true); setConfigTab('budget'); }}
+            className="flex items-center justify-center gap-1.5"
+            >
+            <IconBarChart /> {t.apiKeyProductView?.statsButton || 'Estadísticas'}
+          </SidebarBtn>
+          <SidebarBtn
+            isDark={isDarkTheme}
+            onClick={() => { setIsConfigModalOpen(true); setConfigTab('keys'); }}
+            className="flex items-center justify-center gap-1.5"
+          >
+            <IconGear /> {t.apiKeyProductView?.apiConfigTitle || 'Configuración'}
+          </SidebarBtn>
+          <SidebarBtn
+            isDark={isDarkTheme}
+            className="flex items-center justify-center gap-1.5"
+            onClick={() => setIsDarkTheme((prev) => !prev)}
+          >
+            {isDarkTheme ? <Sun size={12} /> : <Moon size={12} />} {isDarkTheme
+              ? (t.apiKeyProductView?.lightTheme || 'Tema claro')
+              : (t.apiKeyProductView?.darkTheme || 'Tema oscuro')}
+          </SidebarBtn>
+          <input
+            ref={importInputRef}
+            type="file"
+            accept="application/json"
+            className="hidden"
+            onChange={handleImportWorkspaceChange}
+          />
+        </div>
+      </aside>
+
+      {/* ── Main ──────────────────────────────────────────────────────── */}
+      <main className="flex-1 flex flex-col h-screen overflow-hidden relative" style={{ backgroundColor: isDarkTheme ? '#0f172a' : '#f8fffe' }}>
+
+        <div className="px-8 pt-4 pb-3 border-b border-[#ccfbf1] flex items-center gap-3">
+          <button
+            onClick={() => navigate('/dashboard/context')}
+            className={`h-9 w-9 inline-flex items-center justify-center rounded-lg border transition-colors ${
+              isDarkTheme
+                ? 'border-slate-600 text-slate-300 hover:bg-slate-700'
+                : 'border-[#99e6d0] text-[#3d7a6d] hover:bg-[#d1fae5]'
+            }`}
+            title={t.apiKeyProductView?.backToServer || 'Volver al servidor'}
+          >
+            <ArrowLeft size={16} />
+          </button>
+          <div>
+            <p className={`text-sm font-semibold ${isDarkTheme ? 'text-slate-100' : 'text-[#0f2a24]'}`}>{fixedTitle}</p>
+            <p className={`text-xs ${isDarkTheme ? 'text-slate-400' : 'text-[#6b8f84]'}`}>{fixedDescription}</p>
+          </div>
+        </div>
+
+        {/* Chat messages */}
+        <div className="flex-1 overflow-y-auto px-8 py-6 flex flex-col gap-4 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-[#99d8c9] [&::-webkit-scrollbar-thumb]:rounded-sm">
+          {(!activeConversation || activeConversation.messages.length === 0) && (
+            <p className="text-[#6b8f84] text-[0.95rem]">
+              {t.apiKeyProductView?.emptyChat || 'Aún no hay mensajes en esta conversación.'}
+            </p>
+          )}
+
+          {activeConversation?.messages.map(msg => (
+            <div
+              key={msg.id}
+              className={`flex flex-col max-w-[75%] ${msg.role === 'user' ? 'self-end' : 'self-start'}`}
+            >
+              {/* Bubble */}
+              <div
+                className={`px-[18px] py-3.5 text-[0.95rem] leading-relaxed break-words word-wrap-break-word ${
+                  msg.role === 'user'
+                    ? (isDarkTheme ? 'bg-emerald-100 rounded-[18px_18px_4px_18px]' : 'bg-[#ecfdf5] rounded-[18px_18px_4px_18px]')
+                    : (isDarkTheme ? 'bg-emerald-200 rounded-[18px_18px_18px_4px]' : 'bg-[#d1fae5] rounded-[18px_18px_18px_4px]')
+                }`}
+              >
+                <p className={`whitespace-pre-wrap ${isDarkTheme ? 'text-emerald-950' : 'text-[#0f2a24]'}`}>{msg.content}</p>
+                {msg.outputKind === 'image' && msg.outputPreview && (
+                  <img
+                    src={msg.outputPreview}
+                    alt="generated"
+                    className="max-h-64 rounded-lg border border-[#a7d7c5] mt-2 max-w-[400px] object-contain cursor-pointer"
+                  />
+                )}
+                {msg.outputKind === 'audio' && msg.outputPreview && (
+                  <audio controls src={msg.outputPreview} className="w-full mt-2" />
+                )}
+                {msg.outputKind === 'video' && msg.outputPreview && (
+                  <video controls src={msg.outputPreview} className="max-h-64 rounded-lg border border-[#a7d7c5] mt-2" />
+                )}
               </div>
-            )}
+
+              {/* Meta row */}
+              <div className={`flex items-center gap-1 mt-0.5 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                <span className={`text-[0.7rem] opacity-60 ${isDarkTheme ? 'text-slate-400' : 'text-[#6b8f84]'}`}>
+                  {new Date(msg.createdAt).toLocaleTimeString()}
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Alert / status banners */}
+        {(errorText || statusText) && (
+          <div
+            className={`mx-8 mb-1 px-4 py-2 rounded-lg text-[0.82rem] text-center border animate-[fadeIn_0.2s_ease] ${
+              errorText
+                ? 'bg-amber-50 text-yellow-800 border-yellow-300'
+                : 'bg-emerald-50 text-green-800 border-green-300'
+            }`}
+          >
+            {errorText || statusText}
+          </div>
+        )}
+
+        {/* ── Chat context bar ───────────────────────────────────────── */}
+        <div className="flex items-center gap-2 px-8 py-2 border-t border-[#ccfbf1] flex-wrap z-[15] relative" style={{ backgroundColor: isDarkTheme ? '#0f172a' : '#f8fffe' }}>
+          <div className={`text-[0.74rem] rounded-md px-2 py-1 border ${isDarkTheme ? 'border-slate-600 text-slate-300 bg-slate-800' : 'border-[#99e6d0] text-[#3d7a6d] bg-[#ecfdf5]'}`}>
+            {t.apiKeyProductView?.autoRoutingLabel || 'Ruteo automático por prompt'}
           </div>
 
-          {!sidebarCollapsed && (
-            <>
-              <div className="px-3 pt-3">
+          <div className={`text-[0.74rem] rounded-md px-2 py-1 border ${isDarkTheme ? 'border-slate-600 text-slate-300 bg-slate-800' : 'border-[#99e6d0] text-[#3d7a6d] bg-[#ecfdf5]'}`}>
+            {t.apiKeyProductView?.profilesConfigured || 'Perfiles configurados'}: {providerProfiles.length}
+          </div>
+
+          {/* Spacer */}
+          <span className="flex-1" />
+
+          {/* Role */}
+          <label className="text-[0.8rem] text-[#6b8f84] whitespace-nowrap">
+            {t.apiKeyProductView?.roleSelectorLabel || 'Rol'}:
+          </label>
+          <select
+            value={selectedRoleId}
+            onChange={e => {
+              setSelectedRoleId(e.target.value);
+              if (product) persistConfig(product.id, { selectedRoleId: e.target.value }).catch(console.error);
+            }}
+            disabled={!isOwner || roles.length === 0}
+            className={selectCls}
+          >
+            <option value="">{t.apiKeyProductView?.noneOption || 'Ninguno'}</option>
+            {roles.map(role => (
+              <option key={role.id} value={role.id}>{role.title}</option>
+            ))}
+          </select>
+        </div>
+
+        {/* ── Token bar ─────────────────────────────────────────────── */}
+        <div className="flex justify-between px-8 py-[6px] text-[0.75rem] text-[#6b8f84] border-t border-[#ccfbf1] z-[15] tabular-nums" style={{ backgroundColor: isDarkTheme ? '#0f172a' : '#f8fffe' }}>
+          <span>
+            {(t.apiKeyProductView?.tokenBar || 'Tokens')} - {(t.apiKeyProductView?.tokensInput || 'entrada')}: {stats.totalInputTokens} | {(t.apiKeyProductView?.tokensOutput || 'salida')}: {stats.totalOutputTokens}
+          </span>
+          <span>
+            {(t.apiKeyProductView?.costEstimatedLabel || 'Costo estimado')}: ${stats.totalEstimatedCost.toFixed(4)}
+          </span>
+        </div>
+
+        {/* ── Input area ────────────────────────────────────────────── */}
+        <div className="px-8 pb-6 pt-4 border-t border-[#ccfbf1] flex flex-col items-center gap-1.5 z-[15]" style={{ backgroundColor: isDarkTheme ? '#0f172a' : '#f8fffe' }}>
+          <div className="flex flex-col gap-1.5 w-full max-w-[800px]">
+            {starterSkills.length > 0 && (
+              <div className="flex flex-wrap gap-2 pb-1">
+                {starterSkills.map((skill) => {
+                  const isActive = activeStarterSkill?.id === skill.id;
+                  return (
+                  <button
+                    key={skill.id}
+                    onClick={() => handleUseStarterSkill(skill)}
+                    className={`group min-w-[180px] rounded-2xl px-3 py-2 text-left border transition-all duration-200 ${
+                      isDarkTheme
+                        ? (isActive
+                          ? 'border-cyan-400 bg-slate-800 text-slate-100 shadow-[0_0_0_2px_rgba(34,211,238,0.2)]'
+                          : 'border-slate-600 bg-slate-900/80 text-slate-100 hover:bg-slate-800 hover:border-cyan-500')
+                        : (isActive
+                          ? 'border-[#0f766e] bg-[#ecfdf5] text-[#0f2a24] shadow-[0_0_0_2px_rgba(15,118,110,0.12)]'
+                          : 'border-[#99e6d0] bg-white text-[#0f2a24] hover:bg-[#ecfdf5] hover:border-[#0f766e]')
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className={`inline-flex h-7 w-7 items-center justify-center rounded-lg text-sm ${isDarkTheme ? 'bg-slate-700' : 'bg-[#d1fae5]'}`}>
+                        {skill.icon}
+                      </span>
+                      <div className="flex-1 min-w-0">
+                        <p className={`text-[0.86rem] font-semibold truncate ${isDarkTheme ? 'text-slate-100' : 'text-[#0f2a24]'}`}>{skill.label}</p>
+                        <p className={`text-[0.7rem] truncate ${isDarkTheme ? 'text-slate-400' : 'text-[#6b8f84]'}`}>{skill.subtitle}</p>
+                      </div>
+                      <span className={`text-[0.62rem] px-1.5 py-0.5 rounded-md uppercase tracking-[0.03em] ${isDarkTheme ? 'bg-cyan-900/50 text-cyan-200' : 'bg-[#ecfdf5] text-[#0f766e]'}`}>
+                        fn
+                      </span>
+                    </div>
+                  </button>
+                  );
+                })}
+              </div>
+            )}
+
+            {activeStarterSkill && (
+              <div className={`rounded-2xl border px-3 py-3 ${isDarkTheme ? 'border-slate-600 bg-slate-900/70' : 'border-[#99e6d0] bg-[#f5fffb]'}`}>
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className={`inline-flex h-8 w-8 items-center justify-center rounded-lg text-sm ${isDarkTheme ? 'bg-slate-700 text-slate-100' : 'bg-[#d1fae5] text-[#0f2a24]'}`}>
+                      {activeStarterSkill.icon}
+                    </span>
+                    <div className="min-w-0">
+                      <p className={`text-[0.82rem] font-semibold truncate ${isDarkTheme ? 'text-slate-100' : 'text-[#0f2a24]'}`}>
+                        {t.apiKeyProductView?.guidedSkillTitle || 'Skill guiada activa'}: {activeStarterSkill.label}
+                      </p>
+                      <p className={`text-[0.72rem] ${isDarkTheme ? 'text-slate-400' : 'text-[#6b8f84]'}`}>
+                        {t.apiKeyProductView?.guidedSkillHint || 'Ajusta parámetros para generar un contexto de mayor calidad antes de enviar.'}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setActiveSkillId('')}
+                    className={`text-[0.72rem] rounded-md px-2 py-1 border ${isDarkTheme ? 'border-slate-500 text-slate-200 hover:bg-slate-700' : 'border-[#99e6d0] text-[#3d7a6d] hover:bg-[#ecfdf5]'}`}
+                  >
+                    {t.apiKeyProductView?.guidedSkillDeactivate || 'Desactivar'}
+                  </button>
+                </div>
+
+                <div className="mt-3 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+                  {activeStarterSkill.mode === 'image' && (
+                    <>
+                      <label className="flex flex-col gap-1 text-[0.72rem]">
+                        <span className={isDarkTheme ? 'text-slate-400' : 'text-[#6b8f84]'}>{t.apiKeyProductView?.guidedImageStyle || 'Estilo visual'}</span>
+                        <select value={guidedSkillOptions.imageStyle} onChange={(e) => setGuidedSkillOptions((prev) => ({ ...prev, imageStyle: e.target.value as GuidedSkillOptions['imageStyle'] }))} className={selectCls}>
+                          <option value="photorealistic">Photorealistic</option>
+                          <option value="illustration">Illustration</option>
+                          <option value="3d">3D</option>
+                          <option value="cinematic">Cinematic</option>
+                        </select>
+                      </label>
+                      <label className="flex flex-col gap-1 text-[0.72rem]">
+                        <span className={isDarkTheme ? 'text-slate-400' : 'text-[#6b8f84]'}>{t.apiKeyProductView?.guidedImageQuality || 'Calidad'}</span>
+                        <select value={guidedSkillOptions.imageQuality} onChange={(e) => setGuidedSkillOptions((prev) => ({ ...prev, imageQuality: e.target.value as GuidedSkillOptions['imageQuality'] }))} className={selectCls}>
+                          <option value="draft">Draft</option>
+                          <option value="high">High</option>
+                          <option value="ultra">Ultra</option>
+                        </select>
+                      </label>
+                      <label className="flex flex-col gap-1 text-[0.72rem]">
+                        <span className={isDarkTheme ? 'text-slate-400' : 'text-[#6b8f84]'}>{t.apiKeyProductView?.guidedImageAspect || 'Formato'}</span>
+                        <select value={guidedSkillOptions.imageAspect} onChange={(e) => setGuidedSkillOptions((prev) => ({ ...prev, imageAspect: e.target.value as GuidedSkillOptions['imageAspect'] }))} className={selectCls}>
+                          <option value="1:1">1:1</option>
+                          <option value="16:9">16:9</option>
+                          <option value="9:16">9:16</option>
+                        </select>
+                      </label>
+                    </>
+                  )}
+
+                  {activeStarterSkill.mode === 'video' && (
+                    <>
+                      <label className="flex flex-col gap-1 text-[0.72rem]">
+                        <span className={isDarkTheme ? 'text-slate-400' : 'text-[#6b8f84]'}>{t.apiKeyProductView?.guidedVideoStyle || 'Estilo de video'}</span>
+                        <select value={guidedSkillOptions.videoStyle} onChange={(e) => setGuidedSkillOptions((prev) => ({ ...prev, videoStyle: e.target.value as GuidedSkillOptions['videoStyle'] }))} className={selectCls}>
+                          <option value="cinematic">Cinematic</option>
+                          <option value="ugc">UGC</option>
+                          <option value="minimal">Minimal</option>
+                        </select>
+                      </label>
+                      <label className="flex flex-col gap-1 text-[0.72rem]">
+                        <span className={isDarkTheme ? 'text-slate-400' : 'text-[#6b8f84]'}>{t.apiKeyProductView?.guidedVideoDuration || 'Duración'}</span>
+                        <select value={guidedSkillOptions.videoDuration} onChange={(e) => setGuidedSkillOptions((prev) => ({ ...prev, videoDuration: e.target.value as GuidedSkillOptions['videoDuration'] }))} className={selectCls}>
+                          <option value="8s">8s</option>
+                          <option value="15s">15s</option>
+                          <option value="30s">30s</option>
+                        </select>
+                      </label>
+                      <label className="flex flex-col gap-1 text-[0.72rem]">
+                        <span className={isDarkTheme ? 'text-slate-400' : 'text-[#6b8f84]'}>{t.apiKeyProductView?.guidedVideoPace || 'Ritmo'}</span>
+                        <select value={guidedSkillOptions.videoPace} onChange={(e) => setGuidedSkillOptions((prev) => ({ ...prev, videoPace: e.target.value as GuidedSkillOptions['videoPace'] }))} className={selectCls}>
+                          <option value="calm">Calm</option>
+                          <option value="balanced">Balanced</option>
+                          <option value="dynamic">Dynamic</option>
+                        </select>
+                      </label>
+                    </>
+                  )}
+
+                  {activeStarterSkill.mode === 'search' && (
+                    <>
+                      <label className="flex flex-col gap-1 text-[0.72rem]">
+                        <span className={isDarkTheme ? 'text-slate-400' : 'text-[#6b8f84]'}>{t.apiKeyProductView?.guidedSearchDepth || 'Profundidad'}</span>
+                        <select value={guidedSkillOptions.searchDepth} onChange={(e) => setGuidedSkillOptions((prev) => ({ ...prev, searchDepth: e.target.value as GuidedSkillOptions['searchDepth'] }))} className={selectCls}>
+                          <option value="quick">Quick</option>
+                          <option value="standard">Standard</option>
+                          <option value="deep">Deep</option>
+                        </select>
+                      </label>
+                      <label className="flex flex-col gap-1 text-[0.72rem]">
+                        <span className={isDarkTheme ? 'text-slate-400' : 'text-[#6b8f84]'}>{t.apiKeyProductView?.guidedSearchOutput || 'Formato de salida'}</span>
+                        <select value={guidedSkillOptions.searchOutput} onChange={(e) => setGuidedSkillOptions((prev) => ({ ...prev, searchOutput: e.target.value as GuidedSkillOptions['searchOutput'] }))} className={selectCls}>
+                          <option value="briefing">Briefing</option>
+                          <option value="table">Table</option>
+                          <option value="bullet">Bullet points</option>
+                        </select>
+                      </label>
+                      <label className="flex flex-col gap-1 text-[0.72rem]">
+                        <span className={isDarkTheme ? 'text-slate-400' : 'text-[#6b8f84]'}>{t.apiKeyProductView?.guidedSearchSources || 'Citas y fuentes'}</span>
+                        <select value={guidedSkillOptions.searchSources} onChange={(e) => setGuidedSkillOptions((prev) => ({ ...prev, searchSources: e.target.value as GuidedSkillOptions['searchSources'] }))} className={selectCls}>
+                          <option value="required">Required</option>
+                          <option value="optional">Optional</option>
+                        </select>
+                      </label>
+                    </>
+                  )}
+
+                  {activeStarterSkill.mode === 'write' && (
+                    <>
+                      <label className="flex flex-col gap-1 text-[0.72rem]">
+                        <span className={isDarkTheme ? 'text-slate-400' : 'text-[#6b8f84]'}>{t.apiKeyProductView?.guidedWritingTone || 'Tono'}</span>
+                        <select value={guidedSkillOptions.writingTone} onChange={(e) => setGuidedSkillOptions((prev) => ({ ...prev, writingTone: e.target.value as GuidedSkillOptions['writingTone'] }))} className={selectCls}>
+                          <option value="professional">Professional</option>
+                          <option value="friendly">Friendly</option>
+                          <option value="sales">Sales</option>
+                        </select>
+                      </label>
+                      <label className="flex flex-col gap-1 text-[0.72rem]">
+                        <span className={isDarkTheme ? 'text-slate-400' : 'text-[#6b8f84]'}>{t.apiKeyProductView?.guidedWritingFormat || 'Formato'}</span>
+                        <select value={guidedSkillOptions.writingFormat} onChange={(e) => setGuidedSkillOptions((prev) => ({ ...prev, writingFormat: e.target.value as GuidedSkillOptions['writingFormat'] }))} className={selectCls}>
+                          <option value="paragraph">Paragraphs</option>
+                          <option value="bullet">Bullet points</option>
+                          <option value="framework">Framework</option>
+                        </select>
+                      </label>
+                      <label className="flex flex-col gap-1 text-[0.72rem]">
+                        <span className={isDarkTheme ? 'text-slate-400' : 'text-[#6b8f84]'}>{t.apiKeyProductView?.guidedWritingLength || 'Extensión'}</span>
+                        <select value={guidedSkillOptions.writingLength} onChange={(e) => setGuidedSkillOptions((prev) => ({ ...prev, writingLength: e.target.value as GuidedSkillOptions['writingLength'] }))} className={selectCls}>
+                          <option value="short">Short</option>
+                          <option value="medium">Medium</option>
+                          <option value="long">Long</option>
+                        </select>
+                      </label>
+                      <label className="flex flex-col gap-1 text-[0.72rem]">
+                        <span className={isDarkTheme ? 'text-slate-400' : 'text-[#6b8f84]'}>{t.apiKeyProductView?.guidedWritingAudience || 'Audiencia'}</span>
+                        <select value={guidedSkillOptions.writingAudience} onChange={(e) => setGuidedSkillOptions((prev) => ({ ...prev, writingAudience: e.target.value as GuidedSkillOptions['writingAudience'] }))} className={selectCls}>
+                          <option value="general">General</option>
+                          <option value="executive">Executive</option>
+                          <option value="technical">Technical</option>
+                        </select>
+                      </label>
+                    </>
+                  )}
+
+                  {activeStarterSkill.mode === 'ideas' && (
+                    <>
+                      <label className="flex flex-col gap-1 text-[0.72rem]">
+                        <span className={isDarkTheme ? 'text-slate-400' : 'text-[#6b8f84]'}>{t.apiKeyProductView?.guidedIdeasHorizon || 'Horizonte'}</span>
+                        <select value={guidedSkillOptions.ideasHorizon} onChange={(e) => setGuidedSkillOptions((prev) => ({ ...prev, ideasHorizon: e.target.value as GuidedSkillOptions['ideasHorizon'] }))} className={selectCls}>
+                          <option value="today">Today</option>
+                          <option value="week">This week</option>
+                          <option value="month">30 days</option>
+                        </select>
+                      </label>
+                      <label className="flex flex-col gap-1 text-[0.72rem]">
+                        <span className={isDarkTheme ? 'text-slate-400' : 'text-[#6b8f84]'}>{t.apiKeyProductView?.guidedIdeasRisk || 'Riesgo'}</span>
+                        <select value={guidedSkillOptions.ideasRisk} onChange={(e) => setGuidedSkillOptions((prev) => ({ ...prev, ideasRisk: e.target.value as GuidedSkillOptions['ideasRisk'] }))} className={selectCls}>
+                          <option value="safe">Safe</option>
+                          <option value="balanced">Balanced</option>
+                          <option value="bold">Bold</option>
+                        </select>
+                      </label>
+                      <label className="flex flex-col gap-1 text-[0.72rem]">
+                        <span className={isDarkTheme ? 'text-slate-400' : 'text-[#6b8f84]'}>{t.apiKeyProductView?.guidedIdeasCount || 'Cantidad'}</span>
+                        <select value={guidedSkillOptions.ideasCount} onChange={(e) => setGuidedSkillOptions((prev) => ({ ...prev, ideasCount: e.target.value as GuidedSkillOptions['ideasCount'] }))} className={selectCls}>
+                          <option value="5">5</option>
+                          <option value="7">7</option>
+                          <option value="10">10</option>
+                        </select>
+                      </label>
+                    </>
+                  )}
+
+                  {activeStarterSkill.mode === 'learn' && (
+                    <>
+                      <label className="flex flex-col gap-1 text-[0.72rem]">
+                        <span className={isDarkTheme ? 'text-slate-400' : 'text-[#6b8f84]'}>{t.apiKeyProductView?.guidedLearningLevel || 'Nivel'}</span>
+                        <select value={guidedSkillOptions.learningLevel} onChange={(e) => setGuidedSkillOptions((prev) => ({ ...prev, learningLevel: e.target.value as GuidedSkillOptions['learningLevel'] }))} className={selectCls}>
+                          <option value="beginner">Beginner</option>
+                          <option value="intermediate">Intermediate</option>
+                          <option value="advanced">Advanced</option>
+                        </select>
+                      </label>
+                      <label className="flex flex-col gap-1 text-[0.72rem]">
+                        <span className={isDarkTheme ? 'text-slate-400' : 'text-[#6b8f84]'}>{t.apiKeyProductView?.guidedLearningMethod || 'Método'}</span>
+                        <select value={guidedSkillOptions.learningMethod} onChange={(e) => setGuidedSkillOptions((prev) => ({ ...prev, learningMethod: e.target.value as GuidedSkillOptions['learningMethod'] }))} className={selectCls}>
+                          <option value="step_by_step">Step by step</option>
+                          <option value="socratic">Socratic</option>
+                          <option value="project">Project based</option>
+                        </select>
+                      </label>
+                      <label className="flex flex-col gap-1 text-[0.72rem]">
+                        <span className={isDarkTheme ? 'text-slate-400' : 'text-[#6b8f84]'}>{t.apiKeyProductView?.guidedLearningPractice || 'Práctica'}</span>
+                        <select value={guidedSkillOptions.learningPractice} onChange={(e) => setGuidedSkillOptions((prev) => ({ ...prev, learningPractice: e.target.value as GuidedSkillOptions['learningPractice'] }))} className={selectCls}>
+                          <option value="light">Light</option>
+                          <option value="guided">Guided</option>
+                          <option value="intensive">Intensive</option>
+                        </select>
+                      </label>
+                    </>
+                  )}
+                </div>
+
+                <p className={`mt-2 text-[0.72rem] ${isDarkTheme ? 'text-slate-400' : 'text-[#6b8f84]'}`}>
+                  {t.apiKeyProductView?.guidedSkillInputHint || 'Describe tu objetivo en el cuadro principal. Al enviar, se incluirá este contexto automáticamente.'}
+                </p>
+              </div>
+            )}
+
+            {/* Wrapper */}
+            <div className={`flex items-center w-full border-2 rounded-[20px] py-2 pl-3 pr-2 gap-1.5 focus-within:border-[#0f766e] focus-within:shadow-[0_0_0_3px_rgba(15,118,110,0.10)] transition-all duration-200 ${isDarkTheme ? 'border-slate-600 bg-slate-800' : 'border-[#99e6d0] bg-white'}`}>
+
+              {/* Attach */}
+              <button
+                onClick={handleAttachClick}
+                disabled={!isOwner}
+                title={t.apiKeyProductView?.attachButton || 'Adjuntar archivo'}
+                className={`bg-transparent border rounded-full w-7 h-7 min-w-[28px] min-h-[28px] cursor-pointer flex items-center justify-center flex-shrink-0 disabled:opacity-40 transition-colors ${
+                  isDarkTheme
+                    ? 'border-slate-600 text-slate-300 hover:text-slate-100 hover:bg-slate-700'
+                    : 'border-[#99e6d0] text-[#6b8f84] hover:text-[#0f2a24]'
+                }`}
+              >
+                <Plus size={14} />
+              </button>
+              <input
+                ref={attachmentInputRef}
+                type="file"
+                multiple
+                className="hidden"
+                onChange={handleAttachmentChange}
+              />
+
+              {/* Web search toggle */}
+              <button
+                title={t.apiKeyProductView?.webSearchButton || 'Búsqueda web'}
+                onClick={() => setWebSearchEnabled((prev) => !prev)}
+                className={`bg-transparent border rounded-md cursor-pointer p-[3px_5px] flex items-center justify-center flex-shrink-0 transition-colors ${
+                  isDarkTheme
+                    ? (webSearchEnabled ? 'border-slate-500 bg-slate-700 text-slate-100' : 'border-slate-600 text-slate-300 hover:text-slate-100 hover:bg-slate-700')
+                    : (webSearchEnabled ? 'border-[#99e6d0] bg-[#d1fae5] text-[#0f2a24]' : 'border-[#99e6d0] text-[#6b8f84] hover:text-[#0f2a24] hover:bg-[#d1fae5]')
+                }`}
+              >
+                <Globe size={16} />
+              </button>
+
+              {/* Textarea */}
+              <textarea
+                ref={messageTextareaRef}
+                value={messageInput}
+                onChange={e => setMessageInput(e.target.value)}
+                disabled={!isOwner || isSending}
+                rows={1}
+                placeholder={t.apiKeyProductView?.chatPlaceholder || 'Escribe tu mensaje...'}
+                className={`flex-1 min-w-0 border-none outline-none text-[0.95rem] font-[inherit] resize-none min-h-[38px] max-h-[160px] leading-[1.45] py-1 bg-transparent align-middle ${
+                  isDarkTheme ? 'text-slate-100 placeholder:text-slate-400' : 'text-[#0f2a24] placeholder:text-[#6b8f84]'
+                }`}
+                onKeyDown={e => {
+                  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendMessage(); }
+                }}
+              />
+
+              {/* Enhance prompt */}
+              <button
+                title={t.apiKeyProductView?.optimizeInputButton || 'Optimizar mensaje'}
+                disabled={!isOwner || !messageInput.trim()}
+                onClick={handleEnhanceMessage}
+                className="bg-transparent border-none cursor-pointer p-1 text-[#6b8f84] flex-shrink-0 flex items-center justify-center hover:text-amber-500 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              >
+                <IconSparkle />
+              </button>
+
+              {/* Prompt picker */}
+              <div className="relative">
                 <button
-                  onClick={handleCreateConversation}
-                  className="w-full rounded-xl bg-[#0b7d72] text-white py-2.5 px-3 font-bold text-sm hover:bg-[#0a6f66]"
+                  title={t.apiKeyProductView?.promptPickerButton || 'Insertar prompt guardado'}
+                  onClick={handlePromptPickerToggle}
+                  className={`bg-transparent border-none cursor-pointer p-1 flex-shrink-0 flex items-center justify-center transition-colors ${isDarkTheme ? 'text-slate-300 hover:text-slate-100' : 'text-[#6b8f84] hover:text-[#0f2a24]'}`}
                 >
-                  + {t.apiKeyProductView?.newConversation || 'Nueva conversacion'}
+                  <IconList />
                 </button>
+                {showPromptPicker && (
+                  <div className={`absolute bottom-9 right-0 w-72 max-h-56 overflow-y-auto rounded-lg border shadow-lg z-20 p-1.5 ${isDarkTheme ? 'border-slate-600 bg-slate-800' : 'border-[#99e6d0] bg-white'}`}>
+                    {prompts.length === 0 && (
+                      <p className={`px-2 py-1 text-xs ${isDarkTheme ? 'text-slate-300' : 'text-[#6b8f84]'}`}>{t.apiKeyProductView?.emptyPrompts || 'Sin prompts guardados'}</p>
+                    )}
+                    {prompts.map((prompt) => (
+                      <button
+                        key={`picker-${prompt.id}`}
+                        onClick={() => {
+                          handleUsePrompt(prompt);
+                          setShowPromptPicker(false);
+                        }}
+                        className={`w-full text-left rounded-md px-2 py-1.5 transition-colors ${isDarkTheme ? 'hover:bg-slate-700' : 'hover:bg-[#ecfdf5]'}`}
+                      >
+                        <p className={`text-xs font-semibold truncate ${isDarkTheme ? 'text-slate-100' : 'text-[#0f2a24]'}`}>{prompt.title}</p>
+                        <p className={`text-[11px] truncate ${isDarkTheme ? 'text-slate-400' : 'text-[#6b8f84]'}`}>{prompt.prompt}</p>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
 
-              <div className="p-3 overflow-y-auto space-y-3">
-                <section className="border-t border-[#9ecbc2] pt-3">
-                  <div className="flex items-center justify-between">
-                    <button
-                      onClick={() => setIsRolesOpen((v) => !v)}
-                      className="flex items-center gap-1 text-[#186f65] font-bold text-sm"
-                    >
-                      {isRolesOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-                      {t.apiKeyProductView?.rolesTitle || 'ROLES'}
-                    </button>
-                    <button
-                      onClick={() => setShowRoleModal(true)}
-                      disabled={!isOwner}
-                      className="p-1 rounded border border-[#87c7bc] text-[#186f65] disabled:opacity-40"
-                      title={t.apiKeyProductView?.newRole || 'Nuevo rol'}
-                    >
-                      <Plus size={14} />
-                    </button>
-                  </div>
-                  {isRolesOpen && (
-                    <div className="mt-2 space-y-1">
-                      {roles.length === 0 && (
-                        <p className="text-xs text-[#3f7b73]">{t.apiKeyProductView?.emptyRoles || 'Sin roles guardados'}</p>
-                      )}
-                      {roles.map((role) => (
-                        <button
-                          key={role.id}
-                          onClick={() => {
-                            setSelectedRoleId(role.id);
-                            if (product) {
-                              persistConfig(product.id, { selectedRoleId: role.id }).catch((err) => {
-                                console.error('[ApiKeyInspectorView] Persist role failed:', err);
-                              });
-                            }
-                          }}
-                          className={`w-full text-left px-2 py-1 rounded text-sm ${selectedRoleId === role.id ? 'bg-[#0b7d72] text-white' : 'hover:bg-[#c3dfd8] text-[#18413d]'}`}
-                        >
-                          {role.title}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </section>
+              {/* Mic */}
+              <button
+                title={t.apiKeyProductView?.voiceButton || 'Dictar'}
+                onClick={handleMicToggle}
+                className={`bg-transparent border-none cursor-pointer p-1 flex-shrink-0 flex items-center justify-center mb-0.5 transition-colors ${
+                  isListening ? 'text-red-500' : (isDarkTheme ? 'text-slate-300 hover:text-slate-100' : 'text-[#6b8f84] hover:text-[#0f2a24]')
+                }`}
+              >
+                <IconMic />
+              </button>
 
-                <section className="border-t border-[#9ecbc2] pt-3">
-                  <div className="flex items-center justify-between">
-                    <button
-                      onClick={() => setIsPromptsOpen((v) => !v)}
-                      className="flex items-center gap-1 text-[#186f65] font-bold text-sm"
-                    >
-                      {isPromptsOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-                      {t.apiKeyProductView?.promptsTitle || 'PROMPTS'}
-                    </button>
-                    <button
-                      onClick={() => setShowPromptModal(true)}
+              {/* Send */}
+              <button
+                onClick={handleSendMessage}
+                disabled={!isOwner || isSending || (!messageInput.trim() && pendingAttachments.length === 0)}
+                className="bg-[#0f766e] text-white border-none rounded-[12px] py-1.5 px-4 text-[0.9rem] font-semibold cursor-pointer whitespace-nowrap flex-shrink-0 hover:opacity-80 disabled:opacity-30 disabled:cursor-not-allowed transition-opacity flex items-center gap-1.5"
+              >
+                {isSending
+                  ? <span className="inline-block h-3 w-3 rounded-full border-2 border-white/50 border-t-white animate-spin" />
+                  : <Send size={13} />
+                }
+                {t.apiKeyProductView?.sendButton || 'Enviar'}
+              </button>
+            </div>
+
+            {(attachedContext || pendingAttachments.length > 0) && (
+              <div className={`w-full rounded-lg border px-3 py-2 text-xs flex items-start justify-between gap-2 ${isDarkTheme ? 'border-slate-600 bg-slate-800 text-slate-200' : 'border-[#a7d7c5] bg-[#ecfdf5] text-[#3d7a6d]'}`}>
+                <div className="min-w-0 flex-1">
+                  <p className="line-clamp-2">{attachedContext || (t.apiKeyProductView?.binaryAttachmentReady || 'Archivos binarios listos para enviar')}</p>
+                  {pendingAttachments.length > 0 && (
+                    <p className={`mt-1 ${isDarkTheme ? 'text-slate-400' : 'text-[#6b8f84]'}`}>
+                      {(t.apiKeyProductView?.multimodalFilesReady || '{count} archivos multimodales listos').replace('{count}', String(pendingAttachments.length))}
+                    </p>
+                  )}
+                </div>
+                <button
+                  onClick={() => {
+                    setAttachedContext('');
+                    setPendingAttachments([]);
+                  }}
+                  className="text-[#6b8f84] hover:text-red-600 transition-colors"
+                  title={t.apiKeyProductView?.clearAttachment || 'Limpiar adjunto'}
+                >
+                  ✕
+                </button>
+              </div>
+            )}
+
+            <span className="text-[0.75rem] text-[#6b8f84] text-center">
+              {t.apiKeyProductView?.chatHint || 'Enter para enviar · Shift+Enter para nueva línea'}
+            </span>
+          </div>
+        </div>
+      </main>
+
+      {/* ── Config Modal ──────────────────────────────────────────────── */}
+      {isConfigModalOpen && (
+        <ModalOverlay>
+          <div
+            className={`rounded-2xl overflow-hidden flex flex-row shadow-[0_12px_40px_rgba(0,0,0,0.15)] ${isDarkTheme ? 'bg-slate-900' : 'bg-white'}`}
+            style={{ width: 620, maxWidth: '90vw', height: 520, maxHeight: '80vh' }}
+          >
+            {/* Tab rail */}
+            <div className={`flex flex-col gap-0.5 p-5 min-w-[120px] rounded-l-2xl flex-shrink-0 border-r ${isDarkTheme ? 'border-slate-700 bg-slate-800' : 'border-[#99e6d0] bg-[#ecfdf5]'}`}>
+              {(['keys', 'models', 'budget'] as const).map(tab => (
+                <button
+                  key={tab}
+                  onClick={() => setConfigTab(tab)}
+                  className={`text-left px-3 py-2 rounded-md text-[0.82rem] font-[inherit] cursor-pointer border-none transition-colors ${
+                    configTab === tab
+                      ? (isDarkTheme ? 'bg-slate-700 text-slate-100 font-semibold' : 'bg-white text-[#0f2a24] font-semibold')
+                      : (isDarkTheme ? 'bg-transparent text-slate-300 hover:bg-slate-700 hover:text-slate-100' : 'bg-transparent text-[#6b8f84] hover:bg-[#d1fae5] hover:text-[#0f2a24]')
+                  }`}
+                >
+                  {tab === 'keys'   ? (t.apiKeyProductView?.configTabKeys || 'Claves API') : ''}
+                  {tab === 'models' ? (t.apiKeyProductView?.configTabModels || 'Modelos') : ''}
+                  {tab === 'budget' ? (t.apiKeyProductView?.configTabStats || 'Estadísticas') : ''}
+                </button>
+              ))}
+            </div>
+
+            {/* Tab content */}
+            <div className="flex-1 flex flex-col p-6 overflow-y-auto min-w-0">
+
+              {/* ── Keys tab ── */}
+              {configTab === 'keys' && (
+                <>
+                  <h3 className={`text-[1.1rem] font-semibold mb-1 ${isDarkTheme ? 'text-slate-100' : 'text-[#0f2a24]'}`}>
+                    {t.apiKeyProductView?.apiConfigTitle || 'Configuración de API'}
+                  </h3>
+                  <p className={`text-[0.8rem] leading-relaxed mb-4 ${isDarkTheme ? 'text-slate-400' : 'text-[#6b8f84]'}`}>
+                    {t.apiKeyProductView?.keysTabDescription || 'Agrega tu clave API para usar la IA directamente, sin límite de mensajes.'}
+                  </p>
+
+                  <div className="flex flex-col gap-3 flex-1">
+                    <div className={`rounded-lg border px-3 py-2 text-[0.78rem] ${isDarkTheme ? 'border-slate-700 bg-slate-800 text-slate-300' : 'border-[#a7d7c5] bg-[#f3fbf9] text-[#3d7a6d]'}`}>
+                      {(t.apiKeyProductView?.keysWizardHint || '1) Nombra tu perfil, 2) agrega proveedor y API key, 3) valida para cargar modelos, 4) asígnalos en la pestaña Modelos.')}
+                    </div>
+
+                    <p className={`text-[0.78rem] font-semibold ${isDarkTheme ? 'text-slate-300' : 'text-[#3d7a6d]'}`}>
+                      {t.apiKeyProductView?.stepProfileName || 'Paso 1: Nombre del perfil'}
+                    </p>
+                    <input
+                      value={profileLabel}
+                      onChange={e => setProfileLabel(e.target.value)}
                       disabled={!isOwner}
-                      className="p-1 rounded border border-[#87c7bc] text-[#186f65] disabled:opacity-40"
-                      title={t.apiKeyProductView?.newPrompt || 'Nuevo prompt'}
-                    >
-                      <Plus size={14} />
-                    </button>
+                      placeholder={t.apiKeyProductView?.profileLabelPlaceholder || 'Nombre del perfil (ej: OpenAI Marketing)'}
+                      className={`${inputCls} w-full`}
+                    />
+
+                    <p className={`text-[0.78rem] font-semibold ${isDarkTheme ? 'text-slate-300' : 'text-[#3d7a6d]'}`}>
+                      {t.apiKeyProductView?.stepProviderKey || 'Paso 2: Proveedor y credenciales'}
+                    </p>
+
+                    {/* Provider + key */}
+                    <div className="flex gap-2">
+                      <select
+                        value={provider}
+                        onChange={e => {
+                          setProvider(e.target.value as ApiRuntimeProvider);
+                          setRemoteModels([]);
+                          setHasValidatedKey(false);
+                          setLastValidatedAt('');
+                        }}
+                        disabled={!isOwner}
+                        className={`${selectCls} flex-shrink-0`}
+                      >
+                        {PROVIDERS.map(p => (
+                          <option key={p.value} value={p.value}>{p.label}</option>
+                        ))}
+                      </select>
+                      <input
+                        value={apiKey}
+                        onChange={e => setApiKey(e.target.value)}
+                        disabled={!isOwner}
+                        placeholder={provider === 'ollama'
+                          ? (t.apiKeyProductView?.localApiKeyOptional || 'Token local opcional')
+                          : (PROVIDERS.find(p => p.value === provider)?.hint || 'API key')}
+                        type={showApiKey ? 'text' : 'password'}
+                        className={`${inputCls} flex-1`}
+                      />
+                      <button
+                        onClick={() => setShowApiKey(v => !v)}
+                        className={`bg-transparent border rounded-lg px-2 py-2 cursor-pointer flex items-center justify-center transition-colors flex-shrink-0 ${isDarkTheme ? 'border-slate-600 text-slate-300 hover:text-slate-100 hover:bg-slate-700' : 'border-[#99e6d0] text-[#6b8f84] hover:text-[#0f2a24] hover:bg-[#d1fae5]'}`}
+                        title={t.apiKeyProductView?.toggleApiKeyVisibility || 'Mostrar/ocultar'}
+                      >
+                        <IconEye />
+                      </button>
+                    </div>
+
+                    {provider === 'ollama' && (
+                      <input
+                        value={baseUrl}
+                        onChange={e => setBaseUrl(e.target.value)}
+                        disabled={!isOwner}
+                        placeholder={t.apiKeyProductView?.localEndpointPlaceholder || 'http://localhost:11434'}
+                        className={`${inputCls} w-full`}
+                      />
+                    )}
+
+                    {/* Action buttons */}
+                    <p className={`text-[0.78rem] font-semibold ${isDarkTheme ? 'text-slate-300' : 'text-[#3d7a6d]'}`}>
+                      {t.apiKeyProductView?.stepValidate || 'Paso 3: Validar y probar'}
+                    </p>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={handleValidateKey}
+                        disabled={!isOwner || isValidatingKey || (requiresApiKey ? !apiKey.trim() : !baseUrl.trim())}
+                        className="flex-1 bg-[#0f766e] text-white font-[inherit] text-[0.85rem] py-2 rounded-lg cursor-pointer font-semibold hover:opacity-85 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity"
+                      >
+                        {isValidatingKey ? 'Validando...' : (t.apiKeyProductView?.validateKey || 'Validar key')}
+                      </button>
+                      <button
+                        onClick={handleTestModel}
+                        disabled={!isOwner || isSending || !selectedModel}
+                        className={`flex-1 bg-transparent border font-[inherit] text-[0.85rem] py-2 rounded-lg cursor-pointer font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-colors ${isDarkTheme ? 'border-teal-700 text-teal-300 hover:bg-slate-700' : 'border-[#0f766e] text-[#0f766e] hover:bg-[#ecfdf5]'}`}
+                      >
+                        {t.apiKeyProductView?.testModel || 'Probar modelo'}
+                      </button>
+                    </div>
+
+                    {/* Test mode */}
+                    <div className="flex items-center gap-3">
+                      <span className="text-[0.8rem] text-[#6b8f84] whitespace-nowrap">
+                        {t.apiKeyProductView?.testModeLabel || 'Modo de prueba'}:
+                      </span>
+                      <select
+                        value={testMode}
+                        onChange={e => setTestMode(e.target.value as ModelCapability)}
+                        disabled={!isOwner || !selectedModel}
+                        className={selectCls}
+                      >
+                        {availableTestModes.map(mode => (
+                          <option key={mode} value={mode}>{capabilityLabel(mode, t)}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* System prompt */}
+                    <textarea
+                      value={systemPrompt}
+                      onChange={e => setSystemPrompt(e.target.value)}
+                      disabled={!isOwner}
+                      rows={3}
+                      placeholder={t.apiKeyProductView?.baseInstructionPlaceholder || 'Instrucción base para el asistente...'}
+                      className={`${inputCls} resize-y min-h-[80px] w-full`}
+                    />
+
+                    <div className={`rounded-lg border p-3 ${isDarkTheme ? 'border-slate-700 bg-slate-800' : 'border-[#a7d7c5] bg-[#f3fbf9]'}`}>
+                      <p className={`text-[0.78rem] font-semibold mb-2 ${isDarkTheme ? 'text-slate-200' : 'text-[#0f2a24]'}`}>
+                        {t.apiKeyProductView?.configuredProfilesTitle || 'Perfiles de API configurados'} ({providerProfiles.length})
+                      </p>
+                      <div className="flex flex-col gap-2 max-h-[180px] overflow-y-auto pr-1">
+                        {providerProfiles.length === 0 && (
+                          <p className={`text-xs ${isDarkTheme ? 'text-slate-400' : 'text-[#6b8f84]'}`}>
+                            {t.apiKeyProductView?.noProfilesConfigured || 'Aún no hay perfiles configurados.'}
+                          </p>
+                        )}
+                        {providerProfiles.map((profile) => (
+                          <div key={profile.id} className={`rounded-md border px-2 py-2 flex items-center gap-2 ${isDarkTheme ? 'border-slate-600 bg-slate-900' : 'border-[#ccfbf1] bg-white'}`}>
+                            <div className="flex-1 min-w-0">
+                              <p className={`text-[0.78rem] font-semibold truncate ${isDarkTheme ? 'text-slate-100' : 'text-[#0f2a24]'}`}>
+                                {profile.label || providerLabel(profile.provider)}
+                              </p>
+                              <p className={`text-[0.7rem] truncate ${isDarkTheme ? 'text-slate-400' : 'text-[#6b8f84]'}`}>
+                                {providerLabel(profile.provider)} · {(profile.validatedModels || []).length} modelos
+                              </p>
+                            </div>
+                            <button
+                              onClick={() => handleLoadProfileDraft(profile)}
+                              className={`text-[0.72rem] px-2 py-1 rounded border ${isDarkTheme ? 'border-slate-500 text-slate-200 hover:bg-slate-700' : 'border-[#99e6d0] text-[#0f766e] hover:bg-[#ecfdf5]'}`}
+                            >
+                              {t.apiKeyProductView?.loadProfileButton || 'Cargar'}
+                            </button>
+                            <button
+                              onClick={() => handleRemoveProfile(profile.id)}
+                              className="text-[0.72rem] px-2 py-1 rounded border border-red-300 text-red-600 hover:bg-red-50"
+                            >
+                              {t.apiKeyProductView?.removeProfileButton || 'Quitar'}
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {selectedRole && (
+                      <p className={`text-[0.8rem] ${isDarkTheme ? 'text-slate-400' : 'text-[#6b8f84]'}`}>
+                        Rol activo: <strong className={isDarkTheme ? 'text-slate-100' : 'text-[#0f2a24]'}>{selectedRole.title}</strong>
+                      </p>
+                    )}
                   </div>
-                  {isPromptsOpen && (
-                    <div className="mt-2 space-y-1">
-                      {prompts.length === 0 && (
-                        <p className="text-xs text-[#3f7b73]">{t.apiKeyProductView?.emptyPrompts || 'Sin prompts guardados'}</p>
-                      )}
-                      {prompts.map((prompt) => (
-                        <div key={prompt.id} className="rounded bg-[#c8dfd9] p-2">
-                          <p className="text-xs font-semibold text-[#154c45]">{prompt.title}</p>
-                          <button
-                            onClick={() => handleUsePrompt(prompt)}
-                            className="text-[11px] mt-1 text-[#0b7d72] underline"
-                          >
-                            {t.apiKeyProductView?.usePrompt || 'Usar en chat'}
-                          </button>
+                </>
+              )}
+
+              {/* ── Models tab ── */}
+              {configTab === 'models' && (
+                <>
+                  <h3 className={`text-[1.1rem] font-semibold mb-1 ${isDarkTheme ? 'text-slate-100' : 'text-[#0f2a24]'}`}>{t.apiKeyProductView?.validatedModelsHeading || 'Modelos validados'}</h3>
+                  <p className={`text-[0.8rem] leading-relaxed mb-3 ${isDarkTheme ? 'text-slate-400' : 'text-[#6b8f84]'}`}>
+                    {providerProfiles.length > 0
+                      ? (t.apiKeyProductView?.modelsByFocusHint || 'Selecciona el modelo por enfoque. Puedes usar API keys distintas en cada uno.')
+                      : (t.apiKeyProductView?.validateKeyToListModels || 'Valida la API key para listar los modelos disponibles.')}
+                  </p>
+
+                  <div className="grid grid-cols-1 gap-2 mb-3">
+                    <div className="grid grid-cols-[160px_1fr] gap-2 items-center">
+                      <label className="text-[0.8rem] text-[#6b8f84]">{t.apiKeyProductView?.modelTextLabel || 'Modelo texto'}</label>
+                      <select
+                        value={selectedTextModelId}
+                        onChange={e => {
+                          setSelectedTextModelId(e.target.value);
+                          if (product) persistConfig(product.id, { selectedTextModelId: e.target.value }).catch(console.error);
+                        }}
+                        disabled={!isOwner || textModelOptions.length === 0}
+                        className={selectCls}
+                      >
+                        <option value="">{t.apiKeyProductView?.noneOption || 'Ninguno'}</option>
+                        {buildOptgroupsByProfile(textModelOptions)}
+                      </select>
+                    </div>
+
+                    <div className="grid grid-cols-[160px_1fr] gap-2 items-center">
+                      <label className="text-[0.8rem] text-[#6b8f84]">{t.apiKeyProductView?.modelImageLabel || 'Modelo imagen'}</label>
+                      <select
+                        value={selectedImageModelId}
+                        onChange={e => {
+                          setSelectedImageModelId(e.target.value);
+                          if (product) persistConfig(product.id, { selectedImageModelId: e.target.value }).catch(console.error);
+                        }}
+                        disabled={!isOwner || imageModelOptions.length === 0}
+                        className={selectCls}
+                      >
+                        <option value="">{t.apiKeyProductView?.noneOption || 'Ninguno'}</option>
+                        {buildOptgroupsByProfile(imageModelOptions)}
+                      </select>
+                    </div>
+
+                    <div className="grid grid-cols-[160px_1fr] gap-2 items-center">
+                      <label className="text-[0.8rem] text-[#6b8f84]">{t.apiKeyProductView?.modelVideoLabel || 'Modelo video'}</label>
+                      <select
+                        value={selectedOtherModelId}
+                        onChange={e => {
+                          setSelectedOtherModelId(e.target.value);
+                          if (product) persistConfig(product.id, { selectedOtherModelId: e.target.value }).catch(console.error);
+                        }}
+                        disabled={!isOwner || otherModelOptions.length === 0}
+                        className={selectCls}
+                      >
+                        <option value="">{t.apiKeyProductView?.noneOption || 'Ninguno'}</option>
+                        {buildOptgroupsByProfile(otherModelOptions)}
+                      </select>
+                    </div>
+
+                    <div className="grid grid-cols-[160px_1fr] gap-2 items-center">
+                      <label className="text-[0.8rem] text-[#6b8f84]">{t.apiKeyProductView?.modelSearchLabel || 'Modelo búsqueda'}</label>
+                      <select
+                        value={selectedSearchModelId}
+                        onChange={e => {
+                          setSelectedSearchModelId(e.target.value);
+                          if (product) persistConfig(product.id, { selectedSearchModelId: e.target.value }).catch(console.error);
+                        }}
+                        disabled={!isOwner || searchModelOptions.length === 0}
+                        className={selectCls}
+                      >
+                        <option value="">{t.apiKeyProductView?.noneOption || 'Ninguno'}</option>
+                        {buildOptgroupsByProfile(searchModelOptions)}
+                      </select>
+                    </div>
+
+                    <div className="grid grid-cols-[160px_1fr] gap-2 items-center">
+                      <label className="text-[0.8rem] text-[#6b8f84]">{t.apiKeyProductView?.modelSummaryLabel || 'Resumen IA'}</label>
+                      <select
+                        value={selectedSummaryModelId}
+                        onChange={e => {
+                          setSelectedSummaryModelId(e.target.value);
+                          if (product) persistConfig(product.id, { selectedSummaryModelId: e.target.value }).catch(console.error);
+                        }}
+                        disabled={!isOwner || textFocusModelOptions.length === 0}
+                        className={selectCls}
+                      >
+                        <option value="">{t.apiKeyProductView?.noneOption || 'Ninguno'}</option>
+                        {buildOptgroupsByProfile(textFocusModelOptions)}
+                      </select>
+                    </div>
+
+                    <div className="grid grid-cols-[160px_1fr] gap-2 items-center">
+                      <label className="text-[0.8rem] text-[#6b8f84]">{t.apiKeyProductView?.modelPromptOptimizeLabel || 'Mejora de prompts'}</label>
+                      <select
+                        value={selectedPromptOptimizerModelId}
+                        onChange={e => {
+                          setSelectedPromptOptimizerModelId(e.target.value);
+                          if (product) persistConfig(product.id, { selectedPromptOptimizerModelId: e.target.value }).catch(console.error);
+                        }}
+                        disabled={!isOwner || textFocusModelOptions.length === 0}
+                        className={selectCls}
+                      >
+                        <option value="">{t.apiKeyProductView?.noneOption || 'Ninguno'}</option>
+                        {buildOptgroupsByProfile(textFocusModelOptions)}
+                      </select>
+                    </div>
+
+                    <div className="grid grid-cols-[160px_1fr] gap-2 items-center">
+                      <label className="text-[0.8rem] text-[#6b8f84]">{t.apiKeyProductView?.modelRoleOptimizeLabel || 'Optimización de rol'}</label>
+                      <select
+                        value={selectedRoleOptimizerModelId}
+                        onChange={e => {
+                          setSelectedRoleOptimizerModelId(e.target.value);
+                          if (product) persistConfig(product.id, { selectedRoleOptimizerModelId: e.target.value }).catch(console.error);
+                        }}
+                        disabled={!isOwner || textFocusModelOptions.length === 0}
+                        className={selectCls}
+                      >
+                        <option value="">{t.apiKeyProductView?.noneOption || 'Ninguno'}</option>
+                        {buildOptgroupsByProfile(textFocusModelOptions)}
+                      </select>
+                    </div>
+
+                    <div className="grid grid-cols-[160px_1fr] gap-2 items-center">
+                      <label className="text-[0.8rem] text-[#6b8f84]">{t.apiKeyProductView?.modelSpeechSynthesisLabel || 'Síntesis vocal'}</label>
+                      <select
+                        value={selectedSpeechSynthesisModelId}
+                        onChange={e => {
+                          setSelectedSpeechSynthesisModelId(e.target.value);
+                          if (product) persistConfig(product.id, { selectedSpeechSynthesisModelId: e.target.value }).catch(console.error);
+                        }}
+                        disabled={!isOwner || audioModelOptions.length === 0}
+                        className={selectCls}
+                      >
+                        <option value="">{t.apiKeyProductView?.noneOption || 'Ninguno'}</option>
+                        {buildOptgroupsByProfile(audioModelOptions)}
+                      </select>
+                    </div>
+
+                    <div className="grid grid-cols-[160px_1fr] gap-2 items-center">
+                      <label className="text-[0.8rem] text-[#6b8f84]">{t.apiKeyProductView?.modelSpeechTranscriptionLabel || 'Transcripción (micro)'}</label>
+                      <select
+                        value={selectedSpeechTranscriptionModelId}
+                        onChange={e => {
+                          setSelectedSpeechTranscriptionModelId(e.target.value);
+                          if (product) persistConfig(product.id, { selectedSpeechTranscriptionModelId: e.target.value }).catch(console.error);
+                        }}
+                        disabled={!isOwner || audioModelOptions.length === 0}
+                        className={selectCls}
+                      >
+                        <option value="">{t.apiKeyProductView?.noneOption || 'Ninguno'}</option>
+                        {buildOptgroupsByProfile(audioModelOptions)}
+                      </select>
+                    </div>
+                  </div>
+
+                  {validatedModelOptions.length > 0 && (
+                    <div className={`rounded-lg overflow-hidden flex-1 overflow-y-auto ${isDarkTheme ? 'border border-slate-700' : 'border border-[#a7d7c5]'}`}>
+                      {groupedModelSections.map((section) => (
+                        <div key={section.title} className={`border-b last:border-b-0 ${isDarkTheme ? 'border-slate-700' : 'border-[#d9efe8]'}`}>
+                          <div className={`px-2.5 py-1.5 text-[0.72rem] font-semibold uppercase tracking-[0.03em] ${isDarkTheme ? 'bg-slate-900 text-cyan-300' : 'bg-[#ecfdf5] text-[#0f766e]'}`}>
+                            {section.title}
+                          </div>
+                          {section.models.map((model) => (
+                            <div key={model.id} className={`grid grid-cols-[1fr_auto_auto] gap-2 p-2.5 text-[0.8rem] border-t transition-colors ${isDarkTheme ? 'border-slate-700 hover:bg-slate-800' : 'border-[#e6f4f0] hover:bg-[#f3fbf9]'}`}>
+                              <div className="min-w-0">
+                                <p className={`font-semibold truncate ${isDarkTheme ? 'text-slate-100' : 'text-[#0f2a24]'}`}>{model.label}</p>
+                                <p className={`truncate text-[0.7rem] ${isDarkTheme ? 'text-slate-400' : 'text-[#6b8f84]'}`}>{model.rawModelId}</p>
+                              </div>
+                              <div className="flex flex-wrap gap-1 items-center">
+                                {model.capabilities.map(cap => (
+                                  <span key={`${model.id}-${cap}`} className="px-1.5 py-0.5 rounded bg-[#d1fae5] text-[#0f766e] border border-[#a7d7c5] text-[0.65rem]">
+                                    {capabilityLabel(cap, t)}
+                                  </span>
+                                ))}
+                              </div>
+                              <p className="text-[#0f766e] font-semibold whitespace-nowrap">{model.priceLabel}</p>
+                            </div>
+                          ))}
                         </div>
                       ))}
                     </div>
                   )}
-                </section>
+                </>
+              )}
 
-                <section className="border-t border-[#9ecbc2] pt-3">
-                  <div className="flex items-center justify-between">
-                    <button
-                      onClick={() => setIsConversationsOpen((v) => !v)}
-                      className="flex items-center gap-1 text-[#186f65] font-bold text-sm"
-                    >
-                      {isConversationsOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-                      {t.apiKeyProductView?.conversationsTitle || 'CONVERSACIONES'}
-                    </button>
-                    <button
-                      onClick={handleCreateConversation}
-                      className="p-1 rounded border border-dashed border-[#87c7bc] text-[#186f65]"
-                      title={t.apiKeyProductView?.newConversation || 'Nueva conversacion'}
-                    >
-                      <CirclePlus size={14} />
-                    </button>
+              {/* ── Budget / Stats tab ── */}
+              {configTab === 'budget' && (
+                <>
+                  <h3 className={`text-[1.1rem] font-semibold mb-1 ${isDarkTheme ? 'text-slate-100' : 'text-[#0f2a24]'}`}>
+                    {t.apiKeyProductView?.usageStatsTitle || 'Estadísticas de uso'}
+                  </h3>
+                  <p className={`text-[0.8rem] leading-relaxed mb-4 ${isDarkTheme ? 'text-slate-400' : 'text-[#6b8f84]'}`}>
+                    Consumo acumulado de tokens y costos estimados.
+                  </p>
+                  <div className="grid grid-cols-2 gap-3">
+                    {[
+                      { label: 'Requests',       value: stats.totalRequests },
+                      { label: 'Última latencia', value: `${stats.lastLatencyMs} ms` },
+                      { label: 'Tokens entrada',  value: stats.totalInputTokens },
+                      { label: 'Tokens salida',   value: stats.totalOutputTokens },
+                      { label: 'Total tokens',    value: stats.totalTokens },
+                      { label: 'Costo estimado',  value: `$${stats.totalEstimatedCost.toFixed(6)}` },
+                    ].map(item => (
+                      <div key={item.label} className={`rounded-lg px-3 py-2.5 ${isDarkTheme ? 'bg-slate-800 border border-slate-700' : 'bg-[#f3fbf9] border border-[#a7d7c5]'}`}>
+                        <p className={`text-[0.7rem] uppercase tracking-[0.04em] font-semibold ${isDarkTheme ? 'text-slate-400' : 'text-[#6b8f84]'}`}>{item.label}</p>
+                        <p className={`text-[1rem] font-bold mt-0.5 tabular-nums ${isDarkTheme ? 'text-slate-100' : 'text-[#0f2a24]'}`}>{item.value}</p>
+                      </div>
+                    ))}
                   </div>
-                  {isConversationsOpen && (
-                    <div className="mt-2 space-y-1 max-h-48 overflow-y-auto pr-1">
-                      {conversations.length === 0 && (
-                        <p className="text-xs text-[#3f7b73]">{t.apiKeyProductView?.emptyConversations || 'Sin conversaciones'}</p>
-                      )}
-                      {conversations.map((conv) => (
-                        <button
-                          key={conv.id}
-                          onClick={() => handleSelectConversation(conv.id)}
-                          className={`w-full text-left px-2 py-1.5 rounded text-sm ${activeConversationId === conv.id ? 'bg-[#0b7d72] text-white' : 'hover:bg-[#c3dfd8] text-[#18413d]'}`}
-                        >
-                          <p className="truncate">{conv.title || (t.apiKeyProductView?.untitledConversation || 'Conversacion sin titulo')}</p>
-                          <p className={`text-[11px] ${activeConversationId === conv.id ? 'text-white/80' : 'text-[#3e7770]'}`}>
-                            {new Date(conv.updatedAt).toLocaleDateString()}
-                          </p>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </section>
-              </div>
-            </>
-          )}
-        </aside>
+                  <div className={`mt-3 text-[0.8rem] ${isDarkTheme ? 'text-slate-400' : 'text-[#6b8f84]'}`}>
+                    {t.apiKeyProductView?.providerValueLabel || 'Proveedor'}: <strong className={isDarkTheme ? 'text-slate-100' : 'text-[#0f2a24]'}>{selectedModelInfo ? providerLabel(selectedModelInfo.provider) : provider}</strong> ·
+                    {t.apiKeyProductView?.modelValueLabel || 'Modelo'}: <strong className={isDarkTheme ? 'text-slate-100' : 'text-[#0f2a24]'}>{selectedModelInfo?.rawModelId || '—'}</strong>
+                  </div>
+                </>
+              )}
 
-        <main className="flex-1 min-w-0 flex flex-col bg-[#eef3f2]">
-          <header className="border-b border-[#b6d7d1] bg-[#e8f0ee] px-4 py-3">
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2 min-w-0">
-                {isOwner && (
+              {/* Footer actions */}
+              <div className={`flex justify-end gap-2 mt-4 pt-3 border-t ${isDarkTheme ? 'border-slate-700' : 'border-[#ccfbf1]'}`}>
+                <button
+                  onClick={() => setIsConfigModalOpen(false)}
+                  className={modalBtnCancelCls}
+                >
+                  {t.apiKeyProductView?.closeButton || 'Cerrar'}
+                </button>
+                {isOwner && configTab === 'keys' && (
                   <button
-                    onClick={() => navigate('/dashboard/products')}
-                    className="p-1.5 rounded border border-[#87c7bc] text-[#186f65] hover:bg-[#d6ebe6]"
-                    title={t.apiKeyProductView?.backToProducts || 'Volver a productos'}
+                    onClick={() => product && persistConfig(product.id).then(() => setStatusText(t.apiKeyProductView?.configSaved || 'Configuración guardada.'))}
+                    className={modalBtnSaveCls}
                   >
-                    <ArrowLeft size={16} />
+                    {t.apiKeyProductView?.saveConfigButton || 'Guardar'}
                   </button>
                 )}
-                <KeyRound size={18} className="text-[#0b7d72] flex-shrink-0" />
-                <div className="min-w-0">
-                  <p className="font-bold text-[#133f3a] truncate">{fixedTitle}</p>
-                  <p className="text-xs text-[#3d7670] truncate">{fixedDescription}</p>
-                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <div className={`px-2 py-1 rounded border text-xs font-semibold ${product.isPublic ? 'bg-green-50 border-green-300 text-green-700' : 'bg-gray-100 border-gray-300 text-gray-700'}`}>
-                  {product.isPublic ? (
-                    <span className="inline-flex items-center gap-1"><Globe size={12} /> {t.apiKeyProductView?.publicLabel || 'Publico'}</span>
-                  ) : (
-                    <span className="inline-flex items-center gap-1"><Lock size={12} /> {t.apiKeyProductView?.privateLabel || 'Privado'}</span>
-                  )}
-                </div>
-                <button
-                  onClick={handleCopyUrl}
-                  className="p-1.5 rounded border border-[#87c7bc] text-[#186f65] hover:bg-[#d6ebe6]"
-                  title={t.apiKeyProductView?.copyProductUrl || 'Copiar URL del producto'}
-                >
-                  {urlCopied ? <Check size={14} /> : <Copy size={14} />}
-                </button>
-              </div>
-            </div>
-          </header>
-
-          {!isOwner && (
-            <div className="mx-4 mt-3 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-800">
-              {t.apiKeyProductView?.publicReadOnlyNotice || 'Modo publico: puedes ver historial, pero no editar keys o configuracion.'}
-            </div>
-          )}
-
-          <div className="border-y border-[#b6d7d1] bg-[#edf5f3] px-4 py-2 text-sm flex flex-wrap items-center gap-2">
-            <span className="text-[#2a6f68]">{t.apiKeyProductView?.modelTextLabel || 'Modelo texto'}:</span>
-            <select
-              value={selectedModel}
-              onChange={(e) => setSelectedModel(e.target.value)}
-              disabled={!isOwner || modelOptions.length === 0}
-              className="rounded border border-[#8ccabd] bg-[#f5faf8] px-2 py-1 text-sm"
-            >
-              {modelOptions.length === 0 && <option value="">{t.apiKeyProductView?.noModels || 'Sin modelos'}</option>}
-              {modelOptions.map((m) => (
-                <option key={m.id} value={m.id}>{m.displayLabel}</option>
-              ))}
-            </select>
-
-            <span className="text-[#2a6f68] ml-3">{t.apiKeyProductView?.providerLabel || 'Proveedor'}:</span>
-            <select
-              value={provider}
-              onChange={(e) => {
-                setProvider(e.target.value as ApiRuntimeProvider);
-                setRemoteModels([]);
-                setSelectedModel('');
-                setHasValidatedKey(false);
-              }}
-              disabled={!isOwner}
-              className="rounded border border-[#8ccabd] bg-[#f5faf8] px-2 py-1 text-sm"
-            >
-              {PROVIDERS.map((p) => (
-                <option key={p.value} value={p.value}>{p.label}</option>
-              ))}
-            </select>
-
-            <span className="text-[#2a6f68] ml-3">{t.apiKeyProductView?.roleSelectorLabel || 'Rol'}:</span>
-            <select
-              value={selectedRoleId}
-              onChange={(e) => {
-                setSelectedRoleId(e.target.value);
-                if (product) {
-                  persistConfig(product.id, { selectedRoleId: e.target.value }).catch((err) => {
-                    console.error('[ApiKeyInspectorView] Persist role selector failed:', err);
-                  });
-                }
-              }}
-              disabled={!isOwner || roles.length === 0}
-              className="rounded border border-[#8ccabd] bg-[#f5faf8] px-2 py-1 text-sm"
-            >
-              <option value="">{t.apiKeyProductView?.noneOption || 'Ninguno'}</option>
-              {roles.map((role) => (
-                <option key={role.id} value={role.id}>{role.title}</option>
-              ))}
-            </select>
-          </div>
-
-          <div className="border-b border-[#b6d7d1] bg-[#edf5f3] px-4 py-1 text-xs text-[#2f706a] flex items-center justify-between">
-            <span>
-              {t.apiKeyProductView?.tokenBar || 'Tokens'} - IN: {stats.totalInputTokens} | OUT: {stats.totalOutputTokens} | TOTAL: {stats.totalTokens}
-            </span>
-            <span>
-              {t.apiKeyProductView?.estimatedCost || 'Costo estimado'}: ${stats.totalEstimatedCost.toFixed(6)}
-            </span>
-          </div>
-
-          <section className="px-4 py-3 border-b border-[#c5ddd8] bg-[#f0f7f5]">
-            <h3 className="text-sm font-semibold text-[#174540] mb-2">{t.apiKeyProductView?.quickFlowTitle || 'Flujo rapido de uso'}</h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-xs text-[#2e6d66]">
-              <div className="rounded border border-[#b6d7d1] bg-white p-2">
-                <strong>{t.apiKeyProductView?.step1Title || '1. Configura key'}</strong>
-                <p>{t.apiKeyProductView?.step1Body || 'Elige proveedor, pega API key y valida para cargar modelos.'}</p>
-              </div>
-              <div className="rounded border border-[#b6d7d1] bg-white p-2">
-                <strong>{t.apiKeyProductView?.step2Title || '2. Define comportamiento'}</strong>
-                <p>{t.apiKeyProductView?.step2Body || 'Selecciona un rol, agrega instruccion base y usa prompts guardados.'}</p>
-              </div>
-              <div className="rounded border border-[#b6d7d1] bg-white p-2">
-                <strong>{t.apiKeyProductView?.step3Title || '3. Chatea y registra'}</strong>
-                <p>{t.apiKeyProductView?.step3Body || 'Envia mensajes, guarda conversaciones y consulta estadisticas de uso.'}</p>
-              </div>
-            </div>
-          </section>
-
-          <section className="px-4 py-3 border-b border-[#c5ddd8] bg-[#f5faf8] grid grid-cols-1 lg:grid-cols-3 gap-3">
-            <div className="lg:col-span-2 rounded border border-[#b6d7d1] bg-white p-3">
-              <h4 className="text-sm font-semibold text-[#174540] mb-2 inline-flex items-center gap-1">
-                <ShieldCheck size={14} className="text-[#0b7d72]" /> {t.apiKeyProductView?.apiConfigTitle || 'Configuracion de API'}
-              </h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                <input
-                  value={apiKey}
-                  onChange={(e) => setApiKey(e.target.value)}
-                  disabled={!isOwner}
-                  placeholder={PROVIDERS.find((p) => p.value === provider)?.hint || 'API key'}
-                  className="rounded border border-[#8ccabd] bg-[#f8fcfb] px-3 py-2 text-sm"
-                />
-                <div className="flex gap-2">
-                  <button
-                    onClick={handleValidateKey}
-                    disabled={!isOwner || isValidatingKey || !apiKey.trim()}
-                    className="flex-1 rounded bg-[#0b7d72] text-white text-sm font-semibold py-2 hover:bg-[#0a7067] disabled:opacity-50"
-                  >
-                    {isValidatingKey ? (t.apiKeyProductView?.validating || 'Validando...') : (t.apiKeyProductView?.validateKey || 'Validar key')}
-                  </button>
-                  <button
-                    onClick={handleTestModel}
-                    disabled={!isOwner || isSending || !selectedModel || !apiKey.trim()}
-                    className="flex-1 rounded border border-[#0b7d72] text-[#0b7d72] text-sm font-semibold py-2 hover:bg-[#e4f4f0] disabled:opacity-50"
-                  >
-                    {t.apiKeyProductView?.testModel || 'Probar modelo'}
-                  </button>
-                </div>
-              </div>
-              <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-2">
-                <div>
-                  <label className="block text-xs text-[#2e6d66] mb-1">{t.apiKeyProductView?.testModeLabel || 'Modo de prueba'}</label>
-                  <select
-                    value={testMode}
-                    onChange={(e) => setTestMode(e.target.value as ModelCapability)}
-                    disabled={!isOwner || !selectedModel}
-                    className="w-full rounded border border-[#8ccabd] bg-[#f8fcfb] px-2 py-2 text-sm"
-                  >
-                    {availableTestModes.map((mode) => (
-                      <option key={mode} value={mode}>{capabilityLabel(mode, t)}</option>
-                    ))}
-                  </select>
-                </div>
-                <div className="text-xs text-[#2e6d66] rounded border border-[#b6d7d1] bg-[#f7fcfa] px-2 py-2">
-                  {t.apiKeyProductView?.testModeHint || 'Texto y búsqueda se prueban en chat. Imagen/audio/video registran prueba de capacidad en la conversación actual.'}
-                </div>
-              </div>
-              <textarea
-                value={systemPrompt}
-                onChange={(e) => setSystemPrompt(e.target.value)}
-                disabled={!isOwner}
-                rows={2}
-                placeholder={t.apiKeyProductView?.baseInstructionPlaceholder || 'Instruccion base para el asistente...'}
-                className="w-full mt-2 rounded border border-[#8ccabd] bg-[#f8fcfb] px-3 py-2 text-sm"
-              />
-              {selectedRole && (
-                <p className="text-xs text-[#2e6d66] mt-2">
-                  {t.apiKeyProductView?.activeRolePrefix || 'Rol activo'}: <strong>{selectedRole.title}</strong>
-                </p>
-              )}
-            </div>
-
-            <div className="rounded border border-[#b6d7d1] bg-white p-3">
-              <h4 className="text-sm font-semibold text-[#174540] mb-2">{t.apiKeyProductView?.usageStatsTitle || 'Uso y costo'}</h4>
-              <div className="space-y-1 text-xs text-[#2f706a]">
-                <p>{t.apiKeyProductView?.requestsLabel || 'Requests'}: <strong>{stats.totalRequests}</strong></p>
-                <p>{t.apiKeyProductView?.latencyLabel || 'Ultima latencia'}: <strong>{stats.lastLatencyMs} ms</strong></p>
-                <p>{t.apiKeyProductView?.selectedModelLabel || 'Modelo seleccionado'}: <strong>{selectedModel || '-'}</strong></p>
-                <p>{t.apiKeyProductView?.providerLabel || 'Proveedor'}: <strong>{provider}</strong></p>
-              </div>
-            </div>
-          </section>
-
-          <section className="px-4 py-3 border-b border-[#c5ddd8] bg-[#f3f8f7]">
-            <div className="flex items-center justify-between gap-3">
-              <h4 className="text-sm font-semibold text-[#174540]">{t.apiKeyProductView?.validatedModelsTitle || 'Modelos validados con esta key'}</h4>
-              <button
-                onClick={() => setModelsPanelOpen((v) => !v)}
-                className="text-xs px-2 py-1 rounded border border-[#9fcfc5] bg-white text-[#1a6f65]"
-              >
-                {modelsPanelOpen
-                  ? (t.apiKeyProductView?.hideModelsList || 'Ocultar lista')
-                  : (t.apiKeyProductView?.showModelsList || 'Mostrar lista')}
-              </button>
-            </div>
-            {!hasValidatedKey && (
-              <p className="text-xs text-[#2e6d66]">
-                {t.apiKeyProductView?.validateToSeeModels || 'Valida la API key para listar solo modelos realmente habilitados para tu cuenta.'}
-              </p>
-            )}
-            {hasValidatedKey && validatedModelOptions.length === 0 && (
-              <p className="text-xs text-[#2e6d66]">
-                {t.apiKeyProductView?.noValidatedModels || 'La validacion fue correcta, pero no se recibieron modelos para este proveedor.'}
-              </p>
-            )}
-            {validatedModelOptions.length > 0 && modelsPanelOpen && (
-              <div className="mt-2 border border-[#b6d7d1] rounded bg-white overflow-hidden">
-                <div className="max-h-44 overflow-y-auto">
-                {validatedModelOptions.map((model) => (
-                  <div key={model.id} className="grid grid-cols-[1fr_auto_auto] gap-2 p-2 text-xs border-b last:border-b-0 border-[#e0efeb]">
-                    <div className="min-w-0">
-                      <p className="font-semibold text-[#173f3a] truncate">{model.label}</p>
-                      <p className="text-[#4a7e77] truncate">{model.id}</p>
-                    </div>
-                    <div className="flex flex-wrap gap-1 items-center justify-start">
-                      {model.capabilities.map((cap) => (
-                        <span key={`${model.id}-${cap}`} className="px-1.5 py-0.5 rounded bg-[#e5f3f0] text-[#1a6f65] border border-[#b9ddd6]">
-                          {capabilityLabel(cap, t)}
-                        </span>
-                      ))}
-                    </div>
-                    <div className="text-right">
-                      <p className="text-[#0b7d72] font-semibold whitespace-nowrap">{model.priceLabel}</p>
-                      <p className={`font-medium ${model.usableInChat ? 'text-green-700' : 'text-amber-700'}`}>
-                        {model.usableInChat
-                          ? (t.apiKeyProductView?.compatibleWithChat || 'Compatible con chat de texto')
-                          : (t.apiKeyProductView?.notCompatibleWithChat || 'No compatible con chat de texto (requiere prueba por modalidad)')}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-                </div>
-              </div>
-            )}
-          </section>
-
-          <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3">
-            {(!activeConversation || activeConversation.messages.length === 0) && (
-              <div className="rounded border border-[#b6d7d1] bg-white px-3 py-2 text-sm text-[#2d6c65]">
-                {t.apiKeyProductView?.emptyChat || 'Aun no hay mensajes en esta conversacion.'}
-              </div>
-            )}
-            {activeConversation?.messages.map((msg) => (
-              <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                <div className={`max-w-[860px] rounded-lg border px-3 py-2 text-sm ${msg.role === 'user' ? 'bg-[#0b7d72] text-white border-[#0a6e65]' : 'bg-white text-[#183f3a] border-[#b6d7d1]'}`}>
-                  <div className="text-[11px] opacity-80 flex items-center gap-1 mb-1">
-                    {msg.role === 'user' ? <User size={11} /> : <Bot size={11} />}
-                    {msg.role === 'user' ? (t.apiKeyProductView?.youLabel || 'Tu') : (t.apiKeyProductView?.assistantLabel || 'Asistente')}
-                  </div>
-                  <p className="whitespace-pre-wrap">{msg.content}</p>
-                  {msg.outputKind === 'image' && msg.outputPreview && (
-                    <div className="mt-2">
-                      <img src={msg.outputPreview} alt="generated" className="max-h-64 rounded border border-[#b6d7d1]" />
-                    </div>
-                  )}
-                  {msg.outputKind === 'audio' && msg.outputPreview && (
-                    <div className="mt-2">
-                      <audio controls src={msg.outputPreview} className="w-full" />
-                    </div>
-                  )}
-                  {msg.outputKind === 'video' && msg.outputPreview && (
-                    <div className="mt-2">
-                      <video controls src={msg.outputPreview} className="max-h-64 rounded border border-[#b6d7d1]" />
-                    </div>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <footer className="border-t border-[#b6d7d1] bg-[#e8f1ef] px-4 py-3">
-            <div className="max-w-5xl mx-auto">
-              <div className="flex items-center gap-2 rounded-full border border-[#7cc8ba] bg-white px-3 py-2">
-                <button
-                  onClick={() => setShowPromptModal(true)}
-                  disabled={!isOwner}
-                  className="p-1.5 rounded-full border border-[#84ccb8] text-[#1b756b] disabled:opacity-40"
-                  title={t.apiKeyProductView?.newPrompt || 'Nuevo prompt'}
-                >
-                  <Plus size={14} />
-                </button>
-                <textarea
-                  value={messageInput}
-                  onChange={(e) => setMessageInput(e.target.value)}
-                  disabled={!isOwner || isSending}
-                  rows={1}
-                  placeholder={t.apiKeyProductView?.chatPlaceholder || 'Escribe tu mensaje...'}
-                  className="flex-1 bg-transparent outline-none resize-none text-sm text-[#1b4e48]"
-                />
-                <select
-                  value={chatMode}
-                  onChange={(e) => setChatMode(e.target.value as ModelCapability)}
-                  disabled={!isOwner || isSending || !selectedModel}
-                  className="rounded border border-[#8ccabd] bg-[#f8fcfb] px-2 py-1 text-xs text-[#1b4e48]"
-                  title={t.apiKeyProductView?.chatModeLabel || 'Modo chat'}
-                >
-                  {availableChatModes.map((mode) => (
-                    <option key={mode} value={mode}>{capabilityLabel(mode, t)}</option>
-                  ))}
-                </select>
-                <button
-                  onClick={handleSendMessage}
-                  disabled={!isOwner || isSending || !messageInput.trim()}
-                  className="rounded-full bg-[#0b7d72] text-white px-4 py-1.5 text-sm font-semibold disabled:opacity-50 inline-flex items-center gap-1"
-                >
-                  {isSending ? <span className="inline-block h-3 w-3 rounded-full border-2 border-white/50 border-t-white animate-spin" /> : <Send size={13} />}
-                  {chatMode === 'text' || chatMode === 'search'
-                    ? (t.apiKeyProductView?.sendButton || 'Enviar')
-                    : (t.apiKeyProductView?.generateButton || 'Generar')}
-                </button>
-              </div>
-              <p className="text-center text-xs text-[#4f817a] mt-2">{t.apiKeyProductView?.chatHint || 'Enter para nueva linea. Usa el boton Enviar para ejecutar.'}</p>
-            </div>
-          </footer>
-
-          {(statusText || errorText) && (
-            <div className={`mx-4 mb-3 rounded-lg border px-3 py-2 text-sm ${errorText ? 'border-red-300 bg-red-50 text-red-700' : 'border-green-300 bg-green-50 text-green-700'}`}>
-              {errorText || statusText}
-            </div>
-          )}
-        </main>
-      </div>
-
-      {showRoleModal && (
-        <div className="fixed inset-0 z-50 bg-black/35 flex items-center justify-center p-3">
-          <div className="w-full max-w-lg rounded-xl bg-white p-4 border border-[#b6d7d1]">
-            <h3 className="text-lg font-bold text-[#173f3a]">{t.apiKeyProductView?.newRoleModalTitle || 'Nuevo rol'}</h3>
-            <input
-              value={roleTitleInput}
-              onChange={(e) => setRoleTitleInput(e.target.value)}
-              placeholder={t.apiKeyProductView?.roleTitlePlaceholder || 'Titulo del rol'}
-              className="w-full mt-3 rounded border border-[#8ccabd] px-3 py-2 text-sm"
-            />
-            <textarea
-              value={roleBehaviorInput}
-              onChange={(e) => setRoleBehaviorInput(e.target.value)}
-              rows={5}
-              placeholder={t.apiKeyProductView?.roleBehaviorPlaceholder || 'Comportamiento u objetivo del asistente'}
-              className="w-full mt-2 rounded border border-[#8ccabd] px-3 py-2 text-sm"
-            />
-            <div className="mt-3 flex justify-end gap-2">
-              <button
-                onClick={() => setShowRoleModal(false)}
-                className="px-3 py-2 rounded border border-[#8ccabd] text-[#1b756b]"
-              >
-                {t.apiKeyProductView?.cancelButton || 'Cancelar'}
-              </button>
-              <button
-                onClick={handleCreateRole}
-                className="px-3 py-2 rounded bg-[#0b7d72] text-white font-semibold"
-              >
-                {t.apiKeyProductView?.saveRoleButton || 'Guardar rol'}
-              </button>
             </div>
           </div>
-        </div>
+        </ModalOverlay>
       )}
 
-      {showPromptModal && (
-        <div className="fixed inset-0 z-50 bg-black/35 flex items-center justify-center p-3">
-          <div className="w-full max-w-lg rounded-xl bg-white p-4 border border-[#b6d7d1]">
-            <h3 className="text-lg font-bold text-[#173f3a]">{t.apiKeyProductView?.newPromptModalTitle || 'Nuevo prompt'}</h3>
+      {/* ── Role modal ────────────────────────────────────────────────── */}
+      {showRoleModal && (
+        <ModalOverlay>
+          <div className={`rounded-2xl p-6 w-full max-w-[480px] max-h-[80vh] overflow-y-auto flex flex-col gap-3 shadow-[0_12px_40px_rgba(0,0,0,0.15)] ${isDarkTheme ? 'bg-slate-900' : 'bg-white'}`}>
+            <h3 className={`text-[1.1rem] font-semibold m-0 ${isDarkTheme ? 'text-slate-100' : 'text-[#0f2a24]'}`}>
+              {t.apiKeyProductView?.newRoleModalTitle || 'Nuevo rol'}
+            </h3>
+            <label className={`text-[0.8rem] font-medium ${isDarkTheme ? 'text-slate-300' : 'text-[#3d7a6d]'}`}>{t.apiKeyProductView?.nameField || 'Nombre'}</label>
             <input
-              value={promptTitleInput}
-              onChange={(e) => setPromptTitleInput(e.target.value)}
-              placeholder={t.apiKeyProductView?.promptTitlePlaceholder || 'Titulo del prompt'}
-              className="w-full mt-3 rounded border border-[#8ccabd] px-3 py-2 text-sm"
+              value={roleTitleInput}
+              onChange={e => setRoleTitleInput(e.target.value)}
+              placeholder={t.apiKeyProductView?.roleTitlePlaceholder || 'Ej: Asistente técnico'}
+              className={inputCls}
             />
+            <label className={`text-[0.8rem] font-medium ${isDarkTheme ? 'text-slate-300' : 'text-[#3d7a6d]'}`}>{t.apiKeyProductView?.contentField || 'Contenido'}</label>
             <textarea
-              value={promptContentInput}
-              onChange={(e) => setPromptContentInput(e.target.value)}
-              rows={5}
-              placeholder={t.apiKeyProductView?.promptContentPlaceholder || 'Contenido del prompt'}
-              className="w-full mt-2 rounded border border-[#8ccabd] px-3 py-2 text-sm"
+              value={roleBehaviorInput}
+              onChange={e => setRoleBehaviorInput(e.target.value)}
+              rows={8}
+              placeholder={t.apiKeyProductView?.roleBehaviorPlaceholder || 'Eres un asistente...'}
+              className={`${inputCls} resize-y min-h-[120px]`}
             />
-            <div className="mt-3 flex justify-end gap-2">
-              <button
-                onClick={() => setShowPromptModal(false)}
-                className="px-3 py-2 rounded border border-[#8ccabd] text-[#1b756b]"
-              >
+            <div className="flex justify-between gap-2 mt-1">
+              <button onClick={handleOptimizeRoleBehavior} className={modalBtnCancelCls}>
+                {t.apiKeyProductView?.optimizeButton || 'Optimizar'}
+              </button>
+              <div className="flex gap-2">
+              <button onClick={() => setShowRoleModal(false)} className={modalBtnCancelCls}>
                 {t.apiKeyProductView?.cancelButton || 'Cancelar'}
               </button>
-              <button
-                onClick={handleCreatePrompt}
-                className="px-3 py-2 rounded bg-[#0b7d72] text-white font-semibold"
-              >
-                {t.apiKeyProductView?.savePromptButton || 'Guardar prompt'}
+              <button onClick={handleCreateRole} className={modalBtnSaveCls}>
+                {t.apiKeyProductView?.saveRoleButton || 'Guardar rol'}
               </button>
+              </div>
             </div>
           </div>
-        </div>
+        </ModalOverlay>
+      )}
+
+      {/* ── Prompt modal ──────────────────────────────────────────────── */}
+      {showPromptModal && (
+        <ModalOverlay>
+          <div className={`rounded-2xl p-6 w-full max-w-[480px] max-h-[80vh] overflow-y-auto flex flex-col gap-3 shadow-[0_12px_40px_rgba(0,0,0,0.15)] ${isDarkTheme ? 'bg-slate-900' : 'bg-white'}`}>
+            <h3 className={`text-[1.1rem] font-semibold m-0 ${isDarkTheme ? 'text-slate-100' : 'text-[#0f2a24]'}`}>
+              {t.apiKeyProductView?.newPromptModalTitle || 'Nuevo Prompt'}
+            </h3>
+            <label className={`text-[0.8rem] font-medium ${isDarkTheme ? 'text-slate-300' : 'text-[#3d7a6d]'}`}>{t.apiKeyProductView?.nameField || 'Nombre'}</label>
+            <input
+              value={promptTitleInput}
+              onChange={e => setPromptTitleInput(e.target.value)}
+              placeholder={t.apiKeyProductView?.promptTitlePlaceholder || 'Ej: Resume este texto'}
+              className={inputCls}
+            />
+            <label className={`text-[0.8rem] font-medium ${isDarkTheme ? 'text-slate-300' : 'text-[#3d7a6d]'}`}>{t.apiKeyProductView?.contentField || 'Contenido'}</label>
+            <textarea
+              value={promptContentInput}
+              onChange={e => setPromptContentInput(e.target.value)}
+              rows={8}
+              placeholder={t.apiKeyProductView?.promptContentPlaceholder || 'Resume el siguiente texto en 3 puntos...'}
+              className={`${inputCls} resize-y min-h-[120px]`}
+            />
+            <div className="flex justify-between gap-2 mt-1">
+              <button onClick={handleOptimizePromptContent} className={modalBtnCancelCls}>
+                {t.apiKeyProductView?.optimizeButton || 'Optimizar'}
+              </button>
+              <div className="flex gap-2">
+              <button onClick={() => setShowPromptModal(false)} className={modalBtnCancelCls}>
+                {t.apiKeyProductView?.cancelButton || 'Cancelar'}
+              </button>
+              <button onClick={handleCreatePrompt} className={modalBtnSaveCls}>
+                {t.apiKeyProductView?.savePromptButton || 'Guardar prompt'}
+              </button>
+              </div>
+            </div>
+          </div>
+        </ModalOverlay>
       )}
     </div>
   );

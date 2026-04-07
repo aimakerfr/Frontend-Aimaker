@@ -10,7 +10,7 @@ const MakerPathView: React.FC = () => {
   const [activeView] = useState<ActiveView>('hub');
 
   if (activeView === 'deploy') {
-    navigate('dashboard/deployer/new');
+    navigate('dashboard/applications/new');
     return null;
   }
 
@@ -22,7 +22,7 @@ const MakerPathView: React.FC = () => {
 
   return (
     <ProjectsHub
-      onGoToDeploy={() => navigate('/dashboard/deployer/new')}
+      onGoToDeploy={() => navigate('/dashboard/applications/new')}
       onGoToAssembly={() => navigate('/dashboard/assembler/new')}
     />
   );

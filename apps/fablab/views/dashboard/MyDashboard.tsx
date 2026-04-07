@@ -1,11 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Star, Clock3, Package, BarChart3 } from 'lucide-react';
+import { Star, Clock3, Package } from 'lucide-react';
 import { getProducts, type Product } from '@core/products';
-import { getAllObjects, type ObjectItem } from '@core/objects';
 import { useLanguage } from '../../language/useLanguage';
-
-type TimeRange = '7d' | '30d' | '90d';
 
 const NOTEBOOK_TYPE = 'rag_chat_maker';
 
@@ -15,6 +12,8 @@ const FIXED_PRODUCT_TYPES = new Set([
   'translation_maker',
   'style_transfer_maker',
   'api_key_maker',
+  'api_key_html_injector',
+  'profile_b2b_maker',
 ]);
 
 const getProductTimestamp = (product: Product): number => {
@@ -232,11 +231,10 @@ const LineTrendChart: React.FC<{
 const MyDashboard: React.FC = () => {
   const navigate = useNavigate();
   const { t, language } = useLanguage() as any;
+  const locale = typeof language === 'string' ? language.substring(0, 2) : 'en';
   const [products, setProducts] = useState<Product[]>([]);
-  const [objects, setObjects] = useState<ObjectItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [timeRange, setTimeRange] = useState<TimeRange>('30d');
 
   useEffect(() => {
     let active = true;
@@ -245,13 +243,9 @@ const MyDashboard: React.FC = () => {
       setIsLoading(true);
       setError(null);
       try {
-        const [productData, objectsData] = await Promise.all([
-          getProducts(),
-          getAllObjects(),
-        ]);
+        const productData = await getProducts();
         if (active) {
           setProducts(Array.isArray(productData) ? productData : []);
-          setObjects(Array.isArray(objectsData) ? objectsData : []);
         }
       } catch (e) {
         if (active) {
@@ -285,46 +279,6 @@ const MyDashboard: React.FC = () => {
     return sorted[0] || null;
   }, [notebookProducts]);
 
-  const rangeStartTimestamp = useMemo(() => {
-    const now = Date.now();
-    if (timeRange === '7d') return now - (7 * 24 * 60 * 60 * 1000);
-    if (timeRange === '30d') return now - (30 * 24 * 60 * 60 * 1000);
-    return now - (90 * 24 * 60 * 60 * 1000);
-  }, [timeRange]);
-
-  const productsCreatedInRange = useMemo(() => {
-    return products.filter((product) => {
-      const createdAt = product.createdAt ? new Date(product.createdAt.replace(' ', 'T')).getTime() : 0;
-      return createdAt >= rangeStartTimestamp;
-    });
-  }, [products, rangeStartTimestamp]);
-
-  const objectsCreatedInRange = useMemo(() => {
-    return objects.filter((object) => {
-      const createdAt = toTimestamp(object.createdAt);
-      return createdAt >= rangeStartTimestamp;
-    });
-  }, [objects, rangeStartTimestamp]);
-
-  const notebookCreatedInRange = useMemo(() => {
-    return notebookProducts.filter((product) => {
-      const createdAt = product.createdAt ? new Date(product.createdAt.replace(' ', 'T')).getTime() : 0;
-      return createdAt >= rangeStartTimestamp;
-    });
-  }, [notebookProducts, rangeStartTimestamp]);
-
-  const replicatedProducts = useMemo(() => {
-    return products.filter((product) => !FIXED_PRODUCT_TYPES.has(product.type));
-  }, [products]);
-
-  const productTrendSeries = useMemo(() => {
-    return buildDailySeries(productsCreatedInRange, (item) => item.createdAt, rangeStartTimestamp);
-  }, [productsCreatedInRange, rangeStartTimestamp]);
-
-  const objectsTrendSeries = useMemo(() => {
-    return buildDailySeries(objectsCreatedInRange, (item) => item.createdAt, rangeStartTimestamp);
-  }, [objectsCreatedInRange, rangeStartTimestamp]);
-
   const getProductRoute = (type: string, id: number): string => {
     const routeMap: Record<string, string> = {
       rag_chat_maker: 'notebook',
@@ -333,6 +287,8 @@ const MyDashboard: React.FC = () => {
       translation_maker: 'translation',
       style_transfer_maker: 'style-transfer',
       api_key_maker: 'api-key',
+      api_key_html_injector: 'api-key-html',
+      profile_b2b_maker: 'profile-b2b',
       architect_ai: 'notebook',
       module_connector: 'notebook',
       custom: 'notebook',
@@ -345,8 +301,6 @@ const MyDashboard: React.FC = () => {
 
     return `/product/${route}/${id}`;
   };
-
-  const locale = typeof language === 'string' ? language : 'en';
 
   return (
     <div className="space-y-6">
@@ -364,79 +318,6 @@ const MyDashboard: React.FC = () => {
           {error}
         </div>
       )}
-
-      <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800">
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-          <h2 className="flex items-center gap-2 text-lg font-semibold text-gray-900 dark:text-white">
-            <BarChart3 size={18} className="text-blue-500" />
-            {(t as any).dashboard?.metricsTitle || 'Product Metrics'}
-          </h2>
-          <div className="flex items-center gap-2">
-            {(['7d', '30d', '90d'] as TimeRange[]).map((range) => (
-              <button
-                key={range}
-                type="button"
-                onClick={() => setTimeRange(range)}
-                className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
-                  timeRange === range
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
-                }`}
-              >
-                {range.toUpperCase()}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-          <div className="rounded-xl border border-gray-200 p-4 dark:border-gray-700">
-            <div className="text-xs text-gray-500 dark:text-gray-400">{(t as any).dashboard?.totalProductsLabel || 'Total products'}</div>
-            <div className="mt-1 text-2xl font-bold text-gray-900 dark:text-white">{products.length}</div>
-          </div>
-          <div className="rounded-xl border border-gray-200 p-4 dark:border-gray-700">
-            <div className="text-xs text-gray-500 dark:text-gray-400">{(t as any).dashboard?.totalFavoritesLabel || 'Total favorites'}</div>
-            <div className="mt-1 text-2xl font-bold text-amber-600 dark:text-amber-400">{favoriteProducts.length}</div>
-          </div>
-          <div className="rounded-xl border border-gray-200 p-4 dark:border-gray-700">
-            <div className="text-xs text-gray-500 dark:text-gray-400">{(t as any).dashboard?.totalNotebooksLabel || 'Total notebook products'}</div>
-            <div className="mt-1 text-2xl font-bold text-blue-600 dark:text-blue-400">{notebookProducts.length}</div>
-          </div>
-          <div className="rounded-xl border border-gray-200 p-4 dark:border-gray-700">
-            <div className="text-xs text-gray-500 dark:text-gray-400">{(t as any).dashboard?.createdInRangeLabel || 'Created in selected range'}</div>
-            <div className="mt-1 text-2xl font-bold text-emerald-600 dark:text-emerald-400">{productsCreatedInRange.length}</div>
-          </div>
-          <div className="rounded-xl border border-gray-200 p-4 dark:border-gray-700">
-            <div className="text-xs text-gray-500 dark:text-gray-400">{(t as any).dashboard?.notebooksInRangeLabel || 'Notebooks created in range'}</div>
-            <div className="mt-1 text-2xl font-bold text-indigo-600 dark:text-indigo-400">{notebookCreatedInRange.length}</div>
-          </div>
-        </div>
-
-        <p className="mt-3 text-xs text-gray-500 dark:text-gray-400">
-          {(t as any).dashboard?.replicatedProductsLabel || 'Replicable products (excluding fixed types)'}: {replicatedProducts.length}
-        </p>
-
-        <div className="mt-4 grid gap-4 xl:grid-cols-2">
-          <LineTrendChart
-            title={(t as any).dashboard?.productsTrendTitle || 'Products creation trend'}
-            subtitle={(t as any).dashboard?.productsTrendSubtitle || 'Daily created products in selected range'}
-            series={productTrendSeries}
-            lineColor="#2563eb"
-            fillColor="#93c5fd"
-            locale={locale}
-            metricLabel={(t as any).dashboard?.productsMetricLabel || 'Products'}
-          />
-          <LineTrendChart
-            title={(t as any).dashboard?.objectsTrendTitle || 'Objects upload trend'}
-            subtitle={(t as any).dashboard?.objectsTrendSubtitle || 'Daily new objects in table objects'}
-            series={objectsTrendSeries}
-            lineColor="#0f766e"
-            fillColor="#99f6e4"
-            locale={locale}
-            metricLabel={(t as any).dashboard?.objectsMetricLabel || 'Objects'}
-          />
-        </div>
-      </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800">

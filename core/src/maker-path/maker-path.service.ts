@@ -25,6 +25,11 @@ export const getMakerPaths = async (
   if (params.type) {
     queryParams.append('type', params.type);
   }
+
+  if (params.hasApplicationDeployment !== undefined) {
+    queryParams.append('hasApplicationDeployment', String(params.hasApplicationDeployment));
+  }
+  
   
   const endpoint = queryParams.toString() 
     ? `${ENDPOINT}?${queryParams.toString()}` 

@@ -1,21 +1,28 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useLanguage } from '@apps/fablab/language/useLanguage';
+import { createProductFromTemplate } from '@core/products';
+import { Rocket, Loader2 } from 'lucide-react';
 import {
   applicationDeploymentService,
   type ApplicationDeployment,
 } from './services/applicationDeployment.service';
 import DeployActionButton from './components/DeployActionButton';
 import { getMakerPath, type MakerPath } from './services/makerPath.service';
+import { DatabaseManager } from '@apps/fablab/modules/database-manager';
 
 type Props = {
   makerPathId: number | null | undefined;
+  /** Optional component to render a "Create Database" action per deployment row */
+  DatabaseCreatorComponent?: React.ComponentType<any>;
 };
 
-const ApplicationDeploymentFullPage: React.FC<Props> = ({ makerPathId }) => {
+const ApplicationDeploymentFullPage: React.FC<Props> = ({ makerPathId, DatabaseCreatorComponent }) => {
   const { t } = useLanguage();
   const [deployments, setDeployments] = useState<ApplicationDeployment[]>([]);
   const [loading, setLoading] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [convertingDeploymentId, setConvertingDeploymentId] = useState<number | null>(null);
+  const [convertMessage, setConvertMessage] = useState<string | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [newTitle, setNewTitle] = useState('');
   const fileInputsRef = useRef<Record<number, HTMLInputElement | null>>({});
@@ -26,6 +33,7 @@ const ApplicationDeploymentFullPage: React.FC<Props> = ({ makerPathId }) => {
     const s = (status || '').toLowerCase();
     let label = s || '-';
     let classes = 'inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200';
+    let Icon = null;
 
     if (s === 'deployed_successful') {
       classes = 'inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-200';
@@ -33,6 +41,7 @@ const ApplicationDeploymentFullPage: React.FC<Props> = ({ makerPathId }) => {
     } else if (s === 'deployment_in_progress') {
       classes = 'inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-200';
       label = t?.projectFlow?.statusDeploymentInProgress || 'In progress';
+      Icon = <Loader2 className="w-3 h-3 animate-spin mr-1" />;
     } else if (s === 'waiting_files') {
       classes = 'inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-200';
       label = t?.projectFlow?.statusWaitingFiles || 'Waiting files';
@@ -41,7 +50,12 @@ const ApplicationDeploymentFullPage: React.FC<Props> = ({ makerPathId }) => {
       label = t?.projectFlow?.statusDeploymentFailed || 'Failed';
     }
 
-    return <span className={classes}>{label}</span>;
+    return (
+      <span className={classes}>
+        {Icon}
+        {label}
+      </span>
+    );
   };
 
   useEffect(() => {
@@ -88,6 +102,23 @@ const ApplicationDeploymentFullPage: React.FC<Props> = ({ makerPathId }) => {
     load();
   }, [makerPathId]);
 
+  useEffect(() => {
+    const isDeploying = deployments.some(d => (d as any).status === 'deployment_in_progress');
+
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (isDeploying) {
+        event.preventDefault();
+        event.returnValue = ''; // Trigger browser prompt
+        return '';
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [deployments]);
+
   const refresh = async () => {
     if (!makerPathId) return;
     try {
@@ -115,6 +146,28 @@ const ApplicationDeploymentFullPage: React.FC<Props> = ({ makerPathId }) => {
       // Silent
     } finally {
       setCreating(false);
+    }
+  };
+
+  const handleConvertToProduct = async (deployment: ApplicationDeployment) => {
+    const deploymentUrl = ((deployment as any).deploymentUrl ?? (deployment as any).deployment_url ?? '').toString().trim();
+    if (!deploymentUrl) return;
+
+    const title = ((deployment as any).title || deployment.app_name || (deployment as any).appName || `App ${deployment.id}`).toString().trim();
+    const description = `App deployed from deployment #${deployment.id}`;
+
+    try {
+      setConvertingDeploymentId(deployment.id);
+      setConvertMessage(null);
+      await createProductFromTemplate('app', title, description, {
+        productLink: deploymentUrl,
+        isPublic: true,
+      });
+      setConvertMessage(t?.projectFlow?.convertedToProductSuccess || 'Aplicacion convertida en producto correctamente.');
+    } catch {
+      setConvertMessage(t?.projectFlow?.convertedToProductError || 'No se pudo convertir la aplicacion en producto.');
+    } finally {
+      setConvertingDeploymentId(null);
     }
   };
 
@@ -187,6 +240,11 @@ const ApplicationDeploymentFullPage: React.FC<Props> = ({ makerPathId }) => {
 
       {makerPathId && (
         <div className="">
+          {convertMessage && (
+            <p className="mb-3 rounded border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-700 dark:border-blue-900/40 dark:bg-blue-900/20 dark:text-blue-200">
+              {convertMessage}
+            </p>
+          )}
           {loading ? (
             <p className="text-sm text-gray-500">{t?.common?.loading || 'Loading…'}</p>
           ) : deployments.length > 0 ? (
@@ -197,7 +255,9 @@ const ApplicationDeploymentFullPage: React.FC<Props> = ({ makerPathId }) => {
                     <th className="py-3 px-4">{'Title'}</th>
                     <th className="py-3 px-4">{t?.projectFlow?.databaseName || 'Database name'}</th>
                     <th className="py-3 px-4">{t?.projectFlow?.deploymentUrl || 'Deployment URL'}</th>
+                    <th className="py-3 px-4">{'Project Type'}</th>
                     <th className="py-3 px-4">{t?.projectFlow?.status || 'Status'}</th>
+                    <th className="py-3 px-4">{'Files URL'}</th>
                     <th className="py-3 px-4">{t?.projectFlow?.actions || 'Actions'}</th>
                   </tr>
                 </thead>
@@ -221,10 +281,29 @@ const ApplicationDeploymentFullPage: React.FC<Props> = ({ makerPathId }) => {
                         )}
                       </td>
                       <td className="py-3 px-4">
+                        <span className="px-2 py-1 text-xs font-medium rounded-full bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
+                          {(d as any).projectType || (d as any).project_type || '-'}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4">
                         {renderStatusChip((d as any).status)}
                       </td>
                       <td className="py-3 px-4">
-                        <div className="flex items-center gap-2">
+                        {(d as any).filesUrl ? (
+                          <a
+                            href={(d as any).filesUrl as string}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:underline break-all"
+                          >
+                            {(d as any).filesUrl as string}
+                          </a>
+                        ) : (
+                          <span className="text-gray-400">-</span>
+                        )}
+                      </td>
+                      <td className="py-3 px-4">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <button
                             onClick={() => openFilePicker(d.id)}
                             className="px-3 py-1.5 text-xs font-semibold rounded bg-gray-900 text-white dark:bg-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100"
@@ -242,6 +321,35 @@ const ApplicationDeploymentFullPage: React.FC<Props> = ({ makerPathId }) => {
                             hasFiles={Boolean((d as any).filesUrl)}
                             onAfter={refresh}
                           />
+                          {String((d as any).status || '').toLowerCase() === 'deployed_successful' && Boolean((d as any).deploymentUrl) && (
+                            <button
+                              onClick={() => handleConvertToProduct(d)}
+                              disabled={convertingDeploymentId === d.id}
+                              className="px-3 py-1.5 text-xs font-semibold rounded bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed"
+                            >
+                              {convertingDeploymentId === d.id
+                                ? (t?.projectFlow?.convertingToProduct || 'Convirtiendo...')
+                                : (t?.projectFlow?.convertToProduct || 'Convertir en producto')}
+                            </button>
+                          )}
+                          {((d as any).data_base_name || (d as any).dataBaseName) ? (
+                            <DatabaseManager
+                              deploymentId={d.id}
+                              databaseName={(d as any).data_base_name || (d as any).dataBaseName}
+                              className="px-3 py-1.5 text-xs"
+                            />
+                          ) : (
+                            DatabaseCreatorComponent && (
+                              <DatabaseCreatorComponent
+                                deploymentId={d.id}
+                                onCreated={() => {
+                                  // After creating a DB, refresh data if needed
+                                  void refresh();
+                                }}
+                                className="px-3 py-1.5 text-xs"
+                              />
+                            )
+                          )}
                         </div>
                       </td>
                     </tr>

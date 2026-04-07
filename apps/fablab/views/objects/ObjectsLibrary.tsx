@@ -19,6 +19,7 @@ import AddObjectModal from './components/AddObjectModal';
 import FolderCard from './components/FolderCard';
 import ObjectCard from './components/ObjectCard';
 import FolderModal from './components/FolderModal';
+import ConfirmDeleteModal from '../../components/ConfirmDeleteModal';
 import { UI_TRANSLATIONS as OBJECTS_UI_T } from './constants/translations';
 
 const DEFAULT_FOLDER_COLOR = '#2563eb';
@@ -67,6 +68,12 @@ const ObjectsLibrary: React.FC<{
   const [folderModalError, setFolderModalError] = useState<string | null>(null);
   const [jsonModalItem, setJsonModalItem] = useState<ObjectItem | null>(null);
   const [isDraggingObject, setIsDraggingObject] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<
+    | { kind: 'object'; item: ObjectItem }
+    | { kind: 'folder'; folder: ObjectFolder }
+    | null
+  >(null);
+  const [isDeleteSubmitting, setIsDeleteSubmitting] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
   const navigate = useNavigate();
 
@@ -107,17 +114,8 @@ const ObjectsLibrary: React.FC<{
     setItems((prev) => [created, ...prev]);
   };
 
-  const handleDelete = async (item: ObjectItem) => {
-    setError(null);
-    setActionId(item.id);
-    try {
-      await deleteObject(item.id);
-      setItems((prev) => prev.filter((it) => it.id !== item.id));
-    } catch (e: any) {
-      setError(e?.message || viewT?.errors?.delete || 'Failed to delete');
-    } finally {
-      setActionId(null);
-    }
+  const handleDelete = (item: ObjectItem) => {
+    setDeleteTarget({ kind: 'object', item });
   };
 
   const handleDownload = async (item: ObjectItem) => {
@@ -162,16 +160,39 @@ const ObjectsLibrary: React.FC<{
     setFolderModalOpen(true);
   }, []);
 
-  const handleDeleteFolder = useCallback(async (folder: ObjectFolder) => {
-    if (!window.confirm(viewT?.prompts?.deleteFolder || 'Delete folder? Items will return to root.')) return;
+  const handleDeleteFolder = useCallback((folder: ObjectFolder) => {
+    setDeleteTarget({ kind: 'folder', folder });
+  }, []);
 
-    await deleteObjectFolder(folder.id);
-    setFolders((prev) => prev.filter((f) => f.id !== folder.id));
-    setItems((prev) => prev.map((item) => (item.folderId === folder.id ? { ...item, folderId: null } : item)));
-    if (selectedFolderId === folder.id) {
-      setSelectedFolderId(null);
+  const handleConfirmDelete = async () => {
+    if (!deleteTarget) return;
+
+    setError(null);
+    setIsDeleteSubmitting(true);
+
+    try {
+      if (deleteTarget.kind === 'object') {
+        const { item } = deleteTarget;
+        setActionId(item.id);
+        await deleteObject(item.id);
+        setItems((prev) => prev.filter((it) => it.id !== item.id));
+      } else {
+        const { folder } = deleteTarget;
+        await deleteObjectFolder(folder.id);
+        setFolders((prev) => prev.filter((f) => f.id !== folder.id));
+        setItems((prev) => prev.map((item) => (item.folderId === folder.id ? { ...item, folderId: null } : item)));
+        if (selectedFolderId === folder.id) {
+          setSelectedFolderId(null);
+        }
+      }
+      setDeleteTarget(null);
+    } catch (e: any) {
+      setError(e?.message || viewT?.errors?.delete || 'Failed to delete');
+    } finally {
+      setIsDeleteSubmitting(false);
+      setActionId(null);
     }
-  }, [selectedFolderId]);
+  };
 
   const handleFolderModalSubmit = useCallback(async () => {
     const name = folderDraftName.trim();
@@ -591,6 +612,28 @@ const ObjectsLibrary: React.FC<{
           </div>
         </div>
       )}
+
+      <ConfirmDeleteModal
+        isOpen={deleteTarget !== null}
+        title={
+          deleteTarget?.kind === 'folder'
+            ? (viewT?.prompts?.deleteFolderTitle || 'Delete folder?')
+            : (viewT?.prompts?.deleteObjectTitle || 'Delete object?')
+        }
+        message={
+          deleteTarget?.kind === 'folder'
+            ? (viewT?.prompts?.deleteFolder || 'Delete folder? Items will return to root.')
+            : (viewT?.prompts?.deleteObject || 'Delete object?')
+        }
+        confirmLabel={(mergedT as any)?.common?.delete || 'Delete'}
+        cancelLabel={(mergedT as any)?.common?.cancel || 'Cancel'}
+        isLoading={isDeleteSubmitting}
+        onClose={() => {
+          if (isDeleteSubmitting) return;
+          setDeleteTarget(null);
+        }}
+        onConfirm={handleConfirmDelete}
+      />
     </div>
   );
 };

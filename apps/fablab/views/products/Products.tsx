@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Package, Eye, Search, Trash2, Globe, Lock, Star, Sparkles, Plus } from 'lucide-react';
 import { useLanguage } from '../../language/useLanguage';
+import ConfirmDeleteModal from '../../components/ConfirmDeleteModal';
 import { 
   getProducts, 
   deleteProduct,
@@ -16,7 +17,7 @@ type FilterType = 'all' | 'favorites';
 
 interface ProductsViewProps {
   items?: Product[];
-  onDelete?: (itemId: number) => void;
+  onDelete?: (item: Product) => void;
   onTogglePublic?: (itemId: number, isPublic: boolean) => Promise<void>;
   onToggleFavorite?: (itemId: number, isFavorite: boolean) => Promise<void>;
   isLoading?: boolean;
@@ -48,7 +49,7 @@ const ProductsView: React.FC<ProductsViewProps> = ({
   const [notebookTitle, setNotebookTitle] = useState('');
   const [notebookDescription, setNotebookDescription] = useState('');
   const [createError, setCreateError] = useState<string | null>(null);
-  const FIXED_TYPES: ProductType[] = ['landing_page_maker', 'image_generator_rag', 'translation_maker', 'style_transfer_maker', 'api_key_maker'];
+  const FIXED_TYPES: ProductType[] = ['landing_page_maker', 'image_generator_rag', 'translation_maker', 'style_transfer_maker', 'api_key_maker', 'api_key_html_injector', 'profile_b2b_maker', 'api_cost_manager', 'perplexity_search', 'prompt_optimizer', 'creation_path'];
   
   // Function to get the correct route based on product type
   const getProductRoute = (type: string, id: number): string => {
@@ -59,6 +60,13 @@ const ProductsView: React.FC<ProductsViewProps> = ({
       'translation_maker': 'translation',
       'style_transfer_maker': 'style-transfer',
       'api_key_maker': 'api-key',
+      'api_key_html_injector': 'api-key-html',
+      'profile_b2b_maker': 'profile-b2b',
+      'api_cost_manager': 'api-cost',
+      'perplexity_search': 'perplexity-search',
+      'prompt_optimizer': 'prompt-optimizer',
+      'creation_path': 'creation-path',
+      'app': 'app',
       'architect_ai': 'notebook', // Default to notebook until specific route is created
       'module_connector': 'notebook', // Default to notebook until specific route is created
       'custom': 'notebook' // Default
@@ -131,6 +139,30 @@ const ProductsView: React.FC<ProductsViewProps> = ({
     handleCloseCreateModal();
   };
 
+  const normalizeExternalUrl = (value?: string | null): string | null => {
+    const raw = (value || '').trim();
+    if (!raw) return null;
+    if (/^https?:\/\//i.test(raw)) return raw;
+    return `https://${raw}`;
+  };
+
+  const openProduct = (item: Product) => {
+    if (item.type === 'app') {
+      const externalUrl = normalizeExternalUrl(item.productLink);
+      if (externalUrl) {
+        window.open(externalUrl, '_blank', 'noopener,noreferrer');
+        return;
+      }
+    }
+
+    if (item.type === 'app' && item.productLink) {
+      // Fallback for unexpected malformed values
+      window.open(item.productLink, '_blank', 'noopener,noreferrer');
+      return;
+    }
+    navigate(getProductRoute(item.type, item.id));
+  };
+
   const getTypeLabel = (type: string) => {
     const typeMap: Record<string, string> = {
       'rag_chat_maker': 'RAG Chat Maker',
@@ -141,6 +173,13 @@ const ProductsView: React.FC<ProductsViewProps> = ({
       'translation_maker': 'Translation Maker',
       'style_transfer_maker': 'Style Transfer Maker',
       'api_key_maker': 'API Key Inspector',
+      'api_key_html_injector': 'Inyección API Key HTML',
+      'profile_b2b_maker': t.products.fixed.profileB2BTitle || 'Profile B2B',
+      'api_cost_manager': (t.products.fixed as any).apiCostManagerTitle || 'Gestor de costos API',
+      'perplexity_search': (t.products.fixed as any).perplexitySearchTitle || 'Búsqueda Perplexity',
+      'prompt_optimizer': (t.products.fixed as any).promptOptimizerTitle || 'Optimizador de Prompt',
+      'creation_path': (t.products.fixed as any).creationPathTitle || 'Creation-Path',
+      'app': t.products.appTypeLabel || 'App',
       'custom': 'Custom'
     };
     return typeMap[type] || type;
@@ -156,6 +195,13 @@ const ProductsView: React.FC<ProductsViewProps> = ({
       'translation_maker': 'bg-gradient-to-br from-amber-500 to-orange-600',
       'style_transfer_maker': 'bg-gradient-to-br from-indigo-500 to-sky-500',
       'api_key_maker': 'bg-gradient-to-br from-cyan-500 to-blue-600',
+      'api_key_html_injector': 'bg-gradient-to-br from-violet-500 to-fuchsia-600',
+      'profile_b2b_maker': 'bg-gradient-to-br from-teal-500 to-cyan-600',
+      'api_cost_manager': 'bg-gradient-to-br from-teal-600 to-emerald-600',
+      'perplexity_search': 'bg-gradient-to-br from-blue-500 to-sky-600',
+      'prompt_optimizer': 'bg-gradient-to-br from-indigo-500 to-purple-600',
+      'creation_path': 'bg-gradient-to-br from-emerald-500 to-green-600',
+      'app': 'bg-gradient-to-br from-emerald-500 to-teal-600',
       'custom': 'bg-gradient-to-br from-gray-500 to-gray-600'
     };
     return colorMap[type] || 'bg-gradient-to-br from-gray-500 to-gray-600';
@@ -175,87 +221,7 @@ const ProductsView: React.FC<ProductsViewProps> = ({
         </div>
 
       
-        {visibleFixedItems.length > 0 && (
-          <div className="space-y-3">
-            <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-gray-500 dark:text-gray-400 font-semibold">
-              <Sparkles size={14} />
-              {t.products.fixed.sectionTitle}
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-              {visibleFixedItems.map((item: Product) => {
-                const fixedTitle = item.type === 'landing_page_maker'
-                  ? t.products.fixed.landingTitle
-                  : item.type === 'image_generator_rag'
-                    ? t.products.fixed.imageTitle
-                    : item.type === 'api_key_maker'
-                      ? t.products.fixed.apiKeyTitle
-                    : item.type === 'style_transfer_maker'
-                      ? t.products.fixed.styleTransferTitle
-                      : t.products.fixed.translationTitle;
-                const fixedDesc = item.type === 'landing_page_maker'
-                  ? t.products.fixed.landingDesc
-                  : item.type === 'image_generator_rag'
-                    ? t.products.fixed.imageDesc
-                    : item.type === 'api_key_maker'
-                      ? t.products.fixed.apiKeyDesc
-                    : item.type === 'style_transfer_maker'
-                      ? t.products.fixed.styleTransferDesc
-                      : t.products.fixed.translationDesc;
-                return (
-                  <article key={`fixed-${item.type}`} className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm p-4 flex flex-col gap-3">
-                    <div className="flex items-start justify-between">
-                      <div className={`w-11 h-11 rounded-xl ${getTypeColor(item.type)} flex items-center justify-center shadow-md`}>
-                        <Package size={20} className="text-white" />
-                      </div>
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 font-semibold">{t.products.fixed.badge}</span>
-                    </div>
-
-                    <div>
-                      <h3 className="font-bold text-gray-900 dark:text-white text-sm">{fixedTitle}</h3>
-                      <p className="text-xs text-gray-600 dark:text-gray-400 mt-1 line-clamp-3">{fixedDesc}</p>
-                    </div>
-
-                    <div className="mt-auto flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => navigate(getProductRoute(item.type, item.id))}
-                          className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold"
-                        >
-                          <Eye size={14} />
-                          {t.products.fixed.open}
-                        </button>
-                        {onTogglePublic && (
-                          <button
-                            onClick={() => onTogglePublic(item.id, !item.isPublic)}
-                            className={`inline-flex items-center justify-center h-9 w-9 rounded-lg border transition-all ${
-                              item.isPublic
-                                ? 'bg-blue-50 border-blue-200 text-blue-600'
-                                : 'bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 text-gray-400 hover:text-gray-600'
-                            }`}
-                            title={item.isPublic ? t.products.buttons.makePrivate : t.products.buttons.makePublic}
-                          >
-                            {item.isPublic ? <Globe size={14} /> : <Lock size={14} />}
-                          </button>
-                        )}
-                      </div>
-                      <button
-                        onClick={() => onToggleFavorite?.(item.id, !item.isFavorite)}
-                        className={`inline-flex items-center justify-center h-9 w-9 rounded-lg border transition-all ${
-                          item.isFavorite
-                            ? 'bg-amber-50 border-amber-200 text-amber-600'
-                            : 'bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 text-gray-400 hover:text-amber-500'
-                        }`}
-                        title={item.isFavorite ? t.products.tooltips.removeFavorite : t.products.tooltips.addFavorite}
-                      >
-                        <Star size={14} className={item.isFavorite ? 'fill-amber-400' : ''} />
-                      </button>
-                    </div>
-                  </article>
-                );
-              })}
-            </div>
-          </div>
-        )}
+        {/* Se eliminó la sección de productos del servidor (fijos) para que solo aparezca en la vista Server */}
 
         <div className="rounded-2xl border border-blue-100 dark:border-blue-900/40 bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-950/20 dark:to-cyan-950/20 p-5">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -381,7 +347,7 @@ const ProductsView: React.FC<ProductsViewProps> = ({
                       <div className="col-span-2">
                         <div className="flex gap-2">
                           <button
-                            onClick={() => navigate(getProductRoute(item.type, item.id))}
+                            onClick={() => openProduct(item)}
                             className="inline-flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 border-2 border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-xl font-semibold transition-all text-sm hover:scale-105"
                             title={`${t.products.buttons.view} - ${getTypeLabel(item.type)}`}
                           >
@@ -389,7 +355,7 @@ const ProductsView: React.FC<ProductsViewProps> = ({
                             {t.products.buttons.view}
                           </button>
                           <button
-                            onClick={() => onDelete?.(item.id)}
+                            onClick={() => onDelete?.(item)}
                             className="inline-flex items-center gap-2 px-3 py-2.5 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 border-2 border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 rounded-xl font-semibold transition-all text-sm hover:scale-105"
                             title={t.products.buttons.delete}
                           >
@@ -411,16 +377,14 @@ const ProductsView: React.FC<ProductsViewProps> = ({
 
                       <div className="col-span-2">
                         <div className="flex flex-col gap-2">
-                          <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${
-                            item.status === 'active' 
-                              ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' 
-                              : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
-                          }`}>
-                            {item.status}
-                          </span>
+                          {item.type === 'app' && (
+                            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400">
+                              {t.products.status.deployed || 'Desplegado'}
+                            </span>
+                          )}
                           
-                          {/* Toggle Public/Private Button */}
-                          {onTogglePublic && (
+                          {/* For non-app products, show only public/private state */}
+                          {onTogglePublic && item.type !== 'app' && (
                             <button
                               onClick={() => onTogglePublic(item.id, !item.isPublic)}
                               className={`inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${
@@ -527,6 +491,7 @@ const Products = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isCreatingNotebook, setIsCreatingNotebook] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<Product | null>(null);
   const [activeFilter, setActiveFilter] = useState<FilterType>('all');
   const { t } = useLanguage();
   const navigate = useNavigate();
@@ -539,6 +504,36 @@ const Products = () => {
         { type: 'translation_maker', title: t.products.fixed.translationTitle, description: t.products.fixed.translationDesc },
         { type: 'style_transfer_maker', title: t.products.fixed.styleTransferTitle, description: t.products.fixed.styleTransferDesc },
         { type: 'api_key_maker', title: t.products.fixed.apiKeyTitle, description: t.products.fixed.apiKeyDesc },
+        {
+          type: 'api_key_html_injector',
+          title: t.products.fixed.apiKeyHtmlTitle || 'Inyección de API key a HTML',
+          description: t.products.fixed.apiKeyHtmlDesc || 'Configura API key por producto y despliega tu HTML conectado al proxy.'
+        },
+        {
+          type: 'profile_b2b_maker',
+          title: t.products.fixed.profileB2BTitle || 'Profile B2B',
+          description: t.products.fixed.profileB2BDesc || 'Pipeline B2B de OSINT, persona, matching y landing personalizada con IA.'
+        },
+        {
+          type: 'api_cost_manager',
+          title: (t.products.fixed as any).apiCostManagerTitle || 'Gestor de costos API',
+          description: (t.products.fixed as any).apiCostManagerDesc || 'Analiza costos, modelos disponibles e historial de reportes de una API key.'
+        },
+        {
+          type: 'perplexity_search',
+          title: (t.products.fixed as any).perplexitySearchTitle || 'Búsqueda Perplexity',
+          description: (t.products.fixed as any).perplexitySearchDesc || 'Búsqueda inteligente potenciada con Perplexity AI.'
+        },
+        {
+          type: 'prompt_optimizer',
+          title: (t.products.fixed as any).promptOptimizerTitle || 'Optimizador de Prompt',
+          description: (t.products.fixed as any).promptOptimizerDesc || 'Optimiza tus prompts con IA para mejorar su precisión y estructura.'
+        },
+        {
+          type: 'creation_path',
+          title: (t.products.fixed as any).creationPathTitle || 'Creation-Path',
+          description: (t.products.fixed as any).creationPathDesc || 'Ruta de creación guiada paso a paso con asistencia de IA.'
+        },
       ];
 
       const resolved = await Promise.all(
@@ -570,13 +565,18 @@ const Products = () => {
     loadFixedProducts();
   }, []);
 
-  const handleDelete = async (itemId: number) => {
-    if (!confirm(t.products.confirmDelete)) return;
-    
+  const handleDeleteRequest = (item: Product) => {
+    setPendingDelete(item);
+  };
+
+  const handleDelete = async () => {
+    if (!pendingDelete) return;
+
     try {
       setIsLoading(true);
-      await deleteProduct(itemId);
-      setItems(prev => prev.filter((item: Product) => item.id !== itemId));
+      await deleteProduct(pendingDelete.id);
+      setItems(prev => prev.filter((item: Product) => item.id !== pendingDelete.id));
+      setPendingDelete(null);
     } catch (err) {
       console.error('Error eliminando producto:', err);
       setError(t.common.errorDeleting);
@@ -587,6 +587,11 @@ const Products = () => {
   };
 
   const handleTogglePublic = async (itemId: number, isPublic: boolean) => {
+    const target = [...items, ...fixedItems].find((item) => item.id === itemId);
+    if (target?.type === 'app') {
+      return;
+    }
+
     try {
       console.log('[Products] Toggling public status:', itemId, isPublic);
       
@@ -662,18 +667,38 @@ const Products = () => {
   }
 
   return (
-    <ProductsView 
-      items={items} 
-      isLoading={isLoading}
-      isCreatingNotebook={isCreatingNotebook}
-      onDelete={handleDelete}
-      onTogglePublic={handleTogglePublic}
-      onToggleFavorite={handleToggleFavorite}
-      onCreateNotebook={handleCreateNotebook}
-      activeFilter={activeFilter}
-      setActiveFilter={setActiveFilter}
-      fixedItems={fixedItems}
-    />
+    <>
+      <ProductsView 
+        items={items} 
+        isLoading={isLoading}
+        isCreatingNotebook={isCreatingNotebook}
+        onDelete={handleDeleteRequest}
+        onTogglePublic={handleTogglePublic}
+        onToggleFavorite={handleToggleFavorite}
+        onCreateNotebook={handleCreateNotebook}
+        activeFilter={activeFilter}
+        setActiveFilter={setActiveFilter}
+        fixedItems={fixedItems}
+      />
+
+      <ConfirmDeleteModal
+        isOpen={pendingDelete !== null}
+        title={t.products.confirmDeleteTitle || 'Delete product?'}
+        message={
+          pendingDelete
+            ? `${t.products.confirmDelete || 'This action cannot be undone.'} (${pendingDelete.title})`
+            : (t.products.confirmDelete || 'This action cannot be undone.')
+        }
+        confirmLabel={t.common.delete || 'Delete'}
+        cancelLabel={t.common.cancel || 'Cancel'}
+        isLoading={isLoading}
+        onClose={() => {
+          if (isLoading) return;
+          setPendingDelete(null);
+        }}
+        onConfirm={handleDelete}
+      />
+    </>
   );
 };
 

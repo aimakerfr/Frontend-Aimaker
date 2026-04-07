@@ -177,6 +177,18 @@ const LandingPageView: React.FC = () => {
 
   // ── Source panel helpers ─────────────────────────────────
   const loadRagSources = async (ragId: number) => {
+    const resolveSourceLink = (link?: string | null): string => {
+      if (!link) return '';
+      if (/^(https?:\/\/|blob:|data:)/i.test(link)) return link;
+      const base = import.meta.env.VITE_API_URL || window.location.origin;
+      const normalized = link.startsWith('/') ? link : `/${link}`;
+      try {
+        return new URL(normalized, base).toString();
+      } catch {
+        return normalized;
+      }
+    };
+
     try {
       const apiSources = await getRagMultimodalSources(ragId);
       const loaded: Source[] = [];
@@ -186,14 +198,23 @@ const LandingPageView: React.FC = () => {
           const isPdfOrDoc = data.type === 'doc' || data.type === 'PDF' || data.type === 'DOC';
           const hasContent = data.content && data.content.trim() !== '';
           if (!hasContent && !isPdfOrDoc) continue;
+          const directLink = resolveSourceLink(
+            src.url ||
+            src.relativePath ||
+            src.filePath ||
+            data.url ||
+            data.relativePath ||
+            data.filePath ||
+            ''
+          );
           loaded.push({
             id: src.id.toString(),
             title: data.name || `Source ${src.id}`,
             type: mapApiSourceType(data.type),
             backendType: data.type,
             content: hasContent ? data.content : `[${data.name} - pendiente de procesamiento]`,
-            url: src.filePath || '',
-            previewUrl: src.filePath || '',
+            url: directLink,
+            previewUrl: directLink,
             dateAdded: src.createdAt ? new Date(src.createdAt) : new Date(),
             selected: true,
           });
@@ -370,7 +391,7 @@ const LandingPageView: React.FC = () => {
           <div className="flex-1 flex items-start gap-4">
             {isOwner && (
               <button
-                onClick={() => navigate('/dashboard/products')}
+                onClick={() => navigate('/dashboard/context')}
                 className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors flex-shrink-0 mt-1"
                 title={t.landingPageViewTranslations?.['text_back'] ?? 'Volver'}
               >

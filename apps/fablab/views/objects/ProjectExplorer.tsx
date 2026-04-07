@@ -89,11 +89,13 @@ const ProjectExplorer: React.FC = () => {
           type="button"
           onClick={() => (isFolder ? toggleFolder(node.path) : handleSelectFile(node.path))}
           className={`w-full flex items-center gap-2 text-left px-2 py-1.5 rounded-lg transition-colors ${
-            isActive ? 'bg-indigo-50 text-indigo-700' : 'hover:bg-gray-100 text-gray-700'
+            isActive
+              ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300'
+              : 'hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300'
           }`}
           style={{ paddingLeft: `${depth * 16 + 8}px` }}
         >
-          <span className="text-xs text-gray-400">
+          <span className="text-xs text-gray-400 dark:text-gray-500">
             {isFolder ? (isExpanded ? '▾' : '▸') : '•'}
           </span>
           <span className={isFolder ? 'font-semibold text-sm' : 'text-sm'}>{node.name}</span>
@@ -107,61 +109,61 @@ const ProjectExplorer: React.FC = () => {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="text-xs uppercase tracking-[0.2em] text-gray-400">Objects Library</p>
-          <h1 className="text-2xl font-semibold text-gray-900">
+          <p className="text-xs uppercase tracking-[0.2em] text-gray-400 dark:text-gray-500 font-bold">Objects Library</p>
+          <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">
             {projectName ? `Proyecto: ${projectName}` : 'Explorador de proyecto'}
           </h1>
         </div>
         <button
           type="button"
           onClick={() => navigate('/dashboard/objects-library')}
-          className="px-4 py-2 rounded-xl border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50"
+          className="px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 text-sm font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
         >
           Volver a objetos
         </button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-6">
-        <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-4">
+        <div className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl shadow-sm p-4">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-semibold text-gray-700">Carpetas</h2>
-            {treeLoading && <span className="text-xs text-gray-400">Cargando...</span>}
+            <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-200">Carpetas</h2>
+            {treeLoading && <span className="text-xs text-gray-400 dark:text-gray-500">Cargando...</span>}
           </div>
           {error && (
-            <div className="text-xs text-red-500 mb-3">{error}</div>
+            <div className="text-xs text-red-500 dark:text-red-400 mb-3">{error}</div>
           )}
           {!treeLoading && tree.length === 0 && !error && (
-            <p className="text-xs text-gray-400">Sin archivos para mostrar.</p>
+            <p className="text-xs text-gray-400 dark:text-gray-500">Sin archivos para mostrar.</p>
           )}
           <div className="space-y-1">
             {tree.map((node) => renderNode(node, 0))}
           </div>
         </div>
 
-        <div className="bg-white border border-gray-100 rounded-2xl shadow-sm flex flex-col min-h-[520px]">
-          <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 border-b border-gray-100">
+        <div className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl shadow-sm flex flex-col min-h-[520px]">
+          <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 border-b border-gray-100 dark:border-gray-700">
             <div>
-              <p className="text-xs text-gray-400">Archivo seleccionado</p>
-              <p className="text-sm font-semibold text-gray-900">
+              <p className="text-xs text-gray-400 dark:text-gray-500">Archivo seleccionado</p>
+              <p className="text-sm font-semibold text-gray-900 dark:text-white">
                 {selectedPath || 'Selecciona un archivo'}
               </p>
             </div>
             {selectedPath && (
-              <div className="flex items-center gap-2 text-xs text-gray-400">
+              <div className="flex items-center gap-2 text-xs text-gray-400 dark:text-gray-500">
                 <span>{fileData ? formatBytes(fileData.size) : ''}</span>
                 {canRender && (
-                  <div className="flex items-center gap-1 border border-gray-200 rounded-lg p-1">
+                  <div className="flex items-center gap-1 border border-gray-200 dark:border-gray-700 rounded-lg p-1 bg-gray-50 dark:bg-gray-900/50">
                     <button
                       type="button"
                       onClick={() => setViewMode('code')}
-                      className={`px-2 py-1 rounded-md ${viewMode === 'code' ? 'bg-gray-900 text-white' : 'text-gray-500'}`}
+                      className={`px-2 py-1 rounded-md transition-all ${viewMode === 'code' ? 'bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900' : 'text-gray-500 dark:text-gray-400'}`}
                     >
                       Código
                     </button>
                     <button
                       type="button"
                       onClick={() => setViewMode('render')}
-                      className={`px-2 py-1 rounded-md ${viewMode === 'render' ? 'bg-gray-900 text-white' : 'text-gray-500'}`}
+                      className={`px-2 py-1 rounded-md transition-all ${viewMode === 'render' ? 'bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900' : 'text-gray-500 dark:text-gray-400'}`}
                     >
                       Render
                     </button>
@@ -172,8 +174,8 @@ const ProjectExplorer: React.FC = () => {
           </div>
           <div className="flex-1 overflow-auto p-4">
             {fileLoading && (
-              <div className="flex items-center gap-2 text-sm text-gray-500">
-                <div className="h-4 w-4 border-2 border-gray-300 border-t-gray-700 rounded-full animate-spin" />
+              <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+                <div className="h-4 w-4 border-2 border-gray-300 dark:border-gray-600 border-t-gray-700 dark:border-t-gray-300 rounded-full animate-spin" />
                 Cargando archivo...
               </div>
             )}
@@ -182,16 +184,18 @@ const ProjectExplorer: React.FC = () => {
                 title="preview"
                 sandbox=""
                 srcDoc={fileData.content}
-                className="w-full h-[65vh] border border-gray-100 rounded-xl"
+                className="w-full h-[65vh] border border-gray-100 dark:border-gray-700 rounded-xl bg-white"
               />
             )}
             {!fileLoading && selectedPath && (!canRender || viewMode === 'code') && (
-              <pre className="text-xs text-gray-700 whitespace-pre-wrap leading-relaxed font-mono">
+              <pre className="text-xs text-gray-700 dark:text-gray-200 whitespace-pre-wrap leading-relaxed font-mono bg-gray-50 dark:bg-gray-900/50 p-4 rounded-xl">
                 {fileData?.content || ''}
               </pre>
             )}
             {!fileLoading && !selectedPath && (
-              <div className="text-sm text-gray-400">Selecciona un archivo para ver su contenido.</div>
+              <div className="text-sm text-gray-400 dark:text-gray-500 flex items-center justify-center h-full">
+                Selecciona un archivo para ver su contenido.
+              </div>
             )}
           </div>
         </div>

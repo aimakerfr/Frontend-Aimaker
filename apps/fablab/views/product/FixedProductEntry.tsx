@@ -92,4 +92,58 @@ export const ApiKeyEntry = () => (
   />
 );
 
+export const ApiKeyHtmlInjectionEntry = () => (
+  <FixedProductEntry
+    type="api_key_html_injector"
+    route="api-key-html"
+    title="Inyección de API key a HTML"
+    description="Carga HTML y lo adapta automáticamente para consumir IA vía proxy seguro."
+  />
+);
+
+export const ProfileB2BEntry = () => (
+  <FixedProductEntry
+    type="profile_b2b_maker"
+    route="profile-b2b"
+    title="Profile B2B"
+    description="Perfila prospectos B2B con IA, genera una landing personalizada y guarda el resultado en notebook."
+  />
+);
+
+export const PerplexitySearchEntry = () => (
+  <FixedProductEntry
+    type="perplexity_search"
+    route="perplexity-search"
+    title="Búsqueda Perplexity"
+    description="Búsqueda inteligente potenciada con Perplexity AI."
+  />
+);
+
+export const PromptOptimizerEntry = () => (
+  <FixedProductEntry
+    type="prompt_optimizer"
+    route="prompt-optimizer"
+    title="Optimizador de Prompt"
+    description="Optimiza tus prompts con IA para mejorar su estructura, objetivo y detalle."
+  />
+);
+
+export const CreationPathEntry = () => (
+  <FixedProductEntry
+    type="creation_path"
+    route="creation-path"
+    title="Creation-Path"
+    description="Ruta de creación guiada paso a paso con asistencia de IA."
+  />
+);
+
+export const ApiCostManagerEntry = () => (
+  <FixedProductEntry
+    type="api_cost_manager"
+    route="api-cost"
+    title="Gestor de costos API"
+    description="Analiza costos, modelos disponibles e historial de reportes de una API key."
+  />
+);
+
 export default FixedProductEntry;
