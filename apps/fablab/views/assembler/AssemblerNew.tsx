@@ -776,22 +776,23 @@ const AssemblerNew: React.FC = () => {
           />
 
           <div className="rounded-xl border border-dashed border-gray-200 p-4 text-sm text-gray-600">
-            <label className="flex items-start gap-3">
+            <div className="flex items-start gap-3">
               <input
+                id="protected-enabled"
                 type="checkbox"
                 checked={protectedEnabled}
                 onChange={(e) => setProtectedEnabled(e.target.checked)}
                 className="mt-1 h-4 w-4 rounded border-gray-300 text-brand-600 focus:ring-brand-500"
               />
-              <span>
-                <span className="font-semibold text-gray-900">
+              <div>
+                <div className="font-semibold text-gray-900">
                   Proteger con credenciales la base de datos
-                </span>
-                <span className="block text-xs text-gray-500">
+                </div>
+                <div className="text-xs text-gray-500">
                   Si activas esta opción, el proyecto requerirá login antes de mostrar el contenido.
-                </span>
-              </span>
-            </label>
+                </div>
+              </div>
+            </div>
 
             {protectedEnabled && (
               <div className="mt-4 grid gap-3 md:grid-cols-2">
@@ -824,22 +825,23 @@ const AssemblerNew: React.FC = () => {
           </div>
 
           <div className="rounded-xl border border-dashed border-gray-200 p-4 text-sm text-gray-600">
-            <label className="flex items-start gap-3">
+            <div className="flex items-start gap-3">
               <input
+                id="api-config-enabled"
                 type="checkbox"
                 checked={apiConfigEnabled}
                 onChange={(e) => handleApiConfigToggle(e.target.checked)}
                 className="mt-1 h-4 w-4 rounded border-gray-300 text-brand-600 focus:ring-brand-500"
               />
-              <span>
-                <span className="font-semibold text-gray-900">
+              <div>
+                <div className="font-semibold text-gray-900">
                   Configurar API key
-                </span>
-                <span className="block text-xs text-gray-500">
+                </div>
+                <div className="text-xs text-gray-500">
                   Inyecta una API key fija en el exportable. El usuario final podrá editarla si también arrastras el bloque.
-                </span>
-              </span>
-            </label>
+                </div>
+              </div>
+            </div>
 
             {apiConfigEnabled && (
               <div className="mt-4 flex flex-col gap-2">
