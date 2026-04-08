@@ -1,12 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { UserProfile } from '../types';
-import { Mail, Calendar, Shield, Globe, Code, Edit2, Save, X, Phone } from 'lucide-react';
+import { Mail, Calendar, Shield, Globe, Code, Edit2, Save, X, Phone, ArrowUp, ArrowDown, RotateCcw, GripVertical } from 'lucide-react';
 import { ProfileService } from '@core/profile/profile.service';
 import { httpClient } from '@core/api/http.client';
 import type { UserProfile as ApiUserProfile } from '@core/profile/profile.types';
 import { useLanguage } from '../language/useLanguage';
 import ProductMetricsModule from './ProductMetricsModule';
 import ProfileChatRuntimeConfig from './profile/ProfileChatRuntimeConfig';
+import MyDashboard from '../views/dashboard/MyDashboard';
+import {
+  DEFAULT_SIDEBAR_ORDER,
+  loadSidebarOrder,
+  loadSidebarOrderFromDatabase,
+  saveSidebarOrder,
+  saveSidebarOrderToDatabase,
+  type SidebarSectionKey,
+} from './sidebar-order';
 
 // ProfileSection Component - Shows user profile information
 const ProfileSection: React.FC<{ user: UserProfile | null }> = () => {
@@ -21,11 +30,30 @@ const ProfileSection: React.FC<{ user: UserProfile | null }> = () => {
     category: 'student' as const
   });
   const [saving, setSaving] = useState(false);
+  const [sidebarOrder, setSidebarOrder] = useState<SidebarSectionKey[]>(() => loadSidebarOrder());
+  const [draggingKey, setDraggingKey] = useState<SidebarSectionKey | null>(null);
 
   const profileService = new ProfileService();
 
   useEffect(() => {
     loadProfileData();
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+
+    const hydrateSidebarOrder = async () => {
+      const persistedOrder = await loadSidebarOrderFromDatabase();
+      if (!active) return;
+      setSidebarOrder(persistedOrder);
+      saveSidebarOrder(persistedOrder);
+    };
+
+    void hydrateSidebarOrder();
+
+    return () => {
+      active = false;
+    };
   }, []);
 
   const loadProfileData = async () => {
@@ -81,9 +109,59 @@ const ProfileSection: React.FC<{ user: UserProfile | null }> = () => {
     setIsEditing(false);
   };
 
+  const sidebarLabels: Record<SidebarSectionKey, string> = {
+    chat: (t.sidebar as any)?.fablabChat || 'Fablab Chat',
+    objectsLibrary: t.sidebar.objectsLibrary,
+    projectBuilder: t.sidebar.projectBuilder,
+    assembler: t.sidebar.assembler,
+    applications: (t as any)?.applicationsManagement?.title || 'Applications',
+    products: (t as any).products?.title || 'Products',
+    context: t.sidebar.context,
+    tools: t.sidebar.tools,
+  };
+
+  const persistSidebarOrder = async (nextOrder: SidebarSectionKey[]) => {
+    setSidebarOrder(nextOrder);
+    saveSidebarOrder(nextOrder);
+    window.dispatchEvent(new CustomEvent('fablab:sidebar-order-changed'));
+    try {
+      await saveSidebarOrderToDatabase(nextOrder);
+    } catch (error) {
+      console.error('No se pudo guardar orden de sidebar en BD:', error);
+    }
+  };
+
+  const moveSidebarItem = (index: number, direction: -1 | 1) => {
+    const target = index + direction;
+    if (target < 0 || target >= sidebarOrder.length) return;
+
+    const next = [...sidebarOrder];
+    const [item] = next.splice(index, 1);
+    next.splice(target, 0, item);
+    void persistSidebarOrder(next);
+  };
+
+  const resetSidebarOrder = () => {
+    void persistSidebarOrder([...DEFAULT_SIDEBAR_ORDER]);
+  };
+
+  const handleDropSidebarItem = (targetKey: SidebarSectionKey) => {
+    if (!draggingKey || draggingKey === targetKey) return;
+
+    const sourceIndex = sidebarOrder.indexOf(draggingKey);
+    const targetIndex = sidebarOrder.indexOf(targetKey);
+    if (sourceIndex < 0 || targetIndex < 0) return;
+
+    const next = [...sidebarOrder];
+    const [moved] = next.splice(sourceIndex, 1);
+    next.splice(targetIndex, 0, moved);
+    setDraggingKey(null);
+    void persistSidebarOrder(next);
+  };
+
   if (loading || !profileData) {
     return (
-      <div className="max-w-4xl mx-auto space-y-6">
+      <div className="max-w-6xl mx-auto space-y-6">
         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-8">
           <div className="text-center text-gray-500">
             {t.profile.loadingProfile}
@@ -103,7 +181,7 @@ const ProfileSection: React.FC<{ user: UserProfile | null }> = () => {
   });
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
+    <div className="max-w-6xl mx-auto space-y-6">
       <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
         <div className="h-32 bg-gradient-to-r from-brand-500 to-purple-600"></div>
         <div className="px-8 pb-8">
@@ -291,7 +369,73 @@ const ProfileSection: React.FC<{ user: UserProfile | null }> = () => {
 
       <ProfileChatRuntimeConfig />
 
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Orden del Sidebar</h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              Reordena visualmente las secciones del menu lateral. El orden se guarda en tu cuenta.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={resetSidebarOrder}
+            className="inline-flex items-center gap-1 rounded-lg border border-gray-300 px-3 py-2 text-xs font-medium text-gray-700 transition-colors hover:border-gray-400 dark:border-gray-600 dark:text-gray-300 dark:hover:border-gray-500"
+          >
+            <RotateCcw size={14} />
+            Restablecer
+          </button>
+        </div>
+
+        <div className="space-y-2">
+          {sidebarOrder.map((key, index) => (
+            <div
+              key={key}
+              draggable
+              onDragStart={() => setDraggingKey(key)}
+              onDragEnd={() => setDraggingKey(null)}
+              onDragOver={(event) => event.preventDefault()}
+              onDrop={() => handleDropSidebarItem(key)}
+              className={`flex items-center justify-between gap-3 rounded-xl border px-3 py-2 transition-all duration-200 dark:bg-gray-900/40 ${
+                draggingKey === key
+                  ? 'border-teal-400 bg-teal-50/70 dark:border-teal-500 dark:bg-teal-900/20'
+                  : 'border-gray-200 bg-gray-50 dark:border-gray-700'
+              }`}
+            >
+              <div className="inline-flex items-center gap-2 text-sm text-gray-800 dark:text-gray-200">
+                <GripVertical size={14} className="cursor-grab text-gray-400" />
+                <span>{sidebarLabels[key]}</span>
+              </div>
+
+              <div className="inline-flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => moveSidebarItem(index, -1)}
+                  disabled={index === 0}
+                  className="rounded-md border border-gray-300 p-1.5 text-gray-600 hover:border-gray-400 disabled:opacity-40 dark:border-gray-600 dark:text-gray-300 dark:hover:border-gray-500"
+                >
+                  <ArrowUp size={13} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => moveSidebarItem(index, 1)}
+                  disabled={index === sidebarOrder.length - 1}
+                  className="rounded-md border border-gray-300 p-1.5 text-gray-600 hover:border-gray-400 disabled:opacity-40 dark:border-gray-600 dark:text-gray-300 dark:hover:border-gray-500"
+                >
+                  <ArrowDown size={13} />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
       <ProductMetricsModule />
+
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+        <MyDashboard hideHeader compact />
+      </div>
 
       {profileData.bio && (
         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-8">
