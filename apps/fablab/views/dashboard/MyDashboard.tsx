@@ -228,7 +228,12 @@ const LineTrendChart: React.FC<{
   );
 };
 
-const MyDashboard: React.FC = () => {
+type MyDashboardProps = {
+  hideHeader?: boolean;
+  compact?: boolean;
+};
+
+const MyDashboard: React.FC<MyDashboardProps> = ({ hideHeader = false, compact = false }) => {
   const navigate = useNavigate();
   const { t, language } = useLanguage() as any;
   const locale = typeof language === 'string' ? language.substring(0, 2) : 'en';
@@ -303,15 +308,17 @@ const MyDashboard: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-          {(t as any).dashboard?.myDashboardTitle || 'My Dashboard'}
-        </h1>
-        <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-          {(t as any).dashboard?.myDashboardSubtitle || 'Quick indicator panel for favorite and latest products.'}
-        </p>
-      </div>
+    <div className={compact ? 'space-y-4' : 'space-y-6'}>
+      {!hideHeader && (
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+            {(t as any).dashboard?.myDashboardTitle || 'My Dashboard'}
+          </h1>
+          <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+            {(t as any).dashboard?.myDashboardSubtitle || 'Quick indicator panel for favorite and latest products.'}
+          </p>
+        </div>
+      )}
 
       {error && (
         <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-300">

@@ -3,8 +3,11 @@ import {
   AlertTriangle,
   Bot,
   Download,
+  FolderPlus,
+  ImageDown,
   Loader2,
   MessageSquare,
+  Mic,
   Paperclip,
   RotateCcw,
   Search,
@@ -12,6 +15,8 @@ import {
   ShieldCheck,
   Sparkles,
   Trash2,
+  Video,
+  Volume2,
   Wand2,
   X,
 } from 'lucide-react';
@@ -47,6 +52,9 @@ type SkillState = {
   search: boolean;
   summarize: boolean;
   image: boolean;
+  other: boolean;
+  audioSynthesis: boolean;
+  audioTranscription: boolean;
   promptOptimize: boolean;
   roleOptimize: boolean;
 };
@@ -59,6 +67,9 @@ const initialSkills: SkillState = {
   search: false,
   summarize: false,
   image: false,
+  other: false,
+  audioSynthesis: false,
+  audioTranscription: false,
   promptOptimize: false,
   roleOptimize: false,
 };
@@ -88,6 +99,9 @@ const sameObjectId = (left: string | number, right: string | number): boolean =>
 
 const selectedModelFromSkills = (config: FablabChatRuntimeConfig, skills: SkillState): string => {
   if (skills.image && config.selectedImageModelId) return config.selectedImageModelId;
+  if (skills.other && config.selectedOtherModelId) return config.selectedOtherModelId;
+  if (skills.audioSynthesis && config.selectedSpeechSynthesisModelId) return config.selectedSpeechSynthesisModelId;
+  if (skills.audioTranscription && config.selectedSpeechTranscriptionModelId) return config.selectedSpeechTranscriptionModelId;
   if (skills.search && config.selectedSearchModelId) return config.selectedSearchModelId;
   if (skills.summarize && config.selectedSummaryModelId) return config.selectedSummaryModelId;
   if (skills.promptOptimize && config.selectedPromptOptimizerModelId) return config.selectedPromptOptimizerModelId;
@@ -525,6 +539,18 @@ const FablabChatView: React.FC = () => {
       'IMAGE MODE: When generating visual prompts, produce production-grade wording: specify style, medium, lighting, composition, color palette, and negative prompts. Optimize for the target model (Midjourney / DALL·E / Flux / SD).'
     );
 
+    if (skills.other) blocks.push(
+      'VIDEO/OTHER MODE: prioritize the selected video/other model route and provide output guidance tailored to multimodal generation workflows when applicable.'
+    );
+
+    if (skills.audioSynthesis) blocks.push(
+      'SPEECH SYNTHESIS MODE: generate output optimized for text-to-speech quality, clarity, and pronunciation consistency.'
+    );
+
+    if (skills.audioTranscription) blocks.push(
+      'SPEECH TRANSCRIPTION MODE: prioritize high-fidelity transcription style, preserving meaning, structure, and key entities.'
+    );
+
     if (skills.promptOptimize) blocks.push(
       'PROMPT OPTIMIZER MODE: Before solving, evaluate the user\'s prompt for clarity, specificity, and structure. If weak, rewrite it using the C-R-E-A-T-E framework (Context, Role, Examples, Ambiguities, Task, Expectations), show the improved version, then solve using the improved prompt.'
     );
@@ -664,6 +690,59 @@ const FablabChatView: React.FC = () => {
         ? 'border-cyan-500 bg-cyan-100/90 text-cyan-800 dark:border-cyan-400 dark:bg-cyan-500/20 dark:text-cyan-200'
         : 'border-slate-300 text-slate-600 hover:border-slate-400 dark:border-slate-600 dark:text-slate-300 dark:hover:border-slate-500'
     }`;
+  };
+
+  const imageExtensionFromMime = (mimeType: string): string => {
+    const mime = String(mimeType || '').toLowerCase();
+    if (mime.includes('png')) return 'png';
+    if (mime.includes('webp')) return 'webp';
+    if (mime.includes('gif')) return 'gif';
+    if (mime.includes('svg')) return 'svg';
+    if (mime.includes('jpeg') || mime.includes('jpg')) return 'jpg';
+    return 'png';
+  };
+
+  const imageFileFromSrc = async (imageSrc: string): Promise<File> => {
+    const response = await fetch(imageSrc);
+    if (!response.ok) {
+      throw new Error('Could not fetch generated image.');
+    }
+
+    const blob = await response.blob();
+    const mimeType = blob.type || 'image/png';
+    const extension = imageExtensionFromMime(mimeType);
+    const fileName = `fablab-image-${Date.now()}.${extension}`;
+
+    return new File([blob], fileName, { type: mimeType });
+  };
+
+  const downloadGeneratedImage = async (imageSrc: string) => {
+    try {
+      const link = document.createElement('a');
+      link.href = imageSrc;
+      link.download = `fablab-image-${Date.now()}`;
+      link.rel = 'noopener noreferrer';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      setStatusText('Image download started.');
+    } catch (error: any) {
+      setErrorText(error?.message || 'Could not download image.');
+    }
+  };
+
+  const saveGeneratedImageToObjects = async (imageSrc: string) => {
+    try {
+      const file = await imageFileFromSrc(imageSrc);
+      await createObject({
+        title: file.name,
+        type: 'IMAGE',
+        file,
+      });
+      setStatusText('Image saved to object library.');
+    } catch (error: any) {
+      setErrorText(error?.message || 'Could not save image to object library.');
+    }
   };
 
   const sendMessage = async () => {
@@ -1103,6 +1182,44 @@ const FablabChatView: React.FC = () => {
                       >
                         {t?.fablabChat?.skills?.image || 'Image'}
                       </button>
+                      <button
+                        type="button"
+                        onClick={() => toggleSkill('other')}
+                        className={skillButtonClass(skills.other)}
+                      >
+                        <Video size={12} className="mr-1 inline" />
+                        {(t as any)?.fablabChat?.skills?.video || 'Video/Other'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => toggleSkill('audioSynthesis')}
+                        className={skillButtonClass(skills.audioSynthesis)}
+                      >
+                        <Volume2 size={12} className="mr-1 inline" />
+                        {(t as any)?.fablabChat?.skills?.speechSynthesis || 'Speech synth'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => toggleSkill('audioTranscription')}
+                        className={skillButtonClass(skills.audioTranscription)}
+                      >
+                        <Mic size={12} className="mr-1 inline" />
+                        {(t as any)?.fablabChat?.skills?.speechTranscription || 'Speech transcript'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => toggleSkill('promptOptimize')}
+                        className={skillButtonClass(skills.promptOptimize)}
+                      >
+                        {(t as any)?.fablabChat?.skills?.promptOptimize || 'Prompt optimizer'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => toggleSkill('roleOptimize')}
+                        className={skillButtonClass(skills.roleOptimize)}
+                      >
+                        {(t as any)?.fablabChat?.skills?.roleOptimize || 'Role optimizer'}
+                      </button>
 
                       <button
                         type="button"
@@ -1165,7 +1282,7 @@ const FablabChatView: React.FC = () => {
                           {isUser ? (t?.fablabChat?.messages?.you || 'You') : (t?.fablabChat?.messages?.assistant || 'Assistant')}
                         </p>
                         {imageSrc && (
-                          <div className="mb-2 overflow-hidden rounded-xl border border-slate-200 dark:border-slate-700">
+                          <div className="relative mb-2 overflow-hidden rounded-xl border border-slate-200 dark:border-slate-700">
                             <img
                               src={imageSrc}
                               alt="Generated output"
@@ -1173,6 +1290,28 @@ const FablabChatView: React.FC = () => {
                               decoding="async"
                               className="max-h-[420px] w-full object-contain bg-slate-50 dark:bg-slate-900"
                             />
+                            <div className="absolute right-2 top-2 flex items-center gap-1 rounded-lg bg-white/85 p-1 shadow-sm backdrop-blur dark:bg-slate-900/85">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  void downloadGeneratedImage(imageSrc);
+                                }}
+                                className="inline-flex items-center gap-1 rounded-md border border-slate-300 bg-white px-2 py-1 text-[11px] font-medium text-slate-700 hover:border-slate-400 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200"
+                              >
+                                <ImageDown size={12} />
+                                Download
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  void saveGeneratedImageToObjects(imageSrc);
+                                }}
+                                className="inline-flex items-center gap-1 rounded-md border border-slate-300 bg-white px-2 py-1 text-[11px] font-medium text-slate-700 hover:border-slate-400 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200"
+                              >
+                                <FolderPlus size={12} />
+                                Save
+                              </button>
+                            </div>
                           </div>
                         )}
                         {textBody && <p className="whitespace-pre-wrap text-sm leading-relaxed">{textBody}</p>}
@@ -1215,6 +1354,44 @@ const FablabChatView: React.FC = () => {
                       className={skillButtonClass(skills.image)}
                     >
                       {t?.fablabChat?.skills?.image || 'Image'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => toggleSkill('other')}
+                      className={skillButtonClass(skills.other)}
+                    >
+                      <Video size={12} className="mr-1 inline" />
+                      {(t as any)?.fablabChat?.skills?.video || 'Video/Other'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => toggleSkill('audioSynthesis')}
+                      className={skillButtonClass(skills.audioSynthesis)}
+                    >
+                      <Volume2 size={12} className="mr-1 inline" />
+                      {(t as any)?.fablabChat?.skills?.speechSynthesis || 'Speech synth'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => toggleSkill('audioTranscription')}
+                      className={skillButtonClass(skills.audioTranscription)}
+                    >
+                      <Mic size={12} className="mr-1 inline" />
+                      {(t as any)?.fablabChat?.skills?.speechTranscription || 'Speech transcript'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => toggleSkill('promptOptimize')}
+                      className={skillButtonClass(skills.promptOptimize)}
+                    >
+                      {(t as any)?.fablabChat?.skills?.promptOptimize || 'Prompt optimizer'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => toggleSkill('roleOptimize')}
+                      className={skillButtonClass(skills.roleOptimize)}
+                    >
+                      {(t as any)?.fablabChat?.skills?.roleOptimize || 'Role optimizer'}
                     </button>
 
                     <button

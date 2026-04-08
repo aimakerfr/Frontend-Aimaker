@@ -20,8 +20,22 @@ const FIXED_PRODUCT_TYPES = new Set([
 
 const toTimestamp = (value: string | null | undefined): number => {
   if (!value) return 0;
-  const parsed = new Date(value.replace(' ', 'T')).getTime();
+
+  const normalized = value.replace(' ', 'T');
+  let parsed = new Date(normalized).getTime();
+  if (Number.isNaN(parsed)) {
+    // Some backends return microseconds (e.g. .123456) that can break Date parsing in browsers.
+    const truncatedFraction = normalized.replace(/(\.\d{3})\d+/, '$1');
+    parsed = new Date(truncatedFraction).getTime();
+  }
+
   return Number.isNaN(parsed) ? 0 : parsed;
+};
+
+const getProductTimestamp = (product: Product): number => {
+  const created = toTimestamp(product.createdAt);
+  if (created > 0) return created;
+  return toTimestamp(product.updatedAt);
 };
 
 const formatDay = (timestamp: number, locale: string): string => {
@@ -240,7 +254,7 @@ const ProductMetricsModule: React.FC = () => {
   const replicatedProducts = useMemo(() => products.filter((item) => !FIXED_PRODUCT_TYPES.has(item.type)), [products]);
 
   const productsCreatedInRange = useMemo(() => {
-    return products.filter((item) => toTimestamp(item.createdAt) >= rangeStartTimestamp);
+    return products.filter((item) => getProductTimestamp(item) >= rangeStartTimestamp);
   }, [products, rangeStartTimestamp]);
 
   const notebookCreatedInRange = useMemo(() => {
@@ -252,7 +266,7 @@ const ProductMetricsModule: React.FC = () => {
   }, [objects, rangeStartTimestamp]);
 
   const productTrendSeries = useMemo(() => {
-    return buildDailySeries(productsCreatedInRange, (item) => item.createdAt, rangeStartTimestamp);
+    return buildDailySeries(productsCreatedInRange, (item) => item.createdAt || item.updatedAt, rangeStartTimestamp);
   }, [productsCreatedInRange, rangeStartTimestamp]);
 
   const objectsTrendSeries = useMemo(() => {

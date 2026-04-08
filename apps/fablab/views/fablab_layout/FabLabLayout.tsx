@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import ProjectBuilderView from '../project/ProjectBuilderView';
 import CreationPathView from '../project/CreationPathView';
-import { Routes, Route, Link, useLocation } from 'react-router-dom';
+import { Routes, Route, Link, Navigate, useLocation } from 'react-router-dom';
 import Sidebar from '../../components/Sidebar';
 import Header from '../../components/Header';
 import Library from '../library/Library';
@@ -15,7 +15,6 @@ import AIChat from '../../components/AIChat';
 import ObjectsLibrary from '../objects/ObjectsLibrary';
 import ProjectExplorer from '../objects/ProjectExplorer';
 import Products from '../products/Products';
-import MyDashboard from '../dashboard/MyDashboard';
 import NotebookAssembler from '../assembler/NotebookAssemblerLite';
 import LandingPageAssembler from '../assembler/LandingPageAssembler';
 import AssemblerNew from '../assembler/AssemblerNew';
@@ -137,7 +136,7 @@ const FabLabLayout: React.FC<Props> = ({
             <div className="h-full">
               <Routes>
                 {/* Rutas específicas para cada sección */}
-                <Route path="/" element={<MyDashboard />} />
+                <Route path="/" element={<Navigate to="/dashboard/chat" replace />} />
                 <Route path="/chat" element={<FablabChatView />} />
                 <Route path="/library" element={<Library />} />
                 {/* Home routes */}
@@ -188,7 +187,7 @@ const FabLabLayout: React.FC<Props> = ({
               )}
               <Routes>
                 {/* Rutas específicas para cada sección */}
-                <Route path="/" element={<MyDashboard />} />
+                <Route path="/" element={<Navigate to="/dashboard/chat" replace />} />
                 <Route path="/chat" element={<FablabChatView />} />
                 <Route path="/library" element={<Library />} />
                 {/* Home routes */}
