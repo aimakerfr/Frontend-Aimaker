@@ -1,4 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import { jsPDF } from 'jspdf';
 import {
   AlertTriangle,
   Bot,
@@ -63,6 +66,22 @@ type SourceMode = 'context' | 'role' | 'prompt' | null;
 
 type ProviderAttachment = NonNullable<ProviderChatMessage['attachments']>[number];
 
+type RichOutput = {
+  kind: 'audio' | 'video' | 'file';
+  src: string;
+  mimeType: string;
+  fileName: string;
+} | null;
+
+type GeneratedFileFormat = 'pdf' | 'txt' | 'md' | 'doc';
+
+type GeneratedFileArtifact = {
+  format: GeneratedFileFormat;
+  fileName: string;
+  mimeType: string;
+  dataUrl: string;
+};
+
 const initialSkills: SkillState = {
   search: false,
   summarize: false,
@@ -80,6 +99,167 @@ const RAW_DATA_IMAGE_REGEX = /^data:image\/[a-zA-Z0-9.+-]+;base64,/i;
 const MARKDOWN_DATA_IMAGE_REGEX_GLOBAL = /!\[[^\]]*\]\((data:image[^)]+)\)/gi;
 const IMAGE_URL_ONLY_REGEX = /^https?:\/\/\S+\.(png|jpe?g|gif|webp|svg)(\?\S*)?$/i;
 const INLINE_DATA_IMAGE_REGEX_GLOBAL = /data:image\/[^\s)]+/gi;
+const GENERIC_DATA_URL_REGEX = /(data:[a-zA-Z0-9.+-]+\/[a-zA-Z0-9.+-]+(?:;[a-zA-Z0-9=._+-]+)*;base64,[A-Za-z0-9+/=]+)/i;
+const MARKDOWN_DATA_LINK_REGEX = /\[[^\]]*\]\((data:[^)]+)\)/i;
+const MARKDOWN_DATA_LINK_REGEX_GLOBAL = /\[[^\]]*\]\((data:[^)]+)\)/gi;
+const MARKDOWN_EMPTY_LINK_REGEX_GLOBAL = /\[[^\]]*\]\(\s*\)/gi;
+const MARKDOWN_SANDBOX_OR_FILE_LINK_REGEX_GLOBAL = /\[[^\]]*\]\(((?:sandbox|file):[^)]+)\)/gi;
+const INLINE_DATA_PAYLOAD_REGEX_GLOBAL = /data:[a-zA-Z0-9.+-]+\/[a-zA-Z0-9.+-]+(?:;[a-zA-Z0-9=._+-]+)*;base64,[A-Za-z0-9+/=]+/gi;
+const MARKDOWN_SANDBOX_LINK_REGEX_GLOBAL = /\[[^\]]*\]\((sandbox:[^)]+)\)/gi;
+const INLINE_SANDBOX_URI_REGEX_GLOBAL = /\bsandbox:[^\s)]+/gi;
+const INLINE_MNT_DATA_PATH_REGEX_GLOBAL = /\b\/mnt\/data\/[^\s)]+/gi;
+const FILE_RESPONSE_META_LINE_REGEX = /^(te he generado|he generado|archivo generado|archivo listo|haz clic|click|descargar (pdf|archivo)|download (pdf|file)|si necesitas que incluya|if you need me to include)/i;
+
+const inferRequestedFileFormat = (prompt: string): GeneratedFileFormat | null => {
+  const text = String(prompt || '').toLowerCase();
+
+  if (/\b(pdf)\b/.test(text)) return 'pdf';
+  if (/\b(docx?)\b|\bword\b/.test(text)) return 'doc';
+  if (/\b(markdown|\.md)\b/.test(text)) return 'md';
+  if (/\b(txt|texto plano|text file)\b/.test(text)) return 'txt';
+
+  return null;
+};
+
+const buildFileOutputDirective = (format: GeneratedFileFormat): string => {
+  return [
+    `[FILE OUTPUT REQUEST: ${String(format).toUpperCase()}]`,
+    'Return only the final document content.',
+    'Do not include any links, local/sandbox paths, download instructions, or phrases like "file generated".',
+    'Do not include intro/outro wrappers. Start directly with the document title/content.',
+  ].join('\n');
+};
+
+const sanitizeAssistantDocumentDraft = (content: string): string => {
+  const raw = String(content || '').trim();
+  if (!raw) return '';
+
+  const noSandboxLinks = raw
+    .replace(MARKDOWN_SANDBOX_LINK_REGEX_GLOBAL, '')
+    .replace(INLINE_SANDBOX_URI_REGEX_GLOBAL, '')
+    .replace(INLINE_MNT_DATA_PATH_REGEX_GLOBAL, '')
+    .trim();
+
+  const lines = noSandboxLinks.split(/\r?\n/);
+  const cleaned: string[] = [];
+
+  for (const originalLine of lines) {
+    const line = String(originalLine || '').trim();
+
+    if (!line) {
+      if (cleaned.length > 0 && cleaned[cleaned.length - 1] !== '') {
+        cleaned.push('');
+      }
+      continue;
+    }
+
+    if (/^[-*_]{3,}$/.test(line)) continue;
+    if (FILE_RESPONSE_META_LINE_REGEX.test(line)) continue;
+
+    cleaned.push(originalLine);
+  }
+
+  return cleaned.join('\n').replace(/\n{3,}/g, '\n\n').trim();
+};
+
+const normalizeFileCardMessage = (content: string): string => {
+  const raw = String(content || '').trim();
+  if (!raw) return '';
+
+  return raw
+    .replace(/```[\s\S]*?```/g, '')
+    .replace(/`+/g, '')
+    .replace(MARKDOWN_EMPTY_LINK_REGEX_GLOBAL, '')
+    .replace(MARKDOWN_DATA_LINK_REGEX_GLOBAL, '')
+    .replace(MARKDOWN_SANDBOX_OR_FILE_LINK_REGEX_GLOBAL, '')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+};
+
+const blobToDataUrl = (blob: Blob): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ''));
+    reader.onerror = () => reject(new Error('Could not encode generated file.'));
+    reader.readAsDataURL(blob);
+  });
+};
+
+const escapeHtml = (value: string): string => {
+  return String(value || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+};
+
+const createGeneratedFileArtifact = async (
+  format: GeneratedFileFormat,
+  content: string
+): Promise<GeneratedFileArtifact | null> => {
+  const safeText = String(content || '').trim();
+  if (!safeText) return null;
+
+  const stamp = Date.now();
+
+  if (format === 'pdf') {
+    const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+    const marginX = 40;
+    const marginY = 54;
+    const lineHeight = 16;
+    const maxWidth = 515;
+    const pageBottom = doc.internal.pageSize.getHeight() - 48;
+
+    const lines = doc.splitTextToSize(safeText, maxWidth);
+    let currentY = marginY;
+
+    lines.forEach((line: string) => {
+      if (currentY > pageBottom) {
+        doc.addPage();
+        currentY = marginY;
+      }
+      doc.text(line, marginX, currentY);
+      currentY += lineHeight;
+    });
+
+    return {
+      format,
+      fileName: `assistant-output-${stamp}.pdf`,
+      mimeType: 'application/pdf',
+      dataUrl: doc.output('datauristring'),
+    };
+  }
+
+  if (format === 'doc') {
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"></head><body><pre>${escapeHtml(safeText)}</pre></body></html>`;
+    const blob = new Blob([html], { type: 'application/msword' });
+    return {
+      format,
+      fileName: `assistant-output-${stamp}.doc`,
+      mimeType: 'application/msword',
+      dataUrl: await blobToDataUrl(blob),
+    };
+  }
+
+  if (format === 'md') {
+    const blob = new Blob([safeText], { type: 'text/markdown;charset=utf-8' });
+    return {
+      format,
+      fileName: `assistant-output-${stamp}.md`,
+      mimeType: 'text/markdown',
+      dataUrl: await blobToDataUrl(blob),
+    };
+  }
+
+  const blob = new Blob([safeText], { type: 'text/plain;charset=utf-8' });
+  return {
+    format: 'txt',
+    fileName: `assistant-output-${stamp}.txt`,
+    mimeType: 'text/plain',
+    dataUrl: await blobToDataUrl(blob),
+  };
+};
 
 const getObjectType = (item: ObjectItem): string => {
   const raw = (item as any).objectType || item.type || '';
@@ -113,7 +293,7 @@ const toProviderMessages = (
   messages: FablabChatMessage[],
   latestAttachments: ProviderAttachment[]
 ): ProviderChatMessage[] => {
-  return messages.map((message, index) => {
+  const rawMessages = messages.map((message, index) => {
     const isLast = index === messages.length - 1;
     const sanitizedContent = sanitizeContentForProviderHistory(message.content);
     if (message.role !== 'user' || !isLast || latestAttachments.length === 0) {
@@ -129,10 +309,98 @@ const toProviderMessages = (
       attachments: latestAttachments,
     };
   });
+
+  const normalized: ProviderChatMessage[] = [];
+
+  for (const message of rawMessages) {
+    const role: 'user' | 'assistant' = message.role === 'assistant' ? 'assistant' : 'user';
+    const content = String(message.content || '').trim();
+    const attachments = Array.isArray(message.attachments) ? message.attachments : undefined;
+
+    if (!content && (!attachments || attachments.length === 0)) {
+      continue;
+    }
+
+    if (normalized.length === 0) {
+      if (role !== 'user') {
+        continue;
+      }
+
+      normalized.push({
+        role,
+        content,
+        ...(attachments && attachments.length > 0 ? { attachments } : {}),
+      });
+      continue;
+    }
+
+    const lastIndex = normalized.length - 1;
+    const previous = normalized[lastIndex];
+
+    if (previous.role === role) {
+      const mergedContent = [String(previous.content || '').trim(), content]
+        .filter(Boolean)
+        .join('\n\n');
+
+      normalized[lastIndex] = {
+        ...previous,
+        content: mergedContent,
+        ...(role === 'user' && attachments && attachments.length > 0
+          ? { attachments: attachments }
+          : {}),
+      };
+      continue;
+    }
+
+    normalized.push({
+      role,
+      content,
+      ...(attachments && attachments.length > 0 ? { attachments } : {}),
+    });
+  }
+
+  return normalized;
 };
 
 const formatAssistantText = (response: ProviderChatResponse): string => {
-  const content = String(response.content || '').trim();
+  const normalizeCitationConsistency = (raw: string): string => {
+    const text = String(raw || '').trim();
+    if (!text) return text;
+
+    const hasCitationMarkers = /\[\d+\]/.test(text);
+    if (!hasCitationMarkers) return text;
+
+    const stripMarkers = (input: string): string => {
+      return input
+        .replace(/\[\d+\]/g, '')
+        .replace(/\s+([,.;:!?])/g, '$1')
+        .replace(/[ \t]{2,}/g, ' ')
+        .replace(/\n{3,}/g, '\n\n')
+        .trim();
+    };
+
+    const referencesHeadingRegex = /(^|\n)##\s*(referencias|bibliografia)\b/i;
+    const headingMatch = text.match(referencesHeadingRegex);
+    if (!headingMatch || headingMatch.index === undefined) {
+      return stripMarkers(text);
+    }
+
+    const headingIndex = headingMatch.index + (headingMatch[1] ? headingMatch[1].length : 0);
+    const beforeReferences = text.slice(0, headingIndex).trimEnd();
+    const referencesSection = text.slice(headingIndex).trim();
+
+    const hasNumberedReferences = /^\s*\d+\.\s+.+/im.test(referencesSection);
+    const hasPlaceholderOnly = /fuente no proporcionada explicitamente por el proveedor/i.test(referencesSection);
+
+    // If there are no real references, remove [n] markers to keep the response consistent.
+    if (!hasNumberedReferences || hasPlaceholderOnly) {
+      return stripMarkers(beforeReferences);
+    }
+
+    return text;
+  };
+
+  const content = normalizeCitationConsistency(String(response.content || '').trim());
   return content || 'No response content generated.';
 };
 
@@ -175,32 +443,113 @@ const stripImageFromContent = (content: string): string => {
   return withoutInlineDataImage;
 };
 
-const redactInlineDataImagePayload = (content: string, replacement: string): string => {
+const extensionFromMimeType = (mimeType: string): string => {
+  const mime = String(mimeType || '').toLowerCase();
+  if (mime === 'text/plain') return 'txt';
+  if (mime === 'text/markdown') return 'md';
+  if (mime === 'application/pdf') return 'pdf';
+  if (mime.includes('wordprocessingml.document')) return 'docx';
+  if (mime.includes('msword')) return 'doc';
+  if (mime.includes('json')) return 'json';
+  if (mime.includes('audio/mpeg')) return 'mp3';
+  if (mime.includes('audio/wav')) return 'wav';
+  if (mime.includes('audio/ogg')) return 'ogg';
+  if (mime.includes('video/mp4')) return 'mp4';
+  if (mime.includes('video/webm')) return 'webm';
+  return 'bin';
+};
+
+const extractRichOutputFromContent = (content: string): RichOutput => {
+  const raw = String(content || '').trim();
+  if (!raw) return null;
+
+  let dataUrl = '';
+
+  const markdownMatch = raw.match(MARKDOWN_DATA_LINK_REGEX);
+  if (markdownMatch?.[1]) {
+    dataUrl = markdownMatch[1];
+  } else {
+    const inlineMatch = raw.match(GENERIC_DATA_URL_REGEX);
+    if (inlineMatch?.[1]) {
+      dataUrl = inlineMatch[1];
+    }
+  }
+
+  if (!dataUrl) return null;
+
+  const mimeMatch = dataUrl.match(/^data:([a-zA-Z0-9.+-]+\/[a-zA-Z0-9.+-]+)(?:;[^,]+)?;base64,/i);
+  const mimeType = String(mimeMatch?.[1] || '').toLowerCase();
+  if (!mimeType || mimeType.startsWith('image/')) return null;
+
+  if (mimeType.startsWith('audio/')) {
+    return {
+      kind: 'audio',
+      src: dataUrl,
+      mimeType,
+      fileName: `generated-audio-${Date.now()}.${extensionFromMimeType(mimeType)}`,
+    };
+  }
+
+  if (mimeType.startsWith('video/')) {
+    return {
+      kind: 'video',
+      src: dataUrl,
+      mimeType,
+      fileName: `generated-video-${Date.now()}.${extensionFromMimeType(mimeType)}`,
+    };
+  }
+
+  return {
+    kind: 'file',
+    src: dataUrl,
+    mimeType,
+    fileName: `generated-file-${Date.now()}.${extensionFromMimeType(mimeType)}`,
+  };
+};
+
+const stripRichOutputFromContent = (content: string, richSrc: string): string => {
   const raw = String(content || '').trim();
   if (!raw) return raw;
 
-  if (RAW_DATA_IMAGE_REGEX.test(raw)) {
+  return raw
+    .replace(MARKDOWN_DATA_LINK_REGEX_GLOBAL, '')
+    .replace(MARKDOWN_SANDBOX_OR_FILE_LINK_REGEX_GLOBAL, '')
+    .replace(richSrc, '')
+    .replace(MARKDOWN_EMPTY_LINK_REGEX_GLOBAL, '')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+};
+
+const redactInlinePayload = (content: string, replacement: string): string => {
+  const raw = String(content || '').trim();
+  if (!raw) return raw;
+
+  if (INLINE_DATA_PAYLOAD_REGEX_GLOBAL.test(raw)) {
+    INLINE_DATA_PAYLOAD_REGEX_GLOBAL.lastIndex = 0;
     return replacement;
   }
 
   const redacted = raw
     .replace(MARKDOWN_DATA_IMAGE_REGEX_GLOBAL, replacement)
     .replace(INLINE_DATA_IMAGE_REGEX_GLOBAL, replacement)
+    .replace(INLINE_DATA_PAYLOAD_REGEX_GLOBAL, replacement)
     .trim();
+
+  INLINE_DATA_PAYLOAD_REGEX_GLOBAL.lastIndex = 0;
   return redacted || replacement;
 };
 
 const sanitizeContentForProviderHistory = (content: string): string => {
-  return redactInlineDataImagePayload(
+  return redactInlinePayload(
     content,
-    '[Image payload omitted from history to avoid token overflow.]'
+    '[Binary payload omitted from history to avoid token overflow.]'
   );
 };
 
 const sanitizeContentForExport = (content: string): string => {
-  return redactInlineDataImagePayload(
+  return redactInlinePayload(
     content,
-    '[Image payload omitted from export.]'
+    '[Binary payload omitted from export.]'
   );
 };
 
@@ -238,7 +587,7 @@ const optimizeDataUrlImage = async (dataUrl: string, maxSide = 1280, quality = 0
 
         context.drawImage(image, 0, 0, canvas.width, canvas.height);
 
-        const mimeMatch = dataUrl.match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,/i);
+        const mimeMatch = dataUrl.match(/^data:(image\/[a-zA-Z0-9.+-]+)(?:;[^,]+)?;base64,/i);
         const sourceMime = String(mimeMatch?.[1] || 'image/jpeg').toLowerCase();
         const targetMime = sourceMime === 'image/png' ? 'image/webp' : sourceMime;
         const optimized = canvas.toDataURL(targetMime, quality);
@@ -260,6 +609,63 @@ const optimizeAssistantImagePayload = async (content: string): Promise<string> =
   if (optimized === imageSrc) return content;
 
   return String(content || '').replace(imageSrc, optimized);
+};
+
+const markdownComponents = {
+  h1: (props: any) => <h1 className="mb-2 text-lg font-bold text-slate-900 dark:text-slate-100" {...props} />,
+  h2: (props: any) => <h2 className="mb-2 mt-3 text-base font-semibold text-slate-900 dark:text-slate-100" {...props} />,
+  h3: (props: any) => <h3 className="mb-1 mt-3 text-sm font-semibold text-slate-900 dark:text-slate-100" {...props} />,
+  p: (props: any) => <p className="mb-2 text-sm leading-relaxed last:mb-0" {...props} />,
+  ul: (props: any) => <ul className="mb-2 list-disc space-y-1 pl-5" {...props} />,
+  ol: (props: any) => <ol className="mb-2 list-decimal space-y-1 pl-5" {...props} />,
+  li: (props: any) => <li className="text-sm leading-relaxed" {...props} />,
+  strong: (props: any) => <strong className="font-semibold text-slate-900 dark:text-slate-100" {...props} />,
+  code: (props: any) => <code className="rounded bg-slate-100 px-1 py-0.5 text-[12px] dark:bg-slate-700/70" {...props} />,
+  pre: (props: any) => <pre className="mb-2 overflow-x-auto rounded-lg bg-slate-900/95 p-3 text-xs text-slate-100" {...props} />,
+  a: (props: any) => {
+    const href = String(props?.href || '');
+    const isDataUri = /^data:/i.test(href);
+
+    if (isDataUri) {
+      const mimeMatch = href.match(/^data:([a-zA-Z0-9.+-]+\/[a-zA-Z0-9.+-]+)(?:;[^,]+)?;base64,/i);
+      const mimeType = String(mimeMatch?.[1] || 'application/octet-stream');
+      const ext = extensionFromMimeType(mimeType);
+      const downloadName = `assistant-output-${Date.now()}.${ext}`;
+
+      return (
+        <a
+          {...props}
+          href={href}
+          download={downloadName}
+          className="text-cyan-700 underline decoration-cyan-400 underline-offset-2 hover:text-cyan-800 dark:text-cyan-300 dark:hover:text-cyan-200"
+        />
+      );
+    }
+
+    return (
+      <a
+        {...props}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-cyan-700 underline decoration-cyan-400 underline-offset-2 hover:text-cyan-800 dark:text-cyan-300 dark:hover:text-cyan-200"
+      />
+    );
+  },
+};
+
+const markdownUrlTransform = (url: string): string => {
+  const normalized = String(url || '').trim();
+  if (!normalized) return normalized;
+
+  if (/^(sandbox|file):/i.test(normalized)) {
+    return '';
+  }
+
+  if (/^data:[a-zA-Z0-9.+-]+\/[a-zA-Z0-9.+-]+(?:;[a-zA-Z0-9=._+-]+)*;base64,[A-Za-z0-9+/=]+$/i.test(normalized)) {
+    return normalized;
+  }
+
+  return normalized;
 };
 
 const FablabChatView: React.FC = () => {
@@ -314,13 +720,24 @@ const FablabChatView: React.FC = () => {
     return messages.map((message) => {
       const isUser = message.role === 'user';
       const imageSrc = !isUser ? extractImageFromContent(message.content) : null;
-      const textBody = imageSrc ? stripImageFromContent(message.content) : message.content;
+      const richOutput = !isUser && !imageSrc ? extractRichOutputFromContent(message.content) : null;
+      const rawTextBody = imageSrc
+        ? stripImageFromContent(message.content)
+        : (richOutput ? stripRichOutputFromContent(message.content, richOutput.src) : message.content);
+      const textBody = !isUser && richOutput?.kind === 'file'
+        ? sanitizeAssistantDocumentDraft(rawTextBody)
+        : rawTextBody;
+      const fileCardMessage = !isUser && richOutput?.kind === 'file'
+        ? normalizeFileCardMessage(textBody)
+        : '';
 
       return {
         message,
         isUser,
         imageSrc,
+        richOutput,
         textBody,
+        fileCardMessage,
       };
     });
   }, [messages]);
@@ -560,7 +977,12 @@ const FablabChatView: React.FC = () => {
     );
 
     blocks.push(
-      'Output style: avoid numbered lists and markdown heading syntax. Write clean, natural text with bold section titles when useful, short paragraphs, and hyphen bullets only when they improve clarity.',
+      'Output style: use clean Markdown with meaningful structure. Prefer a short bold title, clear subtitles (## when helpful), concise paragraphs, and bullet lists with hyphens for actionable points.',
+      'Avoid raw/unformatted walls of text. Never output citation markers like [1], [2], etc. unless you can include a matching references section at the end.',
+      'If you include citation markers [n] or provide research/factual claims based on sources, append a final section titled "## Referencias" (or "## Bibliografia") with a numbered list that matches every [n] marker.',
+      'Never output placeholder or generic references. If you do not have concrete references, do not use [n] markers.',
+      'If no verifiable source is available, do not use [n] markers.',
+      'If the user explicitly asks for a downloadable file (PDF/TXT/MD/DOC), provide complete final content (without placeholders) so it can be packaged as an output file.',
       'Depth requirement: avoid generic/simple answers. Personalize to the user context, explain reasoning clearly, and include practical details or concrete next actions.'
     );
 
@@ -745,9 +1167,26 @@ const FablabChatView: React.FC = () => {
     }
   };
 
+  const downloadDataUriAsset = (src: string, fileName: string) => {
+    try {
+      const link = document.createElement('a');
+      link.href = src;
+      link.download = fileName;
+      link.rel = 'noopener noreferrer';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      setStatusText('Download started.');
+    } catch (error: any) {
+      setErrorText(error?.message || 'Could not download generated asset.');
+    }
+  };
+
   const sendMessage = async () => {
     const text = input.trim();
     if (!text) return;
+
+    const requestedFileFormat = inferRequestedFileFormat(text);
 
     if (!runtimeSelection) {
       setErrorText(t?.fablabChat?.errors?.runtimeNotReady || 'Configure provider and model in Profile before sending messages.');
@@ -780,6 +1219,10 @@ const FablabChatView: React.FC = () => {
         finalUserText = `${finalUserText}\n\n${contextText}`;
       }
 
+      if (requestedFileFormat) {
+        finalUserText = `${finalUserText}\n\n${buildFileOutputDirective(requestedFileFormat)}`;
+      }
+
       const historyMessages = roleResetAt
         ? nextMessages.filter((msg) => {
             const createdAt = String(msg.createdAt || '').trim();
@@ -792,14 +1235,61 @@ const FablabChatView: React.FC = () => {
         attachments
       );
 
+      const effectiveSystemPrompt = requestedFileFormat
+        ? `${buildSystemPrompt()}\n\n${buildFileOutputDirective(requestedFileFormat)}`
+        : buildSystemPrompt();
+
       let assistantContent = '';
       let usageInputTokens = 0;
       let usageOutputTokens = 0;
       let usageTotalTokens = 0;
       let latencyMs = 0;
 
-      if (skills.image) {
-        const imagePrompt = `${buildSystemPrompt()}\n\n[IMAGE REQUEST]\n${finalUserText}`;
+      const requestChatFallback = async () => {
+        const response = await providerChat({
+          provider: runtimeSelection.provider,
+          apiKey: runtimeSelection.apiKey,
+          baseUrl: runtimeSelection.provider === 'ollama' ? runtimeSelection.baseUrl : undefined,
+          model: runtimeSelection.modelId,
+          systemPrompt: effectiveSystemPrompt,
+          messages: providerMessages,
+        });
+
+        assistantContent = formatAssistantText(response);
+        usageInputTokens = Number(response.usage?.inputTokens || 0);
+        usageOutputTokens = Number(response.usage?.outputTokens || 0);
+        usageTotalTokens = Number(response.usage?.totalTokens || 0);
+        latencyMs = Number(response.latencyMs || 0);
+      };
+
+      if (skills.audioSynthesis || skills.other) {
+        const mediaCapability: 'audio' | 'video' = skills.audioSynthesis ? 'audio' : 'video';
+        const mediaPrompt = `${effectiveSystemPrompt}\n\n[${mediaCapability.toUpperCase()} REQUEST]\n${finalUserText}`;
+        const mediaStart = Date.now();
+
+        const mediaResponse = await providerTestModel({
+          provider: runtimeSelection.provider,
+          apiKey: runtimeSelection.apiKey,
+          baseUrl: runtimeSelection.provider === 'ollama' ? runtimeSelection.baseUrl : undefined,
+          model: runtimeSelection.modelId,
+          capability: mediaCapability,
+          prompt: mediaPrompt,
+          attachments,
+        });
+
+        latencyMs = Date.now() - mediaStart;
+
+        if (
+          mediaResponse.ok
+          && mediaResponse.outputPreview
+          && (mediaResponse.outputKind === 'audio' || mediaResponse.outputKind === 'video')
+        ) {
+          assistantContent = String(mediaResponse.outputPreview).trim();
+        } else {
+          await requestChatFallback();
+        }
+      } else if (skills.image) {
+        const imagePrompt = `${effectiveSystemPrompt}\n\n[IMAGE REQUEST]\n${finalUserText}`;
         const imageStart = Date.now();
         const imageResponse = await providerTestModel({
           provider: runtimeSelection.provider,
@@ -823,20 +1313,23 @@ const FablabChatView: React.FC = () => {
         assistantContent = String(imageResponse.outputPreview).trim();
         assistantContent = await optimizeAssistantImagePayload(assistantContent);
       } else {
-        const response = await providerChat({
-          provider: runtimeSelection.provider,
-          apiKey: runtimeSelection.apiKey,
-          baseUrl: runtimeSelection.provider === 'ollama' ? runtimeSelection.baseUrl : undefined,
-          model: runtimeSelection.modelId,
-          systemPrompt: buildSystemPrompt(),
-          messages: providerMessages,
-        });
+        await requestChatFallback();
+      }
 
-        assistantContent = formatAssistantText(response);
-        usageInputTokens = Number(response.usage?.inputTokens || 0);
-        usageOutputTokens = Number(response.usage?.outputTokens || 0);
-        usageTotalTokens = Number(response.usage?.totalTokens || 0);
-        latencyMs = Number(response.latencyMs || 0);
+      // Auto-package assistant output as a file when the user explicitly asks for one.
+      if (requestedFileFormat) {
+        const hasImageOutput = Boolean(extractImageFromContent(assistantContent));
+        const hasRichOutput = Boolean(extractRichOutputFromContent(assistantContent));
+
+        if (!hasImageOutput && !hasRichOutput) {
+          const cleanedDocument = sanitizeAssistantDocumentDraft(assistantContent);
+          const artifactSource = cleanedDocument || assistantContent;
+          const artifact = await createGeneratedFileArtifact(requestedFileFormat, artifactSource);
+          if (artifact?.dataUrl) {
+            const friendlyFormat = String(requestedFileFormat).toUpperCase();
+            assistantContent = `Claro, aca genere tu ${friendlyFormat}. Ya tienes el boton para descargarlo.\n\n[Descargar archivo](${artifact.dataUrl})`;
+          }
+        }
       }
 
       const assistantMessage: FablabChatMessage = {
@@ -1265,7 +1758,7 @@ const FablabChatView: React.FC = () => {
           ) : (
             <>
               <div ref={scrollerRef} className="flex-1 space-y-4 overflow-y-auto px-6 py-5">
-                {renderedMessages.map(({ message, isUser, imageSrc, textBody }) => {
+                {renderedMessages.map(({ message, isUser, imageSrc, richOutput, textBody, fileCardMessage }) => {
                   return (
                     <div
                       key={message.id}
@@ -1314,7 +1807,68 @@ const FablabChatView: React.FC = () => {
                             </div>
                           </div>
                         )}
-                        {textBody && <p className="whitespace-pre-wrap text-sm leading-relaxed">{textBody}</p>}
+                        {richOutput && richOutput.kind === 'audio' && (
+                          <div className="mb-2 rounded-xl border border-slate-200 bg-slate-50 p-2 dark:border-slate-700 dark:bg-slate-900/70">
+                            <audio controls src={richOutput.src} className="w-full" />
+                            <div className="mt-2 flex justify-end">
+                              <button
+                                type="button"
+                                onClick={() => downloadDataUriAsset(richOutput.src, richOutput.fileName)}
+                                className="inline-flex items-center gap-1 rounded-md border border-slate-300 bg-white px-2 py-1 text-[11px] font-medium text-slate-700 hover:border-slate-400 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200"
+                              >
+                                <Download size={12} />
+                                Download audio
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                        {richOutput && richOutput.kind === 'video' && (
+                          <div className="mb-2 rounded-xl border border-slate-200 bg-slate-50 p-2 dark:border-slate-700 dark:bg-slate-900/70">
+                            <video controls src={richOutput.src} className="max-h-[420px] w-full rounded-lg bg-slate-100 dark:bg-slate-950" />
+                            <div className="mt-2 flex justify-end">
+                              <button
+                                type="button"
+                                onClick={() => downloadDataUriAsset(richOutput.src, richOutput.fileName)}
+                                className="inline-flex items-center gap-1 rounded-md border border-slate-300 bg-white px-2 py-1 text-[11px] font-medium text-slate-700 hover:border-slate-400 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200"
+                              >
+                                <Download size={12} />
+                                Download video
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                        {richOutput && richOutput.kind === 'file' && (
+                          <div className="mb-2 rounded-xl border border-slate-200 bg-slate-50 p-2 dark:border-slate-700 dark:bg-slate-900/70">
+                            <p className="text-xs text-slate-700 dark:text-slate-200">
+                              {fileCardMessage || 'Claro, aca genere tu archivo. Usa el boton para descargarlo.'}
+                            </p>
+                            <div className="mt-2 flex justify-end">
+                              <button
+                                type="button"
+                                onClick={() => downloadDataUriAsset(richOutput.src, richOutput.fileName)}
+                                className="inline-flex items-center gap-1 rounded-md border border-slate-300 bg-white px-2 py-1 text-[11px] font-medium text-slate-700 hover:border-slate-400 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200"
+                              >
+                                <Download size={12} />
+                                Descargar archivo
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                        {textBody && !(richOutput && richOutput.kind === 'file') && (
+                          isUser ? (
+                            <p className="whitespace-pre-wrap text-sm leading-relaxed">{textBody}</p>
+                          ) : (
+                            <div className="prose prose-sm max-w-none text-slate-800 dark:prose-invert dark:text-slate-100">
+                              <ReactMarkdown
+                                remarkPlugins={[remarkGfm]}
+                                components={markdownComponents}
+                                urlTransform={markdownUrlTransform}
+                              >
+                                {textBody}
+                              </ReactMarkdown>
+                            </div>
+                          )
+                        )}
                         <p className="mt-2 text-[10px] opacity-60">{formatTime(message.createdAt)}</p>
                       </div>
                     </div>
