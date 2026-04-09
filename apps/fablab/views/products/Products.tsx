@@ -15,6 +15,22 @@ import {
 
 type FilterType = 'all' | 'favorites';
 
+const CHAT_RUNTIME_PRODUCT_MARKER = '[FABLAB_CHAT_RUNTIME_STORAGE]';
+const CHAT_RUNTIME_PRODUCT_LINK = 'fablab-chat-runtime';
+const CHAT_RUNTIME_PRODUCT_TITLE = '[SYSTEM] FABLAB CHAT RUNTIME STORAGE';
+const LEGACY_CHAT_RUNTIME_PRODUCT_TITLE = '[SYSTEM] FABLAB CHAT RUNTIME';
+
+const isChatRuntimeStorageProduct = (product: Product): boolean => {
+  const title = String(product.title || '').trim();
+  const description = String(product.description || '');
+  const productLink = String(product.productLink || '').trim();
+
+  return productLink === CHAT_RUNTIME_PRODUCT_LINK
+    || title === CHAT_RUNTIME_PRODUCT_TITLE
+    || title === LEGACY_CHAT_RUNTIME_PRODUCT_TITLE
+    || description.includes(CHAT_RUNTIME_PRODUCT_MARKER);
+};
+
 interface ProductsViewProps {
   items?: Product[];
   onDelete?: (item: Product) => void;
@@ -88,7 +104,9 @@ const ProductsView: React.FC<ProductsViewProps> = ({
     : fixedItems;
 
   const getFilteredProducts = () => {
-    let filtered = items.filter((product) => !FIXED_TYPES.includes(product.type));
+    let filtered = items.filter(
+      (product) => !FIXED_TYPES.includes(product.type) && !isChatRuntimeStorageProduct(product)
+    );
 
     if (activeFilter === 'favorites') {
       filtered = filtered.filter((product) => product.isFavorite);

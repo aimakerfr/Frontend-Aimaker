@@ -16,6 +16,7 @@ import {
   providerUsageSummary,
   validateProviderKey,
   type ApiRuntimeProvider,
+  type ProviderModelCapability,
   type ProviderModelInfo,
   type ProviderUsageSummaryResponse,
 } from '@core/api-key-runtime';
@@ -82,11 +83,53 @@ const providerLabel = (provider: ApiRuntimeProvider): string => {
 
 const inferCapabilities = (modelId: string): Array<'text' | 'image' | 'audio' | 'video' | 'search'> => {
   const id = modelId.toLowerCase();
-  if (id.includes('veo') || id.includes('video')) return ['video'];
-  if (id.includes('image') || id.includes('imagen') || id.includes('nano-banana')) return ['image'];
-  if (id.includes('audio') || id.includes('tts') || id.includes('stt') || id.includes('whisper') || id.includes('voxtral')) return ['audio'];
-  if (id.includes('search') || id.includes('sonar')) return ['search'];
+
+  if (
+    id.includes('search')
+    || id.includes('deep-research')
+    || id.includes('sonar')
+  ) return ['search'];
+
+  if (
+    id.includes('veo')
+    || id.includes('video')
+    || id.includes('sora')
+  ) return ['video'];
+
+  if (
+    id.includes('audio')
+    || id.includes('tts')
+    || id.includes('stt')
+    || id.includes('speech')
+    || id.includes('transcrib')
+    || id.includes('whisper')
+    || id.includes('voxtral')
+  ) return ['audio'];
+
+  if (
+    id.includes('image')
+    || id.includes('imagen')
+    || id.includes('dall-e')
+    || id.includes('gpt-image')
+    || id.includes('sdxl')
+    || id.includes('stable-diffusion')
+    || id.includes('flux')
+    || id.includes('nano-banana')
+  ) return ['image'];
+
   return ['text'];
+};
+
+const FIELD_CAPABILITIES: Record<ModelBindingKey, ProviderModelCapability[]> = {
+  selectedTextModelId: ['text'],
+  selectedImageModelId: ['image'],
+  selectedOtherModelId: ['video'],
+  selectedSearchModelId: ['search'],
+  selectedSummaryModelId: ['text'],
+  selectedPromptOptimizerModelId: ['text'],
+  selectedRoleOptimizerModelId: ['text'],
+  selectedSpeechSynthesisModelId: ['audio'],
+  selectedSpeechTranscriptionModelId: ['audio'],
 };
 
 const defaultConfig = (): FablabChatRuntimeConfig => ({
@@ -173,6 +216,37 @@ const ProfileChatRuntimeConfig: React.FC = () => {
       || ''
     );
   }, [modelBindings]);
+
+  const modelOptionsByField = useMemo<Record<ModelBindingKey, ModelOption[]>>(() => {
+    const byBindingId = new Map(modelOptions.map((option) => [option.bindingId, option]));
+    const map = {} as Record<ModelBindingKey, ModelOption[]>;
+
+    (Object.keys(FIELD_CAPABILITIES) as ModelBindingKey[]).forEach((fieldKey) => {
+      const allowedCapabilities = FIELD_CAPABILITIES[fieldKey];
+
+      const filtered = modelOptions.filter((option) => {
+        const capabilities = inferCapabilities(option.modelId);
+        return capabilities.some((capability) => allowedCapabilities.includes(capability));
+      });
+
+      const selectedBindingId = modelBindings[fieldKey];
+      if (selectedBindingId) {
+        const selectedOption = byBindingId.get(selectedBindingId);
+        const alreadyPresent = filtered.some((option) => option.bindingId === selectedBindingId);
+
+        if (selectedOption && !alreadyPresent) {
+          filtered.unshift({
+            ...selectedOption,
+            label: `${selectedOption.label} (actual)`,
+          });
+        }
+      }
+
+      map[fieldKey] = filtered;
+    });
+
+    return map;
+  }, [modelOptions, modelBindings]);
 
   const modelFields: Array<{ key: ModelBindingKey; label: string }> = [
     { key: 'selectedTextModelId', label: t?.fablabChat?.profile?.modelFields?.text || 'Text model' },
@@ -743,7 +817,7 @@ const ProfileChatRuntimeConfig: React.FC = () => {
                         className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 outline-none focus:border-teal-500 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100"
                       >
                         <option value="">{t?.fablabChat?.profile?.placeholders?.selectModel || 'Select model...'}</option>
-                        {modelOptions.map((option) => (
+                        {(modelOptionsByField[field.key] || []).map((option) => (
                           <option key={`${field.key}-${option.bindingId}`} value={option.bindingId}>
                             {option.profileLabel} - {option.label}
                           </option>
