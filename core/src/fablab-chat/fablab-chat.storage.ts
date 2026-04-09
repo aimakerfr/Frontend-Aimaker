@@ -1,4 +1,4 @@
-import type { ApiRuntimeProvider, ProviderModelInfo } from '../api-key-runtime';
+import type { ApiRuntimeProvider, ProviderModelCapability, ProviderModelInfo } from '../api-key-runtime';
 import { getProductStepProgress, updateProductStepProgress } from '../product-step-progress';
 import { createProductFromTemplate, getProduct, getProducts } from '../products';
 import type { ProductType } from '../products';
@@ -55,12 +55,24 @@ const asProvider = (value: unknown): ApiRuntimeProvider => {
 };
 
 const asModels = (value: unknown): ProviderModelInfo[] => {
+  const asCapabilities = (candidate: unknown): ProviderModelCapability[] => {
+    if (!Array.isArray(candidate)) return [];
+
+    const allowed: ProviderModelCapability[] = ['text', 'image', 'audio', 'video', 'search'];
+    const normalized = candidate
+      .map((entry) => asString(entry).toLowerCase() as ProviderModelCapability)
+      .filter((entry) => allowed.includes(entry));
+
+    return Array.from(new Set(normalized));
+  };
+
   if (!Array.isArray(value)) return [];
   return value
     .filter((item) => isRecord(item) && typeof item.id === 'string')
     .map((item) => ({
       id: asString(item.id),
       label: asString(item.label || item.id),
+      capabilities: asCapabilities(item.capabilities),
     }));
 };
 

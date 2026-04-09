@@ -54,6 +54,7 @@ type ModelOption = {
   label: string;
   provider: ApiRuntimeProvider;
   profileLabel: string;
+  capabilities: ProviderModelCapability[];
 };
 
 const PROVIDERS: Array<{ value: ApiRuntimeProvider; label: string; keyHint: string; needsBaseUrl?: boolean }> = [
@@ -64,6 +65,36 @@ const PROVIDERS: Array<{ value: ApiRuntimeProvider; label: string; keyHint: stri
   { value: 'perplexity', label: 'Perplexity', keyHint: 'pplx-...' },
   { value: 'ollama', label: 'OLLAMA / Local', keyHint: 'Optional local token', needsBaseUrl: true },
 ];
+
+const NON_CHAT_UTILITY_MODEL_REGEX = /\b(embedding|embeddings|rerank|re-rank|ranker|moderation|safety|classifier)\b/i;
+const VOLATILE_MODEL_REGEX = /\b(preview|experimental|exp|beta|alpha|rc|nightly|dev|canary|snapshot)\b/i;
+const GENERIC_OBSOLETE_MODEL_REGEX = /\b(legacy|deprecated|obsolete|retired|sunset|decommissioned|old)\b/i;
+
+const PROVIDER_OBSOLETE_MODEL_PATTERNS: Record<ApiRuntimeProvider, RegExp[]> = {
+  google: [
+    /\bgemini-(1\.0|1\.5)\b/i,
+    /\bgemini-pro(-vision)?\b/i,
+    /\b(text|chat|code)-bison\b/i,
+    /\bpalm\b/i,
+  ],
+  openai: [
+    /\bgpt-3\.5\b/i,
+    /\btext-(davinci|curie|babbage|ada)\b/i,
+    /\bgpt-4-(0314|0613|32k|vision-preview|turbo-preview)\b/i,
+  ],
+  anthropic: [
+    /\bclaude-(instant|1|2)\b/i,
+  ],
+  mistral: [
+    /\bmistral-(tiny|small|medium)\b/i,
+    /\bopen-mistral-(7b|8x7b)\b/i,
+  ],
+  perplexity: [
+    /\bpplx-(7b|70b)\b/i,
+    /\bllama-?2\b/i,
+  ],
+  ollama: [],
+};
 
 const emptyBindings = (): ModelBindings => ({
   selectedTextModelId: '',
@@ -83,6 +114,8 @@ const providerLabel = (provider: ApiRuntimeProvider): string => {
 
 const inferCapabilities = (modelId: string): Array<'text' | 'image' | 'audio' | 'video' | 'search'> => {
   const id = modelId.toLowerCase();
+
+  if (NON_CHAT_UTILITY_MODEL_REGEX.test(id)) return [];
 
   if (
     id.includes('search')
@@ -120,6 +153,60 @@ const inferCapabilities = (modelId: string): Array<'text' | 'image' | 'audio' | 
   return ['text'];
 };
 
+const resolveModelCapabilities = (model: ProviderModelInfo): ProviderModelCapability[] => {
+  const explicit = Array.isArray(model.capabilities) ? model.capabilities : [];
+  return explicit.length > 0 ? explicit : inferCapabilities(model.id);
+};
+
+const shouldHideModelFromRuntime = (provider: ApiRuntimeProvider, model: ProviderModelInfo): boolean => {
+  const id = String(model.id || '').toLowerCase();
+  const label = String(model.label || '').toLowerCase();
+  const haystack = `${id} ${label}`;
+
+  if (!id) return true;
+  if (NON_CHAT_UTILITY_MODEL_REGEX.test(haystack)) return true;
+  if (GENERIC_OBSOLETE_MODEL_REGEX.test(haystack)) return true;
+  if (VOLATILE_MODEL_REGEX.test(haystack)) return true;
+
+  return (PROVIDER_OBSOLETE_MODEL_PATTERNS[provider] || []).some((pattern) => pattern.test(haystack));
+};
+
+const pruneProviderModelList = (provider: ApiRuntimeProvider, models: ProviderModelInfo[]): ProviderModelInfo[] => {
+  const seen = new Set<string>();
+
+  const normalized = (Array.isArray(models) ? models : [])
+    .map((model) => {
+      const id = String(model?.id || '').trim();
+      const label = String(model?.label || id).trim() || id;
+      if (!id) return null;
+
+      const key = id.toLowerCase();
+      if (seen.has(key)) return null;
+      seen.add(key);
+
+      const capabilities = Array.isArray(model?.capabilities)
+        ? Array.from(new Set(model.capabilities)) as ProviderModelCapability[]
+        : undefined;
+
+      return {
+        id,
+        label,
+        ...(capabilities && capabilities.length > 0 ? { capabilities } : {}),
+      } as ProviderModelInfo;
+    })
+    .filter((model): model is ProviderModelInfo => Boolean(model));
+
+  const pruned = normalized.filter((model) => !shouldHideModelFromRuntime(provider, model));
+  const withCapabilities = pruned.filter((model) => resolveModelCapabilities(model).length > 0);
+
+  if (withCapabilities.length > 0) {
+    return withCapabilities;
+  }
+
+  // Fallback: if aggressive pruning removed too much, keep only non-utility models with known capabilities.
+  return normalized.filter((model) => resolveModelCapabilities(model).length > 0);
+};
+
 const FIELD_CAPABILITIES: Record<ModelBindingKey, ProviderModelCapability[]> = {
   selectedTextModelId: ['text'],
   selectedImageModelId: ['image'],
@@ -131,6 +218,9 @@ const FIELD_CAPABILITIES: Record<ModelBindingKey, ProviderModelCapability[]> = {
   selectedSpeechSynthesisModelId: ['audio'],
   selectedSpeechTranscriptionModelId: ['audio'],
 };
+
+const PROBE_PROVIDERS = new Set<ApiRuntimeProvider>(['google', 'openai', 'mistral', 'perplexity', 'anthropic', 'ollama']);
+const MODEL_PROBE_LIMIT = 18;
 
 const defaultConfig = (): FablabChatRuntimeConfig => ({
   provider: 'google',
@@ -200,6 +290,7 @@ const ProfileChatRuntimeConfig: React.FC = () => {
           label: model.label || model.id,
           provider: profile.provider,
           profileLabel: profile.label || providerLabel(profile.provider),
+          capabilities: resolveModelCapabilities(model),
         });
       }
     }
@@ -225,7 +316,7 @@ const ProfileChatRuntimeConfig: React.FC = () => {
       const allowedCapabilities = FIELD_CAPABILITIES[fieldKey];
 
       const filtered = modelOptions.filter((option) => {
-        const capabilities = inferCapabilities(option.modelId);
+        const capabilities = option.capabilities;
         return capabilities.some((capability) => allowedCapabilities.includes(capability));
       });
 
@@ -271,25 +362,59 @@ const ProfileChatRuntimeConfig: React.FC = () => {
         if (cancelled) return;
 
         const cfg = state.config || defaultConfig();
-        const profiles = Array.isArray(cfg.providerProfiles) ? cfg.providerProfiles : [];
+        const rawProfiles = Array.isArray(cfg.providerProfiles) ? cfg.providerProfiles : [];
+        const profiles = rawProfiles.map((profile) => ({
+          ...profile,
+          validatedModels: pruneProviderModelList(profile.provider, profile.validatedModels || []),
+        }));
+        const sanitizedValidatedModels = pruneProviderModelList(cfg.provider || 'google', cfg.validatedModels || []);
 
-        setRuntimeConfig(cfg);
-        setProvider(cfg.provider || 'google');
-        setApiKey(decodeSecret(cfg.apiKeyEncoded || ''));
-        setBaseUrl(cfg.baseUrl || '');
+        const validBindingIds = new Set(
+          profiles.flatMap((profile) => (profile.validatedModels || []).map((model) => encodeModelBindingId(profile.id, model.id)))
+        );
+        const sanitizeBinding = (binding: string) => (validBindingIds.has(binding) ? binding : '');
+        const nextBindings = {
+          selectedTextModelId: sanitizeBinding(String(cfg.selectedTextModelId || '')),
+          selectedImageModelId: sanitizeBinding(String(cfg.selectedImageModelId || '')),
+          selectedOtherModelId: sanitizeBinding(String(cfg.selectedOtherModelId || '')),
+          selectedSearchModelId: sanitizeBinding(String(cfg.selectedSearchModelId || '')),
+          selectedSummaryModelId: sanitizeBinding(String(cfg.selectedSummaryModelId || '')),
+          selectedPromptOptimizerModelId: sanitizeBinding(String(cfg.selectedPromptOptimizerModelId || '')),
+          selectedRoleOptimizerModelId: sanitizeBinding(String(cfg.selectedRoleOptimizerModelId || '')),
+          selectedSpeechSynthesisModelId: sanitizeBinding(String(cfg.selectedSpeechSynthesisModelId || '')),
+          selectedSpeechTranscriptionModelId: sanitizeBinding(String(cfg.selectedSpeechTranscriptionModelId || '')),
+        } as ModelBindings;
+
+        const sanitizedConfig: FablabChatRuntimeConfig = {
+          ...cfg,
+          providerProfiles: profiles,
+          validatedModels: sanitizedValidatedModels,
+          selectedTextModelId: nextBindings.selectedTextModelId,
+          selectedImageModelId: nextBindings.selectedImageModelId,
+          selectedOtherModelId: nextBindings.selectedOtherModelId,
+          selectedSearchModelId: nextBindings.selectedSearchModelId,
+          selectedSummaryModelId: nextBindings.selectedSummaryModelId,
+          selectedPromptOptimizerModelId: nextBindings.selectedPromptOptimizerModelId,
+          selectedRoleOptimizerModelId: nextBindings.selectedRoleOptimizerModelId,
+          selectedSpeechSynthesisModelId: nextBindings.selectedSpeechSynthesisModelId,
+          selectedSpeechTranscriptionModelId: nextBindings.selectedSpeechTranscriptionModelId,
+        };
+
+        sanitizedConfig.selectedModel =
+          nextBindings.selectedTextModelId
+          || nextBindings.selectedSearchModelId
+          || nextBindings.selectedSummaryModelId
+          || nextBindings.selectedImageModelId
+          || nextBindings.selectedOtherModelId
+          || '';
+
+        setRuntimeConfig(sanitizedConfig);
+        setProvider(sanitizedConfig.provider || 'google');
+        setApiKey(decodeSecret(sanitizedConfig.apiKeyEncoded || ''));
+        setBaseUrl(sanitizedConfig.baseUrl || '');
         setProviderProfiles(profiles);
-        setValidatedModels(Array.isArray(cfg.validatedModels) ? cfg.validatedModels : []);
-        setModelBindings({
-          selectedTextModelId: String(cfg.selectedTextModelId || ''),
-          selectedImageModelId: String(cfg.selectedImageModelId || ''),
-          selectedOtherModelId: String(cfg.selectedOtherModelId || ''),
-          selectedSearchModelId: String(cfg.selectedSearchModelId || ''),
-          selectedSummaryModelId: String(cfg.selectedSummaryModelId || ''),
-          selectedPromptOptimizerModelId: String(cfg.selectedPromptOptimizerModelId || ''),
-          selectedRoleOptimizerModelId: String(cfg.selectedRoleOptimizerModelId || ''),
-          selectedSpeechSynthesisModelId: String(cfg.selectedSpeechSynthesisModelId || ''),
-          selectedSpeechTranscriptionModelId: String(cfg.selectedSpeechTranscriptionModelId || ''),
-        });
+        setValidatedModels(sanitizedValidatedModels);
+        setModelBindings(nextBindings);
 
         setLocalStats({
           totalRequests: Number(state.stats.totalRequests || 0),
@@ -342,18 +467,35 @@ const ProfileChatRuntimeConfig: React.FC = () => {
     };
 
     const firstText = firstBy((id) => {
-      const caps = inferCapabilities(id);
+      const model = models.find((entry) => entry.id === id);
+      const caps = model ? resolveModelCapabilities(model) : inferCapabilities(id);
       return caps.includes('text') || caps.includes('search');
     });
-    const firstImage = firstBy((id) => inferCapabilities(id).includes('image'));
-    const firstVideo = firstBy((id) => inferCapabilities(id).includes('video'));
-    const firstAudio = firstBy((id) => inferCapabilities(id).includes('audio'));
-    const firstSearch = firstBy((id) => inferCapabilities(id).includes('search'));
+    const firstImage = firstBy((id) => {
+      const model = models.find((entry) => entry.id === id);
+      const caps = model ? resolveModelCapabilities(model) : inferCapabilities(id);
+      return caps.includes('image');
+    });
+    const firstVideo = firstBy((id) => {
+      const model = models.find((entry) => entry.id === id);
+      const caps = model ? resolveModelCapabilities(model) : inferCapabilities(id);
+      return caps.includes('video');
+    });
+    const firstAudio = firstBy((id) => {
+      const model = models.find((entry) => entry.id === id);
+      const caps = model ? resolveModelCapabilities(model) : inferCapabilities(id);
+      return caps.includes('audio');
+    });
+    const firstSearch = firstBy((id) => {
+      const model = models.find((entry) => entry.id === id);
+      const caps = model ? resolveModelCapabilities(model) : inferCapabilities(id);
+      return caps.includes('search');
+    });
 
     return {
       selectedTextModelId: firstText,
       selectedImageModelId: firstImage,
-      selectedOtherModelId: firstVideo || firstAudio,
+      selectedOtherModelId: firstVideo,
       selectedSearchModelId: firstSearch || firstText,
       selectedSummaryModelId: firstText,
       selectedPromptOptimizerModelId: firstText,
@@ -384,6 +526,77 @@ const ProfileChatRuntimeConfig: React.FC = () => {
         baseUrl: requiresBaseUrl ? baseUrl.trim() : undefined,
       });
 
+      const verifyOperationalModels = async (models: ProviderModelInfo[]): Promise<ProviderModelInfo[]> => {
+        if (!PROBE_PROVIDERS.has(provider)) {
+          return models;
+        }
+
+        const probeCandidates = models
+          .filter((model) => {
+            const caps = resolveModelCapabilities(model);
+            return caps.includes('text') || caps.includes('search');
+          })
+          .slice(0, MODEL_PROBE_LIMIT);
+
+        if (probeCandidates.length === 0) {
+          return models;
+        }
+
+        const passingIds = new Set<string>();
+        const probedIds = new Set(probeCandidates.map((item) => item.id));
+
+        for (let index = 0; index < probeCandidates.length; index += 1) {
+          const model = probeCandidates[index];
+          const caps = resolveModelCapabilities(model);
+          const capability: ProviderModelCapability = caps.includes('search') ? 'search' : 'text';
+
+          setStatusText(`Verifying ${providerLabel(provider)} models (${index + 1}/${probeCandidates.length})...`);
+
+          try {
+            const probeResult = await providerTestModel({
+              provider,
+              apiKey: apiKey.trim(),
+              baseUrl: requiresBaseUrl ? baseUrl.trim() : undefined,
+              model: model.id,
+              capability,
+              prompt: 'Reply only with: ok',
+            });
+
+            if (probeResult.ok) {
+              passingIds.add(model.id);
+            }
+          } catch {
+            // Failed probes are filtered out only if the model was part of this sampled verification batch.
+          }
+        }
+
+        const filtered = models.filter((model) => {
+          const caps = resolveModelCapabilities(model);
+          const isTextOrSearch = caps.includes('text') || caps.includes('search');
+
+          if (!isTextOrSearch) {
+            return true;
+          }
+
+          if (!probedIds.has(model.id)) {
+            return true;
+          }
+
+          return passingIds.has(model.id);
+        });
+
+        const hasUsableTextModel = filtered.some((model) => {
+          const caps = resolveModelCapabilities(model);
+          return caps.includes('text') || caps.includes('search');
+        });
+
+        return hasUsableTextModel ? filtered : models;
+      };
+
+      const validatedProviderModels = Array.isArray(result.models) ? result.models : [];
+      const prunedModels = pruneProviderModelList(provider, validatedProviderModels);
+      const operationalModels = await verifyOperationalModels(prunedModels);
+
       const encoded = encodeSecret(apiKey.trim());
       const now = new Date().toISOString();
       const existing = providerProfiles.find((item) =>
@@ -402,7 +615,7 @@ const ProfileChatRuntimeConfig: React.FC = () => {
         provider,
         apiKeyEncoded: encoded,
         baseUrl: baseUrl.trim(),
-        validatedModels: result.models || [],
+        validatedModels: operationalModels,
         lastValidatedAt: now,
       };
 
@@ -410,7 +623,7 @@ const ProfileChatRuntimeConfig: React.FC = () => {
         ? providerProfiles.map((item) => (item.id === existing.id ? profile : item))
         : [profile, ...providerProfiles];
 
-      const suggested = autoBindModels(profileId, result.models || []);
+      const suggested = autoBindModels(profileId, operationalModels);
       const nextBindings: ModelBindings = {
         ...modelBindings,
         ...suggested,
@@ -425,7 +638,7 @@ const ProfileChatRuntimeConfig: React.FC = () => {
         || '';
 
       setProviderProfiles(nextProfiles);
-      setValidatedModels(result.models || []);
+      setValidatedModels(operationalModels);
       setModelBindings(nextBindings);
 
       const nextConfig: FablabChatRuntimeConfig = {
@@ -434,7 +647,7 @@ const ProfileChatRuntimeConfig: React.FC = () => {
         profileLabel: label,
         baseUrl: baseUrl.trim(),
         apiKeyEncoded: encoded,
-        validatedModels: result.models || [],
+        validatedModels: operationalModels,
         providerProfiles: nextProfiles,
         selectedModel: nextSelectedModel,
         selectedTextModelId: nextBindings.selectedTextModelId,
@@ -449,7 +662,10 @@ const ProfileChatRuntimeConfig: React.FC = () => {
         lastValidatedAt: now,
       };
 
-      await persistConfig(nextConfig, t?.fablabChat?.profile?.status?.validated || 'API key validated and models loaded.');
+      await persistConfig(
+        nextConfig,
+        `${t?.fablabChat?.profile?.status?.validated || 'API key validated and models loaded.'} ${operationalModels.length}/${validatedProviderModels.length} models kept.`
+      );
     } catch (error: any) {
       setErrorText(error?.message || (t?.fablabChat?.profile?.errors?.validateFailed || 'Could not validate this provider profile.'));
     } finally {
@@ -808,23 +1024,34 @@ const ProfileChatRuntimeConfig: React.FC = () => {
             <div className="space-y-4">
               <div className="rounded-xl border border-gray-200 bg-gray-50 p-3 dark:border-gray-700 dark:bg-gray-900/40">
                 <div className="grid gap-3 md:grid-cols-2">
-                  {modelFields.map((field) => (
-                    <label key={field.key} className="text-sm">
-                      <span className="mb-1 block text-gray-600 dark:text-gray-300">{field.label}</span>
-                      <select
-                        value={modelBindings[field.key]}
-                        onChange={(event) => handleModelBindingChange(field.key, event.target.value)}
-                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 outline-none focus:border-teal-500 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100"
-                      >
-                        <option value="">{t?.fablabChat?.profile?.placeholders?.selectModel || 'Select model...'}</option>
-                        {(modelOptionsByField[field.key] || []).map((option) => (
-                          <option key={`${field.key}-${option.bindingId}`} value={option.bindingId}>
-                            {option.profileLabel} - {option.label}
+                  {modelFields.map((field) => {
+                    const fieldOptions = modelOptionsByField[field.key] || [];
+                    const emptyLabel = field.key === 'selectedOtherModelId'
+                      ? (t as any)?.fablabChat?.profile?.placeholders?.noVideoModels || 'No video models available for current profiles.'
+                      : (t as any)?.fablabChat?.profile?.placeholders?.noModelsForField || 'No compatible models available.';
+
+                    return (
+                      <label key={field.key} className="text-sm">
+                        <span className="mb-1 block text-gray-600 dark:text-gray-300">{field.label}</span>
+                        <select
+                          value={modelBindings[field.key]}
+                          onChange={(event) => handleModelBindingChange(field.key, event.target.value)}
+                          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 outline-none focus:border-teal-500 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100"
+                        >
+                          <option value="">
+                            {fieldOptions.length > 0
+                              ? (t?.fablabChat?.profile?.placeholders?.selectModel || 'Select model...')
+                              : emptyLabel}
                           </option>
-                        ))}
-                      </select>
-                    </label>
-                  ))}
+                          {fieldOptions.map((option) => (
+                            <option key={`${field.key}-${option.bindingId}`} value={option.bindingId}>
+                              {option.profileLabel} - {option.label}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                    );
+                  })}
                 </div>
               </div>
 

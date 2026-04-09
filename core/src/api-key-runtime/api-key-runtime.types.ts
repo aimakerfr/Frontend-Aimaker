@@ -1,8 +1,11 @@
 export type ApiRuntimeProvider = 'google' | 'openai' | 'anthropic' | 'mistral' | 'perplexity' | 'ollama';
 
+export type ProviderModelCapability = 'text' | 'image' | 'audio' | 'video' | 'search';
+
 export interface ProviderModelInfo {
   id: string;
   label: string;
+  capabilities?: ProviderModelCapability[];
 }
 
 export interface ValidateProviderKeyRequest {
@@ -45,8 +48,6 @@ export interface ProviderChatResponse {
     totalTokens: number;
   };
 }
-
-export type ProviderModelCapability = 'text' | 'image' | 'audio' | 'video' | 'search';
 
 export interface ProviderModelTestRequest {
   provider: ApiRuntimeProvider;
