@@ -4,6 +4,13 @@ export interface PerplexitySearchResponse {
   content: string;
   model: string;
   provider: string;
+  searchesCount?: number | null;
+}
+
+export interface PerplexitySearchOptions {
+  makerPathId?: number;
+  systemInstruction?: string;
+  apiKey?: string;
 }
 
 export const perplexityService = {
@@ -11,11 +18,15 @@ export const perplexityService = {
    * Search and obtain organized summary about a topic using Perplexity AI.
    * @param query The topic or question to research.
    */
-  async search(query: string): Promise<PerplexitySearchResponse> {
+  async search(query: string, options: PerplexitySearchOptions = {}): Promise<PerplexitySearchResponse> {
     try {
+      const payload: Record<string, unknown> = { query };
+      if (options.makerPathId) payload.makerPathId = options.makerPathId;
+      if (options.systemInstruction) payload.systemInstruction = options.systemInstruction;
+      if (options.apiKey) payload.apiKey = options.apiKey;
       const response = await httpClient.post<PerplexitySearchResponse>(
         '/api/v1/perplexity/search',
-        { query }
+        payload
       );
       return response;
     } catch (error) {
