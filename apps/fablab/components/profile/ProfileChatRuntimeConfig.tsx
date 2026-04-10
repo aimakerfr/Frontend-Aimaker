@@ -37,6 +37,7 @@ type ConfigTab = 'apiKeys' | 'models';
 
 type ModelBindingKey =
   | 'selectedTextModelId'
+  | 'selectedProjectAuditModelId'
   | 'selectedImageModelId'
   | 'selectedOtherModelId'
   | 'selectedSearchModelId'
@@ -98,6 +99,7 @@ const PROVIDER_OBSOLETE_MODEL_PATTERNS: Record<ApiRuntimeProvider, RegExp[]> = {
 
 const emptyBindings = (): ModelBindings => ({
   selectedTextModelId: '',
+  selectedProjectAuditModelId: '',
   selectedImageModelId: '',
   selectedOtherModelId: '',
   selectedSearchModelId: '',
@@ -209,6 +211,7 @@ const pruneProviderModelList = (provider: ApiRuntimeProvider, models: ProviderMo
 
 const FIELD_CAPABILITIES: Record<ModelBindingKey, ProviderModelCapability[]> = {
   selectedTextModelId: ['text'],
+  selectedProjectAuditModelId: ['text', 'search'],
   selectedImageModelId: ['image'],
   selectedOtherModelId: ['video'],
   selectedSearchModelId: ['search'],
@@ -228,6 +231,7 @@ const defaultConfig = (): FablabChatRuntimeConfig => ({
   profileLabel: '',
   selectedModel: '',
   selectedTextModelId: '',
+  selectedProjectAuditModelId: '',
   selectedImageModelId: '',
   selectedOtherModelId: '',
   selectedSearchModelId: '',
@@ -300,6 +304,7 @@ const ProfileChatRuntimeConfig: React.FC = () => {
   const selectedPrimaryBinding = useMemo(() => {
     return (
       modelBindings.selectedTextModelId
+      || modelBindings.selectedProjectAuditModelId
       || modelBindings.selectedSearchModelId
       || modelBindings.selectedSummaryModelId
       || modelBindings.selectedImageModelId
@@ -341,6 +346,7 @@ const ProfileChatRuntimeConfig: React.FC = () => {
 
   const modelFields: Array<{ key: ModelBindingKey; label: string }> = [
     { key: 'selectedTextModelId', label: t?.fablabChat?.profile?.modelFields?.text || 'Text model' },
+    { key: 'selectedProjectAuditModelId', label: (t as any)?.fablabChat?.profile?.modelFields?.projectAudit || 'Project audit model' },
     { key: 'selectedImageModelId', label: t?.fablabChat?.profile?.modelFields?.image || 'Image model' },
     { key: 'selectedOtherModelId', label: t?.fablabChat?.profile?.modelFields?.video || 'Video/other model' },
     { key: 'selectedSearchModelId', label: t?.fablabChat?.profile?.modelFields?.search || 'Search model' },
@@ -375,6 +381,7 @@ const ProfileChatRuntimeConfig: React.FC = () => {
         const sanitizeBinding = (binding: string) => (validBindingIds.has(binding) ? binding : '');
         const nextBindings = {
           selectedTextModelId: sanitizeBinding(String(cfg.selectedTextModelId || '')),
+          selectedProjectAuditModelId: sanitizeBinding(String(cfg.selectedProjectAuditModelId || '')),
           selectedImageModelId: sanitizeBinding(String(cfg.selectedImageModelId || '')),
           selectedOtherModelId: sanitizeBinding(String(cfg.selectedOtherModelId || '')),
           selectedSearchModelId: sanitizeBinding(String(cfg.selectedSearchModelId || '')),
@@ -390,6 +397,7 @@ const ProfileChatRuntimeConfig: React.FC = () => {
           providerProfiles: profiles,
           validatedModels: sanitizedValidatedModels,
           selectedTextModelId: nextBindings.selectedTextModelId,
+          selectedProjectAuditModelId: nextBindings.selectedProjectAuditModelId,
           selectedImageModelId: nextBindings.selectedImageModelId,
           selectedOtherModelId: nextBindings.selectedOtherModelId,
           selectedSearchModelId: nextBindings.selectedSearchModelId,
@@ -402,6 +410,7 @@ const ProfileChatRuntimeConfig: React.FC = () => {
 
         sanitizedConfig.selectedModel =
           nextBindings.selectedTextModelId
+          || nextBindings.selectedProjectAuditModelId
           || nextBindings.selectedSearchModelId
           || nextBindings.selectedSummaryModelId
           || nextBindings.selectedImageModelId
@@ -494,6 +503,7 @@ const ProfileChatRuntimeConfig: React.FC = () => {
 
     return {
       selectedTextModelId: firstText,
+      selectedProjectAuditModelId: firstText || firstSearch,
       selectedImageModelId: firstImage,
       selectedOtherModelId: firstVideo,
       selectedSearchModelId: firstSearch || firstText,
@@ -631,6 +641,7 @@ const ProfileChatRuntimeConfig: React.FC = () => {
 
       const nextSelectedModel =
         nextBindings.selectedTextModelId
+        || nextBindings.selectedProjectAuditModelId
         || nextBindings.selectedSearchModelId
         || nextBindings.selectedSummaryModelId
         || nextBindings.selectedImageModelId
@@ -651,6 +662,7 @@ const ProfileChatRuntimeConfig: React.FC = () => {
         providerProfiles: nextProfiles,
         selectedModel: nextSelectedModel,
         selectedTextModelId: nextBindings.selectedTextModelId,
+        selectedProjectAuditModelId: nextBindings.selectedProjectAuditModelId,
         selectedImageModelId: nextBindings.selectedImageModelId,
         selectedOtherModelId: nextBindings.selectedOtherModelId,
         selectedSearchModelId: nextBindings.selectedSearchModelId,
@@ -684,6 +696,7 @@ const ProfileChatRuntimeConfig: React.FC = () => {
 
     const nextBindings: ModelBindings = {
       selectedTextModelId: clearIfDeleted(modelBindings.selectedTextModelId),
+      selectedProjectAuditModelId: clearIfDeleted(modelBindings.selectedProjectAuditModelId),
       selectedImageModelId: clearIfDeleted(modelBindings.selectedImageModelId),
       selectedOtherModelId: clearIfDeleted(modelBindings.selectedOtherModelId),
       selectedSearchModelId: clearIfDeleted(modelBindings.selectedSearchModelId),
@@ -696,6 +709,7 @@ const ProfileChatRuntimeConfig: React.FC = () => {
 
     const nextSelectedModel =
       nextBindings.selectedTextModelId
+      || nextBindings.selectedProjectAuditModelId
       || nextBindings.selectedSearchModelId
       || nextBindings.selectedSummaryModelId
       || nextBindings.selectedImageModelId
@@ -710,6 +724,7 @@ const ProfileChatRuntimeConfig: React.FC = () => {
       providerProfiles: nextProfiles,
       selectedModel: nextSelectedModel,
       selectedTextModelId: nextBindings.selectedTextModelId,
+      selectedProjectAuditModelId: nextBindings.selectedProjectAuditModelId,
       selectedImageModelId: nextBindings.selectedImageModelId,
       selectedOtherModelId: nextBindings.selectedOtherModelId,
       selectedSearchModelId: nextBindings.selectedSearchModelId,
@@ -742,6 +757,7 @@ const ProfileChatRuntimeConfig: React.FC = () => {
   const handleSaveModelSelections = async () => {
     const nextSelectedModel =
       modelBindings.selectedTextModelId
+      || modelBindings.selectedProjectAuditModelId
       || modelBindings.selectedSearchModelId
       || modelBindings.selectedSummaryModelId
       || modelBindings.selectedImageModelId
@@ -762,6 +778,7 @@ const ProfileChatRuntimeConfig: React.FC = () => {
       validatedModels,
       selectedModel: nextSelectedModel,
       selectedTextModelId: modelBindings.selectedTextModelId,
+      selectedProjectAuditModelId: modelBindings.selectedProjectAuditModelId,
       selectedImageModelId: modelBindings.selectedImageModelId,
       selectedOtherModelId: modelBindings.selectedOtherModelId,
       selectedSearchModelId: modelBindings.selectedSearchModelId,
