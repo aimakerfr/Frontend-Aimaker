@@ -3,7 +3,7 @@ import { useLanguage } from '../../language/useLanguage';
 import { tokenStorage } from '@core/api/http.client';
 import { getAllObjects, type ObjectItem as LibraryObjectItem } from '@core/objects';
 import { createAssemblerMakerPath } from './services/makerPath.service';
-import { DragDropCanvas, ModulesPalette, ALL_MODULES, MODULE_GROUPS, UNGROUPED_MODULES } from './components/drag-drop';
+import { DragDropCanvas, ModulesPalette, ALL_MODULES, MODULE_GROUPS, UNGROUPED_MODULES, API_KEY_CONFIGS } from './components/drag-drop';
 import type { CanvasModule, LayoutEntry } from './components/drag-drop';
 import GenericObjectSelector from '@apps/fablab/modules/object-selector/View/Notebook/GenericObjectSelector';
 import type { ObjectItem as SelectorObjectItem } from '@apps/fablab/modules/object-selector/services/api_handler';
@@ -27,11 +27,11 @@ const AssemblerNew: React.FC = () => {
   const [protectedUsername, setProtectedUsername] = useState<string>('');
   const [protectedPassword, setProtectedPassword] = useState<string>('');
   const [apiConfigEnabled, setApiConfigEnabled] = useState<boolean>(false);
-  const [apiConfigValue, setApiConfigValue] = useState<string>('');
+  const [apiKeys, setApiKeys] = useState<Record<string, string>>({});
   const [apiConfigModalOpen, setApiConfigModalOpen] = useState<boolean>(false);
   const [apiConfigStep, setApiConfigStep] = useState<'form' | 'confirm' | 'loading' | 'success'>('form');
-  const [apiConfigDraft, setApiConfigDraft] = useState<string>('');
-  const [apiConfigDraftError, setApiConfigDraftError] = useState<string | null>(null);
+  const [apiKeysDraft, setApiKeysDraft] = useState<Record<string, string>>({});
+  const [apiKeysDraftErrors, setApiKeysDraftErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [canvasModules, setCanvasModules] = useState<CanvasModule[]>([]);
@@ -160,7 +160,24 @@ const AssemblerNew: React.FC = () => {
   const protectedUsernameValid = !protectedEnabled || protectedUsername.trim().length > 0;
   const protectedPasswordValid = !protectedEnabled || protectedPassword.trim().length >= 8;
   const protectedValid = protectedUsernameValid && protectedPasswordValid;
-  const apiConfigValueValid = !apiConfigEnabled || apiConfigValue.trim().length > 0;
+
+  // Detect which API keys are needed based on canvas modules
+  const requiredApiKeyTypes = useMemo(() => {
+    const types = new Set<string>();
+    canvasModules.forEach((m) => {
+      const def = ALL_MODULES.find((mod) => mod.key === m.key);
+      if (def?.apiKeyType) {
+        types.add(def.apiKeyType);
+      }
+    });
+    return Array.from(types);
+  }, [canvasModules]);
+
+  // Validate all required API keys are filled
+  const apiKeysValid = useMemo(() => {
+    if (!apiConfigEnabled) return true;
+    return requiredApiKeyTypes.every((type) => apiKeys[type]?.trim().length > 0);
+  }, [apiConfigEnabled, requiredApiKeyTypes, apiKeys]);
 
   const canCreate = Boolean(
     title.trim().length > 0 &&
@@ -168,21 +185,26 @@ const AssemblerNew: React.FC = () => {
     objectModulesValid &&
     landingModulesReady &&
     protectedValid &&
-    apiConfigValueValid
+    apiKeysValid
   );
 
   const openApiConfigModal = useCallback(() => {
-    setApiConfigDraft(apiConfigValue);
-    setApiConfigDraftError(null);
+    // Initialize draft with current values for all required types
+    const initialDraft: Record<string, string> = {};
+    requiredApiKeyTypes.forEach((type) => {
+      initialDraft[type] = apiKeys[type] || '';
+    });
+    setApiKeysDraft(initialDraft);
+    setApiKeysDraftErrors({});
     setApiConfigStep('form');
     setApiConfigModalOpen(true);
-  }, [apiConfigValue]);
+  }, [apiKeys, requiredApiKeyTypes]);
 
   const cancelApiConfig = useCallback(() => {
     setApiConfigEnabled(false);
-    setApiConfigValue('');
-    setApiConfigDraft('');
-    setApiConfigDraftError(null);
+    setApiKeys({});
+    setApiKeysDraft({});
+    setApiKeysDraftErrors({});
     setApiConfigModalOpen(false);
   }, []);
 
@@ -191,33 +213,56 @@ const AssemblerNew: React.FC = () => {
     if (checked) {
       openApiConfigModal();
     } else {
-      setApiConfigValue('');
+      setApiKeys({});
     }
   }, [openApiConfigModal]);
 
+  const handleApiKeyDraftChange = useCallback((type: string, value: string) => {
+    setApiKeysDraft((prev) => ({ ...prev, [type]: value }));
+    // Clear error for this type when user types
+    setApiKeysDraftErrors((prev) => ({ ...prev, [type]: '' }));
+  }, []);
+
   const handleApiConfigContinue = useCallback(() => {
-    const value = apiConfigDraft.trim();
-    if (!value) {
-      setApiConfigDraftError('Debes ingresar una API key válida.');
+    // Validate all required keys are filled
+    const errors: Record<string, string> = {};
+    requiredApiKeyTypes.forEach((type) => {
+      if (!apiKeysDraft[type]?.trim()) {
+        errors[type] = `Debes ingresar una API key válida para ${API_KEY_CONFIGS[type]?.label || type}.`;
+      }
+    });
+
+    if (Object.keys(errors).length > 0) {
+      setApiKeysDraftErrors(errors);
       return;
     }
-    setApiConfigDraftError(null);
+
+    setApiKeysDraftErrors({});
     setApiConfigStep('confirm');
-  }, [apiConfigDraft]);
+  }, [apiKeysDraft, requiredApiKeyTypes]);
 
   const handleApiConfigConfirm = useCallback(() => {
-    const value = apiConfigDraft.trim();
-    if (!value) {
-      setApiConfigDraftError('Debes ingresar una API key válida.');
+    // Validate again before saving
+    const errors: Record<string, string> = {};
+    requiredApiKeyTypes.forEach((type) => {
+      if (!apiKeysDraft[type]?.trim()) {
+        errors[type] = `Debes ingresar una API key válida para ${API_KEY_CONFIGS[type]?.label || type}.`;
+      }
+    });
+
+    if (Object.keys(errors).length > 0) {
+      setApiKeysDraftErrors(errors);
       setApiConfigStep('form');
       return;
     }
+
     setApiConfigStep('loading');
     setTimeout(() => {
-      setApiConfigValue(value);
+      // Save all draft values to actual keys
+      setApiKeys({ ...apiKeysDraft });
       setApiConfigStep('success');
     }, 2000);
-  }, [apiConfigDraft]);
+  }, [apiKeysDraft, requiredApiKeyTypes]);
 
   const handleApiConfigDone = useCallback(() => {
     setApiConfigModalOpen(false);
@@ -348,7 +393,12 @@ const AssemblerNew: React.FC = () => {
       has_api_config_module: canvasModules.some((m) => m.key === 'api_configuration') ? '1' : '0',
     };
     if (apiConfigEnabled) {
-      variables.api_configuration = apiConfigValue.trim();
+      // Send each API key separately (e.g., api_key_gemini, api_key_perplexity)
+      Object.entries(apiKeys).forEach(([type, value]) => {
+        if (value.trim()) {
+          variables[`api_key_${type}`] = value.trim();
+        }
+      });
     }
     if (protectedEnabled) {
       variables.protected_enabled = '1';
@@ -383,7 +433,7 @@ const AssemblerNew: React.FC = () => {
     language,
     title,
     apiConfigEnabled,
-    apiConfigValue,
+    apiKeys,
     protectedEnabled,
     protectedUsername,
     protectedPassword,
@@ -548,6 +598,8 @@ const AssemblerNew: React.FC = () => {
         return tr.modules?.html_input ?? 'Entrée HTML';
       case 'buscador':
         return tr.modules?.buscador ?? 'Chercheur';
+      case 'perplexity':
+        return tr.modules?.perplexity ?? 'Perplexity';
       default:
         return fallback;
     }
@@ -610,6 +662,15 @@ const AssemblerNew: React.FC = () => {
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <circle cx="11" cy="11" r="7" />
             <path d="M21 21l-4.3-4.3" />
+          </svg>
+        );
+      case 'perplexity':
+        return (
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="11" cy="11" r="7" />
+            <path d="M21 21l-4.3-4.3" />
+            <path d="M11 7v4" />
+            <path d="M11 15h0" />
           </svg>
         );
       default:
@@ -848,9 +909,11 @@ const AssemblerNew: React.FC = () => {
           {apiConfigEnabled && (
             <div className="mt-4 flex flex-col gap-2">
               <div className="text-xs text-gray-500">
-                {apiConfigValue
-                  ? 'API key configurada y lista para el exportable.'
-                  : 'Aun no has configurado la API key.'}
+                {requiredApiKeyTypes.length > 0
+                  ? apiKeysValid
+                    ? `${requiredApiKeyTypes.length} API key${requiredApiKeyTypes.length > 1 ? 's' : ''} configurada${requiredApiKeyTypes.length > 1 ? 's' : ''} y lista${requiredApiKeyTypes.length > 1 ? 's' : ''} para el exportable.`
+                    : `Se requiere${requiredApiKeyTypes.length > 1 ? 'n' : ''} ${requiredApiKeyTypes.length} API key${requiredApiKeyTypes.length > 1 ? 's' : ''}. Haz clic para configurar.`
+                  : 'No se requieren API keys para los módulos seleccionados.'}
               </div>
               <button
                 type="button"
@@ -859,9 +922,11 @@ const AssemblerNew: React.FC = () => {
               >
                 Abrir modal de API key
               </button>
-              {!apiConfigValueValid && (
+              {apiConfigEnabled && !apiKeysValid && requiredApiKeyTypes.length > 0 && (
                 <div className="text-xs text-amber-600">
-                  La API key es obligatoria.
+                  {requiredApiKeyTypes.length > 1
+                    ? `Las ${requiredApiKeyTypes.length} API keys son obligatorias.`
+                    : 'La API key es obligatoria.'}
                 </div>
               )}
             </div>
@@ -870,29 +935,42 @@ const AssemblerNew: React.FC = () => {
 
         <AssemblerModal
           isOpen={apiConfigModalOpen}
-          title="Configurar API key"
+          title={`Configurar API${requiredApiKeyTypes.length > 1 ? 's' : ''}`}
           onClose={() => setApiConfigModalOpen(false)}
         >
-          <div className="space-y-4">
+          <div className="space-y-4 max-h-[60vh] overflow-y-auto">
             {apiConfigStep === 'form' && (
-              <div className="space-y-3">
+              <div className="space-y-4">
                 <div className="text-sm font-semibold text-gray-900">
                   Estas configurando informacion sensible
                 </div>
                 <p className="text-xs text-gray-500">
-                  La API key quedara inyectada en el exportable. Podras editarla luego si el modulo esta presente.
+                  Las API keys quedaran inyectadas en el exportable. Podras editarlas luego si los modulos estan presentes.
                 </p>
-                <input
-                  type="password"
-                  value={apiConfigDraft}
-                  onChange={(e) => setApiConfigDraft(e.target.value)}
-                  placeholder="Pega tu API key"
-                  className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500"
-                />
-                {apiConfigDraftError && (
-                  <div className="text-xs text-amber-600">{apiConfigDraftError}</div>
-                )}
-                <div className="flex items-center justify-between">
+
+                {/* Render input for each required API key type */}
+                {requiredApiKeyTypes.map((type) => {
+                  const config = API_KEY_CONFIGS[type];
+                  return (
+                    <div key={type} className="space-y-2">
+                      <label className="text-xs font-semibold text-gray-700">
+                      {config?.label || type}
+                      </label>
+                      <input
+                        type="password"
+                        value={apiKeysDraft[type] || ''}
+                        onChange={(e) => handleApiKeyDraftChange(type, e.target.value)}
+                        placeholder={config?.placeholder || `Ingresa tu API key de ${type}`}
+                        className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                      />
+                      {apiKeysDraftErrors[type] && (
+                        <div className="text-xs text-amber-600">{apiKeysDraftErrors[type]}</div>
+                      )}
+                    </div>
+                  );
+                })}
+
+                <div className="flex items-center justify-between pt-2">
                   <button
                     type="button"
                     onClick={cancelApiConfig}
@@ -914,7 +992,9 @@ const AssemblerNew: React.FC = () => {
             {apiConfigStep === 'confirm' && (
               <div className="space-y-3 text-center">
                 <div className="text-sm font-semibold text-gray-900">Confirmas esta configuracion?</div>
-                <p className="text-xs text-gray-500">Se inyectara la API key en el exportable.</p>
+                <p className="text-xs text-gray-500">
+                  Se inyectaran {requiredApiKeyTypes.length} API key{requiredApiKeyTypes.length > 1 ? 's' : ''} en el exportable.
+                </p>
                 <div className="flex items-center justify-center gap-3">
                   <button
                     type="button"
@@ -937,14 +1017,14 @@ const AssemblerNew: React.FC = () => {
             {apiConfigStep === 'loading' && (
               <div className="space-y-2 text-center">
                 <div className="text-sm font-semibold text-gray-900">Guardando configuracion...</div>
-                <p className="text-xs text-gray-500">Protegiendo tu API key.</p>
+                <p className="text-xs text-gray-500">Protegiendo tus API keys.</p>
               </div>
             )}
 
             {apiConfigStep === 'success' && (
               <div className="space-y-3 text-center">
-                <div className="text-sm font-semibold text-gray-900">API key configurada correctamente</div>
-                <p className="text-xs text-gray-500">Ya puedes usar el chat en el exportable.</p>
+                <div className="text-sm font-semibold text-gray-900">API keys configuradas correctamente</div>
+                <p className="text-xs text-gray-500">Ya puedes usar los modulos en el exportable.</p>
                 <button
                   type="button"
                   onClick={handleApiConfigDone}

@@ -12,7 +12,33 @@ export interface ModuleDefinition {
   textInput?: boolean;
   /** Placeholder text for textInput modules */
   textPlaceholder?: string;
+  /** API key type required by this module (e.g., 'gemini', 'perplexity', 'openai') */
+  apiKeyType?: string;
 }
+
+/** Map of API key types to their configuration */
+export interface ApiKeyConfig {
+  key: string;
+  label: string;
+  placeholder: string;
+  envVar: string;
+}
+
+/** Available API key configurations */
+export const API_KEY_CONFIGS: Record<string, ApiKeyConfig> = {
+  gemini: {
+    key: 'gemini',
+    label: 'Gemini API Key',
+    placeholder: 'Ingresa tu API key de Google Gemini',
+    envVar: 'GEMINI_API_KEY',
+  },
+  perplexity: {
+    key: 'perplexity',
+    label: 'Perplexity API Key',
+    placeholder: 'Ingresa tu API key de Perplexity',
+    envVar: 'PERPLEXITY_API_KEY',
+  },
+};
 
 export const GRID_SIZE = 12;
 export const MAX_HTML_INPUTS = 5;
@@ -87,6 +113,7 @@ export const NOTEBOOK_MODULES: ModuleDefinition[] = [
     description: 'Módulo de conversación donde el usuario escribe y ve respuestas.',
     type: 'HTML',
     color: 'bg-emerald-500',
+    apiKeyType: 'gemini',
   },
   {
     key: 'rag',
@@ -94,6 +121,14 @@ export const NOTEBOOK_MODULES: ModuleDefinition[] = [
     description: 'Espacio para subir archivos PDF y documentos.',
     type: 'HTML',
     color: 'bg-violet-500',
+  },
+  {
+    key: 'perplexity',
+    label: 'Perplexity',
+    description: 'Buscador inteligente potenciado por Perplexity AI.',
+    type: 'HTML',
+    color: 'bg-sky-500',
+    apiKeyType: 'perplexity',
   },
 ];
 

@@ -79,6 +79,8 @@ const PerplexitySearchView: React.FC = () => {
   const [isSearching, setIsSearching] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [outputCopied, setOutputCopied] = useState(false);
+  const [searchCount, setSearchCount] = useState<number>(0);
+  const [searchHistory, setSearchHistory] = useState<string[]>([]);
 
   // Load product
   useEffect(() => {
@@ -111,6 +113,9 @@ const PerplexitySearchView: React.FC = () => {
         }
 
         setProduct(productData);
+        if (productData?.id) {
+          loadSearchStorage(productData.id);
+        }
         await loadPreviousProgress(productData.id);
       } catch (err) {
         console.error('[PerplexitySearchView] Error loading product:', err);
@@ -120,6 +125,34 @@ const PerplexitySearchView: React.FC = () => {
     };
     load();
   }, [id, isAuthenticated, t]);
+
+  const loadSearchStorage = (productId: number) => {
+    try {
+      const historyKey = `perplexity_history_${productId}`;
+      const countKey = `perplexity_count_${productId}`;
+      const storedHistory = localStorage.getItem(historyKey);
+      const storedCount = localStorage.getItem(countKey);
+      if (storedHistory) {
+        const parsed = JSON.parse(storedHistory);
+        if (Array.isArray(parsed)) setSearchHistory(parsed);
+      }
+      if (storedCount) {
+        const parsedCount = parseInt(storedCount, 10);
+        if (!Number.isNaN(parsedCount)) setSearchCount(parsedCount);
+      }
+    } catch (err) {
+      console.error('[PerplexitySearchView] Error loading search storage:', err);
+    }
+  };
+
+  const persistSearchStorage = (productId: number, nextHistory: string[], nextCount: number) => {
+    try {
+      localStorage.setItem(`perplexity_history_${productId}`, JSON.stringify(nextHistory));
+      localStorage.setItem(`perplexity_count_${productId}`, String(nextCount));
+    } catch (err) {
+      console.error('[PerplexitySearchView] Error saving search storage:', err);
+    }
+  };
 
   const loadPreviousProgress = async (productId: number) => {
     try {
@@ -154,10 +187,19 @@ const PerplexitySearchView: React.FC = () => {
     setModelInfo(null);
 
     try {
-      const response = await perplexityService.search(inputQuery.trim());
+      const response = await perplexityService.search(inputQuery.trim(), {
+        makerPathId: product.templateId ?? undefined,
+        systemInstruction: product.description ?? undefined,
+      });
       const content = response.content;
       const model = response.model;
       const provider = response.provider;
+
+      const nextCount = typeof response.searchesCount === 'number' ? response.searchesCount : searchCount + 1;
+      const nextHistory = [inputQuery.trim(), ...searchHistory.filter((item) => item !== inputQuery.trim())].slice(0, 8);
+      setSearchCount(nextCount);
+      setSearchHistory(nextHistory);
+      persistSearchStorage(product.id, nextHistory, nextCount);
 
       setSearchResult(content);
       setModelInfo({ model, provider });
@@ -330,6 +372,20 @@ const PerplexitySearchView: React.FC = () => {
                   </button>
                 )}
               </div>
+              {searchHistory.length > 0 && (
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {searchHistory.map((item) => (
+                    <button
+                      key={item}
+                      type="button"
+                      onClick={() => setInputQuery(item)}
+                      className="px-3 py-1 text-xs font-semibold rounded-full border border-blue-200 dark:border-blue-800/60 text-blue-700 dark:text-blue-300 bg-blue-50/60 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors"
+                    >
+                      {item}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 
