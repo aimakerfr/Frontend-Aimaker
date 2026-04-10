@@ -7,6 +7,7 @@ export const FABLAB_CHAT_STATS_STEP = 42;
 export type FablabChatModelBindings = {
   selectedModel: string;
   selectedTextModelId?: string;
+  selectedProjectAuditModelId?: string;
   selectedImageModelId?: string;
   selectedOtherModelId?: string;
   selectedSearchModelId?: string;
@@ -33,6 +34,7 @@ export type FablabChatRuntimeConfig = {
   profileLabel: string;
   selectedModel: string;
   selectedTextModelId?: string;
+  selectedProjectAuditModelId?: string;
   selectedImageModelId?: string;
   selectedOtherModelId?: string;
   selectedSearchModelId?: string;

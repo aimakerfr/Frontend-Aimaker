@@ -143,6 +143,7 @@ const normalizeConfig = (value: unknown): FablabChatRuntimeConfig | null => {
     profileLabel: asString(value.profileLabel),
     selectedModel: asString(value.selectedModel),
     selectedTextModelId: asString(value.selectedTextModelId),
+    selectedProjectAuditModelId: asString(value.selectedProjectAuditModelId),
     selectedImageModelId: asString(value.selectedImageModelId),
     selectedOtherModelId: asString(value.selectedOtherModelId),
     selectedSearchModelId: asString(value.selectedSearchModelId),
