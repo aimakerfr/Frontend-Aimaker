@@ -41,6 +41,19 @@ export const en: Translations = {
       tools: 'External Access',
     },
   },
+  // ────────────────────────────────────────────────────────────────────────────────
+  // Backend Linker (atomic module)
+  // ────────────────────────────────────────────────────────────────────────────────
+  backendLinker: {
+    openButton: 'Config app',
+    title: 'Link backend application',
+    subtitle: 'Select another application from this Maker Path to use as backend for the current app.',
+    selectLabel: 'Select backend application',
+    selectPlaceholder: 'Choose an application',
+    noOptions: 'No other deployments found in this Maker Path.',
+    confirm: 'Connect',
+    connectedToBackend: 'Connected to backend',
+  },
   projectBuilder: {
     title: 'What do you want to do today?',
     subtitle: 'Select the path that best fits your needs to get started.',
@@ -1533,6 +1546,8 @@ export const en: Translations = {
       startNow: 'Start now',
     },
     title: 'MakerPath Visualizer',
+    // Deployment status labels
+    statusFilesUploaded: 'Files uploaded',
     backToMakerPath: 'Back to Maker Path',
     configuration: 'CONFIGURATION',
     ragLibrary: 'RAG LIBRARY',

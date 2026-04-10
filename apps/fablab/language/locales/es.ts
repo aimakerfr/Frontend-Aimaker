@@ -1533,6 +1533,8 @@ export const es: Translations = {
         startNow: 'Empezar ahora',
       },
       title: 'MakerPath Visualizer',
+      // Etiquetas de estado de despliegue
+      statusFilesUploaded: 'Archivos cargados',
       backToMakerPath: 'Volver a Maker Path',
       configuration: 'CONFIGURACIÓN',
       ragLibrary: 'RAG LIBRARY',
@@ -1748,6 +1750,19 @@ export const es: Translations = {
         },
       },
     },
+  },
+  // ────────────────────────────────────────────────────────────────────────────────
+  // Vinculador de Backend (módulo atómico)
+  // ────────────────────────────────────────────────────────────────────────────────
+  backendLinker: {
+    openButton: 'Configurar app',
+    title: 'Vincular aplicación backend',
+    subtitle: 'Selecciona otra aplicación de esta Ruta del Maker para usarla como backend de la app actual.',
+    selectLabel: 'Selecciona la aplicación backend',
+    selectPlaceholder: 'Elige una aplicación',
+    noOptions: 'No se encontraron otros despliegues en esta Ruta del Maker.',
+    confirm: 'Conectar',
+    connectedToBackend: 'Conectado al backend',
   },
 
 
