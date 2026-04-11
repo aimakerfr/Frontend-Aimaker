@@ -6,6 +6,8 @@ import './style.css';
 import {
   AlertTriangle,
   Bot,
+  ChevronLeft,
+  ChevronRight,
   Download,
   FolderPlus,
   ImageDown,
@@ -19,6 +21,7 @@ import {
   Send,
   ShieldCheck,
   Sparkles,
+  Plus,
   Trash2,
   Video,
   Volume2,
@@ -58,6 +61,7 @@ import { useLanguage } from '../../language/useLanguage';
 type SkillState = {
   search: boolean;
   summarize: boolean;
+  projectAudit: boolean;
   image: boolean;
   other: boolean;
   audioSynthesis: boolean;
@@ -89,6 +93,7 @@ type GeneratedFileArtifact = {
 const initialSkills: SkillState = {
   search: false,
   summarize: false,
+  projectAudit: false,
   image: false,
   other: false,
   audioSynthesis: false,
@@ -113,6 +118,134 @@ const MARKDOWN_SANDBOX_LINK_REGEX_GLOBAL = /\[[^\]]*\]\((sandbox:[^)]+)\)/gi;
 const INLINE_SANDBOX_URI_REGEX_GLOBAL = /\bsandbox:[^\s)]+/gi;
 const INLINE_MNT_DATA_PATH_REGEX_GLOBAL = /\b\/mnt\/data\/[^\s)]+/gi;
 const FILE_RESPONSE_META_LINE_REGEX = /^(te he generado|he generado|archivo generado|archivo listo|haz clic|click|descargar (pdf|archivo)|download (pdf|file)|si necesitas que incluya|if you need me to include)/i;
+const CLARITY_QUESTIONS_BLOCK_REGEX = /\[CLARITY_QUESTIONS\]([\s\S]*?)\[\/CLARITY_QUESTIONS\]/i;
+const CLARITY_QUESTION_PREFIX_REGEX = /^([-*]|\d+[.)]|[a-zA-Z][.)])\s+/;
+
+type ClarityQuestionParseResult = {
+  question: string;
+  options: string[];
+  strippedContent: string;
+};
+
+type ProjectAuditWizardStep = {
+  question: string;
+  kind: 'text' | 'options';
+  placeholder?: string;
+  optional?: boolean;
+  options?: string[];
+};
+
+const PROJECT_AUDIT_OTHER_OPTION = 'Otra (escribir)';
+
+const PROJECT_AUDIT_WIZARD_STEPS: ProjectAuditWizardStep[] = [
+  {
+    question: 'Sube tu path o URL del proyecto (opcional).',
+    kind: 'text',
+    optional: true,
+    placeholder: 'Ejemplo: C:/mi-proyecto o https://github.com/org/repo',
+  },
+  {
+    question: 'Que quieres que priorice en esta auditoria?',
+    kind: 'options',
+    options: [
+      'Arquitectura y estructura del proyecto',
+      'Errores, deuda tecnica y riesgos',
+      'Calidad del codigo y buenas practicas',
+      PROJECT_AUDIT_OTHER_OPTION,
+    ],
+  },
+  {
+    question: 'Que stack principal usa tu proyecto?',
+    kind: 'options',
+    options: [
+      'Frontend (React/Vite/TS)',
+      'Backend (PHP/Symfony/Node)',
+      'Fullstack (frontend + backend)',
+      PROJECT_AUDIT_OTHER_OPTION,
+    ],
+  },
+  {
+    question: 'Que tan profundo quieres el analisis?',
+    kind: 'options',
+    options: [
+      'Rapido (snapshot general)',
+      'Intermedio (riesgos + mejoras)',
+      'Profundo (auditoria completa)',
+      PROJECT_AUDIT_OTHER_OPTION,
+    ],
+  },
+  {
+    question: 'Cual es el resultado esperado?',
+    kind: 'options',
+    options: [
+      'Resumen ejecutivo claro',
+      'Plan de accion priorizado',
+      'Checklist tecnico para ejecutar',
+      PROJECT_AUDIT_OTHER_OPTION,
+    ],
+  },
+];
+
+const normalizeClarityQuestionLine = (line: string): string => {
+  return String(line || '')
+    .trim()
+    .replace(CLARITY_QUESTION_PREFIX_REGEX, '')
+    .trim();
+};
+
+const isQuestionLikeLine = (line: string): boolean => {
+  const normalized = normalizeClarityQuestionLine(line).toLowerCase();
+  if (!normalized) return false;
+  return normalized.includes('?')
+    || normalized.startsWith('¿')
+    || /^(what|why|how|which|where|when|who|do|does|is|are|can|could|would|should|de\s+donde|como|cu[aá]l|cu[aá]les|qu[eé]|por\s+qu[eé]|tienes|hay)\b/i.test(normalized);
+};
+
+const parseClarityQuestionsFromContent = (content: string): ClarityQuestionParseResult => {
+  const raw = String(content || '').trim();
+  if (!raw) return { question: '', options: [], strippedContent: '' };
+
+  const blockMatch = raw.match(CLARITY_QUESTIONS_BLOCK_REGEX);
+  if (!blockMatch?.[1]) {
+    return { question: '', options: [], strippedContent: raw };
+  }
+
+  const lines = blockMatch[1]
+    .split(/\r?\n/)
+    .map(normalizeClarityQuestionLine)
+    .filter(Boolean)
+    .slice(0, 12);
+
+  if (lines.length === 0) {
+    return {
+      question: '',
+      options: [],
+      strippedContent: raw
+        .replace(CLARITY_QUESTIONS_BLOCK_REGEX, '')
+        .replace(/\n{3,}/g, '\n\n')
+        .trim(),
+    };
+  }
+
+  const questionLine = lines.find((line) => isQuestionLikeLine(line)) || lines[0];
+  const question = String(questionLine || '').trim();
+  const options = Array.from(new Set(
+    lines
+      .filter((line) => line !== question)
+      .filter((line) => !isQuestionLikeLine(line))
+      .map((line) => line.trim())
+      .filter(Boolean)
+  )).slice(0, 5);
+
+  return {
+    question,
+    options,
+    strippedContent: raw
+      .replace(CLARITY_QUESTIONS_BLOCK_REGEX, '')
+      .replace(/\n{3,}/g, '\n\n')
+      .trim(),
+  };
+};
 
 const inferRequestedFileFormat = (prompt: string): GeneratedFileFormat | null => {
   const text = String(prompt || '').toLowerCase();
@@ -282,6 +415,7 @@ const sameObjectId = (left: string | number, right: string | number): boolean =>
 };
 
 const selectedModelFromSkills = (config: FablabChatRuntimeConfig, skills: SkillState): string => {
+  if (skills.projectAudit) return config.selectedProjectAuditModelId || config.selectedTextModelId || config.selectedSearchModelId || config.selectedModel || '';
   if (skills.image && config.selectedImageModelId) return config.selectedImageModelId;
   if (skills.other && config.selectedOtherModelId) return config.selectedOtherModelId;
   if (skills.audioSynthesis && config.selectedSpeechSynthesisModelId) return config.selectedSpeechSynthesisModelId;
@@ -710,6 +844,20 @@ const FablabChatView: React.FC = () => {
   const [roleResetAt, setRoleResetAt] = useState('');
   const [systemInstruction, setSystemInstruction] = useState('');
   const [showInstructionEditor, setShowInstructionEditor] = useState(false);
+  const [skillsMenuOpen, setSkillsMenuOpen] = useState(false);
+  const [projectAuditWizardVisible, setProjectAuditWizardVisible] = useState(false);
+  const [projectAuditIntakeCompleted, setProjectAuditIntakeCompleted] = useState(false);
+  const [projectAuditFollowUp, setProjectAuditFollowUp] = useState<{ question: string; options: string[] } | null>(null);
+  const [projectAuditFollowUpVisible, setProjectAuditFollowUpVisible] = useState(false);
+  const [projectAuditFollowUpDraft, setProjectAuditFollowUpDraft] = useState('');
+  const [projectAuditFollowUpSelection, setProjectAuditFollowUpSelection] = useState('');
+  const [projectAuditWizardStepIndex, setProjectAuditWizardStepIndex] = useState(0);
+  const [projectAuditWizardAnswers, setProjectAuditWizardAnswers] = useState<string[]>(
+    () => PROJECT_AUDIT_WIZARD_STEPS.map(() => '')
+  );
+  const [projectAuditWizardSelections, setProjectAuditWizardSelections] = useState<string[]>(
+    () => PROJECT_AUDIT_WIZARD_STEPS.map(() => '')
+  );
 
   const scrollerRef = useRef<HTMLDivElement | null>(null);
 
@@ -719,6 +867,29 @@ const FablabChatView: React.FC = () => {
     () => selectedContextSources.map((item) => item.id),
     [selectedContextSources]
   );
+
+  const projectAuditTotalSteps = PROJECT_AUDIT_WIZARD_STEPS.length;
+  const projectAuditCurrentStep = PROJECT_AUDIT_WIZARD_STEPS[projectAuditWizardStepIndex];
+  const projectAuditCurrentAnswer = String(projectAuditWizardAnswers[projectAuditWizardStepIndex] || '');
+  const projectAuditCurrentSelection = String(projectAuditWizardSelections[projectAuditWizardStepIndex] || '');
+  const projectAuditCurrentNeedsCustomInput = projectAuditCurrentStep?.kind === 'options'
+    && projectAuditCurrentSelection === PROJECT_AUDIT_OTHER_OPTION;
+
+  const projectAuditCanGoNext = useMemo(() => {
+    if (!skills.projectAudit) return false;
+    const step = PROJECT_AUDIT_WIZARD_STEPS[projectAuditWizardStepIndex];
+    if (!step) return false;
+    if (step.optional) return true;
+    return Boolean(String(projectAuditWizardAnswers[projectAuditWizardStepIndex] || '').trim());
+  }, [projectAuditWizardAnswers, projectAuditWizardStepIndex, skills.projectAudit]);
+
+  const projectAuditWizardComplete = useMemo(() => {
+    if (!skills.projectAudit) return false;
+    return PROJECT_AUDIT_WIZARD_STEPS.every((step, index) => {
+      if (step.optional) return true;
+      return Boolean(String(projectAuditWizardAnswers[index] || '').trim());
+    });
+  }, [projectAuditWizardAnswers, skills.projectAudit]);
 
   const renderedMessages = useMemo(() => {
     return messages.map((message) => {
@@ -862,6 +1033,43 @@ const FablabChatView: React.FC = () => {
   }, [sourceMode, selectedFolderId, searchTerm, t?.fablabChat?.errors?.loadSources]);
 
   useEffect(() => {
+    if (!skills.projectAudit) {
+      setProjectAuditWizardVisible(false);
+      setProjectAuditIntakeCompleted(false);
+      setProjectAuditFollowUp(null);
+      setProjectAuditFollowUpVisible(false);
+      setProjectAuditFollowUpDraft('');
+      setProjectAuditFollowUpSelection('');
+      setProjectAuditWizardStepIndex(0);
+      setProjectAuditWizardAnswers(PROJECT_AUDIT_WIZARD_STEPS.map(() => ''));
+      setProjectAuditWizardSelections(PROJECT_AUDIT_WIZARD_STEPS.map(() => ''));
+      return;
+    }
+
+    setProjectAuditWizardVisible(true);
+  }, [skills.projectAudit]);
+
+  useEffect(() => {
+    if (!statusText) return;
+    const timeoutId = window.setTimeout(() => {
+      setStatusText('');
+    }, 3200);
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [statusText]);
+
+  useEffect(() => {
+    if (!errorText) return;
+    const timeoutId = window.setTimeout(() => {
+      setErrorText('');
+    }, 4800);
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [errorText]);
+
+  useEffect(() => {
     const scroller = scrollerRef.current;
     if (!scroller) return;
     scroller.scrollTo({ top: scroller.scrollHeight, behavior: 'smooth' });
@@ -872,6 +1080,14 @@ const FablabChatView: React.FC = () => {
       ...prev,
       [key]: !prev[key],
     }));
+  };
+
+  const toggleProjectAuditSkill = () => {
+    setSkills((prev) => ({
+      ...prev,
+      projectAudit: !prev.projectAudit,
+    }));
+    setSkillsMenuOpen(false);
   };
 
   const isContextSelected = (source: ObjectItem): boolean => {
@@ -954,6 +1170,10 @@ const FablabChatView: React.FC = () => {
 
     if (skills.summarize) blocks.push(
       'SUMMARIZE MODE: Always begin with a ≤3-sentence executive summary (TL;DR). Then provide structured details. End with key takeaways or action points if relevant.'
+    );
+
+    if (skills.projectAudit) blocks.push(
+      'PROJECT AUDIT MODE: You are a senior software project auditor. Produce the audit in this exact order with concise and concrete content: 1) Project structure snapshot (main folders + key files), 2) Tech stack and architecture boundaries (frontend/backend/database/infra), 3) Config and environment map (.env, .env.example, docker/env files, config secrets), 4) Risks and technical debt (with impact), 5) Next 5 concrete checks or actions. Treat [PROJECT_AUDIT_INTAKE] as primary context from the user. Avoid chained clarification rounds by default; first analyze with available context and provide a strong summary. Only if absolutely blocked, ask one short plain-text follow-up question.'
     );
 
     if (skills.image) blocks.push(
@@ -1101,6 +1321,10 @@ const FablabChatView: React.FC = () => {
     if (event.key === 'Enter' && !event.shiftKey) {
       event.preventDefault();
       if (!isSending) {
+        if (skills.projectAudit && projectAuditWizardVisible) {
+          sendProjectAuditWizardPrompt();
+          return;
+        }
         void sendMessage();
       }
     }
@@ -1108,6 +1332,352 @@ const FablabChatView: React.FC = () => {
 
   const removeContextSource = (sourceId: string | number) => {
     setSelectedContextSources((prev) => prev.filter((item) => !sameObjectId(item.id, sourceId)));
+  };
+
+  const updateProjectAuditAnswerAt = (index: number, value: string) => {
+    setProjectAuditWizardAnswers((prev) => {
+      const next = [...prev];
+      next[index] = value;
+      return next;
+    });
+  };
+
+  const updateProjectAuditSelectionAt = (index: number, value: string) => {
+    setProjectAuditWizardSelections((prev) => {
+      const next = [...prev];
+      next[index] = value;
+      return next;
+    });
+  };
+
+  const goToProjectAuditStep = (index: number) => {
+    const clamped = Math.max(0, Math.min(projectAuditTotalSteps - 1, index));
+    setProjectAuditWizardStepIndex(clamped);
+  };
+
+  const handleProjectAuditOptionSelect = (option: string) => {
+    const currentIndex = projectAuditWizardStepIndex;
+    if (PROJECT_AUDIT_WIZARD_STEPS[currentIndex]?.kind !== 'options') return;
+
+    const normalized = String(option || '').trim();
+    updateProjectAuditSelectionAt(currentIndex, normalized);
+
+    if (normalized === PROJECT_AUDIT_OTHER_OPTION) {
+      if (!String(projectAuditWizardAnswers[currentIndex] || '').trim()) {
+        updateProjectAuditAnswerAt(currentIndex, '');
+      }
+      return;
+    }
+
+    updateProjectAuditAnswerAt(currentIndex, normalized);
+    if (currentIndex < projectAuditTotalSteps - 1) {
+      goToProjectAuditStep(currentIndex + 1);
+    }
+  };
+
+  const buildProjectAuditPrompt = (freeText: string): string => {
+    const stepLines = PROJECT_AUDIT_WIZARD_STEPS.map((step, index) => {
+      const answer = String(projectAuditWizardAnswers[index] || '').trim();
+      const safeAnswer = answer || (step.optional ? 'No especificado por el usuario.' : 'Sin respuesta.');
+      return `${index + 1}. ${step.question}\nRespuesta: ${safeAnswer}`;
+    }).join('\n\n');
+
+    const additionalNotes = String(freeText || '').trim();
+
+    return [
+      '[PROJECT_AUDIT_INTAKE]',
+      'Usa este contexto inicial para auditar el proyecto en un unico flujo.',
+      '',
+      stepLines,
+      additionalNotes ? `\n[NOTAS_ADICIONALES_DEL_USUARIO]\n${additionalNotes}` : '',
+      '\nCon esta informacion, analiza y entrega un resumen ejecutivo; solo pide mas contexto si es estrictamente necesario.',
+    ]
+      .filter(Boolean)
+      .join('\n');
+  };
+
+  const sendProjectAuditWizardPrompt = () => {
+    if (!projectAuditWizardComplete) {
+      setErrorText('Completa las 5 preguntas del auditor antes de enviar.');
+      return;
+    }
+
+    const mergedPrompt = buildProjectAuditPrompt(input);
+    setProjectAuditIntakeCompleted(true);
+    setProjectAuditWizardVisible(false);
+    setProjectAuditFollowUp(null);
+    setProjectAuditFollowUpVisible(false);
+    setProjectAuditFollowUpDraft('');
+    setProjectAuditFollowUpSelection('');
+    setInput('');
+    void sendMessage(mergedPrompt);
+  };
+
+  const sendProjectAuditFollowUpAnswer = () => {
+    if (!projectAuditFollowUp?.question) return;
+
+    const answer = String(projectAuditFollowUpDraft || '').trim();
+    if (!answer) {
+      setErrorText('Escribe o selecciona una respuesta para continuar.');
+      return;
+    }
+
+    const prompt = [
+      '[AUDIT_FOLLOWUP_ANSWER]',
+      `Pregunta: ${projectAuditFollowUp.question}`,
+      `Respuesta: ${answer}`,
+      '',
+      'Continua con el analisis y solo haz otra pregunta si es estrictamente necesaria.',
+    ].join('\n');
+
+    setProjectAuditFollowUpVisible(false);
+    setProjectAuditFollowUpDraft('');
+    setProjectAuditFollowUpSelection('');
+    setInput('');
+    void sendMessage(prompt);
+  };
+
+  const skillItems: Array<{ key: keyof SkillState; label: string; icon: React.ReactNode }> = [
+    { key: 'search', label: t?.fablabChat?.skills?.search || 'Analyze', icon: <Search size={12} /> },
+    { key: 'summarize', label: t?.fablabChat?.skills?.summarize || 'Summary', icon: <MessageSquare size={12} /> },
+    { key: 'projectAudit', label: (t as any)?.fablabChat?.skills?.projectAudit || 'Project auditor', icon: <ShieldCheck size={12} /> },
+    { key: 'image', label: t?.fablabChat?.skills?.image || 'Image', icon: <ImageDown size={12} /> },
+    { key: 'other', label: (t as any)?.fablabChat?.skills?.video || 'Video/Other', icon: <Video size={12} /> },
+    { key: 'audioSynthesis', label: (t as any)?.fablabChat?.skills?.speechSynthesis || 'Speech synth', icon: <Volume2 size={12} /> },
+    { key: 'audioTranscription', label: (t as any)?.fablabChat?.skills?.speechTranscription || 'Speech transcript', icon: <Mic size={12} /> },
+    { key: 'promptOptimize', label: (t as any)?.fablabChat?.skills?.promptOptimize || 'Prompt optimizer', icon: <Sparkles size={12} /> },
+    { key: 'roleOptimize', label: (t as any)?.fablabChat?.skills?.roleOptimize || 'Role optimizer', icon: <Wand2 size={12} /> },
+  ];
+
+  const renderProjectAuditWizard = () => {
+    if (!skills.projectAudit) return null;
+
+    const hasFollowUpQuestion = Boolean(String(projectAuditFollowUp?.question || '').trim());
+    const showingFollowUp = hasFollowUpQuestion && projectAuditFollowUpVisible;
+    const showingIntake = !showingFollowUp && projectAuditWizardVisible;
+
+    if (!showingFollowUp && !showingIntake) {
+      return (
+        <div className="mt-2 flex justify-end">
+          <button
+            type="button"
+            onClick={() => {
+              if (hasFollowUpQuestion) {
+                setProjectAuditFollowUpVisible(true);
+                return;
+              }
+              setProjectAuditWizardVisible(true);
+            }}
+            className="rounded-full border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:border-slate-400 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
+          >
+            {hasFollowUpQuestion
+              ? 'Mostrar preguntas de auditoria'
+              : (projectAuditIntakeCompleted ? 'Reabrir intake de auditoria' : 'Mostrar intake de auditoria')}
+          </button>
+        </div>
+      );
+    }
+
+    if (showingFollowUp && projectAuditFollowUp) {
+      return (
+        <div className="mt-2 rounded-2xl border border-slate-200/80 bg-slate-950/95 p-3 text-slate-100 dark:border-slate-700">
+          <div className="mb-2 flex items-center justify-between">
+            <p className="text-sm font-semibold">{projectAuditFollowUp.question}</p>
+            <div className="inline-flex items-center gap-2 text-xs text-slate-300">
+              <span>Follow-up</span>
+              <button
+                type="button"
+                onClick={() => setProjectAuditFollowUpVisible(false)}
+                className="rounded-md border border-slate-700 p-1"
+                aria-label="Cerrar pestaña de preguntas"
+              >
+                <X size={14} />
+              </button>
+            </div>
+          </div>
+
+          {projectAuditFollowUp.options.length > 0 && (
+            <div className="mb-2 grid gap-2">
+              {projectAuditFollowUp.options.map((option, index) => {
+                const selected = projectAuditFollowUpSelection === option;
+                return (
+                  <button
+                    key={`audit-followup-option-${index}`}
+                    type="button"
+                    onClick={() => {
+                      setProjectAuditFollowUpSelection(option);
+                      if (option === PROJECT_AUDIT_OTHER_OPTION) {
+                        setProjectAuditFollowUpDraft('');
+                        return;
+                      }
+                      setProjectAuditFollowUpDraft(option);
+                    }}
+                    className={`flex items-center justify-between rounded-xl border px-3 py-2 text-left text-sm transition ${
+                      selected
+                        ? 'border-cyan-400 bg-cyan-500/20 text-cyan-100'
+                        : 'border-slate-700 bg-slate-900/70 text-slate-200 hover:border-slate-500'
+                    }`}
+                  >
+                    <span>{option}</span>
+                    <ChevronRight size={14} className="opacity-70" />
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          <input
+            value={projectAuditFollowUpDraft}
+            onChange={(event) => setProjectAuditFollowUpDraft(event.target.value)}
+            placeholder="Escribe la respuesta para esta pregunta..."
+            className="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100 outline-none focus:border-cyan-500"
+          />
+
+          <div className="mt-2 flex justify-end">
+            <button
+              type="button"
+              onClick={sendProjectAuditFollowUpAnswer}
+              disabled={isSending || !projectAuditFollowUpDraft.trim()}
+              className="inline-flex items-center gap-1 rounded-lg bg-cyan-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-cyan-700 disabled:opacity-50"
+            >
+              <Send size={12} />
+              Enviar respuesta
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="mt-2 rounded-2xl border border-slate-200/80 bg-slate-950/95 p-3 text-slate-100 dark:border-slate-700">
+        <div className="mb-2 flex items-center justify-between">
+          <p className="text-sm font-semibold">{projectAuditCurrentStep?.question}</p>
+          <div className="inline-flex items-center gap-2 text-xs text-slate-300">
+            <button
+              type="button"
+              onClick={() => setProjectAuditWizardVisible(false)}
+              className="rounded-md border border-slate-700 p-1"
+              aria-label="Cerrar pestaña de intake"
+            >
+              <X size={14} />
+            </button>
+            <button
+              type="button"
+              onClick={() => goToProjectAuditStep(projectAuditWizardStepIndex - 1)}
+              disabled={projectAuditWizardStepIndex === 0}
+              className="rounded-md border border-slate-700 p-1 disabled:opacity-40"
+            >
+              <ChevronLeft size={14} />
+            </button>
+            <span>{`${projectAuditWizardStepIndex + 1} of 5`}</span>
+            <button
+              type="button"
+              onClick={() => goToProjectAuditStep(projectAuditWizardStepIndex + 1)}
+              disabled={projectAuditWizardStepIndex >= projectAuditTotalSteps - 1 || !projectAuditCanGoNext}
+              className="rounded-md border border-slate-700 p-1 disabled:opacity-40"
+            >
+              <ChevronRight size={14} />
+            </button>
+          </div>
+        </div>
+
+        {projectAuditCurrentStep?.kind === 'text' && (
+          <textarea
+            value={projectAuditCurrentAnswer}
+            onChange={(event) => updateProjectAuditAnswerAt(projectAuditWizardStepIndex, event.target.value)}
+            rows={2}
+            placeholder={projectAuditCurrentStep.placeholder || 'Escribe aqui...'}
+            className="w-full resize-none rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100 outline-none focus:border-cyan-500"
+          />
+        )}
+
+        {projectAuditCurrentStep?.kind === 'options' && (
+          <div className="space-y-2">
+            <div className="grid gap-2">
+              {(projectAuditCurrentStep.options || []).map((option, index) => {
+                const selected = projectAuditCurrentSelection === option;
+                return (
+                  <button
+                    key={`audit-step-${projectAuditWizardStepIndex}-option-${index}`}
+                    type="button"
+                    onClick={() => handleProjectAuditOptionSelect(option)}
+                    className={`flex items-center justify-between rounded-xl border px-3 py-2 text-left text-sm transition ${
+                      selected
+                        ? 'border-cyan-400 bg-cyan-500/20 text-cyan-100'
+                        : 'border-slate-700 bg-slate-900/70 text-slate-200 hover:border-slate-500'
+                    }`}
+                  >
+                    <span>{option}</span>
+                    <ChevronRight size={14} className="opacity-70" />
+                  </button>
+                );
+              })}
+            </div>
+
+            {projectAuditCurrentNeedsCustomInput && (
+              <input
+                value={projectAuditCurrentAnswer}
+                onChange={(event) => updateProjectAuditAnswerAt(projectAuditWizardStepIndex, event.target.value)}
+                placeholder="Escribe tu respuesta personalizada..."
+                className="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100 outline-none focus:border-cyan-500"
+              />
+            )}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const renderSkillsDropdown = () => {
+    return (
+      <div className="relative">
+        <button
+          type="button"
+          onClick={() => setSkillsMenuOpen((prev) => !prev)}
+          className="inline-flex items-center gap-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-700 transition-colors hover:border-slate-400 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200"
+        >
+          <Plus size={14} className={`transition-transform ${skillsMenuOpen ? 'rotate-45' : 'rotate-0'}`} />
+          <span>Skills</span>
+        </button>
+
+        {skillsMenuOpen && (
+          <div className="absolute bottom-full left-0 z-20 mb-2 w-72 rounded-xl border border-slate-200 bg-white p-2 shadow-xl dark:border-slate-700 dark:bg-slate-900">
+            <p className="px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+              Habilita modos
+            </p>
+            <div className="space-y-1">
+              {skillItems.map((item) => {
+                const active = skills[item.key];
+                return (
+                  <button
+                    key={item.key}
+                    type="button"
+                    onClick={() => {
+                      if (item.key === 'projectAudit') {
+                        toggleProjectAuditSkill();
+                        return;
+                      }
+                      toggleSkill(item.key);
+                    }}
+                    className={`flex w-full items-center justify-between rounded-lg border px-2.5 py-2 text-xs transition ${
+                      active
+                        ? 'border-cyan-300 bg-cyan-50 text-cyan-800 dark:border-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-200'
+                        : 'border-slate-200 text-slate-700 hover:border-slate-300 dark:border-slate-700 dark:text-slate-300 dark:hover:border-slate-500'
+                    }`}
+                  >
+                    <span className="inline-flex items-center gap-1.5">
+                      {item.icon}
+                      {item.label}
+                    </span>
+                    <span className="text-[10px] font-semibold uppercase">{active ? 'On' : 'Off'}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </div>
+    );
   };
 
   const imageExtensionFromMime = (mimeType: string): string => {
@@ -1178,8 +1748,14 @@ const FablabChatView: React.FC = () => {
     }
   };
 
-  const sendMessage = async () => {
-    const text = input.trim();
+  const sendMessage = async (overrideText?: string) => {
+    const baseText = String(overrideText ?? input).trim();
+
+    const shouldBuildIntakePrompt = skills.projectAudit && projectAuditWizardVisible && !overrideText;
+    const text = shouldBuildIntakePrompt
+      ? buildProjectAuditPrompt(baseText)
+      : baseText;
+
     if (!text) return;
 
     const requestedFileFormat = inferRequestedFileFormat(text);
@@ -1208,7 +1784,6 @@ const FablabChatView: React.FC = () => {
 
     try {
       const { contextText, attachments } = await buildContextPayload();
-
       let finalUserText = text;
 
       if (contextText) {
@@ -1312,6 +1887,35 @@ const FablabChatView: React.FC = () => {
         await requestChatFallback();
       }
 
+      if (skills.projectAudit) {
+        const parsed = parseClarityQuestionsFromContent(assistantContent);
+        const followUpQuestion = String(parsed.question || '').trim();
+        const followUpOptions = Array.isArray(parsed.options) ? parsed.options.slice(0, 5) : [];
+        const stripped = String(parsed.strippedContent || '').trim();
+
+        if (followUpQuestion) {
+          setProjectAuditFollowUp({
+            question: followUpQuestion,
+            options: followUpOptions,
+          });
+          setProjectAuditFollowUpVisible(true);
+          setProjectAuditFollowUpDraft('');
+          setProjectAuditFollowUpSelection('');
+          setProjectAuditWizardVisible(false);
+        } else {
+          setProjectAuditFollowUp(null);
+          setProjectAuditFollowUpVisible(false);
+          setProjectAuditFollowUpDraft('');
+          setProjectAuditFollowUpSelection('');
+        }
+
+        if (stripped) {
+          assistantContent = stripped;
+        } else if (followUpQuestion) {
+          assistantContent = 'Necesito una aclaracion para continuar. Revisa la pestaña temporal de preguntas de auditoria.';
+        }
+      }
+
       // Auto-package assistant output as a file when the user explicitly asks for one.
       if (requestedFileFormat) {
         const hasImageOutput = Boolean(extractImageFromContent(assistantContent));
@@ -1333,6 +1937,7 @@ const FablabChatView: React.FC = () => {
         role: 'assistant',
         content: assistantContent,
         createdAt: toIsoNow(),
+        skills: { ...skills },
       };
 
       const finalMessages = [...nextMessages, assistantMessage];
@@ -1367,7 +1972,8 @@ const FablabChatView: React.FC = () => {
       });
       await saveFablabChatStats(nextStats);
 
-      setStatusText(t?.fablabChat?.status?.sent || 'Message sent.');
+      const sentText = t?.fablabChat?.status?.sent || 'Message sent.';
+      setStatusText(sentText);
     } catch (error: any) {
       setErrorText(error?.message || (t?.fablabChat?.errors?.sendFailed || 'Could not send message.'));
     } finally {
@@ -1384,6 +1990,15 @@ const FablabChatView: React.FC = () => {
     try {
       setErrorText('');
       setMessages([]);
+      setProjectAuditWizardVisible(skills.projectAudit);
+      setProjectAuditIntakeCompleted(false);
+      setProjectAuditFollowUp(null);
+      setProjectAuditFollowUpVisible(false);
+      setProjectAuditFollowUpDraft('');
+      setProjectAuditFollowUpSelection('');
+      setProjectAuditWizardStepIndex(0);
+      setProjectAuditWizardAnswers(PROJECT_AUDIT_WIZARD_STEPS.map(() => ''));
+      setProjectAuditWizardSelections(PROJECT_AUDIT_WIZARD_STEPS.map(() => ''));
       await saveFablabChatConversation(emptyConversation);
       setStatusText(t?.fablabChat?.status?.resetConversation || 'Conversation reset.');
     } catch (error: any) {
@@ -1409,6 +2024,15 @@ const FablabChatView: React.FC = () => {
       setErrorText('');
       setMessages([]);
       setStats(emptyStats);
+      setProjectAuditWizardVisible(skills.projectAudit);
+      setProjectAuditIntakeCompleted(false);
+      setProjectAuditFollowUp(null);
+      setProjectAuditFollowUpVisible(false);
+      setProjectAuditFollowUpDraft('');
+      setProjectAuditFollowUpSelection('');
+      setProjectAuditWizardStepIndex(0);
+      setProjectAuditWizardAnswers(PROJECT_AUDIT_WIZARD_STEPS.map(() => ''));
+      setProjectAuditWizardSelections(PROJECT_AUDIT_WIZARD_STEPS.map(() => ''));
       setSelectedContextSources([]);
       setSelectedRoleObject(null);
       setRoleInstruction('');
@@ -1471,12 +2095,29 @@ const FablabChatView: React.FC = () => {
       <div >
         <div  />
 
-        <div className="fablab-chat-main-wrapper">
-          <header className="fablab-chat-header">
-            <div className="fablab-header-top">
-              <div className="fablab-header-title">
-                <h1 className="fablab-header-title-text">
-                  <Sparkles size={18}  />
+        {(errorText || statusText) && (
+          <div className="pointer-events-none absolute inset-x-0 top-3 z-30 flex justify-center px-4">
+            <div className="w-full max-w-2xl space-y-2">
+              {errorText && (
+                <div className="rounded-xl border border-rose-200 bg-rose-50/95 px-3 py-2 text-sm text-rose-700 shadow-lg dark:border-rose-900/60 dark:bg-rose-900/85 dark:text-rose-200">
+                  {errorText}
+                </div>
+              )}
+              {statusText && (
+                <div className="rounded-xl border border-emerald-200 bg-emerald-50/95 px-3 py-2 text-sm text-emerald-700 shadow-lg dark:border-emerald-900/60 dark:bg-emerald-900/85 dark:text-emerald-200">
+                  {statusText}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        <div className="relative flex min-w-0 flex-1 flex-col">
+          <header className="border-b border-slate-200/70 px-5 py-4 dark:border-slate-700/80">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h1 className="inline-flex items-center gap-2 text-xl font-semibold tracking-tight text-slate-900 dark:text-slate-100">
+                  <Sparkles size={18} className="text-cyan-600 dark:text-cyan-300" />
                   {t?.fablabChat?.title || 'Fablab Chat'}
                 </h1>
                 <p className="fablab-header-subtitle">
@@ -1652,72 +2293,11 @@ const FablabChatView: React.FC = () => {
                     className="fablab-empty-textarea"
                   />
 
-                  <div className="fablab-empty-buttons">
-                    <div className="fablab-skill-buttons">
-                      <button
-                        type="button"
-                        onClick={() => toggleSkill('search')}
-                        className="fablab-skill-btn"
-                      >
-                        <Search size={14} />
-                        <span className="fablab-skill-text">{t?.fablabChat?.skills?.search || 'Analyze'}</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => toggleSkill('summarize')}
-                        className="fablab-skill-btn"
-                      >
-                        <FileText size={14} />
-                        <span className="fablab-skill-text">{t?.fablabChat?.skills?.summarize || 'Summary'}</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => toggleSkill('image')}
-                        className="fablab-skill-btn"
-                      >
-                        <ImageIcon size={14} />
-                        <span className="fablab-skill-text">{t?.fablabChat?.skills?.image || 'Image'}</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => toggleSkill('other')}
-                        className="fablab-skill-btn"
-                      >
-                        <Video size={14} />
-                        <span className="fablab-skill-text">{(t as any)?.fablabChat?.skills?.video || 'Video/Other'}</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => toggleSkill('audioSynthesis')}
-                        className="fablab-skill-btn"
-                      >
-                        <Volume2 size={14} />
-                        <span className="fablab-skill-text">{(t as any)?.fablabChat?.skills?.speechSynthesis || 'Speech synth'}</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => toggleSkill('audioTranscription')}
-                        className="fablab-skill-btn"
-                      >
-                        <Mic size={14} />
-                        <span className="fablab-skill-text">{(t as any)?.fablabChat?.skills?.speechTranscription || 'Speech transcript'}</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => toggleSkill('promptOptimize')}
-                        className="fablab-skill-btn"
-                      >
-                        <Zap size={14} />
-                        <span className="fablab-skill-text">{(t as any)?.fablabChat?.skills?.promptOptimize || 'Prompt optimizer'}</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => toggleSkill('roleOptimize')}
-                        className="fablab-skill-btn"
-                      >
-                        <ShieldCheck size={14} />
-                        <span className="fablab-skill-text">{(t as any)?.fablabChat?.skills?.roleOptimize || 'Role optimizer'}</span>
-                      </button>
+                  {renderProjectAuditWizard()}
+
+                  <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                      {renderSkillsDropdown()}
 
                       <button
                         type="button"
@@ -1749,12 +2329,18 @@ const FablabChatView: React.FC = () => {
 
                     <button
                       type="button"
-                      onClick={sendMessage}
-                      disabled={isSending || !input.trim() || !runtimeSelection}
-                      className="fablab-send-button"
+                      onClick={() => {
+                        if (skills.projectAudit && projectAuditWizardVisible) {
+                          sendProjectAuditWizardPrompt();
+                          return;
+                        }
+                        void sendMessage();
+                      }}
+                      disabled={isSending || !runtimeSelection || (skills.projectAudit && projectAuditWizardVisible ? !projectAuditWizardComplete : !input.trim())}
+                      className="inline-flex items-center gap-1 rounded-xl bg-gradient-to-r from-cyan-600 to-sky-600 px-4 py-2 text-xs font-semibold text-white transition hover:from-cyan-700 hover:to-sky-700 disabled:opacity-50"
                     >
-                      {isSending ? <Loader2 size={14}  /> : <Send size={14} />}
-                      <span>{t?.fablabChat?.actions?.send || 'Send'}</span>
+                      {isSending ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
+                      <span>{skills.projectAudit && projectAuditWizardVisible ? 'Enviar auditoria' : (t?.fablabChat?.actions?.send || 'Send')}</span>
                     </button>
                   </div>
                 </div>
@@ -1887,72 +2473,11 @@ const FablabChatView: React.FC = () => {
                   className="fablab-input-textarea"
                 />
 
-                <div className="fablab-input-buttons">
-                  <div className="fablab-skill-buttons">
-                    <button
-                      type="button"
-                      onClick={() => toggleSkill('search')}
-                      className="fablab-skill-btn"
-                    >
-                      <Search size={14} />
-                      <span className="fablab-skill-text">{t?.fablabChat?.skills?.search || 'Analyze'}</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => toggleSkill('summarize')}
-                      className="fablab-skill-btn"
-                    >
-                      <FileText size={14} />
-                      <span className="fablab-skill-text">{t?.fablabChat?.skills?.summarize || 'Summary'}</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => toggleSkill('image')}
-                      className="fablab-skill-btn"
-                    >
-                      <ImageIcon size={14} />
-                      <span className="fablab-skill-text">{t?.fablabChat?.skills?.image || 'Image'}</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => toggleSkill('other')}
-                      className="fablab-skill-btn"
-                    >
-                      <Video size={14} />
-                      <span className="fablab-skill-text">{(t as any)?.fablabChat?.skills?.video || 'Video/Other'}</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => toggleSkill('audioSynthesis')}
-                      className="fablab-skill-btn"
-                    >
-                      <Volume2 size={14} />
-                      <span className="fablab-skill-text">{(t as any)?.fablabChat?.skills?.speechSynthesis || 'Speech synth'}</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => toggleSkill('audioTranscription')}
-                      className="fablab-skill-btn"
-                    >
-                      <Mic size={14} />
-                      <span className="fablab-skill-text">{(t as any)?.fablabChat?.skills?.speechTranscription || 'Speech transcript'}</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => toggleSkill('promptOptimize')}
-                      className="fablab-skill-btn"
-                    >
-                      <Zap size={14} />
-                      <span className="fablab-skill-text">{(t as any)?.fablabChat?.skills?.promptOptimize || 'Prompt optimizer'}</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => toggleSkill('roleOptimize')}
-                      className="fablab-skill-btn"
-                    >
-                      <ShieldCheck size={14} />
-                      <span className="fablab-skill-text">{(t as any)?.fablabChat?.skills?.roleOptimize || 'Role optimizer'}</span>
-                    </button>
+                {renderProjectAuditWizard()}
+
+                <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
+                    {renderSkillsDropdown()}
 
                     <button
                       type="button"
@@ -1984,32 +2509,24 @@ const FablabChatView: React.FC = () => {
 
                   <button
                     type="button"
-                    onClick={sendMessage}
-                    disabled={isSending || !input.trim() || !runtimeSelection}
-                    className="fablab-send-button"
+                    onClick={() => {
+                      if (skills.projectAudit && projectAuditWizardVisible) {
+                        sendProjectAuditWizardPrompt();
+                        return;
+                      }
+                      void sendMessage();
+                    }}
+                    disabled={isSending || !runtimeSelection || (skills.projectAudit && projectAuditWizardVisible ? !projectAuditWizardComplete : !input.trim())}
+                    className="inline-flex items-center gap-1 rounded-xl bg-gradient-to-r from-cyan-600 to-sky-600 px-4 py-2 text-xs font-semibold text-white transition hover:from-cyan-700 hover:to-sky-700 disabled:opacity-50"
                   >
-                    {isSending ? <Loader2 size={14}  /> : <Send size={14} />}
-                    <span>{t?.fablabChat?.actions?.send || 'Send'}</span>
+                    {isSending ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
+                    <span>{skills.projectAudit && projectAuditWizardVisible ? 'Enviar auditoria' : (t?.fablabChat?.actions?.send || 'Send')}</span>
                   </button>
                 </div>
               </div>
             </>
           )}
 
-          {(errorText || statusText) && (
-            <div className="fablab-toasts">
-              {errorText && (
-                <div className="fablab-toast fablab-toast-error">
-                  {errorText}
-                </div>
-              )}
-              {statusText && (
-                <div className="fablab-toast fablab-toast-status">
-                  {statusText}
-                </div>
-              )}
-            </div>
-          )}
         </div>
 
         {sourceMode && (

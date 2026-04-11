@@ -55,6 +55,19 @@ export interface Translations {
       tools: string;
     };
   };
+  // ────────────────────────────────────────────────────────────────────────────────
+  // Backend Linker (atomic module)
+  // ────────────────────────────────────────────────────────────────────────────────
+  backendLinker: {
+    openButton: string;
+    title: string;
+    subtitle: string;
+    selectLabel: string;
+    selectPlaceholder: string;
+    noOptions: string;
+    confirm: string;
+    connectedToBackend: string;
+  };
   projectBuilder: {
     title: string;
     subtitle: string;

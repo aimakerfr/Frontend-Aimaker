@@ -9,6 +9,7 @@ import {
 import DeployActionButton from './components/DeployActionButton';
 import { getMakerPath, type MakerPath } from './services/makerPath.service';
 import { DatabaseManager } from '@apps/fablab/modules/database-manager';
+import { BackendLinker } from '@apps/fablab/modules/backend-linker';
 
 type Props = {
   makerPathId: number | null | undefined;
@@ -33,18 +34,25 @@ const ApplicationDeploymentFullPage: React.FC<Props> = ({ makerPathId, DatabaseC
     const s = (status || '').toLowerCase();
     let label = s || '-';
     let classes = 'inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200';
-    let Icon = null;
+    let Icon: React.ReactNode = null;
 
     if (s === 'deployed_successful') {
       classes = 'inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-200';
       label = t?.projectFlow?.statusDeployedSuccessful || 'Deployed';
+      // Subtle success pulse to indicate recent completion
+      classes += ' animate-pulse';
     } else if (s === 'deployment_in_progress') {
       classes = 'inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-200';
       label = t?.projectFlow?.statusDeploymentInProgress || 'In progress';
       Icon = <Loader2 className="w-3 h-3 animate-spin mr-1" />;
     } else if (s === 'waiting_files') {
-      classes = 'inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-200';
+      classes = 'inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-200 animate-pulse';
       label = t?.projectFlow?.statusWaitingFiles || 'Waiting files';
+    } else if (s === 'files_uploaded') {
+      classes = 'inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-200';
+      label = (t as any)?.projectFlow?.statusFilesUploaded || 'Files uploaded';
+      // Gentle bounce to indicate ready-to-deploy state
+      Icon = <Rocket className="w-3 h-3 mr-1 animate-bounce" />;
     } else if (s === 'deployment_failed') {
       classes = 'inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-200';
       label = t?.projectFlow?.statusDeploymentFailed || 'Failed';
@@ -349,6 +357,15 @@ const ApplicationDeploymentFullPage: React.FC<Props> = ({ makerPathId, DatabaseC
                                 className="px-3 py-1.5 text-xs"
                               />
                             )
+                          )}
+                          {makerPathId && (
+                            <BackendLinker
+                              makerPathId={makerPathId as number}
+                              deploymentId={d.id}
+                              currentAppName={(d as any).title || d.app_name || (d as any).appName}
+                              onLinked={() => void refresh()}
+                              className="px-3 py-1.5 text-xs"
+                            />
                           )}
                         </div>
                       </td>
