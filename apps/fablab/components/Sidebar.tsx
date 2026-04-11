@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { Server, ExternalLink, LogOut, Boxes, Package, Rocket, Blocks, Hammer, MessageSquare } from 'lucide-react';
 import { useLanguage } from '../language/useLanguage';
 import {
+  SIDEBAR_PATH_BY_KEY,
   loadSidebarOrder,
   loadSidebarOrderFromDatabase,
   normalizeSidebarOrder,
@@ -38,20 +39,20 @@ const Sidebar: React.FC<SidebarProps> = ({ onLogout }) => {
   }, []);
 
   const menuItems: { key: SidebarSectionKey; path: string; label: string; icon: React.ReactNode }[] = [
-    { key: 'chat', path: '/dashboard/chat', label: (t.sidebar as any)?.fablabChat || 'Fablab Chat', icon: <MessageSquare size={20} /> },
-    { key: 'objectsLibrary', path: '/dashboard/objects-library', label: t.sidebar.objectsLibrary, icon: <Boxes size={20} /> },
-    { key: 'projectBuilder', path: '/dashboard/project-builder', label: t.sidebar.projectBuilder, icon: <Hammer size={20} /> },
-    { key: 'assembler', path: '/dashboard/assembler', label: t.sidebar.assembler, icon: <Blocks size={20} /> },
+    { key: 'chat', path: SIDEBAR_PATH_BY_KEY.chat, label: (t.sidebar as any)?.fablabChat || 'Fablab Chat', icon: <MessageSquare size={20} /> },
+    { key: 'objectsLibrary', path: SIDEBAR_PATH_BY_KEY.objectsLibrary, label: t.sidebar.objectsLibrary, icon: <Boxes size={20} /> },
+    { key: 'projectBuilder', path: SIDEBAR_PATH_BY_KEY.projectBuilder, label: t.sidebar.projectBuilder, icon: <Hammer size={20} /> },
+    { key: 'assembler', path: SIDEBAR_PATH_BY_KEY.assembler, label: t.sidebar.assembler, icon: <Blocks size={20} /> },
     // Project Builder section
     { 
       key: 'applications',
-      path: '/dashboard/applications', 
+      path: SIDEBAR_PATH_BY_KEY.applications, 
       label: (t as any)?.applicationsManagement?.title ?? 'Applications Management', 
       icon: <Rocket size={20} /> 
     },
-    { key: 'products', path: '/dashboard/products', label: (t as any).products?.title ?? 'Products', icon: <Package size={20} /> },
-    { key: 'context', path: '/dashboard/context', label: t.sidebar.context, icon: <Server size={20} /> },
-    { key: 'tools', path: '/dashboard/tools', label: t.sidebar.tools, icon: <ExternalLink size={20} /> },
+    { key: 'products', path: SIDEBAR_PATH_BY_KEY.products, label: (t as any).products?.title ?? 'Products', icon: <Package size={20} /> },
+    { key: 'context', path: SIDEBAR_PATH_BY_KEY.context, label: t.sidebar.context, icon: <Server size={20} /> },
+    { key: 'tools', path: SIDEBAR_PATH_BY_KEY.tools, label: t.sidebar.tools, icon: <ExternalLink size={20} /> },
   ];
 
   useEffect(() => {
