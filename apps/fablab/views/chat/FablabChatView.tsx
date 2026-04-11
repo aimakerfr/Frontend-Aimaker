@@ -11,7 +11,6 @@ import {
   Download,
   FolderPlus,
   ImageDown,
-  Image as ImageIcon,
   Loader2,
   MessageSquare,
   Mic,
@@ -27,8 +26,6 @@ import {
   Volume2,
   Wand2,
   X,
-  FileText,
-  Zap,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -102,7 +99,6 @@ const initialSkills: SkillState = {
   roleOptimize: false,
 };
 
-const textFriendlyTypes = ['markdown', 'txt', 'pdf', 'doc', 'docx', 'json'];
 const toIsoNow = () => new Date().toISOString();
 const RAW_DATA_IMAGE_REGEX = /^data:image\/[a-zA-Z0-9.+-]+;base64,/i;
 const MARKDOWN_DATA_IMAGE_REGEX_GLOBAL = /!\[[^\]]*\]\((data:image[^)]+)\)/gi;
@@ -813,7 +809,6 @@ const FablabChatView: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
-  const [libraryLoading, setLibraryLoading] = useState(false);
 
   const [runtimeConfig, setRuntimeConfig] = useState<FablabChatRuntimeConfig | null>(null);
   const [messages, setMessages] = useState<FablabChatMessage[]>([]);
@@ -943,11 +938,6 @@ const FablabChatView: React.FC = () => {
     return runtimeSelection?.modelId || '';
   }, [effectiveConfig?.selectedModel, runtimeConfig?.providerProfiles, runtimeSelection?.modelId]);
 
-  const sourceCandidates = useMemo(() => {
-    if (sourceMode === 'context') return objects;
-    return objects.filter((item) => textFriendlyTypes.includes(getObjectType(item)));
-  }, [objects, sourceMode]);
-
   useEffect(() => {
     let cancelled = false;
 
@@ -994,7 +984,6 @@ const FablabChatView: React.FC = () => {
     let cancelled = false;
 
     const loadLibrary = async () => {
-      setLibraryLoading(true);
       try {
         const [folderData, allObjects] = await Promise.all([
           getObjectFolders(),
@@ -1020,8 +1009,6 @@ const FablabChatView: React.FC = () => {
         if (!cancelled) {
           setErrorText(error?.message || (t?.fablabChat?.errors?.loadSources || 'Could not load object library.'));
         }
-      } finally {
-        if (!cancelled) setLibraryLoading(false);
       }
     };
 
@@ -1088,10 +1075,6 @@ const FablabChatView: React.FC = () => {
       projectAudit: !prev.projectAudit,
     }));
     setSkillsMenuOpen(false);
-  };
-
-  const isContextSelected = (source: ObjectItem): boolean => {
-    return selectedContextSources.some((item) => sameObjectId(item.id, source.id));
   };
 
   const toggleContextSource = (source: ObjectItem) => {
@@ -2092,391 +2075,202 @@ const FablabChatView: React.FC = () => {
 
   return (
     <section className="fablab-chat-container">
-      <div >
-        <div  />
-
+      <div className="fablab-chat-main-wrapper">
         {(errorText || statusText) && (
-          <div className="pointer-events-none absolute inset-x-0 top-3 z-30 flex justify-center px-4">
-            <div className="w-full max-w-2xl space-y-2">
-              {errorText && (
-                <div className="rounded-xl border border-rose-200 bg-rose-50/95 px-3 py-2 text-sm text-rose-700 shadow-lg dark:border-rose-900/60 dark:bg-rose-900/85 dark:text-rose-200">
-                  {errorText}
-                </div>
-              )}
-              {statusText && (
-                <div className="rounded-xl border border-emerald-200 bg-emerald-50/95 px-3 py-2 text-sm text-emerald-700 shadow-lg dark:border-emerald-900/60 dark:bg-emerald-900/85 dark:text-emerald-200">
-                  {statusText}
-                </div>
-              )}
-            </div>
+          <div className="fablab-toasts">
+            {errorText && (
+              <div className="fablab-toast fablab-toast-error">
+                {errorText}
+              </div>
+            )}
+            {statusText && (
+              <div className="fablab-toast fablab-toast-status">
+                {statusText}
+              </div>
+            )}
           </div>
         )}
 
-        <div className="relative flex min-w-0 flex-1 flex-col">
-          <header className="border-b border-slate-200/70 px-5 py-4 dark:border-slate-700/80">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <h1 className="inline-flex items-center gap-2 text-xl font-semibold tracking-tight text-slate-900 dark:text-slate-100">
-                  <Sparkles size={18} className="text-cyan-600 dark:text-cyan-300" />
-                  {t?.fablabChat?.title || 'Fablab Chat'}
-                </h1>
-                <p className="fablab-header-subtitle">
-                  {runtimeSelection
-                    ? `${runtimeSelection.provider} - ${selectedModelLabel || runtimeSelection.modelId}`
-                    : (t?.fablabChat?.runtimeMissing || 'Configure provider and model in Profile to start chatting.')}
-                </p>
-              </div>
-
-              <div className="fablab-header-actions">
-                <button
-                  type="button"
-                  onClick={exportConversation}
-                  disabled={isExporting || messages.length === 0}
-                  className="fablab-header-action-btn"
-                >
-                  {isExporting ? <Loader2 size={14}  /> : <Download size={14} />}
-                  <span className="fablab-header-action-text">{t?.fablabChat?.actions?.export || 'Export'}</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={resetConversation}
-                  disabled={messages.length === 0}
-                  className="fablab-header-action-btn"
-                >
-                  <RotateCcw size={14} />
-                  <span className="fablab-header-action-text">{t?.fablabChat?.actions?.reset || 'Reset'}</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={clearAll}
-                  disabled={messages.length === 0 && stats.totalRequests === 0}
-                  className="fablab-header-action-btn"
-                >
-                  <Trash2 size={14} />
-                  <span className="fablab-header-action-text">{t?.fablabChat?.actions?.delete || 'Delete'}</span>
-                </button>
-              </div>
+        <header className="fablab-chat-header">
+          <div className="fablab-header-top">
+            <div className="fablab-header-title">
+              <h1 className="fablab-header-title-text">
+                <Sparkles size={18} />
+                {t?.fablabChat?.title || 'Fablab Chat'}
+              </h1>
+              <p className="fablab-header-subtitle">
+                {runtimeSelection
+                  ? `${runtimeSelection.provider} - ${selectedModelLabel || runtimeSelection.modelId}`
+                  : (t?.fablabChat?.runtimeMissing || 'Configure provider and model in Profile to start chatting.')}
+              </p>
             </div>
 
-            {!runtimeSelection && (
-              <div className="fablab-header-warning-bubble">
-                <div className="fablab-warning-bubble-icon">
-                  <AlertTriangle size={16} />
-                </div>
-                <div className="fablab-warning-tooltip">
-                  <p className="fablab-warning-tooltip-text">
-                    Configure your API key and model in Profile before starting the chat.
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => navigate('/dashboard/profile')}
-                    className="fablab-warning-tooltip-btn"
-                  >
-                    Go to profile
-                  </button>
-                </div>
-              </div>
-            )}
-
-            <div className="fablab-header-instruction-btn">
+            <div className="fablab-header-actions">
               <button
                 type="button"
-                onClick={() => setShowInstructionEditor((prev) => !prev)}
-                className="fablab-header-instruction-toggle"
+                onClick={exportConversation}
+                disabled={isExporting || messages.length === 0}
+                className="fablab-header-action-btn"
               >
-                <Wand2 size={13} />
-                <span>{showInstructionEditor ? 'Hide instruction' : 'Instruction'}</span>
+                {isExporting ? <Loader2 size={14}  /> : <Download size={14} />}
+                <span className="fablab-header-action-text">{t?.fablabChat?.actions?.export || 'Export'}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={resetConversation}
+                disabled={messages.length === 0}
+                className="fablab-header-action-btn"
+              >
+                <RotateCcw size={14} />
+                <span className="fablab-header-action-text">{t?.fablabChat?.actions?.reset || 'Reset'}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={clearAll}
+                disabled={messages.length === 0 && stats.totalRequests === 0}
+                className="fablab-header-action-btn"
+              >
+                <Trash2 size={14} />
+                <span className="fablab-header-action-text">{t?.fablabChat?.actions?.delete || 'Delete'}</span>
               </button>
             </div>
+          </div>
 
-            {showInstructionEditor && (
-              <div >
-                <p >
-                  Behavior instruction (separate from role and prompt)
-                </p>
-                <textarea
-                  value={systemInstruction}
-                  onChange={(event) => setSystemInstruction(event.target.value)}
-                  onBlur={() => {
-                    void persistSystemInstruction();
-                  }}
-                  rows={3}
-                  placeholder="Define global behavior rules for the assistant..."
-                  
-                />
-                <p >
-                  Role = identity/behavior priority. Prompt = task template inserted into the composer.
-                </p>
+          {!runtimeSelection && (
+            <div className="fablab-header-warning-bubble">
+              <div className="fablab-warning-bubble-icon">
+                <AlertTriangle size={16} />
               </div>
-            )}
-
-            {(selectedRoleObject || selectedContextSources.length > 0) && (
-              <div >
-                {selectedRoleObject && (
-                  <span >
-                    {t?.fablabChat?.sources?.role || 'Role'}: {selectedRoleObject.name}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const resetMark = toIsoNow();
-                        setSelectedRoleObject(null);
-                        setRoleInstruction('');
-                        setRoleResetAt(resetMark);
-                        void persistRoleSelection(null, '', resetMark);
-                      }}
-                      
-                    >
-                      <X size={12} />
-                    </button>
-                  </span>
-                )}
-
-                {selectedContextSources.length > 0 && (
-                  <span >
-                    <ShieldCheck size={12} />
-                    {selectedContextSources.length} {t?.fablabChat?.sources?.selected || 'sources selected'}
-                  </span>
-                )}
-              </div>
-            )}
-
-            {selectedContextSources.length > 0 && (
-              <div >
-                <p >
-                  Active context sources (fully analyzed before generation)
+              <div className="fablab-warning-tooltip">
+                <p className="fablab-warning-tooltip-text">
+                  Configure your API key and model in Profile before starting the chat.
                 </p>
-                <div >
-                  {selectedContextSources.map((source) => (
-                    <span
-                      key={String(source.id)}
-                      
-                    >
-                      {source.name} ({getObjectType(source) || 'file'})
-                      <button
-                        type="button"
-                        onClick={() => removeContextSource(source.id)}
-                        
-                      >
-                        <X size={11} />
-                      </button>
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-          </header>
-
-          {!hasConversation ? (
-            <div className="fablab-empty-state">
-              <div className="fablab-empty-card">
-                <div className="fablab-empty-content">
-                  <div className="fablab-empty-icon">
-                    <Bot size={20} />
-                  </div>
-                  <h2 className="fablab-empty-title">
-                    {t?.fablabChat?.empty?.title || 'Start a high-quality conversation'}
-                  </h2>
-                  <p className="fablab-empty-subtitle">
-                    {t?.fablabChat?.empty?.subtitle || 'Use role, prompt and curated sources to get precise responses.'}
-                  </p>
-                </div>
-
-                <div className="fablab-empty-input-wrapper">
-                  <textarea
-                    value={input}
-                    onChange={(event) => setInput(event.target.value)}
-                    onKeyDown={handleInputKeyDown}
-                    rows={5}
-                    placeholder={t?.fablabChat?.inputPlaceholder || 'Write your message...'}
-                    className="fablab-empty-textarea"
-                  />
-
-                  {renderProjectAuditWizard()}
-
-                  <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
-                    <div className="flex flex-wrap items-center gap-2">
-                      {renderSkillsDropdown()}
-
-                      <button
-                        type="button"
-                        onClick={() => setSourceMode('context')}
-                        className="fablab-source-button"
-                      >
-                        <Paperclip size={14} />
-                        <span className="fablab-source-text">{t?.fablabChat?.actions?.contextSources || 'Context sources'}</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => setSourceMode('role')}
-                        className="fablab-source-button"
-                      >
-                        <Wand2 size={14} />
-                        <span className="fablab-source-text">{t?.fablabChat?.actions?.roleSource || 'Role from library'}</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => setSourceMode('prompt')}
-                        className="fablab-source-button"
-                      >
-                        <MessageSquare size={14} />
-                        <span className="fablab-source-text">{t?.fablabChat?.actions?.promptSource || 'Prompt from library'}</span>
-                      </button>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (skills.projectAudit && projectAuditWizardVisible) {
-                          sendProjectAuditWizardPrompt();
-                          return;
-                        }
-                        void sendMessage();
-                      }}
-                      disabled={isSending || !runtimeSelection || (skills.projectAudit && projectAuditWizardVisible ? !projectAuditWizardComplete : !input.trim())}
-                      className="inline-flex items-center gap-1 rounded-xl bg-gradient-to-r from-cyan-600 to-sky-600 px-4 py-2 text-xs font-semibold text-white transition hover:from-cyan-700 hover:to-sky-700 disabled:opacity-50"
-                    >
-                      {isSending ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
-                      <span>{skills.projectAudit && projectAuditWizardVisible ? 'Enviar auditoria' : (t?.fablabChat?.actions?.send || 'Send')}</span>
-                    </button>
-                  </div>
-                </div>
+                <button
+                  type="button"
+                  onClick={() => navigate('/dashboard/profile')}
+                  className="fablab-warning-tooltip-btn"
+                >
+                  Go to profile
+                </button>
               </div>
             </div>
-          ) : (
-            <>
-              <div ref={scrollerRef} className="fablab-messages-scroller">
-                {renderedMessages.map(({ message, isUser, imageSrc, richOutput, textBody, fileCardMessage }) => {
-                  return (
-                    <div
-                      key={message.id}
-                      className={`fablab-message-wrapper ${isUser ? 'fablab-message-user' : 'fablab-message-assistant'}`}
+          )}
+
+          <div className="fablab-header-instruction-btn">
+            <button
+              type="button"
+              onClick={() => setShowInstructionEditor((prev) => !prev)}
+              className="fablab-header-instruction-toggle"
+            >
+              <Wand2 size={13} />
+              <span>{showInstructionEditor ? 'Hide instruction' : 'Instruction'}</span>
+            </button>
+          </div>
+
+          {showInstructionEditor && (
+            <div>
+              <p>
+                Behavior instruction (separate from role and prompt)
+              </p>
+              <textarea
+                value={systemInstruction}
+                onChange={(event) => setSystemInstruction(event.target.value)}
+                onBlur={() => {
+                  void persistSystemInstruction();
+                }}
+                rows={3}
+                placeholder="Define global behavior rules for the assistant..."
+              />
+              <p>
+                Role = identity/behavior priority. Prompt = task template inserted into the composer.
+              </p>
+            </div>
+          )}
+
+          {(selectedRoleObject || selectedContextSources.length > 0) && (
+            <div>
+              {selectedRoleObject && (
+                <span>
+                  {t?.fablabChat?.sources?.role || 'Role'}: {selectedRoleObject.name}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const resetMark = toIsoNow();
+                      setSelectedRoleObject(null);
+                      setRoleInstruction('');
+                      setRoleResetAt(resetMark);
+                      void persistRoleSelection(null, '', resetMark);
+                    }}
+                  >
+                    <X size={12} />
+                  </button>
+                </span>
+              )}
+
+              {selectedContextSources.length > 0 && (
+                <span>
+                  <ShieldCheck size={12} />
+                  {selectedContextSources.length} {t?.fablabChat?.sources?.selected || 'sources selected'}
+                </span>
+              )}
+            </div>
+          )}
+
+          {selectedContextSources.length > 0 && (
+            <div>
+              <p>
+                Active context sources (fully analyzed before generation)
+              </p>
+              <div>
+                {selectedContextSources.map((source) => (
+                  <span
+                    key={String(source.id)}
+                  >
+                    {source.name} ({getObjectType(source) || 'file'})
+                    <button
+                      type="button"
+                      onClick={() => removeContextSource(source.id)}
                     >
-                      <div
-                        className={`fablab-message-bubble ${isUser ? 'fablab-bubble-user' : 'fablab-bubble-assistant'}`}
-                      >
-                        <p >
-                          {isUser ? (t?.fablabChat?.messages?.you || 'You') : (t?.fablabChat?.messages?.assistant || 'Assistant')}
-                        </p>
-                        {imageSrc && (
-                          <div >
-                            <img
-                              src={imageSrc}
-                              alt="Generated output"
-                              loading="lazy"
-                              decoding="async"
-                              
-                            />
-                            <div >
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  void downloadGeneratedImage(imageSrc);
-                                }}
-                                
-                              >
-                                <ImageDown size={12} />
-                                Download
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  void saveGeneratedImageToObjects(imageSrc);
-                                }}
-                                
-                              >
-                                <FolderPlus size={12} />
-                                Save
-                              </button>
-                            </div>
-                          </div>
-                        )}
-                        {richOutput && richOutput.kind === 'audio' && (
-                          <div >
-                            <audio controls src={richOutput.src}  />
-                            <div >
-                              <button
-                                type="button"
-                                onClick={() => downloadDataUriAsset(richOutput.src, richOutput.fileName)}
-                                
-                              >
-                                <Download size={12} />
-                                Download audio
-                              </button>
-                            </div>
-                          </div>
-                        )}
-                        {richOutput && richOutput.kind === 'video' && (
-                          <div >
-                            <video controls src={richOutput.src}  />
-                            <div >
-                              <button
-                                type="button"
-                                onClick={() => downloadDataUriAsset(richOutput.src, richOutput.fileName)}
-                                
-                              >
-                                <Download size={12} />
-                                Download video
-                              </button>
-                            </div>
-                          </div>
-                        )}
-                        {richOutput && richOutput.kind === 'file' && (
-                          <div >
-                            <p >
-                              {fileCardMessage || 'Claro, aca genere tu archivo. Usa el boton para descargarlo.'}
-                            </p>
-                            <div >
-                              <button
-                                type="button"
-                                onClick={() => downloadDataUriAsset(richOutput.src, richOutput.fileName)}
-                                
-                              >
-                                <Download size={12} />
-                                Descargar archivo
-                              </button>
-                            </div>
-                          </div>
-                        )}
-                        {textBody && !(richOutput && richOutput.kind === 'file') && (
-                          isUser ? (
-                            <p >{textBody}</p>
-                          ) : (
-                            <div >
-                              <ReactMarkdown
-                                remarkPlugins={[remarkGfm]}
-                                components={markdownComponents}
-                                urlTransform={markdownUrlTransform}
-                              >
-                                {textBody}
-                              </ReactMarkdown>
-                            </div>
-                          )
-                        )}
-                        <p >{formatTime(message.createdAt)}</p>
-                      </div>
-                    </div>
-                  );
-                })}
+                      <X size={11} />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+        </header>
+
+        {!hasConversation ? (
+          <div className="fablab-empty-state">
+            <div className="fablab-empty-card">
+              <div className="fablab-empty-content">
+                <div className="fablab-empty-icon">
+                  <Bot size={20} />
+                </div>
+                <h2 className="fablab-empty-title">
+                  {t?.fablabChat?.empty?.title || 'Start a high-quality conversation'}
+                </h2>
+                <p className="fablab-empty-subtitle">
+                  {t?.fablabChat?.empty?.subtitle || 'Use role, prompt and curated sources to get precise responses.'}
+                </p>
               </div>
 
-              <div className="fablab-conversation-input">
+              <div className="fablab-empty-input-wrapper">
                 <textarea
                   value={input}
                   onChange={(event) => setInput(event.target.value)}
                   onKeyDown={handleInputKeyDown}
-                  rows={3}
+                  rows={5}
                   placeholder={t?.fablabChat?.inputPlaceholder || 'Write your message...'}
-                  className="fablab-input-textarea"
+                  className="fablab-empty-textarea"
                 />
 
                 {renderProjectAuditWizard()}
 
-                <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
-                  <div className="flex flex-wrap items-center gap-2">
+                <div className="fablab-input-buttons">
+                  <div className="fablab-skill-buttons">
                     {renderSkillsDropdown()}
 
                     <button
@@ -2517,17 +2311,189 @@ const FablabChatView: React.FC = () => {
                       void sendMessage();
                     }}
                     disabled={isSending || !runtimeSelection || (skills.projectAudit && projectAuditWizardVisible ? !projectAuditWizardComplete : !input.trim())}
-                    className="inline-flex items-center gap-1 rounded-xl bg-gradient-to-r from-cyan-600 to-sky-600 px-4 py-2 text-xs font-semibold text-white transition hover:from-cyan-700 hover:to-sky-700 disabled:opacity-50"
+                    className="fablab-send-button"
                   >
                     {isSending ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
                     <span>{skills.projectAudit && projectAuditWizardVisible ? 'Enviar auditoria' : (t?.fablabChat?.actions?.send || 'Send')}</span>
                   </button>
                 </div>
               </div>
-            </>
-          )}
+            </div>
+          </div>
+        ) : (
+          <>
+            <div ref={scrollerRef} className="fablab-messages-scroller">
+              {renderedMessages.map(({ message, isUser, imageSrc, richOutput, textBody, fileCardMessage }) => {
+                return (
+                  <div
+                    key={message.id}
+                    className={`fablab-message-wrapper ${isUser ? 'fablab-message-user' : 'fablab-message-assistant'}`}
+                  >
+                    <div
+                      className={`fablab-message-bubble ${isUser ? 'fablab-bubble-user' : 'fablab-bubble-assistant'}`}
+                    >
+                      <p>
+                        {isUser ? (t?.fablabChat?.messages?.you || 'You') : (t?.fablabChat?.messages?.assistant || 'Assistant')}
+                      </p>
+                      {imageSrc && (
+                        <div>
+                          <img
+                            src={imageSrc}
+                            alt="Generated output"
+                            loading="lazy"
+                            decoding="async"
+                          />
+                          <div>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                void downloadGeneratedImage(imageSrc);
+                              }}
+                            >
+                              <ImageDown size={12} />
+                              Download
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                void saveGeneratedImageToObjects(imageSrc);
+                              }}
+                            >
+                              <FolderPlus size={12} />
+                              Save
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                      {richOutput && richOutput.kind === 'audio' && (
+                        <div>
+                          <audio controls src={richOutput.src} />
+                          <div>
+                            <button
+                              type="button"
+                              onClick={() => downloadDataUriAsset(richOutput.src, richOutput.fileName)}
+                            >
+                              <Download size={12} />
+                              Download audio
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                      {richOutput && richOutput.kind === 'video' && (
+                        <div>
+                          <video controls src={richOutput.src} />
+                          <div>
+                            <button
+                              type="button"
+                              onClick={() => downloadDataUriAsset(richOutput.src, richOutput.fileName)}
+                            >
+                              <Download size={12} />
+                              Download video
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                      {richOutput && richOutput.kind === 'file' && (
+                        <div>
+                          <p>
+                            {fileCardMessage || 'Claro, aca genere tu archivo. Usa el boton para descargarlo.'}
+                          </p>
+                          <div>
+                            <button
+                              type="button"
+                              onClick={() => downloadDataUriAsset(richOutput.src, richOutput.fileName)}
+                            >
+                              <Download size={12} />
+                              Descargar archivo
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                      {textBody && !(richOutput && richOutput.kind === 'file') && (
+                        isUser ? (
+                          <p>{textBody}</p>
+                        ) : (
+                          <div>
+                            <ReactMarkdown
+                              remarkPlugins={[remarkGfm]}
+                              components={markdownComponents}
+                              urlTransform={markdownUrlTransform}
+                            >
+                                {textBody}
+                              </ReactMarkdown>
+                            </div>
+                          )
+                        )}
+                        <p>{formatTime(message.createdAt)}</p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
 
-        </div>
+            <div className="fablab-conversation-input">
+              <textarea
+                value={input}
+                onChange={(event) => setInput(event.target.value)}
+                onKeyDown={handleInputKeyDown}
+                rows={3}
+                placeholder={t?.fablabChat?.inputPlaceholder || 'Write your message...'}
+                className="fablab-input-textarea"
+              />
+
+              {renderProjectAuditWizard()}
+
+              <div className="fablab-input-buttons">
+                <div className="fablab-skill-buttons">
+                  {renderSkillsDropdown()}
+
+                  <button
+                    type="button"
+                    onClick={() => setSourceMode('context')}
+                    className="fablab-source-button"
+                  >
+                    <Paperclip size={14} />
+                    <span className="fablab-source-text">{t?.fablabChat?.actions?.contextSources || 'Context sources'}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setSourceMode('role')}
+                    className="fablab-source-button"
+                  >
+                    <Wand2 size={14} />
+                    <span className="fablab-source-text">{t?.fablabChat?.actions?.roleSource || 'Role from library'}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setSourceMode('prompt')}
+                    className="fablab-source-button"
+                  >
+                    <MessageSquare size={14} />
+                    <span className="fablab-source-text">{t?.fablabChat?.actions?.promptSource || 'Prompt from library'}</span>
+                  </button>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (skills.projectAudit && projectAuditWizardVisible) {
+                      sendProjectAuditWizardPrompt();
+                      return;
+                    }
+                    void sendMessage();
+                  }}
+                  disabled={isSending || !runtimeSelection || (skills.projectAudit && projectAuditWizardVisible ? !projectAuditWizardComplete : !input.trim())}
+                  className="fablab-send-button"
+                >
+                  {isSending ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
+                  <span>{skills.projectAudit && projectAuditWizardVisible ? 'Enviar auditoria' : (t?.fablabChat?.actions?.send || 'Send')}</span>
+                </button>
+              </div>
+            </div>
+          </>
+        )}
 
         {sourceMode && (
           <aside className="fablab-sidebar">
@@ -2579,40 +2545,43 @@ const FablabChatView: React.FC = () => {
             </div>
 
             <div className="fablab-sidebar-list">
-              {libraryLoading ? (
+              {loading && (
                 <div className="fablab-sidebar-loading">
-                  <Loader2 size={14}  />
-                  {t?.fablabChat?.sources?.loading || 'Loading library...'}
+                  <Loader2 size={14} className="animate-spin" />
+                  <span>{t?.fablabChat?.sources?.loading || 'Loading...'}</span>
                 </div>
-              ) : sourceCandidates.length === 0 ? (
-                <div className="fablab-sidebar-empty">
-                  {t?.fablabChat?.sources?.empty || 'No items found.'}
-                </div>
-              ) : (
-                <ul className="fablab-sidebar-items">
-                  {sourceCandidates.map((source) => {
-                    const checked = isContextSelected(source);
-                    return (
-                      <li key={String(source.id)} className="fablab-sidebar-item">
-                        <div className="fablab-sidebar-item-info">
-                          <p className="fablab-sidebar-item-name">{source.name}</p>
-                          <p className="fablab-sidebar-item-type">{getObjectType(source) || 'file'}</p>
-                        </div>
+              )}
 
-                        {sourceMode === 'context' ? (
+              {!loading && objects.length === 0 && (
+                <div className="fablab-sidebar-empty">
+                  <span>{t?.fablabChat?.sources?.empty || 'No objects found'}</span>
+                </div>
+              )}
+
+              {!loading && objects.length > 0 && (
+                <ul className="fablab-sidebar-items">
+                  {objects.map((source: ObjectItem) => {
+                    const isSelected = selectedContextIds.includes(source.id);
+                    return (
+                      <li key={String(source.id)}>
+                        <div className="fablab-sidebar-item">
+                          <div className="fablab-sidebar-item-info">
+                            <p className="fablab-sidebar-item-name">{source.name}</p>
+                            <p className="fablab-sidebar-item-type">{getObjectType(source) || 'file'}</p>
+                          </div>
                           <label className="fablab-sidebar-item-checkbox-label">
                             <input
                               type="checkbox"
-                              checked={checked}
+                              checked={isSelected}
                               onChange={() => toggleContextSource(source)}
                               className="fablab-sidebar-item-checkbox"
                             />
-                            {t?.fablabChat?.sources?.select || 'Select'}
                           </label>
-                        ) : (
+                        </div>
+                        {!isSelected && sourceMode !== 'context' && (
                           <button
                             type="button"
-                            onClick={() => applySingleSource(sourceMode, source)}
+                            onClick={() => applySingleSource(sourceMode as 'role' | 'prompt', source)}
                             className="fablab-sidebar-item-button"
                           >
                             {t?.fablabChat?.sources?.use || 'Use'}

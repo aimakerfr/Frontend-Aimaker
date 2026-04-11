@@ -129,6 +129,7 @@
   border-color: rgba(99, 102, 241, 0.6);
   background: rgba(255, 255, 255, 0.8);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateX(2px);
 }
 
 .fablab-header-action-btn:disabled {
