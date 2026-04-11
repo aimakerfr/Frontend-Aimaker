@@ -347,6 +347,7 @@ export interface Translations {
   };
   projectFlow: {
     title: string;
+    statusFilesUploaded?: string;
     backToMakerPath: string;
     configuration: string;
     ragLibrary: string;
