@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Wand2, Copy, Check, Upload, Loader2, Globe, Lock } from 'lucide-react';
+import { ArrowLeft, Wand2, Copy, Check, Upload, Loader2, Globe, Lock, Save } from 'lucide-react';
 import { getProduct, getPublicProduct, getOrCreateProductByType, type Product } from '@core/products';
 import { getProductStepProgress, updateProductStepProgress } from '@core/product-step-progress';
-import { httpClient, tokenStorage } from '@core/api/http.client';
+import { createObject } from '@core/objects';
+import { HttpClientError, httpClient, tokenStorage } from '@core/api/http.client';
 import { useLanguage } from '../../language/useLanguage';
 
 // Step IDs para product_step_progress
@@ -80,6 +81,45 @@ const renderMarkdown = (text: string): string => {
   return result.join('');
 };
 
+const looksLikeMarkdown = (text: string): boolean => {
+  return /(^|\n)\s*(#{1,6}\s|[-*]\s|\d+\.\s)|\*\*[^*]+\*\*|`[^`]+`|\[[^\]]+\]\([^\)]+\)/m.test(text);
+};
+
+const renderStructuredText = (text: string): string => {
+  const escape = (v: string) =>
+    v
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+
+  const lines = text
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  return lines.map((line) => {
+    if (/^[A-ZÁÉÍÓÚÑ][^:]{2,90}:$/.test(line)) {
+      return `<h3 class="text-lg font-bold text-indigo-800 dark:text-indigo-300 mt-7 mb-3 flex items-center gap-2"><span class="inline-block w-2 h-2 rounded-full bg-indigo-500"></span>${escape(line.replace(/:$/, ''))}</h3>`;
+    }
+    if (/^[-*]\s+/.test(line) || /^\d+\.\s+/.test(line)) {
+      const content = line.replace(/^[-*]\s+/, '').replace(/^\d+\.\s+/, '');
+      return `<div class="flex items-start gap-3 mb-3"><span class="mt-2 w-1.5 h-1.5 rounded-full bg-indigo-500"></span><p class="text-gray-700 dark:text-gray-300 leading-relaxed">${escape(content)}</p></div>`;
+    }
+    return `<p class="text-gray-700 dark:text-gray-300 mb-4 leading-relaxed">${escape(line)}</p>`;
+  }).join('');
+};
+
+const renderOutputContent = (text: string): string => {
+  return looksLikeMarkdown(text) ? renderMarkdown(text) : renderStructuredText(text);
+};
+
+const toNumericId = (value: unknown): number | null => {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed <= 0) return null;
+  return parsed;
+};
+
 const PromptOptimizerView: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -99,6 +139,8 @@ const PromptOptimizerView: React.FC = () => {
   const [isOptimizing, setIsOptimizing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [outputCopied, setOutputCopied] = useState(false);
+  const [isSavingObject, setIsSavingObject] = useState(false);
+  const [savedObjectId, setSavedObjectId] = useState<number | null>(null);
 
   // Load product
   useEffect(() => {
@@ -208,6 +250,7 @@ const PromptOptimizerView: React.FC = () => {
       }
 
       setOptimizedPrompt(optimized);
+      setSavedObjectId(null);
 
       // Guardar en product_step_progress
       await updateProductStepProgress({
@@ -224,9 +267,57 @@ const PromptOptimizerView: React.FC = () => {
       });
     } catch (err: any) {
       console.error('[PromptOptimizerView] Optimization error:', err);
-      setError((t as any).promptOptimizer?.errorOptimize ?? 'Error al optimizar el prompt');
+      const fallback = (t as any).promptOptimizer?.errorOptimize ?? 'Tuvimos un problema temporal con la API interna. Intenta nuevamente en unos minutos.';
+      const message = err instanceof HttpClientError
+        ? err.message
+        : (err instanceof Error && err.message ? err.message : fallback);
+      setError(message || fallback);
     } finally {
       setIsOptimizing(false);
+    }
+  };
+
+  const handleSaveOutputObject = async () => {
+    if (!optimizedPrompt.trim() || !product?.id) return;
+
+    setIsSavingObject(true);
+    setError(null);
+    try {
+      const safeName = (product.title || 'prompt-optimizer')
+        .replace(/[^a-zA-Z0-9-_\s]/g, '')
+        .trim()
+        .replace(/\s+/g, '-') || 'prompt-optimizer';
+
+      const documentBody = [
+        'PROMPT OPTIMIZADO',
+        `Producto: ${product.title || 'Prompt Optimizer'}`,
+        `Fecha: ${new Date().toLocaleString()}`,
+        '',
+        'Prompt original:',
+        inputPrompt.trim() || '(sin contenido)',
+        '',
+        'Prompt optimizado:',
+        optimizedPrompt.trim(),
+      ].join('\n');
+
+      const file = new File(
+        [documentBody],
+        `${safeName}-prompt-optimizado.txt`,
+        { type: 'text/plain;charset=utf-8' }
+      );
+
+      const created = await createObject({
+        title: `${product.title || 'Prompt Optimizer'} - Prompt optimizado`,
+        type: 'TEXT',
+        file,
+      });
+
+      setSavedObjectId(toNumericId(created.id));
+    } catch (saveError) {
+      console.error('[PromptOptimizerView] Save object error:', saveError);
+      setError('No se pudo guardar el prompt optimizado en objetos.');
+    } finally {
+      setIsSavingObject(false);
     }
   };
 
@@ -391,7 +482,7 @@ const PromptOptimizerView: React.FC = () => {
                 <span>{inputPrompt.length} {t.common?.characters ?? 'caracteres'}</span>
                 {isOwner && (
                   <button
-                    onClick={() => { setInputPrompt(''); setOptimizedPrompt(''); setError(null); }}
+                    onClick={() => { setInputPrompt(''); setOptimizedPrompt(''); setError(null); setSavedObjectId(null); }}
                     className="hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
                   >
                     {tr.clear ?? 'Limpiar'}
@@ -438,32 +529,52 @@ const PromptOptimizerView: React.FC = () => {
                   <div className="bg-indigo-100 dark:bg-indigo-800 p-1.5 rounded-lg">
                     <Wand2 size={16} className="text-indigo-700 dark:text-indigo-300" />
                   </div>
-                  <h2 className="font-bold text-indigo-900 dark:text-indigo-200 text-sm tracking-wide uppercase">
-                    {tr.outputLabel ?? 'Prompt optimizado'}
-                  </h2>
+                  <div>
+                    <h2 className="font-bold text-indigo-900 dark:text-indigo-200 text-sm tracking-wide uppercase">
+                      {tr.outputLabel ?? 'Prompt optimizado'}
+                    </h2>
+                    <p className="text-xs text-indigo-700/80 dark:text-indigo-300/80">
+                      Estructurado en secciones claras para copiar y usar directo.
+                    </p>
+                  </div>
                 </div>
-                <button
-                  onClick={handleCopyOutput}
-                  title="Copia el prompt optimizado final"
-                  className="inline-flex items-center gap-2 px-3.5 py-1.5 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm hover:shadow active:scale-95 rounded-lg transition-all"
-                >
-                  {outputCopied ? (
-                    <>
-                      <Check size={14} />
-                      {tr.copied ?? '¡Copiado!'}
-                    </>
-                  ) : (
-                    <>
-                      <Copy size={14} />
-                      Copiar Prompt Final
-                    </>
-                  )}
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleSaveOutputObject}
+                    disabled={isSavingObject}
+                    className="inline-flex items-center gap-2 px-3.5 py-1.5 text-xs font-bold text-indigo-700 dark:text-indigo-200 bg-white/80 dark:bg-indigo-900/40 border border-indigo-200 dark:border-indigo-700 hover:bg-white dark:hover:bg-indigo-900/60 shadow-sm active:scale-95 rounded-lg transition-all disabled:opacity-50"
+                  >
+                    {isSavingObject ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+                    {isSavingObject ? 'Guardando...' : 'Guardar en objetos'}
+                  </button>
+                  <button
+                    onClick={handleCopyOutput}
+                    title="Copia el prompt optimizado final"
+                    className="inline-flex items-center gap-2 px-3.5 py-1.5 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm hover:shadow active:scale-95 rounded-lg transition-all"
+                  >
+                    {outputCopied ? (
+                      <>
+                        <Check size={14} />
+                        {tr.copied ?? '¡Copiado!'}
+                      </>
+                    ) : (
+                      <>
+                        <Copy size={14} />
+                        Copiar Prompt Final
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
+              {savedObjectId && (
+                <div className="px-6 py-2 text-xs font-medium text-emerald-700 dark:text-emerald-300 bg-emerald-50/70 dark:bg-emerald-900/20 border-b border-emerald-100 dark:border-emerald-800/30">
+                  Documento guardado en objetos. ID: #{savedObjectId}
+                </div>
+              )}
               <div className="p-8">
                 <div 
                   className="prose dark:prose-invert max-w-none prose-indigo"
-                  dangerouslySetInnerHTML={{ __html: renderMarkdown(optimizedPrompt) }}
+                  dangerouslySetInnerHTML={{ __html: renderOutputContent(optimizedPrompt) }}
                 />
               </div>
             </div>
