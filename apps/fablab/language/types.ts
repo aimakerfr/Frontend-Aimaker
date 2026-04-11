@@ -77,6 +77,8 @@ export interface Translations {
     assembleCustomProjectDesc: string;
     useServerProducts: string;
     useServerProductsDesc: string;
+    notebookCreation: string;
+    notebookCreationDesc: string;
     guidedCreationPath: string;
     guidedCreationPathDesc: string;
   };

@@ -50,6 +50,8 @@ export const es: Translations = {
         assembleCustomProjectDesc: 'Construye un proyecto a medida seleccionando los módulos que necesitas.',
         useServerProducts: 'Utilizar productos del servidor',
         useServerProductsDesc: 'Explora y utiliza soluciones que ya están listas para usar.',
+        notebookCreation: 'Crear notebook',
+        notebookCreationDesc: 'Genera un notebook nuevo y abre su vista de producto para empezar a trabajar.',
         guidedCreationPath: 'Ruta de creación guiada',
         guidedCreationPathDesc: 'Sigue un paso a paso que te ayudará a crear tu proyecto desde cero.',
       },
