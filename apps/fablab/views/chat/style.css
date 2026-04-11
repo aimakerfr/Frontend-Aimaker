@@ -1,0 +1,816 @@
+/* Estilos para FablabChatView - migración desde Tailwind CSS */
+
+.fablab-chat-container {
+  background: linear-gradient(135deg, #eef2f6, #e6ebf1);
+  padding: var(--space-3xl);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.fablab-chat-main-wrapper {
+  border-radius: 20px;
+
+  background: radial-gradient(
+    circle at 50% 40%,
+    rgba(255, 255, 255, 0.75) 0%,
+    rgba(255, 255, 255, 0.55) 60%,
+    rgba(230, 235, 241, 0.6) 100%
+  );
+
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+
+  border: 1px solid rgba(255, 255, 255, 0.5);
+
+  box-shadow:
+    inset 0 2px 6px rgba(0, 0, 0, 0.04),
+    inset 0 -2px 6px rgba(255, 255, 255, 0.5),
+    0 10px 25px rgba(0, 0, 0, 0.05);
+
+  padding: var(--space-2xl);
+  display: flex;
+  flex-direction: column;
+  min-height: 600px;
+  max-height: calc(100vh - 6rem);
+  overflow: hidden;
+}
+
+.fablab-chat-header {
+  border-radius: 14px;
+  padding: 10px 14px;
+
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.9) 0%,
+    rgba(245, 248, 252, 0.85) 100%
+  );
+
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+
+  border: 1px solid rgba(255, 255, 255, 0.6);
+
+  box-shadow:
+    inset 0 1px 2px rgba(255, 255, 255, 0.6),
+    0 2px 6px rgba(0, 0, 0, 0.03);
+
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  flex-shrink: 0;
+}
+
+/* Header top container */
+.fablab-header-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+/* Title area */
+.fablab-header-title {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.fablab-header-title:hover {
+  transform: translateX(4px);
+  opacity: 0.7;
+}
+
+.fablab-header-title-text {
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.fablab-header-subtitle {
+  font-size: var(--font-size-sm);
+  color: #64748b;
+  margin: 0;
+}
+
+/* Actions area */
+.fablab-header-actions {
+  display: flex;
+  gap: var(--space-xs);
+}
+
+.fablab-header-action-btn {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  background: rgba(255, 255, 255, 0.4);
+  backdrop-filter: blur(4px);
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.fablab-header-action-btn:hover {
+  width: auto;
+  padding: 6px 12px;
+  border-color: rgba(99, 102, 241, 0.6);
+  background: rgba(255, 255, 255, 0.8);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.fablab-header-action-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.fablab-header-action-btn:disabled:hover {
+  width: 36px;
+  padding: 0;
+  border-color: rgba(255, 255, 255, 0.4);
+  background: rgba(255, 255, 255, 0.4);
+  box-shadow: none;
+}
+
+.fablab-header-action-text {
+  opacity: 0;
+  width: 0;
+  margin-left: 0;
+  font-size: var(--font-size-xs);
+  white-space: nowrap;
+  transition: all 0.3s ease;
+}
+
+.fablab-header-action-btn:hover .fablab-header-action-text {
+  opacity: 1;
+  width: auto;
+  margin-left: var(--space-xs);
+}
+
+/* Warning banner */
+.fablab-header-warning-bubble {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  z-index: 10;
+}
+
+.fablab-warning-bubble-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(251, 191, 36, 0.4);
+  animation: bounce 2s ease-in-out infinite;
+  transition: all 0.2s ease;
+}
+
+.fablab-warning-bubble-icon:hover {
+  transform: scale(1.1);
+  animation: none;
+}
+
+@keyframes bounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+.fablab-warning-tooltip {
+  position: absolute;
+  top: 40px;
+  right: 0;
+  width: 280px;
+  padding: var(--space-md);
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(12px);
+  border-radius: 12px;
+  border: 1px solid rgba(251, 191, 36, 0.4);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-8px);
+  transition: all 0.2s ease;
+}
+
+.fablab-header-warning-bubble:hover .fablab-warning-tooltip {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.fablab-warning-tooltip-text {
+  font-size: var(--font-size-sm);
+  color: #78350f;
+  margin: 0 0 var(--space-sm) 0;
+  line-height: 1.4;
+}
+
+.fablab-warning-tooltip-btn {
+  width: 100%;
+  padding: 6px 12px;
+  font-size: var(--font-size-xs);
+  border-radius: 6px;
+  border: 1px solid rgba(251, 191, 36, 0.5);
+  background: rgba(251, 191, 36, 0.2);
+  color: #92400e;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-weight: 500;
+}
+
+.fablab-warning-tooltip-btn:hover {
+  background: rgba(251, 191, 36, 0.3);
+  transform: translateY(-1px);
+}
+
+/* Instruction button wrapper */
+.fablab-header-instruction-btn {
+  display: flex;
+  justify-content: center;
+}
+
+.fablab-header-instruction-toggle {
+  padding: 6px 12px;
+  font-size: var(--font-size-xs);
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, 0.5);
+  backdrop-filter: blur(4px);
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.fablab-header-instruction-toggle:hover {
+  transform: translateX(4px);
+  opacity: 0.6;
+  background: rgba(255, 255, 255, 0.7);
+}
+
+/* Empty state */
+.fablab-empty-state {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: var(--space-2xl);
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.fablab-empty-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+  padding: var(--space-xl);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.5);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  transition: all 0.2s ease;
+  max-width: 600px;
+  width: 100%;
+}
+
+.fablab-empty-card:hover {
+  transform: translateY(-2px);
+  opacity: 0.9;
+}
+
+.fablab-empty-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-sm);
+  text-align: center;
+}
+
+.fablab-empty-icon {
+  padding: var(--space-md);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.4);
+  transition: all 0.2s ease;
+}
+
+.fablab-empty-icon:hover {
+  transform: translateX(4px);
+  opacity: 0.7;
+}
+
+.fablab-empty-title {
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0;
+}
+
+.fablab-empty-subtitle {
+  font-size: var(--font-size-sm);
+  color: #64748b;
+  margin: 0;
+  max-width: 400px;
+}
+
+.fablab-empty-input-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.fablab-empty-textarea {
+  width: 100%;
+  padding: var(--space-md);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(4px);
+  font-size: var(--font-size-base);
+  color: #1e293b;
+  resize: vertical;
+  transition: all 0.2s ease;
+}
+
+.fablab-empty-textarea:focus {
+  outline: none;
+  border-color: rgba(99, 102, 241, 0.5);
+  background: rgba(255, 255, 255, 0.8);
+}
+
+.fablab-empty-buttons {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+/* Skill buttons */
+.fablab-skill-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+}
+
+.fablab-skill-btn {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, 0.5);
+  backdrop-filter: blur(4px);
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.fablab-skill-btn:hover {
+  width: auto;
+  padding: 6px 10px;
+  border-color: rgba(99, 102, 241, 0.6);
+  background: rgba(255, 255, 255, 0.8);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.fablab-skill-text {
+  opacity: 0;
+  width: 0;
+  margin-left: 0;
+  font-size: var(--font-size-xs);
+  white-space: nowrap;
+  transition: all 0.3s ease;
+}
+
+.fablab-skill-btn:hover .fablab-skill-text {
+  opacity: 1;
+  width: auto;
+  margin-left: var(--space-xs);
+}
+
+.fablab-source-button {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, 0.5);
+  backdrop-filter: blur(4px);
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.fablab-source-button:hover {
+  width: auto;
+  padding: 6px 10px;
+  border-color: rgba(99, 102, 241, 0.6);
+  background: rgba(255, 255, 255, 0.8);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.fablab-source-text {
+  opacity: 0;
+  width: 0;
+  margin-left: 0;
+  font-size: var(--font-size-xs);
+  white-space: nowrap;
+  transition: all 0.3s ease;
+}
+
+.fablab-source-button:hover .fablab-source-text {
+  opacity: 1;
+  width: auto;
+  margin-left: var(--space-xs);
+}
+
+.fablab-send-button {
+  padding: 6px 12px;
+  font-size: var(--font-size-xs);
+  border-radius: 6px;
+  border: 1px solid rgba(99, 102, 241, 0.5);
+  background: rgba(99, 102, 241, 0.6);
+  backdrop-filter: blur(4px);
+  color: white;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.fablab-send-button:hover {
+  transform: translateX(4px);
+  opacity: 0.8;
+  background: rgba(99, 102, 241, 0.8);
+}
+
+.fablab-send-button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Messages scroller */
+.fablab-messages-scroller {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  min-height: 0;
+}
+
+.fablab-message-wrapper {
+  display: flex;
+  transition: all 0.2s ease;
+}
+
+.fablab-message-wrapper:hover {
+  transform: translateX(2px);
+  opacity: 0.9;
+}
+
+.fablab-message-user {
+  justify-content: flex-end;
+}
+
+.fablab-message-assistant {
+  justify-content: flex-start;
+}
+
+.fablab-message-bubble {
+  max-width: 85%;
+  padding: var(--space-sm) var(--space-md);
+  border-radius: 16px;
+  transition: all 0.2s ease;
+}
+
+.fablab-message-bubble:hover {
+  transform: translateX(4px);
+  opacity: 0.9;
+}
+
+.fablab-bubble-user {
+  border: 1px solid rgba(34, 211, 238, 0.5);
+  background: linear-gradient(135deg, rgba(34, 211, 238, 0.3), rgba(14, 165, 233, 0.3));
+  color: #0f172a;
+}
+
+.fablab-bubble-assistant {
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(4px);
+  color: #1e293b;
+}
+
+/* Conversation input */
+.fablab-conversation-input {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  padding: var(--space-md);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.4);
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.fablab-conversation-input:hover {
+  transform: translateY(-2px);
+  opacity: 0.9;
+}
+
+.fablab-input-textarea {
+  width: 100%;
+  padding: var(--space-md);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(4px);
+  font-size: var(--font-size-base);
+  color: #1e293b;
+  resize: vertical;
+  transition: all 0.2s ease;
+}
+
+.fablab-input-textarea:focus {
+  outline: none;
+  border-color: rgba(99, 102, 241, 0.5);
+  background: rgba(255, 255, 255, 0.8);
+}
+
+.fablab-input-buttons {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+/* Toasts */
+.fablab-toasts {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  margin-top: var(--space-md);
+}
+
+.fablab-toast {
+  padding: var(--space-sm) var(--space-md);
+  border-radius: 8px;
+  font-size: var(--font-size-sm);
+  transition: all 0.2s ease;
+}
+
+.fablab-toast:hover {
+  transform: translateX(4px);
+  opacity: 0.8;
+}
+
+.fablab-toast-error {
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  color: #991b1b;
+}
+
+.fablab-toast-status {
+  background: rgba(34, 197, 94, 0.15);
+  border: 1px solid rgba(34, 197, 94, 0.4);
+  color: #166534;
+}
+
+/* Sidebar */
+.fablab-sidebar {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 320px;
+  height: 100%;
+  padding: var(--space-lg);
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  border-left: 1px solid rgba(255, 255, 255, 0.5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  box-shadow: -4px 0 20px rgba(0, 0, 0, 0.1);
+}
+
+.fablab-sidebar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-md);
+  padding-bottom: var(--space-sm);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.fablab-sidebar-title {
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0;
+}
+
+.fablab-sidebar-close {
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, 0.5);
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.fablab-sidebar-close:hover {
+  transform: translateX(4px);
+  opacity: 0.6;
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.fablab-sidebar-filters {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.fablab-sidebar-label {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.fablab-sidebar-label-text {
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+  color: #64748b;
+}
+
+.fablab-sidebar-select {
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, 0.6);
+  font-size: var(--font-size-sm);
+  color: #1e293b;
+  transition: all 0.2s ease;
+}
+
+.fablab-sidebar-select:hover {
+  transform: translateX(4px);
+  opacity: 0.8;
+  background: rgba(255, 255, 255, 0.8);
+}
+
+.fablab-sidebar-search-wrapper {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, 0.6);
+  transition: all 0.2s ease;
+}
+
+.fablab-sidebar-search-wrapper:hover {
+  transform: translateX(4px);
+  opacity: 0.8;
+  background: rgba(255, 255, 255, 0.8);
+}
+
+.fablab-sidebar-search-input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  font-size: var(--font-size-sm);
+  color: #1e293b;
+  outline: none;
+}
+
+.fablab-sidebar-list {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.fablab-sidebar-loading,
+.fablab-sidebar-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xs);
+  padding: var(--space-lg);
+  font-size: var(--font-size-sm);
+  color: #64748b;
+}
+
+.fablab-sidebar-items {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.fablab-sidebar-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  transition: all 0.2s ease;
+}
+
+.fablab-sidebar-item:hover {
+  transform: translateX(4px);
+  opacity: 0.8;
+  background: rgba(255, 255, 255, 0.6);
+}
+
+.fablab-sidebar-item-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.fablab-sidebar-item-name {
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  color: #1e293b;
+  margin: 0;
+}
+
+.fablab-sidebar-item-type {
+  font-size: var(--font-size-xs);
+  color: #64748b;
+  margin: 0;
+}
+
+.fablab-sidebar-item-checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-size: var(--font-size-xs);
+  color: #475569;
+  cursor: pointer;
+}
+
+.fablab-sidebar-item-checkbox {
+  cursor: pointer;
+}
+
+.fablab-sidebar-item-button {
+  padding: 4px 8px;
+  font-size: var(--font-size-xs);
+  border-radius: 6px;
+  border: 1px solid rgba(99, 102, 241, 0.4);
+  background: rgba(99, 102, 241, 0.2);
+  color: #4f46e5;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.fablab-sidebar-item-button:hover {
+  background: rgba(99, 102, 241, 0.3);
+  transform: translateX(4px);
+  opacity: 0.8;
+}

@@ -2,12 +2,14 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { jsPDF } from 'jspdf';
+import './style.css';
 import {
   AlertTriangle,
   Bot,
   Download,
   FolderPlus,
   ImageDown,
+  Image as ImageIcon,
   Loader2,
   MessageSquare,
   Mic,
@@ -22,6 +24,8 @@ import {
   Volume2,
   Wand2,
   X,
+  FileText,
+  Zap,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -612,16 +616,16 @@ const optimizeAssistantImagePayload = async (content: string): Promise<string> =
 };
 
 const markdownComponents = {
-  h1: (props: any) => <h1 className="mb-2 text-lg font-bold text-slate-900 dark:text-slate-100" {...props} />,
-  h2: (props: any) => <h2 className="mb-2 mt-3 text-base font-semibold text-slate-900 dark:text-slate-100" {...props} />,
-  h3: (props: any) => <h3 className="mb-1 mt-3 text-sm font-semibold text-slate-900 dark:text-slate-100" {...props} />,
-  p: (props: any) => <p className="mb-2 text-sm leading-relaxed last:mb-0" {...props} />,
-  ul: (props: any) => <ul className="mb-2 list-disc space-y-1 pl-5" {...props} />,
-  ol: (props: any) => <ol className="mb-2 list-decimal space-y-1 pl-5" {...props} />,
-  li: (props: any) => <li className="text-sm leading-relaxed" {...props} />,
-  strong: (props: any) => <strong className="font-semibold text-slate-900 dark:text-slate-100" {...props} />,
-  code: (props: any) => <code className="rounded bg-slate-100 px-1 py-0.5 text-[12px] dark:bg-slate-700/70" {...props} />,
-  pre: (props: any) => <pre className="mb-2 overflow-x-auto rounded-lg bg-slate-900/95 p-3 text-xs text-slate-100" {...props} />,
+  h1: (props: any) => <h1  {...props} />,
+  h2: (props: any) => <h2  {...props} />,
+  h3: (props: any) => <h3  {...props} />,
+  p: (props: any) => <p  {...props} />,
+  ul: (props: any) => <ul  {...props} />,
+  ol: (props: any) => <ol  {...props} />,
+  li: (props: any) => <li  {...props} />,
+  strong: (props: any) => <strong  {...props} />,
+  code: (props: any) => <code  {...props} />,
+  pre: (props: any) => <pre  {...props} />,
   a: (props: any) => {
     const href = String(props?.href || '');
     const isDataUri = /^data:/i.test(href);
@@ -637,7 +641,7 @@ const markdownComponents = {
           {...props}
           href={href}
           download={downloadName}
-          className="text-cyan-700 underline decoration-cyan-400 underline-offset-2 hover:text-cyan-800 dark:text-cyan-300 dark:hover:text-cyan-200"
+          
         />
       );
     }
@@ -647,7 +651,7 @@ const markdownComponents = {
         {...props}
         target="_blank"
         rel="noopener noreferrer"
-        className="text-cyan-700 underline decoration-cyan-400 underline-offset-2 hover:text-cyan-800 dark:text-cyan-300 dark:hover:text-cyan-200"
+        
       />
     );
   },
@@ -1106,14 +1110,6 @@ const FablabChatView: React.FC = () => {
     setSelectedContextSources((prev) => prev.filter((item) => !sameObjectId(item.id, sourceId)));
   };
 
-  const skillButtonClass = (active: boolean): string => {
-    return `rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${
-      active
-        ? 'border-cyan-500 bg-cyan-100/90 text-cyan-800 dark:border-cyan-400 dark:bg-cyan-500/20 dark:text-cyan-200'
-        : 'border-slate-300 text-slate-600 hover:border-slate-400 dark:border-slate-600 dark:text-slate-300 dark:hover:border-slate-500'
-    }`;
-  };
-
   const imageExtensionFromMime = (mimeType: string): string => {
     const mime = String(mimeType || '').toLowerCase();
     if (mime.includes('png')) return 'png';
@@ -1459,10 +1455,10 @@ const FablabChatView: React.FC = () => {
 
   if (loading) {
     return (
-      <section className="h-full w-full bg-gradient-to-br from-slate-100 via-sky-50 to-cyan-100 p-4 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
-        <div className="flex h-full items-center justify-center rounded-[28px] border border-slate-200/70 bg-white/70 shadow-[0_25px_80px_-35px_rgba(14,165,233,0.35)] backdrop-blur-xl dark:border-slate-700 dark:bg-slate-900/70">
-          <div className="inline-flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
-            <Loader2 size={16} className="animate-spin" />
+      <section >
+        <div >
+          <div >
+            <Loader2 size={16}  />
             {t?.fablabChat?.loading || 'Loading Fablab chat...'}
           </div>
         </div>
@@ -1471,79 +1467,83 @@ const FablabChatView: React.FC = () => {
   }
 
   return (
-    <section className="h-full w-full bg-gradient-to-br from-slate-100 via-sky-50 to-cyan-100 p-4 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 md:p-5">
-      <div className="relative mx-auto flex h-full max-w-[1600px] overflow-hidden rounded-[28px] border border-slate-200/70 bg-white/75 shadow-[0_30px_90px_-35px_rgba(15,23,42,0.35)] backdrop-blur-xl dark:border-slate-700 dark:bg-slate-900/75">
-        <div className="absolute inset-x-0 top-0 h-16 bg-gradient-to-r from-cyan-400/20 via-sky-400/20 to-teal-400/20 dark:from-cyan-500/10 dark:via-sky-500/10 dark:to-teal-500/10" />
+    <section className="fablab-chat-container">
+      <div >
+        <div  />
 
-        <div className="relative flex min-w-0 flex-1 flex-col">
-          <header className="border-b border-slate-200/70 px-5 py-4 dark:border-slate-700/80">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <h1 className="inline-flex items-center gap-2 text-xl font-semibold tracking-tight text-slate-900 dark:text-slate-100">
-                  <Sparkles size={18} className="text-cyan-600 dark:text-cyan-300" />
+        <div className="fablab-chat-main-wrapper">
+          <header className="fablab-chat-header">
+            <div className="fablab-header-top">
+              <div className="fablab-header-title">
+                <h1 className="fablab-header-title-text">
+                  <Sparkles size={18}  />
                   {t?.fablabChat?.title || 'Fablab Chat'}
                 </h1>
-                <p className="mt-1 text-xs text-slate-600 dark:text-slate-400">
+                <p className="fablab-header-subtitle">
                   {runtimeSelection
                     ? `${runtimeSelection.provider} - ${selectedModelLabel || runtimeSelection.modelId}`
                     : (t?.fablabChat?.runtimeMissing || 'Configure provider and model in Profile to start chatting.')}
                 </p>
               </div>
 
-              <div className="flex flex-wrap items-center gap-2">
+              <div className="fablab-header-actions">
                 <button
                   type="button"
                   onClick={exportConversation}
                   disabled={isExporting || messages.length === 0}
-                  className="inline-flex items-center gap-1 rounded-lg border border-slate-300 bg-white/80 px-3 py-2 text-xs font-medium text-slate-700 transition-colors hover:border-slate-400 hover:text-slate-900 disabled:opacity-50 dark:border-slate-600 dark:bg-slate-900/70 dark:text-slate-200 dark:hover:border-slate-500"
+                  className="fablab-header-action-btn"
                 >
-                  {isExporting ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
-                  <span>{t?.fablabChat?.actions?.export || 'Export'}</span>
+                  {isExporting ? <Loader2 size={14}  /> : <Download size={14} />}
+                  <span className="fablab-header-action-text">{t?.fablabChat?.actions?.export || 'Export'}</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={resetConversation}
                   disabled={messages.length === 0}
-                  className="inline-flex items-center gap-1 rounded-lg border border-slate-300 bg-white/80 px-3 py-2 text-xs font-medium text-slate-700 transition-colors hover:border-slate-400 hover:text-slate-900 disabled:opacity-50 dark:border-slate-600 dark:bg-slate-900/70 dark:text-slate-200 dark:hover:border-slate-500"
+                  className="fablab-header-action-btn"
                 >
                   <RotateCcw size={14} />
-                  <span>{t?.fablabChat?.actions?.reset || 'Reset'}</span>
+                  <span className="fablab-header-action-text">{t?.fablabChat?.actions?.reset || 'Reset'}</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={clearAll}
                   disabled={messages.length === 0 && stats.totalRequests === 0}
-                  className="inline-flex items-center gap-1 rounded-lg border border-rose-300 bg-rose-50/90 px-3 py-2 text-xs font-medium text-rose-700 transition-colors hover:border-rose-400 disabled:opacity-50 dark:border-rose-900/60 dark:bg-rose-900/20 dark:text-rose-300"
+                  className="fablab-header-action-btn"
                 >
                   <Trash2 size={14} />
-                  <span>{t?.fablabChat?.actions?.delete || 'Delete'}</span>
+                  <span className="fablab-header-action-text">{t?.fablabChat?.actions?.delete || 'Delete'}</span>
                 </button>
               </div>
             </div>
 
             {!runtimeSelection && (
-              <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-900/30 dark:text-amber-200">
-                <div className="inline-flex items-center gap-2">
-                  <AlertTriangle size={15} />
-                  <span>Configure your API key and model in Profile before starting the chat.</span>
+              <div className="fablab-header-warning-bubble">
+                <div className="fablab-warning-bubble-icon">
+                  <AlertTriangle size={16} />
                 </div>
-                <button
-                  type="button"
-                  onClick={() => navigate('/dashboard/profile')}
-                  className="rounded-lg border border-amber-400 bg-white/80 px-2.5 py-1.5 text-xs font-semibold text-amber-800 hover:border-amber-500 dark:border-amber-700 dark:bg-amber-950/30 dark:text-amber-200"
-                >
-                  Go to profile
-                </button>
+                <div className="fablab-warning-tooltip">
+                  <p className="fablab-warning-tooltip-text">
+                    Configure your API key and model in Profile before starting the chat.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => navigate('/dashboard/profile')}
+                    className="fablab-warning-tooltip-btn"
+                  >
+                    Go to profile
+                  </button>
+                </div>
               </div>
             )}
 
-            <div className="mt-3">
+            <div className="fablab-header-instruction-btn">
               <button
                 type="button"
                 onClick={() => setShowInstructionEditor((prev) => !prev)}
-                className="inline-flex items-center gap-1 rounded-lg border border-slate-300 bg-white/80 px-3 py-2 text-xs font-medium text-slate-700 transition-colors hover:border-slate-400 hover:text-slate-900 dark:border-slate-600 dark:bg-slate-900/70 dark:text-slate-200 dark:hover:border-slate-500"
+                className="fablab-header-instruction-toggle"
               >
                 <Wand2 size={13} />
                 <span>{showInstructionEditor ? 'Hide instruction' : 'Instruction'}</span>
@@ -1551,8 +1551,8 @@ const FablabChatView: React.FC = () => {
             </div>
 
             {showInstructionEditor && (
-              <div className="mt-3 rounded-xl border border-slate-200/80 bg-slate-50/70 p-3 dark:border-slate-700 dark:bg-slate-900/50">
-                <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-600 dark:text-slate-300">
+              <div >
+                <p >
                   Behavior instruction (separate from role and prompt)
                 </p>
                 <textarea
@@ -1563,18 +1563,18 @@ const FablabChatView: React.FC = () => {
                   }}
                   rows={3}
                   placeholder="Define global behavior rules for the assistant..."
-                  className="w-full resize-y rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-cyan-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+                  
                 />
-                <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
+                <p >
                   Role = identity/behavior priority. Prompt = task template inserted into the composer.
                 </p>
               </div>
             )}
 
             {(selectedRoleObject || selectedContextSources.length > 0) && (
-              <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
+              <div >
                 {selectedRoleObject && (
-                  <span className="inline-flex items-center gap-1 rounded-full border border-amber-300 bg-amber-100/80 px-2.5 py-1 text-amber-800 dark:border-amber-800 dark:bg-amber-900/30 dark:text-amber-300">
+                  <span >
                     {t?.fablabChat?.sources?.role || 'Role'}: {selectedRoleObject.name}
                     <button
                       type="button"
@@ -1585,7 +1585,7 @@ const FablabChatView: React.FC = () => {
                         setRoleResetAt(resetMark);
                         void persistRoleSelection(null, '', resetMark);
                       }}
-                      className="rounded p-0.5 hover:bg-amber-200 dark:hover:bg-amber-900/60"
+                      
                     >
                       <X size={12} />
                     </button>
@@ -1593,7 +1593,7 @@ const FablabChatView: React.FC = () => {
                 )}
 
                 {selectedContextSources.length > 0 && (
-                  <span className="inline-flex items-center gap-1 rounded-full border border-emerald-300 bg-emerald-100/80 px-2.5 py-1 text-emerald-800 dark:border-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300">
+                  <span >
                     <ShieldCheck size={12} />
                     {selectedContextSources.length} {t?.fablabChat?.sources?.selected || 'sources selected'}
                   </span>
@@ -1602,21 +1602,21 @@ const FablabChatView: React.FC = () => {
             )}
 
             {selectedContextSources.length > 0 && (
-              <div className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50/70 p-3 dark:border-emerald-900/60 dark:bg-emerald-900/20">
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-200">
+              <div >
+                <p >
                   Active context sources (fully analyzed before generation)
                 </p>
-                <div className="flex flex-wrap gap-2">
+                <div >
                   {selectedContextSources.map((source) => (
                     <span
                       key={String(source.id)}
-                      className="inline-flex items-center gap-1 rounded-full border border-emerald-300 bg-white/90 px-2.5 py-1 text-xs text-emerald-800 dark:border-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-200"
+                      
                     >
                       {source.name} ({getObjectType(source) || 'file'})
                       <button
                         type="button"
                         onClick={() => removeContextSource(source.id)}
-                        className="rounded p-0.5 hover:bg-emerald-100 dark:hover:bg-emerald-900/70"
+                        
                       >
                         <X size={11} />
                       </button>
@@ -1628,117 +1628,122 @@ const FablabChatView: React.FC = () => {
           </header>
 
           {!hasConversation ? (
-            <div className="flex flex-1 flex-col items-center justify-center px-6 py-10">
-              <div className="w-full max-w-5xl rounded-3xl border border-slate-200/70 bg-white/90 p-6 shadow-[0_30px_80px_-40px_rgba(14,116,144,0.45)] dark:border-slate-700 dark:bg-slate-900/85">
-                <div className="mb-5 text-center">
-                  <div className="mx-auto mb-3 inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-cyan-500 to-sky-600 text-white shadow-lg">
+            <div className="fablab-empty-state">
+              <div className="fablab-empty-card">
+                <div className="fablab-empty-content">
+                  <div className="fablab-empty-icon">
                     <Bot size={20} />
                   </div>
-                  <h2 className="text-2xl font-semibold tracking-tight text-slate-900 dark:text-slate-100">
+                  <h2 className="fablab-empty-title">
                     {t?.fablabChat?.empty?.title || 'Start a high-quality conversation'}
                   </h2>
-                  <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
+                  <p className="fablab-empty-subtitle">
                     {t?.fablabChat?.empty?.subtitle || 'Use role, prompt and curated sources to get precise responses.'}
                   </p>
                 </div>
 
-                <div className="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-3 dark:border-slate-700 dark:bg-slate-900/70">
+                <div className="fablab-empty-input-wrapper">
                   <textarea
                     value={input}
                     onChange={(event) => setInput(event.target.value)}
                     onKeyDown={handleInputKeyDown}
                     rows={5}
                     placeholder={t?.fablabChat?.inputPlaceholder || 'Write your message...'}
-                    className="w-full resize-none rounded-xl border border-slate-300 bg-white px-3 py-3 text-sm text-slate-900 outline-none focus:border-cyan-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+                    className="fablab-empty-textarea"
                   />
 
-                  <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
-                    <div className="flex flex-wrap items-center gap-2">
+                  <div className="fablab-empty-buttons">
+                    <div className="fablab-skill-buttons">
                       <button
                         type="button"
                         onClick={() => toggleSkill('search')}
-                        className={skillButtonClass(skills.search)}
+                        className="fablab-skill-btn"
                       >
-                        {t?.fablabChat?.skills?.search || 'Analyze'}
+                        <Search size={14} />
+                        <span className="fablab-skill-text">{t?.fablabChat?.skills?.search || 'Analyze'}</span>
                       </button>
                       <button
                         type="button"
                         onClick={() => toggleSkill('summarize')}
-                        className={skillButtonClass(skills.summarize)}
+                        className="fablab-skill-btn"
                       >
-                        {t?.fablabChat?.skills?.summarize || 'Summary'}
+                        <FileText size={14} />
+                        <span className="fablab-skill-text">{t?.fablabChat?.skills?.summarize || 'Summary'}</span>
                       </button>
                       <button
                         type="button"
                         onClick={() => toggleSkill('image')}
-                        className={skillButtonClass(skills.image)}
+                        className="fablab-skill-btn"
                       >
-                        {t?.fablabChat?.skills?.image || 'Image'}
+                        <ImageIcon size={14} />
+                        <span className="fablab-skill-text">{t?.fablabChat?.skills?.image || 'Image'}</span>
                       </button>
                       <button
                         type="button"
                         onClick={() => toggleSkill('other')}
-                        className={skillButtonClass(skills.other)}
+                        className="fablab-skill-btn"
                       >
-                        <Video size={12} className="mr-1 inline" />
-                        {(t as any)?.fablabChat?.skills?.video || 'Video/Other'}
+                        <Video size={14} />
+                        <span className="fablab-skill-text">{(t as any)?.fablabChat?.skills?.video || 'Video/Other'}</span>
                       </button>
                       <button
                         type="button"
                         onClick={() => toggleSkill('audioSynthesis')}
-                        className={skillButtonClass(skills.audioSynthesis)}
+                        className="fablab-skill-btn"
                       >
-                        <Volume2 size={12} className="mr-1 inline" />
-                        {(t as any)?.fablabChat?.skills?.speechSynthesis || 'Speech synth'}
+                        <Volume2 size={14} />
+                        <span className="fablab-skill-text">{(t as any)?.fablabChat?.skills?.speechSynthesis || 'Speech synth'}</span>
                       </button>
                       <button
                         type="button"
                         onClick={() => toggleSkill('audioTranscription')}
-                        className={skillButtonClass(skills.audioTranscription)}
+                        className="fablab-skill-btn"
                       >
-                        <Mic size={12} className="mr-1 inline" />
-                        {(t as any)?.fablabChat?.skills?.speechTranscription || 'Speech transcript'}
+                        <Mic size={14} />
+                        <span className="fablab-skill-text">{(t as any)?.fablabChat?.skills?.speechTranscription || 'Speech transcript'}</span>
                       </button>
                       <button
                         type="button"
                         onClick={() => toggleSkill('promptOptimize')}
-                        className={skillButtonClass(skills.promptOptimize)}
+                        className="fablab-skill-btn"
                       >
-                        {(t as any)?.fablabChat?.skills?.promptOptimize || 'Prompt optimizer'}
+                        <Zap size={14} />
+                        <span className="fablab-skill-text">{(t as any)?.fablabChat?.skills?.promptOptimize || 'Prompt optimizer'}</span>
                       </button>
                       <button
                         type="button"
                         onClick={() => toggleSkill('roleOptimize')}
-                        className={skillButtonClass(skills.roleOptimize)}
+                        className="fablab-skill-btn"
                       >
-                        {(t as any)?.fablabChat?.skills?.roleOptimize || 'Role optimizer'}
+                        <ShieldCheck size={14} />
+                        <span className="fablab-skill-text">{(t as any)?.fablabChat?.skills?.roleOptimize || 'Role optimizer'}</span>
                       </button>
 
                       <button
                         type="button"
                         onClick={() => setSourceMode('context')}
-                        className="inline-flex items-center gap-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-700 transition-colors hover:border-slate-400 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200"
+                        className="fablab-source-button"
                       >
                         <Paperclip size={14} />
-                        <span>{t?.fablabChat?.actions?.contextSources || 'Context sources'}</span>
+                        <span className="fablab-source-text">{t?.fablabChat?.actions?.contextSources || 'Context sources'}</span>
                       </button>
 
                       <button
                         type="button"
                         onClick={() => setSourceMode('role')}
-                        className="inline-flex items-center gap-1 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-700 transition-colors hover:border-amber-400 dark:border-amber-800 dark:bg-amber-900/30 dark:text-amber-300"
+                        className="fablab-source-button"
                       >
                         <Wand2 size={14} />
-                        <span>{t?.fablabChat?.actions?.roleSource || 'Role from library'}</span>
+                        <span className="fablab-source-text">{t?.fablabChat?.actions?.roleSource || 'Role from library'}</span>
                       </button>
 
                       <button
                         type="button"
                         onClick={() => setSourceMode('prompt')}
-                        className="inline-flex items-center gap-1 rounded-lg border border-cyan-300 bg-cyan-50 px-3 py-2 text-xs font-medium text-cyan-700 transition-colors hover:border-cyan-400 dark:border-cyan-800 dark:bg-cyan-900/30 dark:text-cyan-300"
+                        className="fablab-source-button"
                       >
                         <MessageSquare size={14} />
-                        <span>{t?.fablabChat?.actions?.promptSource || 'Prompt from library'}</span>
+                        <span className="fablab-source-text">{t?.fablabChat?.actions?.promptSource || 'Prompt from library'}</span>
                       </button>
                     </div>
 
@@ -1746,9 +1751,9 @@ const FablabChatView: React.FC = () => {
                       type="button"
                       onClick={sendMessage}
                       disabled={isSending || !input.trim() || !runtimeSelection}
-                      className="inline-flex items-center gap-1 rounded-xl bg-gradient-to-r from-cyan-600 to-sky-600 px-4 py-2 text-xs font-semibold text-white transition hover:from-cyan-700 hover:to-sky-700 disabled:opacity-50"
+                      className="fablab-send-button"
                     >
-                      {isSending ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
+                      {isSending ? <Loader2 size={14}  /> : <Send size={14} />}
                       <span>{t?.fablabChat?.actions?.send || 'Send'}</span>
                     </button>
                   </div>
@@ -1757,39 +1762,35 @@ const FablabChatView: React.FC = () => {
             </div>
           ) : (
             <>
-              <div ref={scrollerRef} className="flex-1 space-y-4 overflow-y-auto px-6 py-5">
+              <div ref={scrollerRef} className="fablab-messages-scroller">
                 {renderedMessages.map(({ message, isUser, imageSrc, richOutput, textBody, fileCardMessage }) => {
                   return (
                     <div
                       key={message.id}
-                      className={`flex ${isUser ? 'justify-end' : 'justify-start'} animate-[fadeIn_0.25s_ease-out]`}
+                      className={`fablab-message-wrapper ${isUser ? 'fablab-message-user' : 'fablab-message-assistant'}`}
                     >
                       <div
-                        className={`max-w-[85%] rounded-2xl px-4 py-3 shadow-sm ${
-                          isUser
-                            ? 'border border-cyan-300 bg-gradient-to-br from-cyan-100 to-sky-100 text-slate-900 dark:border-cyan-700 dark:from-cyan-900/30 dark:to-sky-900/30 dark:text-slate-100'
-                            : 'border border-slate-200 bg-white text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100'
-                        }`}
+                        className={`fablab-message-bubble ${isUser ? 'fablab-bubble-user' : 'fablab-bubble-assistant'}`}
                       >
-                        <p className="mb-1 text-[11px] uppercase tracking-wide opacity-70">
+                        <p >
                           {isUser ? (t?.fablabChat?.messages?.you || 'You') : (t?.fablabChat?.messages?.assistant || 'Assistant')}
                         </p>
                         {imageSrc && (
-                          <div className="relative mb-2 overflow-hidden rounded-xl border border-slate-200 dark:border-slate-700">
+                          <div >
                             <img
                               src={imageSrc}
                               alt="Generated output"
                               loading="lazy"
                               decoding="async"
-                              className="max-h-[420px] w-full object-contain bg-slate-50 dark:bg-slate-900"
+                              
                             />
-                            <div className="absolute right-2 top-2 flex items-center gap-1 rounded-lg bg-white/85 p-1 shadow-sm backdrop-blur dark:bg-slate-900/85">
+                            <div >
                               <button
                                 type="button"
                                 onClick={() => {
                                   void downloadGeneratedImage(imageSrc);
                                 }}
-                                className="inline-flex items-center gap-1 rounded-md border border-slate-300 bg-white px-2 py-1 text-[11px] font-medium text-slate-700 hover:border-slate-400 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200"
+                                
                               >
                                 <ImageDown size={12} />
                                 Download
@@ -1799,7 +1800,7 @@ const FablabChatView: React.FC = () => {
                                 onClick={() => {
                                   void saveGeneratedImageToObjects(imageSrc);
                                 }}
-                                className="inline-flex items-center gap-1 rounded-md border border-slate-300 bg-white px-2 py-1 text-[11px] font-medium text-slate-700 hover:border-slate-400 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200"
+                                
                               >
                                 <FolderPlus size={12} />
                                 Save
@@ -1808,13 +1809,13 @@ const FablabChatView: React.FC = () => {
                           </div>
                         )}
                         {richOutput && richOutput.kind === 'audio' && (
-                          <div className="mb-2 rounded-xl border border-slate-200 bg-slate-50 p-2 dark:border-slate-700 dark:bg-slate-900/70">
-                            <audio controls src={richOutput.src} className="w-full" />
-                            <div className="mt-2 flex justify-end">
+                          <div >
+                            <audio controls src={richOutput.src}  />
+                            <div >
                               <button
                                 type="button"
                                 onClick={() => downloadDataUriAsset(richOutput.src, richOutput.fileName)}
-                                className="inline-flex items-center gap-1 rounded-md border border-slate-300 bg-white px-2 py-1 text-[11px] font-medium text-slate-700 hover:border-slate-400 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200"
+                                
                               >
                                 <Download size={12} />
                                 Download audio
@@ -1823,13 +1824,13 @@ const FablabChatView: React.FC = () => {
                           </div>
                         )}
                         {richOutput && richOutput.kind === 'video' && (
-                          <div className="mb-2 rounded-xl border border-slate-200 bg-slate-50 p-2 dark:border-slate-700 dark:bg-slate-900/70">
-                            <video controls src={richOutput.src} className="max-h-[420px] w-full rounded-lg bg-slate-100 dark:bg-slate-950" />
-                            <div className="mt-2 flex justify-end">
+                          <div >
+                            <video controls src={richOutput.src}  />
+                            <div >
                               <button
                                 type="button"
                                 onClick={() => downloadDataUriAsset(richOutput.src, richOutput.fileName)}
-                                className="inline-flex items-center gap-1 rounded-md border border-slate-300 bg-white px-2 py-1 text-[11px] font-medium text-slate-700 hover:border-slate-400 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200"
+                                
                               >
                                 <Download size={12} />
                                 Download video
@@ -1838,15 +1839,15 @@ const FablabChatView: React.FC = () => {
                           </div>
                         )}
                         {richOutput && richOutput.kind === 'file' && (
-                          <div className="mb-2 rounded-xl border border-slate-200 bg-slate-50 p-2 dark:border-slate-700 dark:bg-slate-900/70">
-                            <p className="text-xs text-slate-700 dark:text-slate-200">
+                          <div >
+                            <p >
                               {fileCardMessage || 'Claro, aca genere tu archivo. Usa el boton para descargarlo.'}
                             </p>
-                            <div className="mt-2 flex justify-end">
+                            <div >
                               <button
                                 type="button"
                                 onClick={() => downloadDataUriAsset(richOutput.src, richOutput.fileName)}
-                                className="inline-flex items-center gap-1 rounded-md border border-slate-300 bg-white px-2 py-1 text-[11px] font-medium text-slate-700 hover:border-slate-400 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200"
+                                
                               >
                                 <Download size={12} />
                                 Descargar archivo
@@ -1856,9 +1857,9 @@ const FablabChatView: React.FC = () => {
                         )}
                         {textBody && !(richOutput && richOutput.kind === 'file') && (
                           isUser ? (
-                            <p className="whitespace-pre-wrap text-sm leading-relaxed">{textBody}</p>
+                            <p >{textBody}</p>
                           ) : (
-                            <div className="prose prose-sm max-w-none text-slate-800 dark:prose-invert dark:text-slate-100">
+                            <div >
                               <ReactMarkdown
                                 remarkPlugins={[remarkGfm]}
                                 components={markdownComponents}
@@ -1869,110 +1870,115 @@ const FablabChatView: React.FC = () => {
                             </div>
                           )
                         )}
-                        <p className="mt-2 text-[10px] opacity-60">{formatTime(message.createdAt)}</p>
+                        <p >{formatTime(message.createdAt)}</p>
                       </div>
                     </div>
                   );
                 })}
               </div>
 
-              <div className="border-t border-slate-200/70 bg-white/70 px-6 py-4 dark:border-slate-700 dark:bg-slate-900/60">
+              <div className="fablab-conversation-input">
                 <textarea
                   value={input}
                   onChange={(event) => setInput(event.target.value)}
                   onKeyDown={handleInputKeyDown}
                   rows={3}
                   placeholder={t?.fablabChat?.inputPlaceholder || 'Write your message...'}
-                  className="w-full resize-none rounded-xl border border-slate-300 bg-white px-3 py-3 text-sm text-slate-900 outline-none focus:border-cyan-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+                  className="fablab-input-textarea"
                 />
 
-                <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
-                  <div className="flex flex-wrap items-center gap-2">
+                <div className="fablab-input-buttons">
+                  <div className="fablab-skill-buttons">
                     <button
                       type="button"
                       onClick={() => toggleSkill('search')}
-                      className={skillButtonClass(skills.search)}
+                      className="fablab-skill-btn"
                     >
-                      {t?.fablabChat?.skills?.search || 'Analyze'}
+                      <Search size={14} />
+                      <span className="fablab-skill-text">{t?.fablabChat?.skills?.search || 'Analyze'}</span>
                     </button>
                     <button
                       type="button"
                       onClick={() => toggleSkill('summarize')}
-                      className={skillButtonClass(skills.summarize)}
+                      className="fablab-skill-btn"
                     >
-                      {t?.fablabChat?.skills?.summarize || 'Summary'}
+                      <FileText size={14} />
+                      <span className="fablab-skill-text">{t?.fablabChat?.skills?.summarize || 'Summary'}</span>
                     </button>
                     <button
                       type="button"
                       onClick={() => toggleSkill('image')}
-                      className={skillButtonClass(skills.image)}
+                      className="fablab-skill-btn"
                     >
-                      {t?.fablabChat?.skills?.image || 'Image'}
+                      <ImageIcon size={14} />
+                      <span className="fablab-skill-text">{t?.fablabChat?.skills?.image || 'Image'}</span>
                     </button>
                     <button
                       type="button"
                       onClick={() => toggleSkill('other')}
-                      className={skillButtonClass(skills.other)}
+                      className="fablab-skill-btn"
                     >
-                      <Video size={12} className="mr-1 inline" />
-                      {(t as any)?.fablabChat?.skills?.video || 'Video/Other'}
+                      <Video size={14} />
+                      <span className="fablab-skill-text">{(t as any)?.fablabChat?.skills?.video || 'Video/Other'}</span>
                     </button>
                     <button
                       type="button"
                       onClick={() => toggleSkill('audioSynthesis')}
-                      className={skillButtonClass(skills.audioSynthesis)}
+                      className="fablab-skill-btn"
                     >
-                      <Volume2 size={12} className="mr-1 inline" />
-                      {(t as any)?.fablabChat?.skills?.speechSynthesis || 'Speech synth'}
+                      <Volume2 size={14} />
+                      <span className="fablab-skill-text">{(t as any)?.fablabChat?.skills?.speechSynthesis || 'Speech synth'}</span>
                     </button>
                     <button
                       type="button"
                       onClick={() => toggleSkill('audioTranscription')}
-                      className={skillButtonClass(skills.audioTranscription)}
+                      className="fablab-skill-btn"
                     >
-                      <Mic size={12} className="mr-1 inline" />
-                      {(t as any)?.fablabChat?.skills?.speechTranscription || 'Speech transcript'}
+                      <Mic size={14} />
+                      <span className="fablab-skill-text">{(t as any)?.fablabChat?.skills?.speechTranscription || 'Speech transcript'}</span>
                     </button>
                     <button
                       type="button"
                       onClick={() => toggleSkill('promptOptimize')}
-                      className={skillButtonClass(skills.promptOptimize)}
+                      className="fablab-skill-btn"
                     >
-                      {(t as any)?.fablabChat?.skills?.promptOptimize || 'Prompt optimizer'}
+                      <Zap size={14} />
+                      <span className="fablab-skill-text">{(t as any)?.fablabChat?.skills?.promptOptimize || 'Prompt optimizer'}</span>
                     </button>
                     <button
                       type="button"
                       onClick={() => toggleSkill('roleOptimize')}
-                      className={skillButtonClass(skills.roleOptimize)}
+                      className="fablab-skill-btn"
                     >
-                      {(t as any)?.fablabChat?.skills?.roleOptimize || 'Role optimizer'}
+                      <ShieldCheck size={14} />
+                      <span className="fablab-skill-text">{(t as any)?.fablabChat?.skills?.roleOptimize || 'Role optimizer'}</span>
                     </button>
 
                     <button
                       type="button"
                       onClick={() => setSourceMode('context')}
-                      className="inline-flex items-center gap-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-700 transition-colors hover:border-slate-400 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200"
+                      className="fablab-source-button"
                     >
                       <Paperclip size={14} />
-                      <span>{t?.fablabChat?.actions?.contextSources || 'Context sources'}</span>
+                      <span className="fablab-source-text">{t?.fablabChat?.actions?.contextSources || 'Context sources'}</span>
                     </button>
 
                     <button
                       type="button"
                       onClick={() => setSourceMode('role')}
-                      className="inline-flex items-center gap-1 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-700 transition-colors hover:border-amber-400 dark:border-amber-800 dark:bg-amber-900/30 dark:text-amber-300"
+                      className="fablab-source-button"
                     >
                       <Wand2 size={14} />
-                      <span>{t?.fablabChat?.actions?.roleSource || 'Role from library'}</span>
+                      <span className="fablab-source-text">{t?.fablabChat?.actions?.roleSource || 'Role from library'}</span>
                     </button>
 
                     <button
                       type="button"
                       onClick={() => setSourceMode('prompt')}
-                      className="inline-flex items-center gap-1 rounded-lg border border-cyan-300 bg-cyan-50 px-3 py-2 text-xs font-medium text-cyan-700 transition-colors hover:border-cyan-400 dark:border-cyan-800 dark:bg-cyan-900/30 dark:text-cyan-300"
+                      className="fablab-source-button"
                     >
                       <MessageSquare size={14} />
-                      <span>{t?.fablabChat?.actions?.promptSource || 'Prompt from library'}</span>
+                      <span className="fablab-source-text">{t?.fablabChat?.actions?.promptSource || 'Prompt from library'}</span>
                     </button>
                   </div>
 
@@ -1980,9 +1986,9 @@ const FablabChatView: React.FC = () => {
                     type="button"
                     onClick={sendMessage}
                     disabled={isSending || !input.trim() || !runtimeSelection}
-                    className="inline-flex items-center gap-1 rounded-xl bg-gradient-to-r from-cyan-600 to-sky-600 px-4 py-2 text-xs font-semibold text-white transition hover:from-cyan-700 hover:to-sky-700 disabled:opacity-50"
+                    className="fablab-send-button"
                   >
-                    {isSending ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
+                    {isSending ? <Loader2 size={14}  /> : <Send size={14} />}
                     <span>{t?.fablabChat?.actions?.send || 'Send'}</span>
                   </button>
                 </div>
@@ -1991,14 +1997,14 @@ const FablabChatView: React.FC = () => {
           )}
 
           {(errorText || statusText) && (
-            <div className="border-t border-slate-200/70 px-6 py-3 dark:border-slate-700">
+            <div className="fablab-toasts">
               {errorText && (
-                <div className="mb-2 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700 dark:border-rose-900/60 dark:bg-rose-900/20 dark:text-rose-300">
+                <div className="fablab-toast fablab-toast-error">
                   {errorText}
                 </div>
               )}
               {statusText && (
-                <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-900/20 dark:text-emerald-300">
+                <div className="fablab-toast fablab-toast-status">
                   {statusText}
                 </div>
               )}
@@ -2007,9 +2013,9 @@ const FablabChatView: React.FC = () => {
         </div>
 
         {sourceMode && (
-          <aside className="absolute inset-y-0 right-0 z-10 w-full max-w-md border-l border-slate-200 bg-white/95 p-4 shadow-2xl backdrop-blur-xl dark:border-slate-700 dark:bg-slate-900/95">
-            <div className="mb-3 flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-100">
+          <aside className="fablab-sidebar">
+            <div className="fablab-sidebar-header">
+              <h3 className="fablab-sidebar-title">
                 {sourceMode === 'context'
                   ? (t?.fablabChat?.sources?.title || 'Select context sources')
                   : sourceMode === 'role'
@@ -2020,19 +2026,19 @@ const FablabChatView: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setSourceMode(null)}
-                className="rounded-lg border border-slate-300 px-2 py-1 text-xs text-slate-600 hover:border-slate-400 dark:border-slate-600 dark:text-slate-300"
+                className="fablab-sidebar-close"
               >
                 <X size={13} />
               </button>
             </div>
 
-            <div className="mb-3 grid gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-              <label className="text-sm">
-                <span className="mb-1 block text-xs text-slate-600 dark:text-slate-300">{t?.fablabChat?.sources?.folder || 'Folder'}</span>
+            <div className="fablab-sidebar-filters">
+              <label className="fablab-sidebar-label">
+                <span className="fablab-sidebar-label-text">{t?.fablabChat?.sources?.folder || 'Folder'}</span>
                 <select
                   value={selectedFolderId ?? ''}
                   onChange={(event) => setSelectedFolderId(event.target.value ? Number(event.target.value) : undefined)}
-                  className="w-full rounded-lg border border-slate-300 px-2.5 py-2 text-sm text-slate-900 outline-none focus:border-cyan-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+                  className="fablab-sidebar-select"
                 >
                   <option value="">{t?.fablabChat?.sources?.allFolders || 'All folders'}</option>
                   {folders.map((folder) => (
@@ -2041,48 +2047,48 @@ const FablabChatView: React.FC = () => {
                 </select>
               </label>
 
-              <label className="text-sm">
-                <span className="mb-1 block text-xs text-slate-600 dark:text-slate-300">{t?.fablabChat?.sources?.search || 'Search'}</span>
-                <div className="relative">
-                  <Search size={14} className="pointer-events-none absolute left-2 top-2.5 text-slate-400" />
+              <label className="fablab-sidebar-label">
+                <span className="fablab-sidebar-label-text">{t?.fablabChat?.sources?.search || 'Search'}</span>
+                <div className="fablab-sidebar-search-wrapper">
+                  <Search size={14}  />
                   <input
                     value={searchTerm}
                     onChange={(event) => setSearchTerm(event.target.value)}
                     placeholder={t?.fablabChat?.sources?.searchPlaceholder || 'Search files...'}
-                    className="w-full rounded-lg border border-slate-300 py-2 pl-8 pr-2 text-sm text-slate-900 outline-none focus:border-cyan-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+                    className="fablab-sidebar-search-input"
                   />
                 </div>
               </label>
             </div>
 
-            <div className="max-h-[calc(100%-132px)] overflow-y-auto rounded-lg border border-slate-200 dark:border-slate-700">
+            <div className="fablab-sidebar-list">
               {libraryLoading ? (
-                <div className="p-3 text-sm text-slate-500 dark:text-slate-400">
-                  <Loader2 size={14} className="mr-1 inline animate-spin" />
+                <div className="fablab-sidebar-loading">
+                  <Loader2 size={14}  />
                   {t?.fablabChat?.sources?.loading || 'Loading library...'}
                 </div>
               ) : sourceCandidates.length === 0 ? (
-                <div className="p-3 text-sm text-slate-500 dark:text-slate-400">
+                <div className="fablab-sidebar-empty">
                   {t?.fablabChat?.sources?.empty || 'No items found.'}
                 </div>
               ) : (
-                <ul className="divide-y divide-slate-200 dark:divide-slate-700">
+                <ul className="fablab-sidebar-items">
                   {sourceCandidates.map((source) => {
                     const checked = isContextSelected(source);
                     return (
-                      <li key={String(source.id)} className="flex items-center justify-between gap-2 px-3 py-2 text-sm">
-                        <div>
-                          <p className="font-medium text-slate-800 dark:text-slate-100">{source.name}</p>
-                          <p className="text-xs text-slate-500 dark:text-slate-400">{getObjectType(source) || 'file'}</p>
+                      <li key={String(source.id)} className="fablab-sidebar-item">
+                        <div className="fablab-sidebar-item-info">
+                          <p className="fablab-sidebar-item-name">{source.name}</p>
+                          <p className="fablab-sidebar-item-type">{getObjectType(source) || 'file'}</p>
                         </div>
 
                         {sourceMode === 'context' ? (
-                          <label className="inline-flex items-center gap-1 text-xs text-slate-600 dark:text-slate-300">
+                          <label className="fablab-sidebar-item-checkbox-label">
                             <input
                               type="checkbox"
                               checked={checked}
                               onChange={() => toggleContextSource(source)}
-                              className="rounded border-slate-300 text-cyan-600"
+                              className="fablab-sidebar-item-checkbox"
                             />
                             {t?.fablabChat?.sources?.select || 'Select'}
                           </label>
@@ -2090,7 +2096,7 @@ const FablabChatView: React.FC = () => {
                           <button
                             type="button"
                             onClick={() => applySingleSource(sourceMode, source)}
-                            className="rounded-md border border-slate-300 px-2 py-1 text-xs text-slate-700 hover:border-slate-400 dark:border-slate-600 dark:text-slate-300 dark:hover:border-slate-500"
+                            className="fablab-sidebar-item-button"
                           >
                             {t?.fablabChat?.sources?.use || 'Use'}
                           </button>
