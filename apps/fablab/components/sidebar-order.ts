@@ -23,6 +23,17 @@ export const DEFAULT_SIDEBAR_ORDER: SidebarSectionKey[] = [
   'tools',
 ];
 
+export const SIDEBAR_PATH_BY_KEY: Record<SidebarSectionKey, string> = {
+  chat: '/dashboard/chat',
+  objectsLibrary: '/dashboard/objects-library',
+  projectBuilder: '/dashboard/project-builder',
+  assembler: '/dashboard/assembler',
+  applications: '/dashboard/applications',
+  products: '/dashboard/products',
+  context: '/dashboard/context',
+  tools: '/dashboard/tools',
+};
+
 const isSidebarSectionKey = (value: string): value is SidebarSectionKey => {
   return DEFAULT_SIDEBAR_ORDER.includes(value as SidebarSectionKey);
 };
@@ -84,4 +95,10 @@ export const saveSidebarOrderToDatabase = async (order: SidebarSectionKey[]): Pr
     sidebarOrder: normalized,
     updatedAt: new Date().toISOString(),
   });
+};
+
+export const getDefaultDashboardPath = (order: SidebarSectionKey[]): string => {
+  const normalized = normalizeSidebarOrder(order);
+  const firstKey = normalized[0] ?? DEFAULT_SIDEBAR_ORDER[0];
+  return SIDEBAR_PATH_BY_KEY[firstKey] || '/dashboard/chat';
 };

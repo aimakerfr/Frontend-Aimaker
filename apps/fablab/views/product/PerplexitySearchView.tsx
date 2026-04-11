@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Search, Copy, Check, Loader2, Globe, Lock, Code2, Cpu } from 'lucide-react';
+import { ArrowLeft, Search, Copy, Check, Loader2, Globe, Lock, Code2, Cpu, Save } from 'lucide-react';
 import { getProduct, getPublicProduct, getOrCreateProductByType, type Product } from '@core/products';
 import { getProductStepProgress, updateProductStepProgress } from '@core/product-step-progress';
+import { createObject } from '@core/objects';
 import { perplexityService } from '@core/perplexity/perplexity.service';
 import { tokenStorage } from '@core/api/http.client';
 import { useLanguage } from '../../language/useLanguage';
@@ -60,6 +61,45 @@ const renderMarkdown = (text: string): string => {
   return result.join('');
 };
 
+const looksLikeMarkdown = (text: string): boolean => {
+  return /(^|\n)\s*(#{1,6}\s|[-*]\s|\d+\.\s)|\*\*[^*]+\*\*|`[^`]+`|\[[^\]]+\]\([^\)]+\)/m.test(text);
+};
+
+const renderStructuredText = (text: string): string => {
+  const escape = (v: string) =>
+    v
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+
+  const lines = text
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  return lines.map((line) => {
+    if (/^[A-ZÁÉÍÓÚÑ][^:]{2,90}:$/.test(line)) {
+      return `<h3 class="text-lg font-bold text-blue-800 dark:text-blue-300 mt-7 mb-3 flex items-center gap-2"><span class="inline-block w-2 h-2 rounded-full bg-blue-500"></span>${escape(line.replace(/:$/, ''))}</h3>`;
+    }
+    if (/^[-*]\s+/.test(line) || /^\d+\.\s+/.test(line)) {
+      const content = line.replace(/^[-*]\s+/, '').replace(/^\d+\.\s+/, '');
+      return `<div class="flex items-start gap-3 mb-3"><span class="mt-2 w-1.5 h-1.5 rounded-full bg-blue-500"></span><p class="text-gray-700 dark:text-gray-300 leading-relaxed">${escape(content)}</p></div>`;
+    }
+    return `<p class="text-gray-700 dark:text-gray-300 mb-4 leading-relaxed">${escape(line)}</p>`;
+  }).join('');
+};
+
+const renderOutputContent = (text: string): string => {
+  return looksLikeMarkdown(text) ? renderMarkdown(text) : renderStructuredText(text);
+};
+
+const toNumericId = (value: unknown): number | null => {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed <= 0) return null;
+  return parsed;
+};
+
 const PerplexitySearchView: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -79,6 +119,8 @@ const PerplexitySearchView: React.FC = () => {
   const [isSearching, setIsSearching] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [outputCopied, setOutputCopied] = useState(false);
+  const [isSavingObject, setIsSavingObject] = useState(false);
+  const [savedObjectId, setSavedObjectId] = useState<number | null>(null);
   const [searchCount, setSearchCount] = useState<number>(0);
   const [searchHistory, setSearchHistory] = useState<string[]>([]);
 
@@ -203,6 +245,7 @@ const PerplexitySearchView: React.FC = () => {
 
       setSearchResult(content);
       setModelInfo({ model, provider });
+      setSavedObjectId(null);
 
       // Guardar en product_step_progress
       await updateProductStepProgress({
@@ -219,9 +262,55 @@ const PerplexitySearchView: React.FC = () => {
       });
     } catch (err: any) {
       console.error('[PerplexitySearchView] Search error:', err);
-      setError((t as any).perplexitySearch?.errorSearch ?? 'Hubo un error al realizar la búsqueda.');
+      const fallback = (t as any).perplexitySearch?.errorSearch ?? 'Tuvimos un problema temporal con la API interna. Intenta nuevamente en unos minutos.';
+      const message = err instanceof Error && err.message ? err.message : fallback;
+      setError(message || fallback);
     } finally {
       setIsSearching(false);
+    }
+  };
+
+  const handleSaveOutputObject = async () => {
+    if (!searchResult.trim() || !product?.id) return;
+
+    setIsSavingObject(true);
+    setError(null);
+    try {
+      const safeName = (product.title || 'perplexity-search')
+        .replace(/[^a-zA-Z0-9-_\s]/g, '')
+        .trim()
+        .replace(/\s+/g, '-') || 'perplexity-search';
+
+      const documentBody = [
+        'BUSQUEDA E INVESTIGACION',
+        `Producto: ${product.title || 'Perplexity Search'}`,
+        `Fecha: ${new Date().toLocaleString()}`,
+        `Consulta: ${inputQuery.trim() || '(sin consulta)'}`,
+        modelInfo?.model ? `Modelo: ${modelInfo.model}` : '',
+        modelInfo?.provider ? `Proveedor: ${modelInfo.provider}` : '',
+        '',
+        'Resultado:',
+        searchResult.trim(),
+      ].filter(Boolean).join('\n');
+
+      const file = new File(
+        [documentBody],
+        `${safeName}-investigacion.txt`,
+        { type: 'text/plain;charset=utf-8' }
+      );
+
+      const created = await createObject({
+        title: `${product.title || 'Perplexity Search'} - Investigacion`,
+        type: 'TEXT',
+        file,
+      });
+
+      setSavedObjectId(toNumericId(created.id));
+    } catch (saveError) {
+      console.error('[PerplexitySearchView] Save object error:', saveError);
+      setError('No se pudo guardar la investigacion en objetos.');
+    } finally {
+      setIsSavingObject(false);
     }
   };
 
@@ -365,7 +454,7 @@ const PerplexitySearchView: React.FC = () => {
                 <span>{inputQuery.length} {t.common?.characters ?? 'caracteres'} (Ctrl+Enter para buscar)</span>
                 {isOwner && (
                   <button
-                    onClick={() => { setInputQuery(''); setSearchResult(''); setError(null); setModelInfo(null); }}
+                    onClick={() => { setInputQuery(''); setSearchResult(''); setError(null); setModelInfo(null); setSavedObjectId(null); }}
                     className="hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
                   >
                     {tr.clear ?? 'Limpiar'}
@@ -426,31 +515,51 @@ const PerplexitySearchView: React.FC = () => {
                   <div className="bg-blue-100 dark:bg-blue-800 p-1.5 rounded-lg">
                     <Search size={16} className="text-blue-700 dark:text-blue-300" />
                   </div>
-                  <h2 className="font-bold text-blue-900 dark:text-blue-200 text-sm tracking-wide uppercase">
-                    {tr.outputLabel ?? 'Resumen o Investigación'}
-                  </h2>
+                  <div>
+                    <h2 className="font-bold text-blue-900 dark:text-blue-200 text-sm tracking-wide uppercase">
+                      {tr.outputLabel ?? 'Resumen o Investigación'}
+                    </h2>
+                    <p className="text-xs text-blue-700/80 dark:text-blue-300/80">
+                      Contenido ordenado por secciones para lectura y guardado.
+                    </p>
+                  </div>
                 </div>
-                <button
-                  onClick={handleCopyOutput}
-                  className="inline-flex items-center gap-2 px-3.5 py-1.5 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-sm hover:shadow active:scale-95 rounded-lg transition-all"
-                >
-                  {outputCopied ? (
-                    <>
-                      <Check size={14} />
-                      {tr.copied ?? '¡Copiado!'}
-                    </>
-                  ) : (
-                    <>
-                      <Copy size={14} />
-                      {tr.copy ?? 'Copiar'}
-                    </>
-                  )}
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleSaveOutputObject}
+                    disabled={isSavingObject}
+                    className="inline-flex items-center gap-2 px-3.5 py-1.5 text-xs font-bold text-blue-700 dark:text-blue-200 bg-white/80 dark:bg-blue-900/40 border border-blue-200 dark:border-blue-700 hover:bg-white dark:hover:bg-blue-900/60 shadow-sm active:scale-95 rounded-lg transition-all disabled:opacity-50"
+                  >
+                    {isSavingObject ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+                    {isSavingObject ? 'Guardando...' : 'Guardar en objetos'}
+                  </button>
+                  <button
+                    onClick={handleCopyOutput}
+                    className="inline-flex items-center gap-2 px-3.5 py-1.5 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-sm hover:shadow active:scale-95 rounded-lg transition-all"
+                  >
+                    {outputCopied ? (
+                      <>
+                        <Check size={14} />
+                        {tr.copied ?? '¡Copiado!'}
+                      </>
+                    ) : (
+                      <>
+                        <Copy size={14} />
+                        {tr.copy ?? 'Copiar'}
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
+              {savedObjectId && (
+                <div className="px-6 py-2 text-xs font-medium text-emerald-700 dark:text-emerald-300 bg-emerald-50/70 dark:bg-emerald-900/20 border-b border-emerald-100 dark:border-emerald-800/30">
+                  Documento guardado en objetos. ID: #{savedObjectId}
+                </div>
+              )}
               <div className="p-8">
                 <div 
                   className="prose dark:prose-invert max-w-none prose-blue"
-                  dangerouslySetInnerHTML={{ __html: renderMarkdown(searchResult) }}
+                  dangerouslySetInnerHTML={{ __html: renderOutputContent(searchResult) }}
                 />
               </div>
 

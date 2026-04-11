@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Loader2, AlertTriangle } from 'lucide-react';
-import { getOrCreateProductByType, type ProductType } from '@core/products';
+import { getOrCreateProductByType, getProducts, type ProductType } from '@core/products';
 
 interface FixedProductEntryProps {
   type: ProductType;
@@ -128,14 +128,49 @@ export const PromptOptimizerEntry = () => (
   />
 );
 
-export const CreationPathEntry = () => (
-  <FixedProductEntry
-    type="creation_path"
-    route="creation-path"
-    title="Creation-Path"
-    description="Ruta de creación guiada paso a paso con asistencia de IA."
-  />
-);
+export const CreationPathEntry = () => {
+  const navigate = useNavigate();
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const openExistingCreationPath = async () => {
+      try {
+        const existing = await getProducts({ type: 'creation_path' });
+        const first = Array.isArray(existing) && existing.length > 0 ? existing[0] : null;
+
+        if (!first?.id) {
+          setError('No existe un producto Creation-Path registrado. Crea o importa uno en base de datos.');
+          return;
+        }
+
+        navigate('/product/creation-path', { replace: true, state: { creationPathId: first.id } });
+      } catch (err: any) {
+        setError(err?.message || 'No se pudo abrir el producto Creation-Path.');
+      }
+    };
+
+    void openExistingCreationPath();
+  }, [navigate]);
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 dark:bg-gray-900 p-6 text-center">
+        <AlertTriangle className="text-red-500 mb-3" size={32} />
+        <h1 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">Creation-Path</h1>
+        <p className="text-sm text-gray-600 dark:text-gray-400 max-w-md">{error}</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+      <div className="flex flex-col items-center gap-3">
+        <Loader2 className="animate-spin text-indigo-600" size={36} />
+        <p className="text-sm text-gray-600 dark:text-gray-400">Abriendo Creation-Path...</p>
+      </div>
+    </div>
+  );
+};
 
 export const ApiCostManagerEntry = () => (
   <FixedProductEntry

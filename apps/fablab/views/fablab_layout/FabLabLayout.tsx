@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import ProjectBuilderView from '../project/ProjectBuilderView';
 import CreationPathView from '../project/CreationPathView';
 import { Routes, Route, Link, Navigate, useLocation } from 'react-router-dom';
@@ -26,6 +26,7 @@ import ApplicationsManagement from '../applications/ApplicationsManagement';
 import ApiKeyManager from '../api-proxy/ApiKeyManager';
 import { useLanguage } from '../../language/useLanguage';
 import FablabChatView from '../chat/FablabChatView';
+import { getDefaultDashboardPath, loadSidebarOrder, loadSidebarOrderFromDatabase } from '../../components/sidebar-order';
 
 type Props = {
   user: UserProfile;
@@ -35,6 +36,38 @@ type Props = {
   onToggleSidebar: () => void;
   onCloseSidebar: () => void;
   onLogout: () => void;
+};
+
+const DefaultDashboardRedirect: React.FC = () => {
+  const [targetPath, setTargetPath] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+
+    const resolveDefaultPath = async () => {
+      try {
+        const dbOrder = await loadSidebarOrderFromDatabase();
+        if (!active) return;
+        setTargetPath(getDefaultDashboardPath(dbOrder));
+      } catch {
+        if (!active) return;
+        setTargetPath(getDefaultDashboardPath(loadSidebarOrder()));
+      }
+    };
+
+    void resolveDefaultPath();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  if (!targetPath) {
+    return (
+      <div className="p-6 text-sm text-gray-500 dark:text-gray-400">Cargando...</div>
+    );
+  }
+
+  return <Navigate to={targetPath} replace />;
 };
 
 const FabLabLayout: React.FC<Props> = ({
@@ -136,7 +169,7 @@ const FabLabLayout: React.FC<Props> = ({
             <div className="h-full">
               <Routes>
                 {/* Rutas específicas para cada sección */}
-                <Route path="/" element={<Navigate to="/dashboard/chat" replace />} />
+                <Route path="/" element={<DefaultDashboardRedirect />} />
                 <Route path="/chat" element={<FablabChatView />} />
                 <Route path="/library" element={<Library />} />
                 {/* Home routes */}
@@ -187,7 +220,7 @@ const FabLabLayout: React.FC<Props> = ({
               )}
               <Routes>
                 {/* Rutas específicas para cada sección */}
-                <Route path="/" element={<Navigate to="/dashboard/chat" replace />} />
+                <Route path="/" element={<DefaultDashboardRedirect />} />
                 <Route path="/chat" element={<FablabChatView />} />
                 <Route path="/library" element={<Library />} />
                 {/* Home routes */}

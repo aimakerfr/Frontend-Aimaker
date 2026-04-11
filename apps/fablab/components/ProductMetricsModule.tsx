@@ -138,7 +138,7 @@ const LineTrendChart: React.FC<{
       {points.length === 0 ? (
         <div className="text-xs text-gray-500 dark:text-gray-400">No data</div>
       ) : (
-        <div className="relative">
+        <div className="relative" translate="no" data-no-translate="true">
           <svg
             viewBox={`0 0 ${width} ${height}`}
             className="w-full"

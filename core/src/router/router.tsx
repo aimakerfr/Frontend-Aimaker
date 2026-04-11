@@ -23,7 +23,7 @@ import ApiKeyInspectorView from '@apps/fablab/views/product/ApiKeyInspectorView'
 import ApiKeyHtmlInjectionView from '@apps/fablab/views/product/ApiKeyHtmlInjectionView';
 import ProfileB2BView from '@apps/fablab/views/product/ProfileB2BView';
 import ApiKeyManager from '@apps/fablab/views/api-proxy/ApiKeyManager';
-import { LandingPageEntry, ImageGeneratorEntry, TranslationEntry, StyleTransferEntry, ApiKeyEntry, ApiKeyHtmlInjectionEntry, ProfileB2BEntry, PerplexitySearchEntry, PromptOptimizerEntry, CreationPathEntry, ApiCostManagerEntry } from '@apps/fablab/views/product/FixedProductEntry';
+import { LandingPageEntry, ImageGeneratorEntry, TranslationEntry, StyleTransferEntry, ApiKeyEntry, ApiKeyHtmlInjectionEntry, ProfileB2BEntry, PerplexitySearchEntry, PromptOptimizerEntry, ApiCostManagerEntry } from '@apps/fablab/views/product/FixedProductEntry';
 import PromptOptimizerView from '@apps/fablab/views/product/PromptOptimizerView';
 import PerplexitySearchView from '@apps/fablab/views/product/PerplexitySearchView';
 import CreationPathView from '@apps/fablab/views/product/CreationPathView';
@@ -243,7 +243,7 @@ export function AppRouter() {
           path="/product/creation-path"
           element={
             <ProtectedRoute>
-              <CreationPathEntry />
+              <CreationPathView />
             </ProtectedRoute>
           }
         />
@@ -274,7 +274,14 @@ export function AppRouter() {
         <Route path="/product/profile-b2b/:id" element={<ProfileB2BView />} />
         <Route path="/product/prompt-optimizer/:id" element={<PromptOptimizerView />} />
         <Route path="/product/perplexity-search/:id" element={<PerplexitySearchView />} />
-        <Route path="/product/creation-path/:id" element={<CreationPathView />} />
+        <Route
+          path="/product/creation-path/:id"
+          element={
+            <ProtectedRoute>
+              <Navigate to="/product/creation-path" replace />
+            </ProtectedRoute>
+          }
+        />
         <Route path="/product/api-cost/:id" element={<ApiCostManagerView />} />
         
         {/* Public Prompt - No auth required, read-only (config view) */}
