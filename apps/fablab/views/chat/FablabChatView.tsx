@@ -1,14 +1,46 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import remarkMath from 'remark-math';
+import rehypeKatex from 'rehype-katex';
+import mermaid from 'mermaid';
 import { jsPDF } from 'jspdf';
+
+// Initialize mermaid
+mermaid.initialize({ startOnLoad: false, theme: 'default' });
 import './style.css';
+import 'katex/dist/katex.min.css';
+
+// PDF Card Component
+const PDFCard = ({ fileName, onDownload }: { fileName: string; onDownload: () => void }) => {
+  return (
+    <div className="fablab-pdf-card">
+      <div className="fablab-pdf-icon">
+        <FileText size={32} />
+      </div>
+      <div className="fablab-pdf-info">
+        <div className="fablab-pdf-filename">{fileName}</div>
+        <div className="fablab-pdf-type">PDF Document</div>
+      </div>
+      <button
+        type="button"
+        className="fablab-pdf-download-btn"
+        onClick={onDownload}
+      >
+        <Download size={16} />
+        Download
+      </button>
+    </div>
+  );
+};
+
 import {
   AlertTriangle,
   Bot,
   ChevronLeft,
   ChevronRight,
   Download,
+  ExternalLink,
   FolderPlus,
   ImageDown,
   Loader2,
@@ -26,6 +58,7 @@ import {
   Volume2,
   Wand2,
   X,
+  FileText,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -746,19 +779,109 @@ const optimizeAssistantImagePayload = async (content: string): Promise<string> =
 };
 
 const markdownComponents = {
-  h1: (props: any) => <h1  {...props} />,
-  h2: (props: any) => <h2  {...props} />,
-  h3: (props: any) => <h3  {...props} />,
+  h1: (props: any) => <h1 className="fablab-heading fablab-heading-1" {...props} />,
+  h2: (props: any) => <h2 className="fablab-heading fablab-heading-2" {...props} />,
+  h3: (props: any) => <h3 className="fablab-heading fablab-heading-3" {...props} />,
+  h4: (props: any) => <h4 className="fablab-heading fablab-heading-4" {...props} />,
+  h5: (props: any) => <h5 className="fablab-heading fablab-heading-5" {...props} />,
+  h6: (props: any) => <h6 className="fablab-heading fablab-heading-6" {...props} />,
   p: (props: any) => <p  {...props} />,
   ul: (props: any) => <ul  {...props} />,
   ol: (props: any) => <ol  {...props} />,
   li: (props: any) => <li  {...props} />,
   strong: (props: any) => <strong  {...props} />,
-  code: (props: any) => <code  {...props} />,
+  code: ({ node, inline, className, children, ...props }: any) => {
+    const match = /language-(\w+)/.exec(className || '');
+    const language = match ? match[1] : '';
+    const codeContent = String(children).replace(/\n$/, '');
+
+    if (inline) {
+      return <code className="fablab-code-inline" {...props}>{children}</code>;
+    }
+
+    if (language === 'mermaid') {
+      const [svg, setSvg] = useState<string | null>(null);
+
+      useEffect(() => {
+        const renderMermaid = async () => {
+          try {
+            const id = `mermaid-${Date.now()}-${Math.random()}`;
+            const { svg } = await mermaid.render(id, codeContent);
+            setSvg(svg);
+          } catch (error) {
+            console.error('Mermaid render error:', error);
+          }
+        };
+
+        void renderMermaid();
+      }, [codeContent]);
+
+      if (!svg) {
+        return <div className="fablab-mermaid-loading">Loading diagram...</div>;
+      }
+
+      return (
+        <div className="fablab-mermaid-wrapper">
+          <div className="fablab-code-header">
+            <span>mermaid</span>
+          </div>
+          <div
+            className="fablab-mermaid-diagram"
+            dangerouslySetInnerHTML={{ __html: svg }}
+          />
+        </div>
+      );
+    }
+
+    return (
+      <div className="fablab-code-block">
+        <div className="fablab-code-header">
+          <span>{language || 'code'}</span>
+        </div>
+        <pre className={className} {...props}>
+          <code>{children}</code>
+        </pre>
+      </div>
+    );
+  },
   pre: (props: any) => <pre  {...props} />,
+  table: ({ children, ...props }: any) => (
+    <div className="fablab-table-wrapper">
+      <table className="fablab-table" {...props}>{children}</table>
+    </div>
+  ),
+  thead: (props: any) => <thead className="fablab-table-head" {...props} />,
+  tbody: (props: any) => <tbody className="fablab-table-body" {...props} />,
+  tr: (props: any) => <tr className="fablab-table-row" {...props} />,
+  th: (props: any) => <th className="fablab-table-header-cell" {...props} />,
+  td: (props: any) => <td className="fablab-table-cell" {...props} />,
+  blockquote: ({ children, ...props }: any) => {
+    const text = String(children?.[0]?.props?.children || '');
+    const typeMatch = text.match(/\[!(note|warning|info|tip|caution|important)\]/i);
+    const type = typeMatch ? typeMatch[1].toLowerCase() : null;
+
+    const typeClasses = {
+      note: 'fablab-blockquote-note',
+      warning: 'fablab-blockquote-warning',
+      info: 'fablab-blockquote-info',
+      tip: 'fablab-blockquote-tip',
+      caution: 'fablab-blockquote-caution',
+      important: 'fablab-blockquote-important',
+    };
+
+    const className = type ? typeClasses[type as keyof typeof typeClasses] : 'fablab-blockquote-default';
+
+    return (
+      <blockquote className={`fablab-blockquote ${className}`} {...props}>
+        {type && <div className="fablab-blockquote-icon">{type}</div>}
+        <div className="fablab-blockquote-content">{children}</div>
+      </blockquote>
+    );
+  },
   a: (props: any) => {
     const href = String(props?.href || '');
     const isDataUri = /^data:/i.test(href);
+    const isExternal = /^https?:\/\//i.test(href);
 
     if (isDataUri) {
       const mimeMatch = href.match(/^data:([a-zA-Z0-9.+-]+\/[a-zA-Z0-9.+-]+)(?:;[^,]+)?;base64,/i);
@@ -771,7 +894,7 @@ const markdownComponents = {
           {...props}
           href={href}
           download={downloadName}
-          
+          className="fablab-link fablab-link-download"
         />
       );
     }
@@ -781,8 +904,11 @@ const markdownComponents = {
         {...props}
         target="_blank"
         rel="noopener noreferrer"
-        
-      />
+        className="fablab-link fablab-link-external"
+      >
+        {props.children}
+        {isExternal && <ExternalLink size={12} className="fablab-link-icon" />}
+      </a>
     );
   },
 };
@@ -2060,6 +2186,29 @@ const FablabChatView: React.FC = () => {
     }
   };
 
+  const exportMessage = async (messageId: string) => {
+    const message = messages.find((m) => m.id === messageId);
+    if (!message) {
+      setErrorText('Message not found.');
+      return;
+    }
+
+    try {
+      const content = `${message.role.toUpperCase()}\n${sanitizeContentForExport(message.content)}\n`;
+      const blob = new Blob([content], { type: 'text/plain' });
+      const file = new File([blob], `fablab-message-${Date.now()}.txt`, { type: 'text/plain' });
+      await createObject({
+        title: file.name,
+        type: 'TEXT',
+        file,
+      });
+
+      setStatusText('Message exported to object library.');
+    } catch (error: any) {
+      setErrorText(error?.message || 'Could not export message.');
+    }
+  };
+
   if (loading) {
     return (
       <section >
@@ -2135,15 +2284,6 @@ const FablabChatView: React.FC = () => {
               >
                 <Trash2 size={14} />
                 <span className="fablab-header-action-text">{t?.fablabChat?.actions?.delete || 'Delete'}</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setIsInstructionFlipped((prev) => !prev)}
-                className="fablab-header-action-btn"
-              >
-                <Wand2 size={14} />
-                <span className="fablab-header-action-text">{isInstructionFlipped ? 'Hide' : 'Instruction'}</span>
               </button>
             </div>
           </div>
@@ -2254,6 +2394,15 @@ const FablabChatView: React.FC = () => {
 
                     <button
                       type="button"
+                      onClick={() => setIsInstructionFlipped((prev) => !prev)}
+                      className="fablab-header-action-btn"
+                    >
+                      <Wand2 size={14} />
+                      <span className="fablab-header-action-text">{isInstructionFlipped ? 'Hide' : 'Instruction'}</span>
+                    </button>
+
+                    <button
+                      type="button"
                       onClick={() => setSourceMode('context')}
                       className="fablab-source-button"
                     >
@@ -2303,6 +2452,9 @@ const FablabChatView: React.FC = () => {
           <>
             <div ref={scrollerRef} className="fablab-messages-scroller">
               {renderedMessages.map(({ message, isUser, imageSrc, richOutput, textBody, fileCardMessage }) => {
+                if (!isUser && textBody) {
+                  console.log('Chat response content:', textBody);
+                }
                 return (
                   <div
                     key={message.id}
@@ -2376,41 +2528,100 @@ const FablabChatView: React.FC = () => {
                         </div>
                       )}
                       {richOutput && richOutput.kind === 'file' && (
-                        <div>
-                          <p>
-                            {fileCardMessage || 'Claro, aca genere tu archivo. Usa el boton para descargarlo.'}
-                          </p>
-                          <div>
-                            <button
-                              type="button"
-                              onClick={() => downloadDataUriAsset(richOutput.src, richOutput.fileName)}
-                            >
-                              <Download size={12} />
-                              Descargar archivo
-                            </button>
-                          </div>
-                        </div>
+                        (() => {
+                          const isPdf = richOutput.fileName?.toLowerCase().endsWith('.pdf');
+                          if (isPdf) {
+                            return (
+                              <div>
+                                <p>
+                                  {fileCardMessage || 'Claro, aca genere tu PDF. Ya tienes el boton para descargarlo.'}
+                                </p>
+                                <PDFCard
+                                  fileName={richOutput.fileName || 'documento.pdf'}
+                                  onDownload={() => downloadDataUriAsset(richOutput.src, richOutput.fileName)}
+                                />
+                              </div>
+                            );
+                          }
+                          return (
+                            <div>
+                              <p>
+                                {fileCardMessage || 'Claro, aca genere tu archivo. Usa el boton para descargarlo.'}
+                              </p>
+                              <div>
+                                <button
+                                  type="button"
+                                  onClick={() => downloadDataUriAsset(richOutput.src, richOutput.fileName)}
+                                >
+                                  <Download size={12} />
+                                  Descargar archivo
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })()
                       )}
                       {textBody && !(richOutput && richOutput.kind === 'file') && (
                         isUser ? (
                           <p>{textBody}</p>
                         ) : (
                           <div>
-                            <ReactMarkdown
-                              remarkPlugins={[remarkGfm]}
-                              components={markdownComponents}
-                              urlTransform={markdownUrlTransform}
-                            >
-                                {textBody}
-                              </ReactMarkdown>
-                            </div>
-                          )
-                        )}
-                      </div>
+                            {(() => {
+                              const pdfMatch = textBody.match(/\[PDF:\s*([^\]]+)\]/i);
+                              if (pdfMatch) {
+                                const fileName = pdfMatch[1].trim();
+                                const textWithoutPdf = textBody.replace(/\[PDF:\s*[^\]]+\]/i, '').trim();
+                                return (
+                                  <>
+                                    {textWithoutPdf && (
+                                      <ReactMarkdown
+                                        remarkPlugins={[remarkGfm, remarkMath]}
+                                        rehypePlugins={[rehypeKatex]}
+                                        components={markdownComponents}
+                                        urlTransform={markdownUrlTransform}
+                                      >
+                                        {textWithoutPdf}
+                                      </ReactMarkdown>
+                                    )}
+                                    <PDFCard
+                                      fileName={fileName}
+                                      onDownload={() => {
+                                        console.log('Download PDF:', fileName);
+                                        // TODO: Implement actual PDF download logic
+                                      }}
+                                    />
+                                  </>
+                                );
+                              }
+                              return (
+                                <ReactMarkdown
+                                  remarkPlugins={[remarkGfm, remarkMath]}
+                                  rehypePlugins={[rehypeKatex]}
+                                  components={markdownComponents}
+                                  urlTransform={markdownUrlTransform}
+                                >
+                                  {textBody}
+                                </ReactMarkdown>
+                              );
+                            })()}
+                          </div>
+                        )
+                      )}
+                      {!isUser && (
+                        <button
+                          type="button"
+                          onClick={() => exportMessage(message.id)}
+                          className="fablab-message-save-btn"
+                          title="Save this message to objects"
+                        >
+                          <FolderPlus size={14} />
+                        </button>
+                      )}
                     </div>
-                  );
-                })}
-              </div>
+                  </div>
+                );
+              })}
+            </div>
 
             <div className="fablab-conversation-input">
               <textarea
@@ -2427,6 +2638,15 @@ const FablabChatView: React.FC = () => {
               <div className="fablab-input-buttons">
                 <div className="fablab-skill-buttons">
                   {renderSkillsDropdown()}
+
+                  <button
+                    type="button"
+                    onClick={() => setIsInstructionFlipped((prev) => !prev)}
+                    className="fablab-header-action-btn"
+                  >
+                    <Wand2 size={14} />
+                    <span className="fablab-header-action-text">{isInstructionFlipped ? 'Hide' : 'Instruction'}</span>
+                  </button>
 
                   <button
                     type="button"
