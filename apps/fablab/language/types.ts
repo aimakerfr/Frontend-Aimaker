@@ -77,6 +77,8 @@ export interface Translations {
     assembleCustomProjectDesc: string;
     useServerProducts: string;
     useServerProductsDesc: string;
+    notebookCreation: string;
+    notebookCreationDesc: string;
     guidedCreationPath: string;
     guidedCreationPathDesc: string;
   };
@@ -347,6 +349,7 @@ export interface Translations {
   };
   projectFlow: {
     title: string;
+    statusFilesUploaded?: string;
     backToMakerPath: string;
     configuration: string;
     ragLibrary: string;

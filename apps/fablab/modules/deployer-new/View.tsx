@@ -1,11 +1,12 @@
 import React, { useCallback, useMemo, useRef, useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useLanguage } from '@apps/fablab/language/useLanguage';
 import { createMakerPath, type CreateMakerPathRequest } from './services/makerPath.service';
 
 const DeployerNew: React.FC = () => {
   const { t } = useLanguage();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -17,6 +18,19 @@ const DeployerNew: React.FC = () => {
     // Autofocus title on mount for quicker entry
     titleInputRef.current?.focus();
   }, []);
+
+  useEffect(() => {
+    const prefillTitle = String(searchParams.get('title') || '').trim();
+    const prefillDescription = String(searchParams.get('description') || '').trim();
+
+    if (prefillTitle && !title.trim()) {
+      setTitle(prefillTitle);
+    }
+
+    if (prefillDescription && !description.trim()) {
+      setDescription(prefillDescription);
+    }
+  }, [searchParams, title, description]);
 
   const canCreate = useMemo(() => title.trim().length > 0, [title]);
 

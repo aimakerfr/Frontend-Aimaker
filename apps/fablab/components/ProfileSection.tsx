@@ -181,7 +181,7 @@ const ProfileSection: React.FC<{ user: UserProfile | null }> = () => {
   });
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6">
+    <div className="max-w-6xl mx-auto space-y-6" translate="no" data-no-translate="true">
       <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
         <div className="h-32 bg-gradient-to-r from-brand-500 to-purple-600"></div>
         <div className="px-8 pb-8">

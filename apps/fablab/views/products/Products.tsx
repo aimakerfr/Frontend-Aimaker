@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Package, Eye, Search, Trash2, Globe, Lock, Star, Sparkles, Plus } from 'lucide-react';
 import { useLanguage } from '../../language/useLanguage';
 import ConfirmDeleteModal from '../../components/ConfirmDeleteModal';
@@ -57,6 +57,7 @@ const ProductsView: React.FC<ProductsViewProps> = ({
   onCreateNotebook,
 }) => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { t } = useLanguage();
 
   const [localActiveFilter, setLocalActiveFilter] = useState<FilterType>('all');
@@ -134,6 +135,17 @@ const ProductsView: React.FC<ProductsViewProps> = ({
     setCreateError(null);
     setIsCreateModalOpen(true);
   };
+
+  useEffect(() => {
+    if (searchParams.get('createNotebook') !== '1') return;
+
+    setCreateError(null);
+    setIsCreateModalOpen(true);
+
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.delete('createNotebook');
+    setSearchParams(nextParams, { replace: true });
+  }, [searchParams, setSearchParams]);
 
   const handleCloseCreateModal = () => {
     if (isCreatingNotebook) return;
