@@ -1,0 +1,140 @@
+/* Estilos para FabLabLayout - migración desde Tailwind CSS */
+
+.fablab-layout {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  overflow: hidden;
+}
+
+.fablab-layout-header {
+  flex-shrink: 0;
+  z-index: 20;
+}
+
+.fablab-layout-content {
+  display: flex;
+  flex-direction: row;
+  flex: 1;
+  overflow: hidden;
+}
+
+.fablab-layout-sidebar {
+  flex-shrink: 0;
+  z-index: 10;
+  width: 100px;
+  transition: width 0.3s ease-out;
+  background: linear-gradient(135deg, #eef2f6, #e6ebf1);
+}
+
+.fablab-layout-sidebar:hover {
+  width: 280px;
+  transition: width 1s cubic-bezier(0.25, 0.1, 0.25, 1);
+}
+
+/* Visibilidad de textos cuando el sidebar está expandido */
+.fablab-layout-sidebar:hover .fablab-sidebar-title {
+  opacity: 1;
+}
+
+.fablab-layout-sidebar:hover .fablab-sidebar-item-text {
+  opacity: 1;
+}
+
+.fablab-layout-sidebar:hover .fablab-sidebar-logout-text {
+  opacity: 1;
+}
+
+.fablab-layout-router {
+  flex: 1;
+  overflow: auto;
+  position: relative;
+}
+
+.fablab-layout-router.chat-route {
+  overflow: hidden;
+}
+
+.fablab-layout-router-wrapper {
+  height: 100%;
+}
+
+.fablab-layout-router-wrapper.chat-route {
+  overflow: hidden;
+}
+
+.fablab-layout-router-wrapper.default-route {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 24px 32px;
+}
+
+/* Breadcrumbs */
+.fablab-breadcrumbs {
+  margin-bottom: 16px;
+  font-size: 14px;
+}
+
+.fablab-breadcrumbs-list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  color: #64748b;
+}
+
+.fablab-breadcrumb-item {
+  display: flex;
+  align-items: center;
+}
+
+.fablab-breadcrumb-link {
+  transition: color 0.2s ease;
+}
+
+.fablab-breadcrumb-link:hover {
+  color: #374151;
+}
+
+.fablab-breadcrumb-separator {
+  margin: 0 8px;
+  color: #9ca3af;
+}
+
+.fablab-breadcrumb-active {
+  font-weight: 500;
+  color: #111827;
+}
+
+/* Mobile sidebar overlay */
+.fablab-sidebar-overlay {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 0;
+}
+
+@media (min-width: 768px) {
+  .fablab-sidebar-overlay {
+    display: none;
+  }
+}
+
+.fablab-sidebar-mobile-overlay {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: -1;
+}
+
+@media (min-width: 768px) {
+  .fablab-sidebar-mobile-overlay {
+    display: none;
+  }
+}

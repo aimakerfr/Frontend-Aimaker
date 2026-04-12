@@ -1,0 +1,141 @@
+/* Estilos para Header */
+
+.fablab-header {
+  height: 64px;
+  background: linear-gradient(135deg, #eef2f6, #e6ebf1);
+  border-bottom: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.06);
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.fablab-header.dark {
+  background: #1f2937;
+  border-bottom-color: #374151;
+}
+
+.fablab-header-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.fablab-header-menu-btn {
+  display: none;
+  color: #6b7280;
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.fablab-header-menu-btn:hover {
+  color: #374151;
+}
+
+@media (max-width: 767px) {
+  .fablab-header-menu-btn {
+    display: block;
+  }
+}
+
+.fablab-header.dark .fablab-header-menu-btn {
+  color: #9ca3af;
+}
+
+.fablab-header.dark .fablab-header-menu-btn:hover {
+  color: #e5e7eb;
+}
+
+.fablab-header-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0;
+  text-transform: capitalize;
+}
+
+.fablab-header.dark .fablab-header-title {
+  color: #ffffff;
+}
+
+.fablab-header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.fablab-header-theme-btn {
+  padding: 8px;
+  color: #6b7280;
+  background: none;
+  border: none;
+  border-radius: 9999px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.fablab-header-theme-btn:hover {
+  background-color: #f3f4f6;
+}
+
+.fablab-header.dark .fablab-header-theme-btn:hover {
+  background-color: #374151;
+}
+
+.fablab-header-profile-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 12px;
+  border: 1px solid #bae6fd;
+  background: #e0f2fe;
+  padding: 8px 12px;
+  color: #0284c7;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.fablab-header-profile-btn:hover {
+  transform: translateY(-2px);
+  border-color: #7dd3fc;
+  background: #bae6fd;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.fablab-header.dark .fablab-header-profile-btn {
+  border-color: rgba(14, 165, 233, 0.7);
+  background: rgba(12, 74, 110, 0.2);
+  color: #7dd3fc;
+}
+
+.fablab-header-profile-icon {
+  display: inline-flex;
+  height: 28px;
+  width: 28px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #0284c7;
+  box-shadow: 0 0 0 1px #bae6fd;
+}
+
+.fablab-header.dark .fablab-header-profile-icon {
+  background: rgba(30, 58, 138, 0.6);
+  color: #7dd3fc;
+  box-shadow: 0 0 0 1px rgba(30, 58, 138, 0.8);
+}
+
+.fablab-header-profile-text {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+}

@@ -838,7 +838,7 @@ const FablabChatView: React.FC = () => {
   const [roleInstruction, setRoleInstruction] = useState('');
   const [roleResetAt, setRoleResetAt] = useState('');
   const [systemInstruction, setSystemInstruction] = useState('');
-  const [showInstructionEditor, setShowInstructionEditor] = useState(false);
+  const [isInstructionFlipped, setIsInstructionFlipped] = useState(false);
   const [skillsMenuOpen, setSkillsMenuOpen] = useState(false);
   const [projectAuditWizardVisible, setProjectAuditWizardVisible] = useState(false);
   const [projectAuditIntakeCompleted, setProjectAuditIntakeCompleted] = useState(false);
@@ -1629,7 +1629,7 @@ const FablabChatView: React.FC = () => {
               Habilita modos
             </p>
             <div className="space-y-1">
-              {skillItems.map((item) => {
+              {skillItems.map((item, index) => {
                 const active = skills[item.key];
                 return (
                   <button
@@ -1642,7 +1642,7 @@ const FablabChatView: React.FC = () => {
                       }
                       toggleSkill(item.key);
                     }}
-                    className={`flex w-full items-center justify-between rounded-lg border px-2.5 py-2 text-xs transition ${
+                    className={`fablab-skill-item fablab-skill-item-${index} flex w-full items-center justify-between rounded-lg border px-2.5 py-2 text-xs transition ${
                       active
                         ? 'border-cyan-300 bg-cyan-50 text-cyan-800 dark:border-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-200'
                         : 'border-slate-200 text-slate-700 hover:border-slate-300 dark:border-slate-700 dark:text-slate-300 dark:hover:border-slate-500'
@@ -2075,7 +2075,8 @@ const FablabChatView: React.FC = () => {
 
   return (
     <section className="fablab-chat-container">
-      <div className="fablab-chat-main-wrapper">
+      <div className={`fablab-chat-main-wrapper ${isInstructionFlipped ? 'flipped' : ''}`}>
+        <div className="fablab-chat-front">
         {(errorText || statusText) && (
           <div className="fablab-toasts">
             {errorText && (
@@ -2135,6 +2136,15 @@ const FablabChatView: React.FC = () => {
                 <Trash2 size={14} />
                 <span className="fablab-header-action-text">{t?.fablabChat?.actions?.delete || 'Delete'}</span>
               </button>
+
+              <button
+                type="button"
+                onClick={() => setIsInstructionFlipped((prev) => !prev)}
+                className="fablab-header-action-btn"
+              >
+                <Wand2 size={14} />
+                <span className="fablab-header-action-text">{isInstructionFlipped ? 'Hide' : 'Instruction'}</span>
+              </button>
             </div>
           </div>
 
@@ -2155,37 +2165,6 @@ const FablabChatView: React.FC = () => {
                   Go to profile
                 </button>
               </div>
-            </div>
-          )}
-
-          <div className="fablab-header-instruction-btn">
-            <button
-              type="button"
-              onClick={() => setShowInstructionEditor((prev) => !prev)}
-              className="fablab-header-instruction-toggle"
-            >
-              <Wand2 size={13} />
-              <span>{showInstructionEditor ? 'Hide instruction' : 'Instruction'}</span>
-            </button>
-          </div>
-
-          {showInstructionEditor && (
-            <div>
-              <p>
-                Behavior instruction (separate from role and prompt)
-              </p>
-              <textarea
-                value={systemInstruction}
-                onChange={(event) => setSystemInstruction(event.target.value)}
-                onBlur={() => {
-                  void persistSystemInstruction();
-                }}
-                rows={3}
-                placeholder="Define global behavior rules for the assistant..."
-              />
-              <p>
-                Role = identity/behavior priority. Prompt = task template inserted into the composer.
-              </p>
             </div>
           )}
 
@@ -2332,8 +2311,11 @@ const FablabChatView: React.FC = () => {
                     <div
                       className={`fablab-message-bubble ${isUser ? 'fablab-bubble-user' : 'fablab-bubble-assistant'}`}
                     >
-                      <p>
-                        {isUser ? (t?.fablabChat?.messages?.you || 'You') : (t?.fablabChat?.messages?.assistant || 'Assistant')}
+                      <p className="fablab-message-role-time">
+                        <span className="fablab-message-role">
+                          {isUser ? (t?.fablabChat?.messages?.you || 'You') : (t?.fablabChat?.messages?.assistant || 'Assistant')}
+                        </span>
+                        <span className="fablab-message-time">{formatTime(message.createdAt)}</span>
                       </p>
                       {imageSrc && (
                         <div>
@@ -2424,7 +2406,6 @@ const FablabChatView: React.FC = () => {
                             </div>
                           )
                         )}
-                        <p>{formatTime(message.createdAt)}</p>
                       </div>
                     </div>
                   );
@@ -2496,9 +2477,9 @@ const FablabChatView: React.FC = () => {
         )}
 
         {sourceMode && (
-          <aside className="fablab-sidebar">
-            <div className="fablab-sidebar-header">
-              <h3 className="fablab-sidebar-title">
+          <aside className="chat-sidebar">
+            <div className="chat-sidebar-header">
+              <h3 className="chat-sidebar-title">
                 {sourceMode === 'context'
                   ? (t?.fablabChat?.sources?.title || 'Select context sources')
                   : sourceMode === 'role'
@@ -2509,19 +2490,19 @@ const FablabChatView: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setSourceMode(null)}
-                className="fablab-sidebar-close"
+                className="chat-sidebar-close"
               >
                 <X size={13} />
               </button>
             </div>
 
-            <div className="fablab-sidebar-filters">
-              <label className="fablab-sidebar-label">
-                <span className="fablab-sidebar-label-text">{t?.fablabChat?.sources?.folder || 'Folder'}</span>
+            <div className="chat-sidebar-filters">
+              <label className="chat-sidebar-label">
+                <span className="chat-sidebar-label-text">{t?.fablabChat?.sources?.folder || 'Folder'}</span>
                 <select
                   value={selectedFolderId ?? ''}
                   onChange={(event) => setSelectedFolderId(event.target.value ? Number(event.target.value) : undefined)}
-                  className="fablab-sidebar-select"
+                  className="chat-sidebar-select"
                 >
                   <option value="">{t?.fablabChat?.sources?.allFolders || 'All folders'}</option>
                   {folders.map((folder) => (
@@ -2530,51 +2511,51 @@ const FablabChatView: React.FC = () => {
                 </select>
               </label>
 
-              <label className="fablab-sidebar-label">
-                <span className="fablab-sidebar-label-text">{t?.fablabChat?.sources?.search || 'Search'}</span>
-                <div className="fablab-sidebar-search-wrapper">
+              <label className="chat-sidebar-label">
+                <span className="chat-sidebar-label-text">{t?.fablabChat?.sources?.search || 'Search'}</span>
+                <div className="chat-sidebar-search-wrapper">
                   <Search size={14}  />
                   <input
                     value={searchTerm}
                     onChange={(event) => setSearchTerm(event.target.value)}
                     placeholder={t?.fablabChat?.sources?.searchPlaceholder || 'Search files...'}
-                    className="fablab-sidebar-search-input"
+                    className="chat-sidebar-search-input"
                   />
                 </div>
               </label>
             </div>
 
-            <div className="fablab-sidebar-list">
+            <div className="chat-sidebar-list">
               {loading && (
-                <div className="fablab-sidebar-loading">
+                <div className="chat-sidebar-loading">
                   <Loader2 size={14} className="animate-spin" />
                   <span>{t?.fablabChat?.sources?.loading || 'Loading...'}</span>
                 </div>
               )}
 
               {!loading && objects.length === 0 && (
-                <div className="fablab-sidebar-empty">
+                <div className="chat-sidebar-empty">
                   <span>{t?.fablabChat?.sources?.empty || 'No objects found'}</span>
                 </div>
               )}
 
               {!loading && objects.length > 0 && (
-                <ul className="fablab-sidebar-items">
+                <ul className="chat-sidebar-items">
                   {objects.map((source: ObjectItem) => {
                     const isSelected = selectedContextIds.includes(source.id);
                     return (
                       <li key={String(source.id)}>
-                        <div className="fablab-sidebar-item">
-                          <div className="fablab-sidebar-item-info">
-                            <p className="fablab-sidebar-item-name">{source.name}</p>
-                            <p className="fablab-sidebar-item-type">{getObjectType(source) || 'file'}</p>
+                        <div className="chat-sidebar-item">
+                          <div className="chat-sidebar-item-info">
+                            <p className="chat-sidebar-item-name">{source.name}</p>
+                            <p className="chat-sidebar-item-type">{getObjectType(source) || 'file'}</p>
                           </div>
-                          <label className="fablab-sidebar-item-checkbox-label">
+                          <label className="chat-sidebar-item-checkbox-label">
                             <input
                               type="checkbox"
                               checked={isSelected}
                               onChange={() => toggleContextSource(source)}
-                              className="fablab-sidebar-item-checkbox"
+                              className="chat-sidebar-item-checkbox"
                             />
                           </label>
                         </div>
@@ -2582,7 +2563,7 @@ const FablabChatView: React.FC = () => {
                           <button
                             type="button"
                             onClick={() => applySingleSource(sourceMode as 'role' | 'prompt', source)}
-                            className="fablab-sidebar-item-button"
+                            className="chat-sidebar-item-button"
                           >
                             {t?.fablabChat?.sources?.use || 'Use'}
                           </button>
@@ -2595,6 +2576,64 @@ const FablabChatView: React.FC = () => {
             </div>
           </aside>
         )}
+        </div>
+
+        <div className="fablab-chat-back">
+          <div className="fablab-chat-header">
+            <div className="fablab-header-top">
+              <div className="fablab-header-title">
+                <h1 className="fablab-header-title-text">
+                  <Wand2 size={18} />
+                  Instruction Editor
+                </h1>
+                <p className="fablab-header-subtitle">
+                  Define global behavior rules for the assistant
+                </p>
+              </div>
+
+              <div className="fablab-header-actions">
+                <button
+                  type="button"
+                  onClick={() => setIsInstructionFlipped(false)}
+                  className="fablab-header-action-btn"
+                >
+                  <X size={14} />
+                  <span className="fablab-header-action-text">Close</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 'var(--space-lg)', padding: 'var(--space-xl)' }}>
+            <p>
+              Behavior instruction (separate from role and prompt)
+            </p>
+            <textarea
+              value={systemInstruction}
+              onChange={(event) => setSystemInstruction(event.target.value)}
+              onBlur={() => {
+                void persistSystemInstruction();
+              }}
+              rows={10}
+              placeholder="Define global behavior rules for the assistant..."
+              style={{
+                width: '100%',
+                padding: 'var(--space-md)',
+                borderRadius: '12px',
+                border: '1px solid rgba(255, 255, 255, 0.5)',
+                background: 'rgba(255, 255, 255, 0.6)',
+                backdropFilter: 'blur(4px)',
+                fontSize: 'var(--font-size-base)',
+                color: '#1e293b',
+                resize: 'vertical',
+                transition: 'all 0.2s ease'
+              }}
+            />
+            <p>
+              Role = identity/behavior priority. Prompt = task template inserted into the composer.
+            </p>
+          </div>
+        </div>
       </div>
     </section>
   );

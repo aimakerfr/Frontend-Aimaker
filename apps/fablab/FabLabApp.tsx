@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Routes, Route, useNavigate, useLocation, useParams } from 'react-router-dom';
+import { Routes, Route, useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '@core/auth/useAuth';
 import ProjectFlow from './views/projectflow/ProjectFlow';
 import Notebook from '@apps/fablab/views/notebook/Notebook';
@@ -38,7 +38,6 @@ const PublicProjectWrapper = () => {
 
 const App: React.FC = () => {
   const navigate = useNavigate();
-  const location = useLocation();
   const { user: authUser, logout } = useAuth();
 
   // Inicializar tema desde localStorage - por defecto en modo claro
@@ -48,17 +47,10 @@ const App: React.FC = () => {
     return saved === 'dark';
   });
 
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-
   // Initialize language system on app startup
   useEffect(() => {
     initializeLanguages();
   }, []);
-
-  // Cerrar sidebar cuando cambia la ruta (útil en móvil)
-  useEffect(() => {
-    setIsSidebarOpen(false);
-  }, [location.pathname]);
 
   // Convertir usuario de backend a formato UserProfile
   const user: UserProfile = authUser ? {
@@ -101,7 +93,6 @@ const App: React.FC = () => {
   }, [isDark]);
 
   const toggleTheme = () => setIsDark(!isDark);
-  const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
 
   // Manejar logout
   const handleLogout = async () => {
@@ -147,9 +138,6 @@ const App: React.FC = () => {
               user={user}
               isDark={isDark}
               onToggleTheme={toggleTheme}
-              isSidebarOpen={isSidebarOpen}
-              onToggleSidebar={toggleSidebar}
-              onCloseSidebar={() => setIsSidebarOpen(false)}
               onLogout={handleLogout}
             />
           }
