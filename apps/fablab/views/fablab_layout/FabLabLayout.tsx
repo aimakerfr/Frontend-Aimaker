@@ -25,7 +25,7 @@ import FablabChatView from '../chat/FablabChatView';
 // Importaciones adicionales para rutas
 import ObjectsLibrary from '../objects/ObjectsLibrary';
 import ProjectExplorer from '../objects/ProjectExplorer';
-import NotebookAssembler from '../assembler/NotebookAssembler';
+import NotebookAssembler from '../assembler/NotebookAssemblerLite';
 import LandingPageAssembler from '../assembler/LandingPageAssembler';
 import AssemblerNew from '../assembler/AssemblerNew';
 import DeployerNew from '../deployer/DeployerNew';

@@ -1,3 +1,5 @@
+/* Assembler Styles */
+
 @keyframes rocket-color-change {
   0%, 100% { color: #ffffff; transform: translateY(0); }
   50% { color: #fbbf24; transform: translateY(-3px); }
@@ -11,8 +13,16 @@
   cursor: wait !important;
 }
 
-/* Optional: add a slight shake or glow if desired, but following user request for color change */
-.deploying-btn-active {
-  background-color: #059669 !important; /* A slightly different green or consistent with the animation */
+.deploying-btn {
+  background-color: #3b82f6; /* Default blue */
   transition: background-color 0.5s ease;
+}
+
+.deploying-btn-active {
+  background-color: #059669 !important; /* Green when active */
+}
+
+.assembler-page {
+  background: linear-gradient(135deg, #eef2f6, #e6ebf1);
+  min-height: 100vh;
 }

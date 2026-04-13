@@ -97,14 +97,14 @@ const NotebookAssemblerLite: React.FC = () => {
 
   if (!makerPathId) {
     return (
-      <div className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-900/40 dark:bg-amber-900/20 dark:text-amber-100">
+      <div>
         {t?.assembler?.missingId ?? 'Missing maker path id. Use ?id= in the URL.'}
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div>
       <AssemblerLayout
         productType="notebook"
         makerPathId={makerPathId}
@@ -117,12 +117,7 @@ const NotebookAssemblerLite: React.FC = () => {
       />
 
       {assembleInfo.status !== 'idle' && (
-        <div className={
-          'rounded-md border px-4 py-3 text-sm ' +
-          (assembleInfo.status === 'success'
-            ? 'border-green-200 bg-green-50 text-green-800 dark:border-green-900/40 dark:bg-green-900/20 dark:text-green-100'
-            : 'border-red-200 bg-red-50 text-red-800 dark:border-red-900/40 dark:bg-red-900/20 dark:text-red-100')
-        }>
+        <div>
           {assembleInfo.message}
         </div>
       )}

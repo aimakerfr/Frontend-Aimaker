@@ -50,7 +50,6 @@ const DragDropCanvas: React.FC<Props> = ({
 
   // ── Drop from palette highlight ──
   const [paletteHover, setPaletteHover] = useState<{ col: number; row: number } | null>(null);
-  const [ragDropActive, setRagDropActive] = useState(false);
 
   // ── Helpers ──
   const cellSize = useCallback(() => {
@@ -223,12 +222,10 @@ const DragDropCanvas: React.FC<Props> = ({
     const raw = e.dataTransfer.getData('text/object-id');
     if (!raw) return;
     e.preventDefault();
-    setRagDropActive(true);
   }, [onRagDrop]);
 
   const handleRagDragLeave = useCallback((e: React.DragEvent) => {
     if (e.currentTarget.contains(e.relatedTarget as Node)) return;
-    setRagDropActive(false);
   }, []);
 
   const handleRagDrop = useCallback((e: React.DragEvent) => {
@@ -236,7 +233,6 @@ const DragDropCanvas: React.FC<Props> = ({
     const raw = e.dataTransfer.getData('text/object-id');
     if (!raw) return;
     e.preventDefault();
-    setRagDropActive(false);
     const objectId = Number(raw);
     if (!Number.isNaN(objectId) && objectId > 0) {
       onRagDrop(objectId);
@@ -247,7 +243,6 @@ const DragDropCanvas: React.FC<Props> = ({
   return (
     <div
       ref={gridRef}
-      className="relative select-none rounded-2xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/40 overflow-visible w-full h-full"
       onPointerMove={handleGridPointerMove}
       onPointerUp={handleGridPointerUp}
       onDragOver={handleDragOver}
@@ -255,13 +250,13 @@ const DragDropCanvas: React.FC<Props> = ({
       onDrop={handleDrop}
     >
       {/* Grid lines */}
-      <svg className="absolute inset-0 w-full h-full pointer-events-none" xmlns="http://www.w3.org/2000/svg">
+      <svg xmlns="http://www.w3.org/2000/svg">
         {Array.from({ length: GRID_SIZE + 1 }, (_, i) => {
           const pct = `${(i / GRID_SIZE) * 100}%`;
           return (
             <React.Fragment key={i}>
-              <line x1={pct} y1="0" x2={pct} y2="100%" className="stroke-gray-200 dark:stroke-gray-700" strokeWidth="1" />
-              <line x1="0" y1={pct} x2="100%" y2={pct} className="stroke-gray-200 dark:stroke-gray-700" strokeWidth="1" />
+              <line x1={pct} y1="0" x2={pct} y2="100%" strokeWidth="1" />
+              <line x1="0" y1={pct} x2="100%" y2={pct} strokeWidth="1" />
             </React.Fragment>
           );
         })}
@@ -269,22 +264,21 @@ const DragDropCanvas: React.FC<Props> = ({
 
       {/* Empty state */}
       {modules.length === 0 && !paletteHover && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none z-10">
-          <svg className="w-10 h-10 text-gray-300 dark:text-gray-600 mb-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <div>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
             <rect x="3" y="3" width="7" height="7" rx="1" />
             <rect x="14" y="3" width="7" height="7" rx="1" />
             <rect x="3" y="14" width="7" height="7" rx="1" />
             <rect x="14" y="14" width="7" height="7" rx="1" />
           </svg>
-          <p className="text-sm text-gray-400 dark:text-gray-500 font-medium">Drag modules here</p>
-          <p className="text-xs text-gray-300 dark:text-gray-600 mt-1">12 &times; 12 grid</p>
+          <p>Drag modules here</p>
+          <p>12 &times; 12 grid</p>
         </div>
       )}
 
       {/* Palette drop preview */}
       {paletteHover && (
         <div
-          className="absolute rounded-lg border-2 border-dashed border-brand-400 bg-brand-100/40 dark:border-brand-500 dark:bg-brand-900/20 pointer-events-none z-20 transition-all duration-75"
           style={{
             left: `${(paletteHover.col / GRID_SIZE) * 100}%`,
             top: `${(paletteHover.row / GRID_SIZE) * 100}%`,
@@ -296,18 +290,16 @@ const DragDropCanvas: React.FC<Props> = ({
 
       {apiConfigModule && (
         <div
-          className="absolute top-4 -right-28 w-28 rounded-2xl border border-amber-200 bg-white shadow-md z-30"
           style={{ minHeight: '72px' }}
         >
-          <div className={`h-1 rounded-t-2xl ${apiConfigModule.color}`} />
-          <div className="p-2 flex flex-col gap-1">
-            <div className="text-[10px] font-semibold text-gray-900 truncate">{apiConfigModule.label}</div>
-            <div className="text-[9px] text-gray-500">Botón en exportable</div>
+          <div className={apiConfigModule.color} />
+          <div>
+            <div>{apiConfigModule.label}</div>
+            <div>Botón en exportable</div>
           </div>
           <button
             type="button"
             onClick={() => handleRemove(apiConfigModule.key)}
-            className="absolute -top-2 -right-2 h-5 w-5 rounded-full bg-white border border-gray-200 text-gray-400 hover:text-red-500 hover:border-red-300"
             title="Remove"
           >
             ×
@@ -329,14 +321,6 @@ const DragDropCanvas: React.FC<Props> = ({
             onDragOver={mod.key === 'rag' ? handleRagDragOver : undefined}
             onDragLeave={mod.key === 'rag' ? handleRagDragLeave : undefined}
             onDrop={mod.key === 'rag' ? handleRagDrop : undefined}
-            className={
-              'absolute rounded-lg border shadow-sm flex flex-col overflow-hidden transition-shadow ' +
-              (isBeingDragged
-                ? 'z-30 opacity-80 shadow-lg cursor-grabbing ring-2 ring-brand-400'
-                : isResizing
-                ? 'z-30 shadow-lg ring-2 ring-brand-400'
-                : 'z-10 cursor-grab hover:shadow-md hover:z-20')
-            }
             style={{
               left: `${(displayCol / GRID_SIZE) * 100}%`,
               top: `${(displayRow / GRID_SIZE) * 100}%`,
@@ -346,19 +330,19 @@ const DragDropCanvas: React.FC<Props> = ({
             }}
           >
             {/* Background fill */}
-            <div className="absolute inset-0 bg-white dark:bg-gray-900 opacity-95" />
+            <div />
 
             {/* Color accent */}
-            <div className={`absolute top-0 left-0 right-0 h-1 ${mod.color}`} />
+            <div className={mod.color} />
 
             {/* Content */}
-            <div className="relative flex flex-col h-full p-2 pt-2.5">
-              <div className="flex items-start justify-between gap-1 min-w-0">
-                <div className="min-w-0 flex-1">
-                  <div className="text-[11px] font-semibold text-gray-900 dark:text-gray-100 truncate leading-tight">
+            <div>
+              <div>
+                <div>
+                  <div>
                     {mod.label}
                   </div>
-                  <div className="text-[9px] text-gray-400 dark:text-gray-500 truncate leading-tight mt-0.5">
+                  <div>
                     {mod.type} &middot; idx {mod.index}
                   </div>
                 </div>
@@ -367,10 +351,9 @@ const DragDropCanvas: React.FC<Props> = ({
                   type="button"
                   onPointerDown={(e) => e.stopPropagation()}
                   onClick={() => handleRemove(mod.key)}
-                  className="flex-shrink-0 p-0.5 rounded text-gray-300 hover:text-red-500 hover:bg-red-50 dark:text-gray-600 dark:hover:text-red-400 dark:hover:bg-red-900/20 transition-colors"
                   title="Remove"
                 >
-                  <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                     <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
                   </svg>
                 </button>
@@ -378,17 +361,16 @@ const DragDropCanvas: React.FC<Props> = ({
 
               {/* needsObject modules: object selector button */}
               {mod.needsObject && (
-                <div className="flex-1 flex flex-col items-center justify-center gap-1 min-h-0">
+                <div>
                   {mod.objectId ? (
-                    <div className="text-center">
-                      <div className="text-[10px] font-medium text-green-700 dark:text-green-300 truncate max-w-full px-1">
+                    <div>
+                      <div>
                         {mod.objectName || `Object #${mod.objectId}`}
                       </div>
                       <button
                         type="button"
                         onPointerDown={(e) => e.stopPropagation()}
                         onClick={() => onSelectObject?.(mod.key)}
-                        className="mt-1 text-[9px] text-brand-600 dark:text-brand-400 hover:underline"
                       >
                         Change
                       </button>
@@ -398,9 +380,8 @@ const DragDropCanvas: React.FC<Props> = ({
                       type="button"
                       onPointerDown={(e) => e.stopPropagation()}
                       onClick={() => onSelectObject?.(mod.key)}
-                      className="inline-flex items-center gap-1 rounded-md bg-brand-600 hover:bg-brand-700 text-white px-2 py-1 text-[10px] font-semibold transition shadow-sm"
                     >
-                      <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" />
                       </svg>
                       Select HTML
@@ -410,33 +391,31 @@ const DragDropCanvas: React.FC<Props> = ({
               )}
 
               {mod.key === 'rag' && (
-                <div className="flex-1 flex flex-col gap-2 min-h-0 mt-1">
-                  <p className="text-[9px] text-gray-500 dark:text-gray-400 leading-relaxed">
+                <div>
+                  <p>
                     Inyecta documentos del proyecto para el exportable.
                   </p>
                   <button
                     type="button"
                     onPointerDown={(e) => e.stopPropagation()}
                     onClick={() => onRagOpenModal?.()}
-                    className="inline-flex items-center justify-center rounded-md border border-indigo-200 bg-indigo-50 text-indigo-700 text-[9px] font-semibold uppercase tracking-widest px-2 py-1 hover:bg-indigo-100"
                   >
                     Inyectar objetos
                   </button>
                   {ragObjects.length > 0 && (
-                    <div className="relative inline-flex items-center group w-fit">
-                      <span className="text-[9px] font-semibold text-gray-600 dark:text-gray-300">
+                    <div>
+                      <span>
                         Objetos: {ragObjects.length}
                       </span>
-                      <div className="absolute left-0 top-full mt-2 w-44 rounded-lg border border-gray-200 bg-white shadow-lg opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition z-40">
-                        <div className="max-h-32 overflow-auto p-2 space-y-1">
+                      <div>
+                        <div>
                           {ragObjects.map((obj) => (
-                            <div key={obj.id} className="flex items-center justify-between gap-2 text-[9px] text-gray-700">
-                              <span className="truncate">{obj.name ?? `Objeto #${obj.id}`}</span>
+                            <div key={obj.id}>
+                              <span>{obj.name ?? `Objeto #${obj.id}`}</span>
                               <button
                                 type="button"
                                 onPointerDown={(e) => e.stopPropagation()}
                                 onClick={() => onRagRemove?.(obj.id)}
-                                className="h-4 w-4 rounded-full border border-gray-200 text-gray-400 hover:text-red-500 hover:border-red-300 flex items-center justify-center"
                                 title="Quitar"
                               >
                                 ×
@@ -447,40 +426,32 @@ const DragDropCanvas: React.FC<Props> = ({
                       </div>
                     </div>
                   )}
-                  <div
-                    className={
-                      'mt-auto rounded-md border border-dashed px-2 py-1 text-[9px] text-center ' +
-                      (ragDropActive
-                        ? 'border-indigo-400 bg-indigo-50 text-indigo-600'
-                        : 'border-gray-200 text-gray-400')
-                    }
-                  >
+                  <div>
                     Arrastra objetos aquí
                   </div>
                 </div>
               )}
 
               {mod.key === 'api_configuration' && (
-                <div className="flex-1 flex items-center justify-center text-[10px] text-gray-600 dark:text-gray-300 text-center px-2">
+                <div>
                   Se mostrará como botón de configuración en el exportable.
                 </div>
               )}
 
               {/* textInput modules: inline text area */}
               {mod.textInput && mod.key !== 'api_configuration' && (
-                <div className="flex-1 flex flex-col min-h-0 mt-1">
+                <div>
                   <textarea
                     value={mod.textValue ?? ''}
                     onChange={(e) => onTextChange?.(mod.key, e.target.value)}
                     onPointerDown={(e) => e.stopPropagation()}
                     placeholder={mod.textPlaceholder ?? ''}
-                    className="flex-1 w-full resize-none rounded border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-1.5 py-1 text-[10px] text-gray-800 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
                   />
                 </div>
               )}
 
               {/* Position info at bottom */}
-              <div className="mt-auto text-[8px] text-gray-300 dark:text-gray-600 tabular-nums">
+              <div>
                 ({mod.col},{mod.row}) {mod.colSpan}&times;{mod.rowSpan}
               </div>
             </div>
@@ -489,10 +460,9 @@ const DragDropCanvas: React.FC<Props> = ({
             <div
               data-resize-handle
               onPointerDown={(e) => handleResizePointerDown(mod.key, e)}
-              className="absolute bottom-0 right-0 w-4 h-4 cursor-se-resize z-10 flex items-end justify-end"
               title="Drag to resize"
             >
-              <svg className="w-3 h-3 text-gray-400 dark:text-gray-500" viewBox="0 0 24 24" fill="currentColor">
+              <svg viewBox="0 0 24 24" fill="currentColor">
                 <circle cx="20" cy="20" r="2" />
                 <circle cx="20" cy="12" r="2" />
                 <circle cx="12" cy="20" r="2" />

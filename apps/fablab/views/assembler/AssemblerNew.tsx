@@ -684,56 +684,49 @@ const AssemblerNew: React.FC = () => {
 
   if (station === 'select') {
     return (
-      <div className="max-w-4xl mx-auto space-y-8">
+      <div>
         <button
           type="button"
           onClick={() => navigate(-1)}
-          className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
           {t?.notebook?.header?.back ?? 'Retour'}
 
         </button>
 
-        <div className="space-y-2">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{stationTitle}</h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400">{stationDescription}</p>
+        <div>
+          <h1>{stationTitle}</h1>
+          <p>{stationDescription}</p>
         </div>
 
-        <section className="space-y-4">
-          <h3 className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+        <section>
+          <h3>
             {tr.presetsTitle ?? 'Configurations prédéfinies'}
           </h3>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
             {presets.map((preset) => {
               const selected = isPresetSelected(preset.moduleIds);
               return (
                 <div
                   key={preset.id}
                   onClick={() => handlePresetClick(preset.moduleIds)}
-                  className={
-                    'p-4 border rounded-xl cursor-pointer transition-all ' +
-                    (selected
-                      ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 ring-1 ring-blue-500 shadow-sm'
-                      : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-gray-300 dark:hover:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700/50')
-                  }
                 >
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center">
-                      <div className="w-9 h-9 rounded-lg border border-gray-200 dark:border-gray-700 flex items-center justify-center text-gray-700 dark:text-gray-300">
+                  <div>
+                    <div>
+                      <div>
                         {renderPresetIcon(preset.id)}
                       </div>
-                      <h4 className={`ml-3 font-bold ${selected ? 'text-gray-900 dark:text-white' : 'text-gray-900 dark:text-white'}`}>
+                      <h4>
                         {preset.label}
                       </h4>
                     </div>
                     {selected && (
                         // eslint-disable-next-line i18next/no-literal-string
-                      <span className="text-blue-600 dark:text-blue-400 text-sm font-semibold">✓</span>
+                      <span>✓</span>
                     )}
                   </div>
-                  <p className={`text-xs ${selected ? 'text-blue-700 dark:text-blue-300' : 'text-gray-500 dark:text-gray-400'}`}>
+                  <p>
                     {preset.description}
                   </p>
                 </div>
@@ -742,43 +735,32 @@ const AssemblerNew: React.FC = () => {
           </div>
         </section>
 
-        <section className="space-y-4">
-          <div className="flex justify-between items-end">
-            <h3 className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+        <section>
+          <div>
+            <h3>
               {tr.customModulesTitle ?? 'Sélectionnez vos propres modules'}
             </h3>
-            <span className="bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-xs font-bold px-3 py-1 rounded-full border dark:border-gray-700">
+            <span>
               {tr.selectedCount?.replace('{count}', selectedCount.toString()).replace('{total}', availableModules.length.toString()) ?? `${selectedCount} / ${availableModules.length} sélectionnés`}
             </span>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
             {availableModules.map((mod) => {
               const isSelected = selectedModuleKeys.has(mod.key);
               return (
                 <div
                   key={mod.key}
                   onClick={() => toggleSelectedModule(mod.key)}
-                  className={
-                    'flex items-center p-4 border rounded-xl cursor-pointer transition-all ' +
-                    (isSelected
-                      ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 shadow-sm'
-                      : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-gray-300 dark:hover:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700/50')
-                  }
                 >
-                  <div
-                    className={
-                      'flex-shrink-0 w-5 h-5 rounded border flex items-center justify-center mr-3 transition-colors ' +
-                      (isSelected ? 'bg-blue-500 border-blue-500 text-white' : 'border-gray-300 dark:border-gray-600')
-                    }
-                  >
-                    {isSelected && <span className="text-[10px] font-bold">✓</span>}
+                  <div>
+                    {isSelected && <span>✓</span>}
                   </div>
-                  <div className="w-8 h-8 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 flex items-center justify-center mr-3">
+                  <div>
                     {renderModuleIcon(mod.key)}
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className={`font-medium text-sm ${isSelected ? 'text-blue-900 dark:text-blue-200' : 'text-gray-700 dark:text-gray-300'}`}>
+                  <div>
+                    <div>
+                      <span>
                         {getModuleLabel(mod.key, mod.label)}
                       </span>
                     </div>
@@ -789,17 +771,11 @@ const AssemblerNew: React.FC = () => {
           </div>
         </section>
 
-        <div className="pt-4 flex justify-end">
+        <div>
           <button
             type="button"
             disabled={selectedCount === 0}
             onClick={() => setStation('builder')}
-            className={
-              'px-6 py-2.5 font-medium rounded-lg transition-colors flex items-center ' +
-              (selectedCount > 0
-                ? 'bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600'
-                : 'bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-600 cursor-not-allowed')
-            }
           >
             {tr.continueBtn?.replace('{count}', selectedCount.toString()) ?? `Continuer avec ${selectedCount} modules →`}
           </button>
@@ -810,76 +786,70 @@ const AssemblerNew: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6 md:p-8">
-      <div className="max-w-4xl mx-auto space-y-8">
+    <div className="assembler-page">
+      <div>
         <button
           type="button"
           onClick={() => navigate(-1)}
-          className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
           {t?.notebook?.header?.back ?? 'Retour'}
         </button>
 
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white mt-2">{tr.title ?? 'Nuevo proyecto'}</h1>
+        <h1>{tr.title ?? 'Nuevo proyecto'}</h1>
 
         <input
           type="text"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           placeholder={tr.titlePlaceholder ?? 'Titre du projet'}
-          className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-3 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-500"
         />
         <textarea
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           rows={3}
           placeholder={tr.descriptionPlaceholder ?? 'Description du projet'}
-          className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-3 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-500"
         />
 
-        <div className="rounded-xl border border-dashed border-gray-200 dark:border-gray-700 p-4 text-sm text-gray-600 dark:text-gray-400">
-          <div className="flex items-start gap-3">
+        <div>
+          <div>
             <input
               id="protected-enabled"
               type="checkbox"
               checked={protectedEnabled}
               onChange={(e) => setProtectedEnabled(e.target.checked)}
-              className="mt-1 h-4 w-4 rounded border-gray-300 dark:border-gray-600 text-brand-600 focus:ring-brand-500 bg-white dark:bg-gray-800"
             />
             <div>
-              <div className="font-semibold text-gray-900 dark:text-gray-100">
+              <div>
                 {tr.protectedDbLabel ?? 'Protéger la base de données avec des identifiants'}
               </div>
-              <div className="text-xs text-gray-500 dark:text-gray-400">
+              <div>
                 {tr.protectedDbDesc ?? "Si vous activez cette option, le projet nécessitera une connexion avant d'afficher le contenu."}
               </div>
             </div>
           </div>
 
           {protectedEnabled && (
-            <div className="mt-4 grid gap-3 md:grid-cols-2">
+            <div>
               <input
                 type="text"
                 value={protectedUsername}
                 onChange={(e) => setProtectedUsername(e.target.value)}
                 placeholder={tr.usernamePlaceholder ?? "Nom d'utilisateur"}
-                className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-3 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-500"
               />
               <input
                 type="password"
                 value={protectedPassword}
                 onChange={(e) => setProtectedPassword(e.target.value)}
                 placeholder={tr.passwordPlaceholder ?? 'Mot de passe (minimum 8 caractères)'}
-                className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-3 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-500"
               />
               {!protectedUsernameValid && (
-                <div className="text-xs text-amber-600">
+                <div>
                   El usuario es obligatorio.
                 </div>
               )}
               {!protectedPasswordValid && (
-                <div className="text-xs text-amber-600">
+                <div>
                   La contraseña debe tener al menos 8 caracteres.
                 </div>
               )}
@@ -887,28 +857,27 @@ const AssemblerNew: React.FC = () => {
           )}
         </div>
 
-        <div className="rounded-xl border border-dashed border-gray-200 p-4 text-sm text-gray-600">
-          <div className="flex items-start gap-3">
+        <div>
+          <div>
             <input
               id="api-config-enabled"
               type="checkbox"
               checked={apiConfigEnabled}
               onChange={(e) => handleApiConfigToggle(e.target.checked)}
-              className="mt-1 h-4 w-4 rounded border-gray-300 text-brand-600 focus:ring-brand-500"
             />
             <div>
-              <div className="font-semibold text-gray-900">
+              <div>
                 Configurar API key
               </div>
-              <div className="text-xs text-gray-500">
+              <div>
                 Inyecta una API key fija en el exportable. El usuario final podrá editarla si también arrastras el bloque.
               </div>
             </div>
           </div>
 
           {apiConfigEnabled && (
-            <div className="mt-4 flex flex-col gap-2">
-              <div className="text-xs text-gray-500">
+            <div>
+              <div>
                 {requiredApiKeyTypes.length > 0
                   ? apiKeysValid
                     ? `${requiredApiKeyTypes.length} API key${requiredApiKeyTypes.length > 1 ? 's' : ''} configurada${requiredApiKeyTypes.length > 1 ? 's' : ''} y lista${requiredApiKeyTypes.length > 1 ? 's' : ''} para el exportable.`
@@ -918,12 +887,11 @@ const AssemblerNew: React.FC = () => {
               <button
                 type="button"
                 onClick={openApiConfigModal}
-                className="self-start rounded-lg border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-700 hover:border-brand-400 hover:text-brand-600"
               >
                 Abrir modal de API key
               </button>
               {apiConfigEnabled && !apiKeysValid && requiredApiKeyTypes.length > 0 && (
-                <div className="text-xs text-amber-600">
+                <div>
                   {requiredApiKeyTypes.length > 1
                     ? `Las ${requiredApiKeyTypes.length} API keys son obligatorias.`
                     : 'La API key es obligatoria.'}
@@ -938,13 +906,13 @@ const AssemblerNew: React.FC = () => {
           title={`Configurar API${requiredApiKeyTypes.length > 1 ? 's' : ''}`}
           onClose={() => setApiConfigModalOpen(false)}
         >
-          <div className="space-y-4 max-h-[60vh] overflow-y-auto">
+          <div>
             {apiConfigStep === 'form' && (
-              <div className="space-y-4">
-                <div className="text-sm font-semibold text-gray-900">
+              <div>
+                <div>
                   Estas configurando informacion sensible
                 </div>
-                <p className="text-xs text-gray-500">
+                <p>
                   Las API keys quedaran inyectadas en el exportable. Podras editarlas luego si los modulos estan presentes.
                 </p>
 
@@ -952,8 +920,8 @@ const AssemblerNew: React.FC = () => {
                 {requiredApiKeyTypes.map((type) => {
                   const config = API_KEY_CONFIGS[type];
                   return (
-                    <div key={type} className="space-y-2">
-                      <label className="text-xs font-semibold text-gray-700">
+                    <div key={type}>
+                      <label>
                       {config?.label || type}
                       </label>
                       <input
@@ -961,27 +929,24 @@ const AssemblerNew: React.FC = () => {
                         value={apiKeysDraft[type] || ''}
                         onChange={(e) => handleApiKeyDraftChange(type, e.target.value)}
                         placeholder={config?.placeholder || `Ingresa tu API key de ${type}`}
-                        className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500"
                       />
                       {apiKeysDraftErrors[type] && (
-                        <div className="text-xs text-amber-600">{apiKeysDraftErrors[type]}</div>
+                        <div>{apiKeysDraftErrors[type]}</div>
                       )}
                     </div>
                   );
                 })}
 
-                <div className="flex items-center justify-between pt-2">
+                <div>
                   <button
                     type="button"
                     onClick={cancelApiConfig}
-                    className="rounded-lg border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-600 hover:border-gray-400"
                   >
                     Cancelar
                   </button>
                   <button
                     type="button"
                     onClick={handleApiConfigContinue}
-                    className="rounded-lg bg-brand-600 px-3 py-2 text-xs font-semibold text-white hover:bg-brand-700"
                   >
                     Continuar
                   </button>
@@ -990,23 +955,21 @@ const AssemblerNew: React.FC = () => {
             )}
 
             {apiConfigStep === 'confirm' && (
-              <div className="space-y-3 text-center">
-                <div className="text-sm font-semibold text-gray-900">Confirmas esta configuracion?</div>
-                <p className="text-xs text-gray-500">
+              <div>
+                <div>Confirmas esta configuracion?</div>
+                <p>
                   Se inyectaran {requiredApiKeyTypes.length} API key{requiredApiKeyTypes.length > 1 ? 's' : ''} en el exportable.
                 </p>
-                <div className="flex items-center justify-center gap-3">
+                <div>
                   <button
                     type="button"
                     onClick={() => setApiConfigStep('form')}
-                    className="rounded-lg border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-600"
                   >
                     Volver
                   </button>
                   <button
                     type="button"
                     onClick={handleApiConfigConfirm}
-                    className="rounded-lg bg-brand-600 px-3 py-2 text-xs font-semibold text-white"
                   >
                     Confirmar
                   </button>
@@ -1015,20 +978,19 @@ const AssemblerNew: React.FC = () => {
             )}
 
             {apiConfigStep === 'loading' && (
-              <div className="space-y-2 text-center">
-                <div className="text-sm font-semibold text-gray-900">Guardando configuracion...</div>
-                <p className="text-xs text-gray-500">Protegiendo tus API keys.</p>
+              <div>
+                <div>Guardando configuracion...</div>
+                <p>Protegiendo tus API keys.</p>
               </div>
             )}
 
             {apiConfigStep === 'success' && (
-              <div className="space-y-3 text-center">
-                <div className="text-sm font-semibold text-gray-900">API keys configuradas correctamente</div>
-                <p className="text-xs text-gray-500">Ya puedes usar los modulos en el exportable.</p>
+              <div>
+                <div>API keys configuradas correctamente</div>
+                <p>Ya puedes usar los modulos en el exportable.</p>
                 <button
                   type="button"
                   onClick={handleApiConfigDone}
-                  className="rounded-lg bg-brand-600 px-3 py-2 text-xs font-semibold text-white"
                 >
                   Listo
                 </button>
@@ -1037,18 +999,18 @@ const AssemblerNew: React.FC = () => {
           </div>
         </AssemblerModal>
 
-        <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-6 shadow-sm space-y-6">
+        <div>
           <div>
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+            <h2>
               {tr.layoutEditorTitle ?? 'Conception des modules'}
             </h2>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
+            <p>
               {tr.layoutEditorDesc ?? 'Faites glisser les modules de la palette vers le canevas. Sélectionnez un fichier HTML pour chaque module qui en nécessite un et complétez les textes.'}
             </p>
           </div>
 
-          <div className="grid gap-6 lg:grid-cols-[280px_minmax(0,1fr)]">
-            <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/40 p-4">
+          <div>
+            <div>
               <ModulesPalette
                 modules={paletteModules}
                 canvasModules={canvasModules}
@@ -1057,7 +1019,7 @@ const AssemblerNew: React.FC = () => {
               />
             </div>
 
-            <div className="h-[min(70vh,640px)]">
+            <div>
               <DragDropCanvas
                 modules={canvasModules}
                 onChange={setCanvasModules}
@@ -1078,14 +1040,14 @@ const AssemblerNew: React.FC = () => {
 
         {/* Validation warning for needsObject modules without object */}
         {canvasModules.some((m) => m.needsObject && !m.objectId) && (
-          <div className="rounded-md border border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-900/20 px-3 py-2 text-xs text-amber-800 dark:text-amber-200">
+          <div>
             {tr.validation?.missingHtml ?? 'Certains modules nécessitent un fichier HTML. Sélectionnez-en un pour chaque module marqué avant l\'assemblage.'}
           </div>
 
         )}
 
         {detectedType === 'landing_page' && !landingModulesReady && (
-          <div className="rounded-md border border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-900/20 px-3 py-2 text-xs text-amber-800 dark:text-amber-200">
+          <div>
             {tr.validation?.landingRequired ?? 'Pour la page de destination, vous devez inclure En-tête, Corps et Pied de page.'}
           </div>
         )}
@@ -1112,58 +1074,54 @@ const AssemblerNew: React.FC = () => {
           title="Inyectar objetos para RAG"
           onClose={() => setRagModalOpen(false)}
         >
-          <div className="space-y-4">
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <div>
+            <div>
               <input
                 value={ragSearch}
                 onChange={(ev) => setRagSearch(ev.target.value)}
                 placeholder="Buscar objetos"
-                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700"
               />
               <button
                 type="button"
                 onClick={() => void loadRagObjects()}
                 disabled={ragLoading}
-                className="rounded-lg border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-600 hover:bg-gray-50 disabled:opacity-60"
               >
                 Recargar
               </button>
             </div>
 
             {ragLoading && (
-              <div className="text-sm text-gray-500">Cargando objetos...</div>
+              <div>Cargando objetos...</div>
             )}
 
             {ragError && (
-              <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+              <div>
                 {ragError}
               </div>
             )}
 
             {!ragLoading && !ragError && ragFilteredObjects.length === 0 && (
-              <div className="text-sm text-gray-500">No hay objetos disponibles.</div>
+              <div>No hay objetos disponibles.</div>
             )}
 
             {!ragLoading && !ragError && ragFilteredObjects.length > 0 && (
-              <div className="max-h-72 overflow-auto space-y-2 rounded-lg border border-gray-200 p-2">
+              <div>
                 {ragFilteredObjects.map((obj) => {
                   const checked = ragSelectedIds.has(String(obj.id));
                   return (
                     <label
                       key={obj.id}
-                      className="flex items-center justify-between gap-3 rounded-md px-3 py-2 hover:bg-gray-50"
                     >
-                      <div className="min-w-0">
-                        <div className="text-sm font-medium text-gray-800 truncate">
+                      <div>
+                        <div>
                           {obj.name ?? obj.title ?? `Objeto #${obj.id}`}
                         </div>
-                        <div className="text-[11px] text-gray-500">{obj.type ?? 'Documento'}</div>
+                        <div>{obj.type ?? 'Documento'}</div>
                       </div>
                       <input
                         type="checkbox"
                         checked={checked}
                         onChange={(ev) => handleRagToggle(obj, ev.target.checked)}
-                        className="h-4 w-4 rounded border-gray-300 text-indigo-600"
                       />
                     </label>
                   );
@@ -1171,12 +1129,11 @@ const AssemblerNew: React.FC = () => {
               </div>
             )}
 
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-gray-500">Seleccionados: {ragSelectedObjects.length}</span>
+            <div>
+              <span>Seleccionados: {ragSelectedObjects.length}</span>
               <button
                 type="button"
                 onClick={() => setRagModalOpen(false)}
-                className="rounded-lg bg-brand-600 px-4 py-2 text-xs font-semibold text-white"
               >
                 Listo
               </button>
@@ -1185,50 +1142,40 @@ const AssemblerNew: React.FC = () => {
         </AssemblerModal>
 
         {/* Create & Assemble button + results */}
-        <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-6 shadow-sm">
-          <div className="space-y-4">
+        <div>
+          <div>
             {error && (
-              <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-900/50 dark:bg-red-900/30 dark:text-red-100">
+              <div>
                 {error}
               </div>
             )}
 
             {resultUrl && (
-              <div className="rounded-md border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800 dark:border-green-900/40 dark:bg-green-900/20 dark:text-green-100">
-                <span className="font-semibold">{tr.success ?? 'Assemblage réussi.'}</span>{' '}
+              <div>
+                <span>{tr.success ?? 'Assemblage réussi.'}</span>{' '}
                 <a
                   href={resultUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="underline hover:text-green-900 dark:hover:text-green-50"
                 >
                   {tr.openResult ?? 'Ouvrir le résultat →'}
                 </a>
               </div>
             )}
 
-            <div className="flex items-center justify-between">
+            <div>
               {/* Canvas summary */}
               {canvasModules.length > 0 && (
-                <div className="flex flex-wrap gap-2">
-                  {canvasModules.map((m) => {
-                    const ok = m.needsObject ? Boolean(m.objectId) : true;
-                    return (
-                      <span
-                        key={m.key}
-                        className={
-                          'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium ' +
-                          (ok
-                            ? 'bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300'
-                            : 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-900/40 text-amber-700 dark:text-amber-200')
-                        }
-                      >
-                        <span className={`w-1.5 h-1.5 rounded-full ${m.color}`} />
-                        {m.label}
-                        {m.needsObject && (m.objectId ? ' ✓' : ' ✗')}
-                      </span>
-                    );
-                  })}
+                <div>
+                  {canvasModules.map((m) => (
+                    <span
+                      key={m.key}
+                    >
+                      <span className={m.color} />
+                      {m.label}
+                      {m.needsObject && (m.objectId ? ' ✓' : ' ✗')}
+                    </span>
+                  ))}
                 </div>
               )}
 
@@ -1236,12 +1183,6 @@ const AssemblerNew: React.FC = () => {
                 type="button"
                 onClick={handleCreateAndAssemble}
                 disabled={!canCreate || isSubmitting}
-                className={
-                  'inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold shadow-sm transition focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900 flex-shrink-0 ' +
-                  (canCreate && !isSubmitting
-                    ? 'bg-brand-600 text-white hover:bg-brand-700'
-                    : 'bg-gray-300 text-gray-600 cursor-not-allowed dark:bg-gray-700 dark:text-gray-300')
-                }
               >
                 {isSubmitting ? (
                   <>

@@ -47,6 +47,7 @@
 }
 
 .fablab-layout-router {
+  background: linear-gradient(135deg, #eef2f6, #e6ebf1);
   flex: 1;
   overflow: auto;
   position: relative;

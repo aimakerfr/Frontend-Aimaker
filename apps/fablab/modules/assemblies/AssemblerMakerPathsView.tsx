@@ -5,7 +5,7 @@ import { MakerPath } from '@core/maker-path/maker-path.types';
 import { useNavigate } from 'react-router-dom';
 import { deployAssembly } from './services/assemblyDeployment.service';
 import { Rocket, ExternalLink, Settings } from 'lucide-react';
-import './AssemblerMakerPathsView.css'; // Import the CSS file
+import '../views/assembler/style.css'; // Import the CSS file
 
 const AssemblerMakerPathsView: React.FC = () => {
   const { t } = useLanguage();
@@ -68,82 +68,79 @@ const AssemblerMakerPathsView: React.FC = () => {
   };
 
   return (
-    <div className="max-w-7xl mx-auto p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">{t?.assembler?.title || 'Assembler Maker Paths'}</h1>
+    <div>
+      <div>
+        <h1>{t?.assembler?.title || 'Assembler Maker Paths'}</h1>
         <button
           onClick={handleCreateNewAssembler}
-          className="px-4 py-2 text-sm font-semibold rounded-lg transition-colors bg-blue-600 text-white hover:bg-blue-700"
         >
           {t?.assembler?.createNew || 'Create New Assembler'}
         </button>
       </div>
 
       {loading ? (
-        <p className="text-sm text-gray-500">{t?.common?.loading || 'Loading…'}</p>
+        <p>{t?.common?.loading || 'Loading…'}</p>
       ) : makerPaths.length > 0 ? (
-        <div className="overflow-x-auto bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
-          <table className="min-w-full text-left text-sm">
-            <thead className="text-gray-500 dark:text-gray-400">
+        <div>
+          <table>
+            <thead>
               <tr>
-                <th className="py-3 px-4">{t?.products?.fixed?.idLabel || 'ID'}</th>
-                <th className="py-3 px-4">{'Title'}</th>
-                <th className="py-3 px-4">{'Description'}</th>
-                <th className="py-3 px-4">{'Status'}</th>
-                <th className="py-3 px-4">{'Created At'}</th>
-                <th className="py-3 px-4">{'Deployment URL'}</th>
-                <th className="py-3 px-4">{'Project Type'}</th>
-                <th className="py-3 px-4">{'Files URL'}</th>
-                <th className="py-3 px-4">{t?.assembler?.actions || 'Actions'}</th>
+                <th>{t?.products?.fixed?.idLabel || 'ID'}</th>
+                <th>{'Title'}</th>
+                <th>{'Description'}</th>
+                <th>{'Status'}</th>
+                <th>{'Created At'}</th>
+                <th>{'Deployment URL'}</th>
+                <th>{'Project Type'}</th>
+                <th>{'Files URL'}</th>
+                <th>{t?.assembler?.actions || 'Actions'}</th>
               </tr>
             </thead>
-            <tbody className="text-gray-800 dark:text-gray-200">
+            <tbody>
               {makerPaths.map((mp: any) => (
-                <tr key={mp.id} className="border-t border-gray-100 dark:border-gray-700">
-                  <td className="py-3 px-4">{mp.id}</td>
-                  <td className="py-3 px-4">{mp.title}</td>
-                  <td className="py-3 px-4">{mp.description || '-'}</td>
-                  <td className="py-3 px-4">{mp.status}</td>
-                  <td className="py-3 px-4">{new Date(mp.createdAt).toLocaleDateString()}</td>
-                  <td className="py-3 px-4">
+                <tr key={mp.id}>
+                  <td>{mp.id}</td>
+                  <td>{mp.title}</td>
+                  <td>{mp.description || '-'}</td>
+                  <td>{mp.status}</td>
+                  <td>{new Date(mp.createdAt).toLocaleDateString()}</td>
+                  <td>
                     {mp.deploymentUrl || mp.deployment_url ? (
                       <a 
                         href={mp.deploymentUrl || mp.deployment_url} 
                         target="_blank" 
                         rel="noopener noreferrer"
-                        className="text-blue-600 hover:underline flex items-center gap-1"
                       >
                         <ExternalLink size={14} />
-                        <span className="max-w-[150px] truncate block">
+                        <span>
                           {mp.deploymentUrl || mp.deployment_url}
                         </span>
                       </a>
                     ) : '-'}
                   </td>
-                  <td className="py-3 px-4">
-                    <span className="px-2 py-1 text-xs font-medium rounded-full bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
+                  <td>
+                    <span>
                       {mp.projectType || mp.project_type || '-'}
                     </span>
                   </td>
-                  <td className="py-3 px-4">
+                  <td>
                     {mp.filesUrl || mp.files_url ? (
                       <a 
                         href={mp.filesUrl || mp.files_url} 
                         target="_blank" 
                         rel="noopener noreferrer"
-                        className="text-blue-600 hover:underline flex items-center gap-1"
                       >
                         <ExternalLink size={14} />
-                        <span className="max-w-[150px] truncate block">
+                        <span>
                           {mp.filesUrl || mp.files_url}
                         </span>
                       </a>
                     ) : '-'}
                   </td>
-                  <td className="py-3 px-4">
-                    <div className="flex items-center gap-2">
+                  <td>
+                    <div>
                       {mp.projectType === 'landing_page' ? (
-                        <span className="px-3 py-2 text-sm font-semibold text-green-600 dark:text-green-400 bg-green-100 dark:bg-green-900/30 rounded-md">
+                        <span>
                           {t?.products?.status?.deployed || 'Deployed'}
                         </span>
                       ) : (
@@ -151,19 +148,12 @@ const AssemblerMakerPathsView: React.FC = () => {
                           onClick={() => handleDeploy(mp.id)}
                           disabled={deployingId !== null}
                           title={t?.assembler?.deployAssembly || 'Deploy assembly'}
-                          className={`px-3 py-2 rounded-md transition-all duration-300 text-white flex items-center gap-2 ${
-                            deployingId === mp.id 
-                              ? 'bg-green-700 scale-105 shadow-lg cursor-wait' 
-                              : (mp.deploymentUrl || mp.deployment_url)
-                                ? 'bg-orange-500 hover:bg-orange-600'
-                                : 'bg-green-600 hover:bg-green-700'
-                          } ${deployingId !== null && deployingId !== mp.id ? 'opacity-50 cursor-not-allowed' : ''}`}
                         >
                           <Rocket 
                             size={16} 
                             className={deployingId === mp.id ? 'animate-rocket-deploy' : ''} 
                           />
-                          <span className="font-medium">
+                          <span>
                             {deployingId === mp.id 
                               ? (t?.common?.loading || 'Deploying...') 
                               : (mp.deploymentUrl || mp.deployment_url)
@@ -180,7 +170,6 @@ const AssemblerMakerPathsView: React.FC = () => {
                         <button
                           onClick={() => navigate(`/dashboard/applications/deployer?id=${mp.id}`)}
                           title={t?.actions?.manageProjectApplication || 'Manage project application'}
-                          className="p-2 rounded-md transition-colors bg-blue-600 text-white hover:bg-blue-700"
                         >
                           <Settings size={16} />
                         </button>
@@ -193,7 +182,7 @@ const AssemblerMakerPathsView: React.FC = () => {
           </table>
         </div>
       ) : (
-        <p className="text-sm text-gray-500">{t?.assembler?.noAssemblerMakerPaths || 'No assembler maker paths yet'}</p>
+        <p>{t?.assembler?.noAssemblerMakerPaths || 'No assembler maker paths yet'}</p>
       )}
     </div>
   );

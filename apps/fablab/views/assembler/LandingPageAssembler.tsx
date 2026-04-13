@@ -179,20 +179,20 @@ const LandingPageAssembler: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-bold">{tr.title ?? 'Landing Page Assembler'}</h1>
+    <div>
+      <h1>{tr.title ?? 'Landing Page Assembler'}</h1>
       {makerPathId <= 0 && (
-        <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-amber-900 dark:border-amber-900/40 dark:bg-amber-900/20 dark:text-amber-100">
+        <div>
           {tr.missingId ?? 'Missing maker_path id. Append ?id={maker_path_id} to the URL.'}
         </div>
       )}
 
       {/* Visual description textarea */}
-      <div className="rounded-xl border border-gray-200 dark:border-gray-800 p-4 bg-white dark:bg-gray-900">
-        <label className="block font-semibold mb-1">
+      <div>
+        <label>
           {tr.visualDescriptionLabel ?? 'Describe el look & feel de tu landing page'}
         </label>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">
+        <p>
           {tr.visualDescriptionHint ??
             'Ej: "Colores oscuros con acentos en verde neón, tipografía moderna sans-serif, botones redondeados, estilo minimalista tech."'}
         </p>
@@ -200,7 +200,6 @@ const LandingPageAssembler: React.FC = () => {
           value={visualDescription}
           onChange={(e) => setVisualDescription(e.target.value)}
           rows={3}
-          className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
           placeholder={tr.visualDescriptionPlaceholder ?? 'Describe los colores, tipografías, espaciado y estilo visual que deseas...'}
         />
       </div>
@@ -214,13 +213,12 @@ const LandingPageAssembler: React.FC = () => {
         assembleCtaLabel={tr.assembleCta ?? 'Assemble landing page'}
       />
 
-      <div className="flex items-center gap-3">
+      <div>
         {makerPathId > 0 && (
           <a
             href={uploadsHref}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center rounded-lg px-4 py-2 text-sm font-semibold border border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800"
           >
             {tr.openResult ?? 'Open generated index.html'}
           </a>
@@ -229,12 +227,6 @@ const LandingPageAssembler: React.FC = () => {
           type="button"
           onClick={onRunExample}
           disabled={makerPathId <= 0 || isRunningExample}
-          className={
-            'inline-flex items-center rounded-lg px-4 py-2 text-sm font-semibold shadow-sm ' +
-            (makerPathId > 0 && !isRunningExample
-              ? 'bg-indigo-600 text-white hover:bg-indigo-700'
-              : 'bg-gray-300 text-gray-600 cursor-not-allowed dark:bg-gray-700 dark:text-gray-300')
-          }
           title="POST /api/v1/assembler/landing_page/examples/assemble"
         >
           {isRunningExample ? (tr.runningExample ?? 'Running example...') : (tr.runExampleCta ?? 'Run Example')}
@@ -242,14 +234,14 @@ const LandingPageAssembler: React.FC = () => {
       </div>
 
       {assembleResultMsg && (
-        <div className="rounded-md border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800 dark:border-green-900/40 dark:bg-green-900/20 dark:text-green-100">
+        <div>
           {assembleResultMsg}
         </div>
       )}
 
       {exampleResultMsg && (
-        <div className="space-y-3">
-          <div className="rounded-md border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800 dark:border-green-900/40 dark:bg-green-900/20 dark:text-green-100">
+        <div>
+          <div>
             {exampleResultMsg}
           </div>
           {exampleHtmlPath && (
@@ -257,7 +249,6 @@ const LandingPageAssembler: React.FC = () => {
               href={exampleHtmlPath.startsWith('http') ? exampleHtmlPath : `${apiBase}${exampleHtmlPath}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center rounded-lg px-4 py-2 text-sm font-semibold border border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800"
             >
               {tr.openExampleResult ?? 'Open example a.htm'}
             </a>
