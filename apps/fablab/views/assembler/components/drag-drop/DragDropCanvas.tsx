@@ -242,6 +242,7 @@ const DragDropCanvas: React.FC<Props> = ({
   // ── Render ──
   return (
     <div
+      className="assembler-canvas-grid"
       ref={gridRef}
       onPointerMove={handleGridPointerMove}
       onPointerUp={handleGridPointerUp}
@@ -250,7 +251,7 @@ const DragDropCanvas: React.FC<Props> = ({
       onDrop={handleDrop}
     >
       {/* Grid lines */}
-      <svg xmlns="http://www.w3.org/2000/svg">
+      <svg className="assembler-canvas-grid-lines" xmlns="http://www.w3.org/2000/svg">
         {Array.from({ length: GRID_SIZE + 1 }, (_, i) => {
           const pct = `${(i / GRID_SIZE) * 100}%`;
           return (
@@ -264,7 +265,7 @@ const DragDropCanvas: React.FC<Props> = ({
 
       {/* Empty state */}
       {modules.length === 0 && !paletteHover && (
-        <div>
+        <div className="assembler-canvas-empty">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
             <rect x="3" y="3" width="7" height="7" rx="1" />
             <rect x="14" y="3" width="7" height="7" rx="1" />
@@ -279,6 +280,7 @@ const DragDropCanvas: React.FC<Props> = ({
       {/* Palette drop preview */}
       {paletteHover && (
         <div
+          className="assembler-canvas-drop-preview"
           style={{
             left: `${(paletteHover.col / GRID_SIZE) * 100}%`,
             top: `${(paletteHover.row / GRID_SIZE) * 100}%`,
@@ -290,17 +292,19 @@ const DragDropCanvas: React.FC<Props> = ({
 
       {apiConfigModule && (
         <div
+          className="assembler-canvas-api"
           style={{ minHeight: '72px' }}
         >
-          <div className={apiConfigModule.color} />
-          <div>
-            <div>{apiConfigModule.label}</div>
-            <div>Botón en exportable</div>
+          <div className={`assembler-canvas-api-accent ${apiConfigModule.color}`} />
+          <div className="assembler-canvas-api-content">
+            <div className="assembler-canvas-api-title">{apiConfigModule.label}</div>
+            <div className="assembler-canvas-api-subtitle">Botón en exportable</div>
           </div>
           <button
             type="button"
             onClick={() => handleRemove(apiConfigModule.key)}
             title="Remove"
+            className="assembler-canvas-api-remove"
           >
             ×
           </button>
@@ -316,6 +320,7 @@ const DragDropCanvas: React.FC<Props> = ({
 
         return (
           <div
+            className={`assembler-canvas-block ${isBeingDragged ? 'is-dragging' : ''}`}
             key={mod.key}
             onPointerDown={(e) => handleBlockPointerDown(mod.key, e)}
             onDragOver={mod.key === 'rag' ? handleRagDragOver : undefined}
@@ -330,19 +335,19 @@ const DragDropCanvas: React.FC<Props> = ({
             }}
           >
             {/* Background fill */}
-            <div />
+            <div className="assembler-canvas-block-fill" />
 
             {/* Color accent */}
-            <div className={mod.color} />
+            <div className={`assembler-canvas-block-accent ${mod.color}`} />
 
             {/* Content */}
-            <div>
-              <div>
+            <div className="assembler-canvas-block-content">
+              <div className="assembler-canvas-block-header">
                 <div>
-                  <div>
+                  <div className="assembler-canvas-block-title">
                     {mod.label}
                   </div>
-                  <div>
+                  <div className="assembler-canvas-block-meta">
                     {mod.type} &middot; idx {mod.index}
                   </div>
                 </div>
@@ -352,6 +357,7 @@ const DragDropCanvas: React.FC<Props> = ({
                   onPointerDown={(e) => e.stopPropagation()}
                   onClick={() => handleRemove(mod.key)}
                   title="Remove"
+                  className="assembler-canvas-block-remove"
                 >
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                     <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
@@ -361,16 +367,17 @@ const DragDropCanvas: React.FC<Props> = ({
 
               {/* needsObject modules: object selector button */}
               {mod.needsObject && (
-                <div>
+                <div className="assembler-canvas-block-object">
                   {mod.objectId ? (
-                    <div>
-                      <div>
+                    <div className="assembler-canvas-block-object-row">
+                      <div className="assembler-canvas-block-object-name">
                         {mod.objectName || `Object #${mod.objectId}`}
                       </div>
                       <button
                         type="button"
                         onPointerDown={(e) => e.stopPropagation()}
                         onClick={() => onSelectObject?.(mod.key)}
+                        className="assembler-canvas-block-action"
                       >
                         Change
                       </button>
@@ -380,6 +387,7 @@ const DragDropCanvas: React.FC<Props> = ({
                       type="button"
                       onPointerDown={(e) => e.stopPropagation()}
                       onClick={() => onSelectObject?.(mod.key)}
+                      className="assembler-canvas-block-action"
                     >
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" />
@@ -391,32 +399,34 @@ const DragDropCanvas: React.FC<Props> = ({
               )}
 
               {mod.key === 'rag' && (
-                <div>
-                  <p>
+                <div className="assembler-canvas-block-rag">
+                  <p className="assembler-canvas-block-rag-text">
                     Inyecta documentos del proyecto para el exportable.
                   </p>
                   <button
                     type="button"
                     onPointerDown={(e) => e.stopPropagation()}
                     onClick={() => onRagOpenModal?.()}
+                    className="assembler-canvas-block-action"
                   >
                     Inyectar objetos
                   </button>
                   {ragObjects.length > 0 && (
-                    <div>
-                      <span>
+                    <div className="assembler-canvas-block-rag-list">
+                      <span className="assembler-canvas-block-rag-count">
                         Objetos: {ragObjects.length}
                       </span>
-                      <div>
-                        <div>
+                      <div className="assembler-canvas-block-rag-items">
+                        <div className="assembler-canvas-block-rag-scroll">
                           {ragObjects.map((obj) => (
-                            <div key={obj.id}>
+                            <div key={obj.id} className="assembler-canvas-block-rag-item">
                               <span>{obj.name ?? `Objeto #${obj.id}`}</span>
                               <button
                                 type="button"
                                 onPointerDown={(e) => e.stopPropagation()}
                                 onClick={() => onRagRemove?.(obj.id)}
                                 title="Quitar"
+                                className="assembler-canvas-block-rag-remove"
                               >
                                 ×
                               </button>
@@ -426,22 +436,23 @@ const DragDropCanvas: React.FC<Props> = ({
                       </div>
                     </div>
                   )}
-                  <div>
+                  <div className="assembler-canvas-block-rag-drop">
                     Arrastra objetos aquí
                   </div>
                 </div>
               )}
 
               {mod.key === 'api_configuration' && (
-                <div>
+                <div className="assembler-canvas-block-note">
                   Se mostrará como botón de configuración en el exportable.
                 </div>
               )}
 
               {/* textInput modules: inline text area */}
               {mod.textInput && mod.key !== 'api_configuration' && (
-                <div>
+                <div className="assembler-canvas-block-text">
                   <textarea
+                    className="assembler-canvas-block-textarea"
                     value={mod.textValue ?? ''}
                     onChange={(e) => onTextChange?.(mod.key, e.target.value)}
                     onPointerDown={(e) => e.stopPropagation()}
@@ -451,13 +462,14 @@ const DragDropCanvas: React.FC<Props> = ({
               )}
 
               {/* Position info at bottom */}
-              <div>
+              <div className="assembler-canvas-block-position">
                 ({mod.col},{mod.row}) {mod.colSpan}&times;{mod.rowSpan}
               </div>
             </div>
 
             {/* Resize handle (bottom-right corner) */}
             <div
+              className="assembler-canvas-resize"
               data-resize-handle
               onPointerDown={(e) => handleResizePointerDown(mod.key, e)}
               title="Drag to resize"

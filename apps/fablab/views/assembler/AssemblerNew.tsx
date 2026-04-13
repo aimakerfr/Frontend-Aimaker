@@ -9,6 +9,8 @@ import GenericObjectSelector from '@apps/fablab/modules/object-selector/View/Not
 import type { ObjectItem as SelectorObjectItem } from '@apps/fablab/modules/object-selector/services/api_handler';
 import AssemblerModal from './components/AssemblerModal';
 import { useNavigate } from 'react-router-dom';
+import AssemblerTutorial, { type TutorialStep } from './AssemblerTutorial';
+import './style.css';
 
 type ProductType = 'notebook' | 'landing_page';
 
@@ -37,6 +39,8 @@ const AssemblerNew: React.FC = () => {
   const [canvasModules, setCanvasModules] = useState<CanvasModule[]>([]);
   const [resultUrl, setResultUrl] = useState<string | null>(null);
   const [station, setStation] = useState<'select' | 'builder'>('select');
+  const [isAssemblerFlipped, setIsAssemblerFlipped] = useState(false);
+  const [isTutorialPinned, setIsTutorialPinned] = useState(false);
   const [selectedModuleKeys, setSelectedModuleKeys] = useState<Set<string>>(new Set());
 
   // Object selector modal state
@@ -605,6 +609,93 @@ const AssemblerNew: React.FC = () => {
     }
   }, [tr]);
 
+  const getPresetDescriptionLong = useCallback((presetId: string, fallback: string) => {
+    switch (presetId) {
+      case 'preset_notebook':
+        return 'Incluye los bloques esenciales para un producto tipo notebook: configuración de API, módulo RAG para documentos y un chat listo para conversar. Ideal si vas a crear una experiencia interactiva con archivos y preguntas.';
+      case 'preset_landing':
+        return 'Selecciona la estructura base de una landing page clásica con header, body y footer. Perfecto para páginas informativas, presentaciones de producto o sitios promocionales.';
+      default:
+        return fallback;
+    }
+  }, []);
+
+  const getModuleDescriptionLong = useCallback((key: string, fallback: string) => {
+    switch (key) {
+      case 'header':
+        return 'Bloque superior de la landing. Define el encabezado principal con branding, navegación o título destacado.';
+      case 'body':
+        return 'Sección central donde vive el contenido principal: beneficios, descripciones, llamados a la acción o información clave.';
+      case 'footer':
+        return 'Bloque final de la landing con enlaces secundarios, contacto, términos legales o información adicional.';
+      case 'chat':
+        return 'Módulo de conversación para que el usuario escriba y reciba respuestas. Requiere API key activa si quieres respuestas inteligentes.';
+      case 'rag':
+        return 'Espacio donde el usuario puede subir PDFs o documentos. El chat usará estos archivos como contexto para responder.';
+      case 'perplexity':
+        return 'Buscador inteligente que permite al usuario consultar en la web con ayuda de Perplexity AI.';
+      case 'buscador':
+        return 'Módulo de búsqueda visual con diseño predefinido. Útil para mostrar un buscador sin lógica avanzada.';
+      case 'api_configuration':
+        return 'Bloque para configurar claves de API desde el exportable. Permite establecer claves globales editables.';
+      case 'html_input':
+        return 'Selecciona un HTML personalizado para insertarlo como módulo dinámico en el ensamblador.';
+      default:
+        return fallback;
+    }
+  }, []);
+
+  const tutorialSteps = useMemo<TutorialStep[]>(() => {
+    const moduleMap = new Map(availableModules.map((mod) => [mod.key, mod]));
+    const moduleOrder = [
+      'header',
+      'footer',
+      'body',
+      'chat',
+      'rag',
+      'perplexity',
+      'buscador',
+      'html_input',
+      'api_configuration',
+    ];
+
+    const presetSteps = presets.map((preset) => ({
+      id: preset.id,
+      type: 'preset' as const,
+      title: tr.presetsTitle ?? 'Configuraciones predefinidas',
+      description: getPresetDescriptionLong(preset.id, preset.description),
+      itemTitle: preset.label,
+      itemDescription: preset.description,
+    }));
+
+    const moduleSteps = moduleOrder.map((key) => {
+      const module = moduleMap.get(key);
+      return {
+        id: `module_${key}`,
+        type: 'module' as const,
+        title: getModuleLabel(key, module?.label ?? key),
+        description: getModuleDescriptionLong(key, module?.description ?? ''),
+      };
+    });
+
+    return [
+      {
+        id: 'welcome',
+        type: 'mascot',
+        title: '¡Hola! Soy Aimi',
+        description: 'Bienvenido al ensamblador. Toca a Aimi para avanzar por cada paso.',
+      },
+      ...presetSteps,
+      {
+        id: 'modules-intro',
+        type: 'mascot',
+        title: 'Selecciona tus propios módulos',
+        description: 'Ahora veremos cada módulo disponible en el ensamblador, uno por uno.',
+      },
+      ...moduleSteps,
+    ];
+  }, [availableModules, getModuleDescriptionLong, getModuleLabel, getPresetDescriptionLong, presets, tr.presetsTitle]);
+
   const renderModuleIcon = useCallback((key: string) => {
     switch (key) {
       case 'header':
@@ -684,102 +775,165 @@ const AssemblerNew: React.FC = () => {
 
   if (station === 'select') {
     return (
-      <div>
-        <button
-          type="button"
-          onClick={() => navigate(-1)}
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
-          {t?.notebook?.header?.back ?? 'Retour'}
+      <div className="assembler-page">
+        <div className={`assembler-page-flip ${isAssemblerFlipped ? 'flipped' : ''}`}>
+          <div className="assembler-page-front">
+            <div className="assembler-header">
+              <button
+                type="button"
+                onClick={() => navigate(-1)}
+                className="assembler-header-back"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                {t?.notebook?.header?.back ?? 'Retour'}
+              </button>
 
-        </button>
+              <div className="assembler-header-text">
+                <h1 className="assembler-header-title">{stationTitle}</h1>
+                <p className="assembler-header-subtitle">{stationDescription}</p>
+              </div>
 
-        <div>
-          <h1>{stationTitle}</h1>
-          <p>{stationDescription}</p>
-        </div>
+              <button
+                type="button"
+                className="assembler-flip-trigger"
+                onClick={() => setIsAssemblerFlipped((prev) => !prev)}
+                aria-label="Mostrar instrucciones"
+              >
+                <span className="assembler-flip-bubble">?</span>
+              </button>
+            </div>
 
-        <section>
-          <h3>
-            {tr.presetsTitle ?? 'Configurations prédéfinies'}
-          </h3>
+            <div className="assembler-selection-container">
+          <section className="assembler-selection-card">
+            <h3>
+              {tr.presetsTitle ?? 'Configurations prédéfinies'}
+            </h3>
 
-          <div>
-            {presets.map((preset) => {
-              const selected = isPresetSelected(preset.moduleIds);
-              return (
-                <div
-                  key={preset.id}
-                  onClick={() => handlePresetClick(preset.moduleIds)}
-                >
-                  <div>
+            <div className="assembler-presets-list">
+              {presets.map((preset) => {
+                const selected = isPresetSelected(preset.moduleIds);
+                return (
+                  <div
+                    key={preset.id}
+                    className={`assembler-preset-item${selected ? ' selected' : ''}`}
+                    onClick={() => handlePresetClick(preset.moduleIds)}
+                  >
+                    <div className="fablab-header-warning-bubble">
+                      <div className="fablab-warning-bubble-icon">
+                        i
+                      </div>
+                      <div className="fablab-warning-tooltip">
+                        <p className="fablab-warning-tooltip-text assembler-typewriter">
+                          {getPresetDescriptionLong(preset.id, preset.description)}
+                        </p>
+                      </div>
+                    </div>
                     <div>
                       <div>
-                        {renderPresetIcon(preset.id)}
+                        <div>
+                          {renderPresetIcon(preset.id)}
+                        </div>
+                        <h4>
+                          {preset.label}
+                        </h4>
                       </div>
-                      <h4>
-                        {preset.label}
-                      </h4>
+                      {selected && (
+                          // eslint-disable-next-line i18next/no-literal-string
+                        <span>✓</span>
+                      )}
                     </div>
-                    {selected && (
-                        // eslint-disable-next-line i18next/no-literal-string
-                      <span>✓</span>
-                    )}
+                    <p>
+                      {preset.description}
+                    </p>
                   </div>
-                  <p>
-                    {preset.description}
-                  </p>
-                </div>
-              );
-            })}
-          </div>
-        </section>
+                );
+              })}
+            </div>
+          </section>
 
-        <section>
-          <div>
-            <h3>
-              {tr.customModulesTitle ?? 'Sélectionnez vos propres modules'}
-            </h3>
-            <span>
-              {tr.selectedCount?.replace('{count}', selectedCount.toString()).replace('{total}', availableModules.length.toString()) ?? `${selectedCount} / ${availableModules.length} sélectionnés`}
-            </span>
-          </div>
-          <div>
-            {availableModules.map((mod) => {
-              const isSelected = selectedModuleKeys.has(mod.key);
-              return (
-                <div
-                  key={mod.key}
-                  onClick={() => toggleSelectedModule(mod.key)}
-                >
-                  <div>
-                    {isSelected && <span>✓</span>}
-                  </div>
-                  <div>
-                    {renderModuleIcon(mod.key)}
-                  </div>
-                  <div>
+          <section className="assembler-selection-card">
+            <div className="assembler-selection-header">
+              <h3 className="assembler-selection-title">
+                {tr.customModulesTitle ?? 'Sélectionnez vos propres modules'}
+              </h3>
+              <span className="assembler-selection-count">
+                {tr.selectedCount?.replace('{count}', selectedCount.toString()).replace('{total}', availableModules.length.toString()) ?? `${selectedCount} / ${availableModules.length} sélectionnés`}
+              </span>
+            </div>
+            <div className="assembler-modules-list">
+              {availableModules.map((mod) => {
+                const isSelected = selectedModuleKeys.has(mod.key);
+                return (
+                  <div
+                    key={mod.key}
+                    className={`assembler-module-item${isSelected ? ' selected' : ''}`}
+                    onClick={() => toggleSelectedModule(mod.key)}
+                  >
+                    <div className="fablab-header-warning-bubble">
+                      <div className="fablab-warning-bubble-icon">
+                        i
+                      </div>
+                      <div className="fablab-warning-tooltip">
+                        <p className="fablab-warning-tooltip-text assembler-typewriter">
+                          {getModuleDescriptionLong(mod.key, mod.description)}
+                        </p>
+                      </div>
+                    </div>
                     <div>
-                      <span>
-                        {getModuleLabel(mod.key, mod.label)}
-                      </span>
+                      {isSelected && <span>✓</span>}
+                    </div>
+                    <div>
+                      {renderModuleIcon(mod.key)}
+                    </div>
+                    <div>
+                      <div>
+                        <span>
+                          {getModuleLabel(mod.key, mod.label)}
+                        </span>
+                      </div>
                     </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
+          </section>
+        </div>
+
+            <div className="assembler-selection-actions">
+              <button
+                type="button"
+                disabled={selectedCount === 0}
+                onClick={() => setStation('builder')}
+                className="assembler-selection-continue"
+              >
+                {tr.continueBtn?.replace('{count}', selectedCount.toString()) ?? `Continuer avec ${selectedCount} modules →`}
+              </button>
+
+            </div>
           </div>
-        </section>
 
-        <div>
-          <button
-            type="button"
-            disabled={selectedCount === 0}
-            onClick={() => setStation('builder')}
-          >
-            {tr.continueBtn?.replace('{count}', selectedCount.toString()) ?? `Continuer avec ${selectedCount} modules →`}
-          </button>
-
+          <div className="assembler-page-back">
+            <div className="assembler-back-placeholder">
+              <button
+                type="button"
+                className="assembler-back-close"
+                onClick={() => setIsAssemblerFlipped(false)}
+                aria-label="Cerrar instrucciones"
+              >
+                ×
+              </button>
+              <AssemblerTutorial
+                isPinned={isTutorialPinned}
+                onPin={() => setIsTutorialPinned(true)}
+                onComplete={() => {
+                  setIsAssemblerFlipped(false);
+                  setIsTutorialPinned(false);
+                }}
+                isActive={isAssemblerFlipped}
+                steps={tutorialSteps}
+              />
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -787,118 +941,143 @@ const AssemblerNew: React.FC = () => {
 
   return (
     <div className="assembler-page">
-      <div>
-        <button
-          type="button"
-          onClick={() => navigate(-1)}
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
-          {t?.notebook?.header?.back ?? 'Retour'}
-        </button>
+      <div className={`assembler-page-flip ${isAssemblerFlipped ? 'flipped' : ''}`}>
+        <div className="assembler-page-front">
+          <div className="assembler-header">
+            <button
+              type="button"
+              onClick={() => navigate(-1)}
+              className="assembler-header-back"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+              {t?.notebook?.header?.back ?? 'Retour'}
+            </button>
 
-        <h1>{tr.title ?? 'Nuevo proyecto'}</h1>
+            <div className="assembler-header-main">
+              <h1 className="assembler-header-title">Configura tus módulos</h1>
+            </div>
 
-        <input
-          type="text"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder={tr.titlePlaceholder ?? 'Titre du projet'}
-        />
-        <textarea
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          rows={3}
-          placeholder={tr.descriptionPlaceholder ?? 'Description du projet'}
-        />
+            <button
+              type="button"
+              className="assembler-flip-trigger"
+              onClick={() => setIsAssemblerFlipped((prev) => !prev)}
+              aria-label="Mostrar instrucciones"
+            >
+              <span className="assembler-flip-bubble">?</span>
+            </button>
+          </div>
+        <div className="assembler-settings">
+          <div className="assembler-setting-card is-stacked">
+            <div className="assembler-setting-info">
+              <div className="assembler-setting-title">Título y descripción del proyecto</div>
+              <div className="assembler-setting-description">Define el nombre y la descripción que aparecerán en el exportable.</div>
+            </div>
+            <div className="assembler-setting-fields">
+              <input
+                className="assembler-setting-input"
+                type="text"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder={tr.titlePlaceholder ?? 'Titre du projet'}
+              />
+              <textarea
+                className="assembler-setting-input assembler-setting-textarea"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                rows={3}
+                placeholder={tr.descriptionPlaceholder ?? 'Description du projet'}
+              />
+            </div>
+          </div>
 
-        <div>
-          <div>
+          <div className="assembler-setting-card">
             <input
               id="protected-enabled"
               type="checkbox"
               checked={protectedEnabled}
               onChange={(e) => setProtectedEnabled(e.target.checked)}
+              className="assembler-setting-toggle"
             />
-            <div>
-              <div>
+            <div className="assembler-setting-info">
+              <div className="assembler-setting-title">
                 {tr.protectedDbLabel ?? 'Protéger la base de données avec des identifiants'}
               </div>
-              <div>
+              <div className="assembler-setting-description">
                 {tr.protectedDbDesc ?? "Si vous activez cette option, le projet nécessitera une connexion avant d'afficher le contenu."}
               </div>
             </div>
+            {protectedEnabled && (
+              <div className="assembler-setting-fields">
+                <input
+                  className="assembler-setting-input"
+                  type="text"
+                  value={protectedUsername}
+                  onChange={(e) => setProtectedUsername(e.target.value)}
+                  placeholder={tr.usernamePlaceholder ?? "Nom d'utilisateur"}
+                />
+                <input
+                  className="assembler-setting-input"
+                  type="password"
+                  value={protectedPassword}
+                  onChange={(e) => setProtectedPassword(e.target.value)}
+                  placeholder={tr.passwordPlaceholder ?? 'Mot de passe (minimum 8 caractères)'}
+                />
+                {!protectedUsernameValid && (
+                  <div className="assembler-setting-error">
+                    El usuario es obligatorio.
+                  </div>
+                )}
+                {!protectedPasswordValid && (
+                  <div className="assembler-setting-error">
+                    La contraseña debe tener al menos 8 caracteres.
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
-          {protectedEnabled && (
-            <div>
-              <input
-                type="text"
-                value={protectedUsername}
-                onChange={(e) => setProtectedUsername(e.target.value)}
-                placeholder={tr.usernamePlaceholder ?? "Nom d'utilisateur"}
-              />
-              <input
-                type="password"
-                value={protectedPassword}
-                onChange={(e) => setProtectedPassword(e.target.value)}
-                placeholder={tr.passwordPlaceholder ?? 'Mot de passe (minimum 8 caractères)'}
-              />
-              {!protectedUsernameValid && (
-                <div>
-                  El usuario es obligatorio.
-                </div>
-              )}
-              {!protectedPasswordValid && (
-                <div>
-                  La contraseña debe tener al menos 8 caracteres.
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-
-        <div>
-          <div>
+          <div className="assembler-setting-card">
             <input
               id="api-config-enabled"
               type="checkbox"
               checked={apiConfigEnabled}
               onChange={(e) => handleApiConfigToggle(e.target.checked)}
+              className="assembler-setting-toggle"
             />
-            <div>
-              <div>
+            <div className="assembler-setting-info">
+              <div className="assembler-setting-title">
                 Configurar API key
               </div>
-              <div>
+              <div className="assembler-setting-description">
                 Inyecta una API key fija en el exportable. El usuario final podrá editarla si también arrastras el bloque.
               </div>
             </div>
-          </div>
-
-          {apiConfigEnabled && (
-            <div>
-              <div>
-                {requiredApiKeyTypes.length > 0
-                  ? apiKeysValid
-                    ? `${requiredApiKeyTypes.length} API key${requiredApiKeyTypes.length > 1 ? 's' : ''} configurada${requiredApiKeyTypes.length > 1 ? 's' : ''} y lista${requiredApiKeyTypes.length > 1 ? 's' : ''} para el exportable.`
-                    : `Se requiere${requiredApiKeyTypes.length > 1 ? 'n' : ''} ${requiredApiKeyTypes.length} API key${requiredApiKeyTypes.length > 1 ? 's' : ''}. Haz clic para configurar.`
-                  : 'No se requieren API keys para los módulos seleccionados.'}
-              </div>
-              <button
-                type="button"
-                onClick={openApiConfigModal}
-              >
-                Abrir modal de API key
-              </button>
-              {apiConfigEnabled && !apiKeysValid && requiredApiKeyTypes.length > 0 && (
-                <div>
-                  {requiredApiKeyTypes.length > 1
-                    ? `Las ${requiredApiKeyTypes.length} API keys son obligatorias.`
-                    : 'La API key es obligatoria.'}
+            {apiConfigEnabled && (
+              <div className="assembler-setting-fields">
+                <div className="assembler-setting-status">
+                  {requiredApiKeyTypes.length > 0
+                    ? apiKeysValid
+                      ? `${requiredApiKeyTypes.length} API key${requiredApiKeyTypes.length > 1 ? 's' : ''} configurada${requiredApiKeyTypes.length > 1 ? 's' : ''} y lista${requiredApiKeyTypes.length > 1 ? 's' : ''} para el exportable.`
+                      : `Se requiere${requiredApiKeyTypes.length > 1 ? 'n' : ''} ${requiredApiKeyTypes.length} API key${requiredApiKeyTypes.length > 1 ? 's' : ''}. Haz clic para configurar.`
+                    : 'No se requieren API keys para los módulos seleccionados.'}
                 </div>
-              )}
-            </div>
-          )}
+                <button
+                  type="button"
+                  onClick={openApiConfigModal}
+                  className="assembler-setting-action"
+                >
+                  Abrir modal de API key
+                </button>
+                {apiConfigEnabled && !apiKeysValid && requiredApiKeyTypes.length > 0 && (
+                  <div className="assembler-setting-error">
+                    {requiredApiKeyTypes.length > 1
+                      ? `Las ${requiredApiKeyTypes.length} API keys son obligatorias.`
+                      : 'La API key es obligatoria.'}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
 
         <AssemblerModal
@@ -906,13 +1085,13 @@ const AssemblerNew: React.FC = () => {
           title={`Configurar API${requiredApiKeyTypes.length > 1 ? 's' : ''}`}
           onClose={() => setApiConfigModalOpen(false)}
         >
-          <div>
+          <div className="assembler-modal-stack">
             {apiConfigStep === 'form' && (
-              <div>
-                <div>
+              <div className="assembler-modal-section">
+                <div className="assembler-modal-lead">
                   Estas configurando informacion sensible
                 </div>
-                <p>
+                <p className="assembler-modal-text">
                   Las API keys quedaran inyectadas en el exportable. Podras editarlas luego si los modulos estan presentes.
                 </p>
 
@@ -920,33 +1099,36 @@ const AssemblerNew: React.FC = () => {
                 {requiredApiKeyTypes.map((type) => {
                   const config = API_KEY_CONFIGS[type];
                   return (
-                    <div key={type}>
-                      <label>
-                      {config?.label || type}
+                    <div key={type} className="assembler-modal-field">
+                      <label className="assembler-modal-label">
+                        {config?.label || type}
                       </label>
                       <input
                         type="password"
                         value={apiKeysDraft[type] || ''}
                         onChange={(e) => handleApiKeyDraftChange(type, e.target.value)}
                         placeholder={config?.placeholder || `Ingresa tu API key de ${type}`}
+                        className="assembler-setting-input"
                       />
                       {apiKeysDraftErrors[type] && (
-                        <div>{apiKeysDraftErrors[type]}</div>
+                        <div className="assembler-setting-error">{apiKeysDraftErrors[type]}</div>
                       )}
                     </div>
                   );
                 })}
 
-                <div>
+                <div className="assembler-modal-actions">
                   <button
                     type="button"
                     onClick={cancelApiConfig}
+                    className="assembler-modal-button ghost"
                   >
                     Cancelar
                   </button>
                   <button
                     type="button"
                     onClick={handleApiConfigContinue}
+                    className="assembler-modal-button primary"
                   >
                     Continuar
                   </button>
@@ -955,21 +1137,23 @@ const AssemblerNew: React.FC = () => {
             )}
 
             {apiConfigStep === 'confirm' && (
-              <div>
-                <div>Confirmas esta configuracion?</div>
-                <p>
+              <div className="assembler-modal-section">
+                <div className="assembler-modal-lead">Confirmas esta configuracion?</div>
+                <p className="assembler-modal-text">
                   Se inyectaran {requiredApiKeyTypes.length} API key{requiredApiKeyTypes.length > 1 ? 's' : ''} en el exportable.
                 </p>
-                <div>
+                <div className="assembler-modal-actions">
                   <button
                     type="button"
                     onClick={() => setApiConfigStep('form')}
+                    className="assembler-modal-button ghost"
                   >
                     Volver
                   </button>
                   <button
                     type="button"
                     onClick={handleApiConfigConfirm}
+                    className="assembler-modal-button primary"
                   >
                     Confirmar
                   </button>
@@ -978,19 +1162,20 @@ const AssemblerNew: React.FC = () => {
             )}
 
             {apiConfigStep === 'loading' && (
-              <div>
-                <div>Guardando configuracion...</div>
-                <p>Protegiendo tus API keys.</p>
+              <div className="assembler-modal-section">
+                <div className="assembler-modal-lead">Guardando configuracion...</div>
+                <p className="assembler-modal-text">Protegiendo tus API keys.</p>
               </div>
             )}
 
             {apiConfigStep === 'success' && (
-              <div>
-                <div>API keys configuradas correctamente</div>
-                <p>Ya puedes usar los modulos en el exportable.</p>
+              <div className="assembler-modal-section">
+                <div className="assembler-modal-lead">API keys configuradas correctamente</div>
+                <p className="assembler-modal-text">Ya puedes usar los modulos en el exportable.</p>
                 <button
                   type="button"
                   onClick={handleApiConfigDone}
+                  className="assembler-modal-button primary"
                 >
                   Listo
                 </button>
@@ -999,18 +1184,18 @@ const AssemblerNew: React.FC = () => {
           </div>
         </AssemblerModal>
 
-        <div>
-          <div>
-            <h2>
+        <div className="assembler-builder">
+          <div className="assembler-builder-header">
+            <h2 className="assembler-builder-title">
               {tr.layoutEditorTitle ?? 'Conception des modules'}
             </h2>
-            <p>
+            <p className="assembler-builder-subtitle">
               {tr.layoutEditorDesc ?? 'Faites glisser les modules de la palette vers le canevas. Sélectionnez un fichier HTML pour chaque module qui en nécessite un et complétez les textes.'}
             </p>
           </div>
 
-          <div>
-            <div>
+          <div className="assembler-builder-body">
+            <div className="assembler-builder-palette">
               <ModulesPalette
                 modules={paletteModules}
                 canvasModules={canvasModules}
@@ -1019,7 +1204,7 @@ const AssemblerNew: React.FC = () => {
               />
             </div>
 
-            <div>
+            <div className="assembler-builder-canvas">
               <DragDropCanvas
                 modules={canvasModules}
                 onChange={setCanvasModules}
@@ -1197,6 +1382,30 @@ const AssemblerNew: React.FC = () => {
                 )}
               </button>
             </div>
+          </div>
+        </div>
+        </div>
+
+        <div className="assembler-page-back">
+          <div className="assembler-back-placeholder">
+            <button
+              type="button"
+              className="assembler-back-close"
+              onClick={() => setIsAssemblerFlipped(false)}
+              aria-label="Cerrar instrucciones"
+            >
+              ×
+            </button>
+            <AssemblerTutorial
+              isPinned={isTutorialPinned}
+              onPin={() => setIsTutorialPinned(true)}
+              onComplete={() => {
+                setIsAssemblerFlipped(false);
+                setIsTutorialPinned(false);
+              }}
+              isActive={isAssemblerFlipped}
+              steps={tutorialSteps}
+            />
           </div>
         </div>
       </div>

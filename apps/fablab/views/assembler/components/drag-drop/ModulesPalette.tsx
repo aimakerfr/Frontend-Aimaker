@@ -24,22 +24,24 @@ const ModulesPalette: React.FC<Props> = ({ modules, canvasModules, groups = [], 
         key={mod.key}
         draggable={!alreadyUsed}
         onDragStart={(e) => handleDragStart(e, mod)}
+        className={`assembler-palette-card${alreadyUsed ? ' is-used' : ''}`}
       >
-        <div className={mod.color} />
-        <div>
-          <div>
+        <div className={`assembler-palette-card-accent ${mod.color}`} />
+        <div className="assembler-palette-card-body">
+          <div className="assembler-palette-card-title">
             {mod.label}
           </div>
-          <div>
+          <div className="assembler-palette-card-meta">
             {badge}{mod.needsObject ? ' · requiere archivo' : ''}
           </div>
         </div>
         {alreadyUsed ? (
-          <span>
+          <span className="assembler-palette-card-check">
             ✓
           </span>
         ) : (
           <svg
+            className="assembler-palette-card-drag"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
@@ -60,40 +62,40 @@ const ModulesPalette: React.FC<Props> = ({ modules, canvasModules, groups = [], 
   };
 
   return (
-    <div>
-      <h3>
+    <div className="assembler-palette">
+      <h3 className="assembler-palette-title">
         Módulos disponibles
       </h3>
 
       {groups.map((group) => (
-        <div key={group.id}>
-          <div className={group.titleClass}>
+        <div key={group.id} className="assembler-palette-group">
+          <div className={`assembler-palette-group-title ${group.titleClass}`}>
             {group.label}
           </div>
           {group.description && (
-            <p>
+            <p className="assembler-palette-group-desc">
               {group.description}
             </p>
           )}
-          <div className={group.containerClass}>
+          <div className={`assembler-palette-group-grid ${group.containerClass}`}>
             {group.modules.map((mod) => renderModuleCard(mod))}
           </div>
         </div>
       ))}
 
       {ungrouped.length > 0 && (
-        <div>
-          <div>
+        <div className="assembler-palette-group">
+          <div className="assembler-palette-group-title">
             Otros módulos
           </div>
-          <div>
+          <div className="assembler-palette-group-grid">
             {ungrouped.map((mod) => renderModuleCard(mod))}
           </div>
         </div>
       )}
 
       {modules.length === 0 && (
-        <p>
+        <p className="assembler-palette-empty">
           Arrastra módulos desde la paleta para comenzar.
         </p>
       )}
