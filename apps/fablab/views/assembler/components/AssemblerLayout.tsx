@@ -105,45 +105,44 @@ const AssemblerLayout: React.FC<Props> = ({
   }
 
   return (
-    <div className="space-y-6">
-      <div className="rounded-md border border-gray-200 p-4 dark:border-gray-800">
-        <div className="text-sm text-gray-700 dark:text-gray-200">
-          <span className="font-medium">Product:</span> {productType}
+    <div>
+      <div>
+        <div>
+          <span>Product:</span> {productType}
           {makerPathId ? (
             <>
               {' '}
-              <span className="ml-3 font-medium">Maker Path ID:</span> {makerPathId}
+              <span>Maker Path ID:</span> {makerPathId}
             </>
           ) : null}
         </div>
       </div>
 
       {/* Modules stacked in a single column */}
-      <div className="flex flex-col gap-4">
+      <div>
         {modules.map((m) => {
           const sel = selections[m.key];
           return (
-            <div key={m.key} className="rounded-xl border border-gray-200 dark:border-gray-800 p-4 bg-white dark:bg-gray-900">
-              <div className="flex items-start justify-between">
+            <div key={m.key}>
+              <div>
                 <div>
-                  <div className="font-semibold">{m.title}</div>
+                  <div>{m.title}</div>
                   {m.description && (
-                    <div className="text-sm text-gray-600 dark:text-gray-300">{m.description}</div>
+                    <div>{m.description}</div>
                   )}
                 </div>
                 {m.selectable && (
                   <button
                     type="button"
                     onClick={() => setOpenSelectorKey(m.key)}
-                    className="ml-3 inline-flex items-center rounded-lg bg-brand-600 hover:bg-brand-700 text-white px-3 py-1.5 text-sm"
                   >
                     Select object
                   </button>
                 )}
               </div>
               {sel && (
-                <div className="mt-3 text-sm text-gray-700 dark:text-gray-200">
-                  Selected: <span className="font-medium">{sel.object_name ?? sel.object_id}</span>
+                <div>
+                  Selected: <span>{sel.object_name ?? sel.object_id}</span>
                 </div>
               )}
               <AssemblerModal
@@ -164,17 +163,11 @@ const AssemblerLayout: React.FC<Props> = ({
         })}
       </div>
 
-      <div className="flex items-center gap-3">
+      <div>
         <button
           type="button"
           onClick={handleAssemble}
           disabled={!canAssemble || busy === 'assemble'}
-          className={
-            'inline-flex items-center rounded-lg px-4 py-2 text-sm font-semibold shadow-sm ' +
-            (canAssemble && busy !== 'assemble'
-              ? 'bg-brand-600 text-white hover:bg-brand-700'
-              : 'bg-gray-300 text-gray-600 cursor-not-allowed dark:bg-gray-700 dark:text-gray-300')
-          }
         >
           {busy === 'assemble' ? 'Assembling...' : assembleCtaLabel ?? 'Assemble'}
         </button>
@@ -184,7 +177,6 @@ const AssemblerLayout: React.FC<Props> = ({
             type="button"
             onClick={handleValidate}
             disabled={busy === 'validate'}
-            className="inline-flex items-center rounded-lg px-4 py-2 text-sm font-semibold border border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800"
           >
             {busy === 'validate' ? 'Validating...' : validateCtaLabel ?? 'Validate'}
           </button>
@@ -192,14 +184,7 @@ const AssemblerLayout: React.FC<Props> = ({
       </div>
 
       {status && (
-        <div
-          className={
-            'rounded-md border px-4 py-3 text-sm ' +
-            (status === 'success'
-              ? 'border-green-200 bg-green-50 text-green-800 dark:border-green-900/40 dark:bg-green-900/20 dark:text-green-100'
-              : 'border-red-200 bg-red-50 text-red-800 dark:border-red-900/40 dark:bg-red-900/20 dark:text-red-100')
-          }
-        >
+        <div>
           {message}
         </div>
       )}
