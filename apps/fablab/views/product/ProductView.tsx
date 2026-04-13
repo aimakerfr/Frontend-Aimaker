@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { Globe, Lock, Copy, Check, ArrowLeft, BookOpen, Download } from 'lucide-react';
 import SourcePanel from '../rag_multimodal/components/SourcePanel.tsx';
 import ImportSourceModal from '../rag_multimodal/components/ImportSourceModal.tsx';
@@ -23,8 +23,12 @@ const RAG_CHAT_STEP_ID = 2;     // Chat conversation
 const ProductView: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const { t } = useLanguage();
   const isAuthenticated = !!tokenStorage.get();
+  const isEmbeddedPreview = useMemo(() => {
+    return new URLSearchParams(location.search).get('embedded') === '1';
+  }, [location.search]);
   const [product, setProduct] = useState<Product | null>(null);
   const [sources, setSources] = useState<Source[]>([]);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -447,12 +451,14 @@ const ProductView: React.FC = () => {
       <div className="h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
         <div className="text-center">
           <p className="text-red-500 text-lg mb-4">Producto no encontrado o no es público</p>
-          <button
-            onClick={() => window.history.back()}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-          >
-            Volver
-          </button>
+          {!isEmbeddedPreview && (
+            <button
+              onClick={() => window.history.back()}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            >
+              Volver
+            </button>
+          )}
         </div>
       </div>
     );
@@ -466,7 +472,7 @@ const ProductView: React.FC = () => {
         <div className="px-6 py-4 flex items-start justify-between gap-4">
           {/* Left side - Back button + Notebook icon + Title and Description */}
           <div className="flex-1 flex items-start gap-4">
-            {isOwner && (
+            {isOwner && !isEmbeddedPreview && (
               <button
                 onClick={() => navigate('/dashboard/products')}
                 className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors flex-shrink-0 mt-1"

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Package, Eye, Search, Trash2, Globe, Lock, Star, Sparkles, Plus } from 'lucide-react';
+import { Package, Eye, Search, Trash2, Globe, Lock, Star } from 'lucide-react';
 import { useLanguage } from '../../language/useLanguage';
 import ConfirmDeleteModal from '../../components/ConfirmDeleteModal';
 import { 
@@ -131,11 +131,6 @@ const ProductsView: React.FC<ProductsViewProps> = ({
     setSearchQuery(e.target.value);
   };
 
-  const handleOpenCreateModal = () => {
-    setCreateError(null);
-    setIsCreateModalOpen(true);
-  };
-
   useEffect(() => {
     if (searchParams.get('createNotebook') !== '1') return;
 
@@ -247,34 +242,6 @@ const ProductsView: React.FC<ProductsViewProps> = ({
               {t.products.title}
             </h1>
             <p className="text-gray-600 dark:text-gray-400 mt-1">{t.products.subtitle}</p>
-          </div>
-        </div>
-
-      
-        {/* Se eliminó la sección de productos del servidor (fijos) para que solo aparezca en la vista Server */}
-
-        <div className="rounded-2xl border border-blue-100 dark:border-blue-900/40 bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-950/20 dark:to-cyan-950/20 p-5">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            <div>
-              <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full text-xs font-semibold bg-white/80 dark:bg-gray-900/50 text-blue-700 dark:text-blue-300 mb-2">
-                <Sparkles size={12} />
-                {t.products.notebookCreator.badge}
-              </div>
-              <h2 className="text-lg font-bold text-gray-900 dark:text-white">{t.products.notebookCreator.title}</h2>
-              <p className="text-sm text-gray-600 dark:text-gray-300">{t.products.notebookCreator.description}</p>
-            </div>
-            <button
-              onClick={handleOpenCreateModal}
-              disabled={isCreatingNotebook}
-              className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-70 disabled:cursor-not-allowed text-white font-semibold shadow-lg"
-            >
-              {isCreatingNotebook ? (
-                <span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-              ) : (
-                <Plus size={16} />
-              )}
-              {t.products.notebookCreator.createButton}
-            </button>
           </div>
         </div>
 

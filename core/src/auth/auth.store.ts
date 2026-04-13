@@ -4,7 +4,7 @@
  * Uses simple reactive pattern with subscribers
  */
 
-import { httpClient, tokenStorage } from '../api/http.client';
+import { httpClient, tokenStorage, AUTH_UNAUTHORIZED_EVENT } from '../api/http.client';
 import {
   API_ENDPOINTS,
   type User,
@@ -42,7 +42,33 @@ class AuthStore {
 
   private subscribers: Set<AuthSubscriber> = new Set();
 
+  private handleUnauthorized = (): void => {
+    const hadSession = this.state.isAuthenticated || tokenStorage.exists();
+
+    tokenRefreshService.stop();
+    tokenStorage.remove();
+
+    this.setState({
+      isAuthenticated: false,
+      user: null,
+      isLoading: false,
+      error: 'Sesion expirada. Inicia sesion nuevamente.',
+    });
+
+    if (!hadSession || typeof window === 'undefined') {
+      return;
+    }
+
+    if (!window.location.pathname.startsWith('/auth/login')) {
+      window.location.replace('/auth/login?reason=expired');
+    }
+  };
+
   constructor() {
+    if (typeof window !== 'undefined') {
+      window.addEventListener(AUTH_UNAUTHORIZED_EVENT, this.handleUnauthorized);
+    }
+
     // Initialize auth state on creation
     this.initializeAuth();
   }
