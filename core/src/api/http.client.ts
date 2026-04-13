@@ -15,6 +15,7 @@ import {
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 const TOKEN_KEY = 'aimaker_jwt_token';
+export const AUTH_UNAUTHORIZED_EVENT = 'aimaker:auth-unauthorized';
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // Token Management
@@ -70,6 +71,7 @@ interface RequestOptions {
 
 class HttpClient {
   private baseUrl: string;
+  private lastUnauthorizedDispatchAt = 0;
 
   constructor() {
     const apiUrl = import.meta.env.VITE_API_URL;
@@ -79,6 +81,24 @@ class HttpClient {
     }
 
     this.baseUrl = apiUrl;
+  }
+
+  private notifyUnauthorized(reason: string, endpoint: string): void {
+    const now = Date.now();
+    if (now - this.lastUnauthorizedDispatchAt < 1200) {
+      return;
+    }
+
+    this.lastUnauthorizedDispatchAt = now;
+    tokenStorage.remove();
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(
+        new CustomEvent(AUTH_UNAUTHORIZED_EVENT, {
+          detail: { reason, endpoint, at: now },
+        })
+      );
+    }
   }
 
   /**
@@ -215,12 +235,13 @@ class HttpClient {
   private async request<T>(endpoint: string, options: RequestOptions = {}): Promise<T> {
     const url = this.buildUrl(endpoint);
     const method = options.method || 'GET';
+    const requiresAuth = options.requiresAuth !== false;
+    const token = requiresAuth ? tokenStorage.get() : null;
 
-    console.log('=== HTTP CLIENT REQUEST ===');
-    console.log('URL:', url);
-    console.log('Method:', method);
-    console.log('Requires Auth:', options.requiresAuth);
-    console.log('Token exists:', !!tokenStorage.get());
+    if (requiresAuth && !token) {
+      this.notifyUnauthorized('missing-token', endpoint);
+      throw new HttpClientError('UNAUTHORIZED', 'Usuario no autenticado', 401);
+    }
 
     const fetchOptions: RequestInit = {
       method,
@@ -236,25 +257,21 @@ class HttpClient {
         : JSON.stringify(options.body);
     }
 
-    console.log('Headers:', fetchOptions.headers);
-
     try {
-      console.log('Haciendo fetch...');
       const response = await fetch(url, fetchOptions);
-      console.log('Response status:', response.status);
-      console.log('Response ok:', response.ok);
-      console.log('Response:', response);
+
+      if (response.status === 401 && requiresAuth) {
+        this.notifyUnauthorized('http-401', endpoint);
+      }
+
       const result = await this.handleResponse<T>(response);
-      console.log('Result:', result);
-      console.log('===========================');
       return result;
     } catch (error) {
-      console.error('=== HTTP CLIENT ERROR ===');
-      console.error('Error:', error);
-      console.error('=========================');
-      
       // If it's already an HttpClientError, rethrow it
       if (error instanceof HttpClientError) {
+        if (error.status === 401 && requiresAuth) {
+          this.notifyUnauthorized('http-client-401', endpoint);
+        }
         throw error;
       }
 

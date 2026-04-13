@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { BarChart3 } from 'lucide-react';
 import { getProducts, type Product } from '@core/products';
 import { getAllObjects, type ObjectItem } from '@core/objects';
+import { HttpClientError } from '@core/api/http.client';
 import { useLanguage } from '../language/useLanguage';
 
 type TimeRange = '7d' | '30d' | '90d';
@@ -235,6 +236,9 @@ const ProductMetricsModule: React.FC = () => {
         setProducts(Array.isArray(productsData) ? productsData : []);
         setObjects(Array.isArray(objectsData) ? objectsData : []);
       } catch (error) {
+        if (error instanceof HttpClientError && error.status === 401) {
+          return;
+        }
         console.error('[ProductMetricsModule] Error loading metrics data:', error);
       }
     };
