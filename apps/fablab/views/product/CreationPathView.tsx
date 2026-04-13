@@ -26,8 +26,14 @@ import {
 } from '@core/products';
 import { getProductStepProgress, updateProductStepProgress } from '@core/product-step-progress';
 import { createObject } from '@core/objects';
-import { perplexityService } from '@core/perplexity/perplexity.service';
-import { HttpClientError, httpClient } from '@core/api/http.client';
+import { providerChat } from '@core/api-key-runtime';
+import {
+  decodeModelBindingId,
+  loadFablabChatRuntimeState,
+  resolveRuntimeFromConfig,
+  type FablabChatRuntimeConfig,
+} from '@core/fablab-chat';
+import { HttpClientError } from '@core/api/http.client';
 import { useLanguage } from '../../language/useLanguage';
 
 type WizardStep = {
@@ -38,10 +44,26 @@ type WizardStep = {
 };
 
 type ProjectKind = 'landing_page' | 'website' | 'assistant' | 'web_app';
+type CreationPathRuntimeMode = 'search' | 'prompt_optimizer';
+type RuntimeResolutionReason = 'missing-config' | 'missing-model' | 'invalid-model-selection' | '';
+type RuntimeResolution = {
+  selection: ReturnType<typeof resolveRuntimeFromConfig>;
+  selectedModel: string;
+  label: string;
+  reason: RuntimeResolutionReason;
+  usesModeSpecific: boolean;
+};
 
-const SYSTEM_INSTRUCTIONS = `Eres un experto AI en ingenieria de prompts. Tu unica tarea es recibir un prompt del usuario y devolver una version mejorada, estructurada y optimizada para uso directo.
+const SYSTEM_INSTRUCTIONS = `Eres un experto senior en ingenieria de prompts.
 
-Responde en texto claro, sin markdown.`;
+Tu objetivo es transformar el prompt del usuario en una version solida, accionable y lista para usar.
+
+Reglas obligatorias:
+1) Responde en texto claro, sin markdown.
+2) Entrega un prompt final completo, no solo sugerencias.
+3) Incluye contexto, objetivo, restricciones, criterio de calidad y formato de salida.
+4) Si faltan datos, agrega supuestos minimos y explicitos para evitar respuestas vagas.
+5) Evita frases genericas; prioriza instrucciones concretas y verificables.`;
 
 const WIZARD_STEPS: WizardStep[] = [
   { id: 1, titleKey: 'step1Title', descriptionKey: 'step1Description', icon: Route },
@@ -102,14 +124,159 @@ const toStructuredHtml = (text: string): string => {
 
 const FRIENDLY_INTERNAL_API_ERROR = 'Tuvimos un problema temporal con la API interna. Intenta nuevamente en unos minutos.';
 
-const normalizeProviderError = (error: unknown, fallback: string): string => {
-  if (error instanceof HttpClientError && error.message?.trim()) {
-    return error.message;
+const sanitizeRuntimeMessage = (value: string): string => {
+  const normalized = value
+    .replace(/https?:\/\/\S+/gi, '[endpoint]')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  if (!normalized) return '';
+  return normalized.length > 260 ? `${normalized.slice(0, 260)}...` : normalized;
+};
+
+const getModeLabel = (mode: CreationPathRuntimeMode): string => {
+  return mode === 'search' ? 'la busqueda del Step 2' : 'la optimizacion del Step 4';
+};
+
+const formatCreationPathRuntimeError = (
+  error: unknown,
+  mode: CreationPathRuntimeMode,
+  fallback: string,
+): string => {
+  const modeLabel = getModeLabel(mode);
+
+  if (error instanceof HttpClientError) {
+    const rawMessage = sanitizeRuntimeMessage(error.message || '');
+    const normalized = rawMessage.toLowerCase();
+    const status = Number(error.status || 0);
+
+    if (status === 400) {
+      if (
+        normalized.includes('model')
+        || normalized.includes('modelo')
+        || normalized.includes('unsupported')
+        || normalized.includes('not found')
+        || normalized.includes('requires at least one')
+      ) {
+        return `El modelo configurado para ${modeLabel} no es compatible con este tipo de solicitud. Revisa el modelo en Perfil.`;
+      }
+
+      return `La solicitud para ${modeLabel} no pudo procesarse por configuracion de modelo o formato de la peticion.`;
+    }
+
+    if (status === 401 || status === 403) {
+      return `La API key configurada para ${modeLabel} no es valida o no tiene permisos suficientes.`;
+    }
+
+    if (status === 429) {
+      return `El proveedor de IA alcanzo limite de cuota o rate limit durante ${modeLabel}. Intenta de nuevo en unos minutos.`;
+    }
+
+    if (status === 502) {
+      return `El backend no pudo conectarse al proveedor durante ${modeLabel}. Revisa conectividad del servidor, certificados TLS o disponibilidad del proveedor.`;
+    }
+
+    if (status === 504) {
+      return `El proveedor tardo demasiado en responder durante ${modeLabel}. Intenta nuevamente.`;
+    }
+
+    if (status >= 500) {
+      return `El backend fallo al enviar ${modeLabel}. Intenta otra vez; si persiste, revisa logs del servidor.`;
+    }
+
+    if (rawMessage) {
+      return rawMessage;
+    }
   }
-  if (error instanceof Error && error.message?.trim()) {
-    return error.message;
+
+  if (error instanceof Error) {
+    if (error.message === 'EMPTY_RESPONSE') {
+      return `El proveedor devolvio una respuesta vacia para ${modeLabel}. Prueba con un prompt mas especifico o cambia de modelo.`;
+    }
+
+    const sanitized = sanitizeRuntimeMessage(error.message || '');
+    if (sanitized) {
+      return sanitized;
+    }
   }
+
   return fallback;
+};
+
+const getRuntimeMissingMessage = (
+  mode: CreationPathRuntimeMode,
+  runtime: RuntimeResolution,
+  tr: any,
+): string => {
+  if (runtime.reason === 'invalid-model-selection') {
+    return mode === 'search'
+      ? (tr.runtimeInvalidSearch || 'El modelo de busqueda configurado en Perfil no es usable (modelo/perfil/API key invalida). Revalidalo en Perfil.')
+      : (tr.runtimeInvalidOptimizer || 'El modelo de optimizador configurado en Perfil no es usable (modelo/perfil/API key invalida). Revalidalo en Perfil.');
+  }
+
+  return mode === 'search'
+    ? (tr.runtimeMissingSearch || 'Configura en Perfil un proveedor y modelo para busqueda antes de ejecutar este paso.')
+    : (tr.runtimeMissingOptimizer || 'Configura en Perfil un proveedor y modelo para optimizador antes de ejecutar este paso.');
+};
+
+const getRuntimeModelLabel = (config: FablabChatRuntimeConfig, selectedModel: string): string => {
+  const binding = decodeModelBindingId(selectedModel);
+  if (binding) {
+    const profile = (config.providerProfiles || []).find((item) => item.id === binding.profileId);
+    const model = (profile?.validatedModels || []).find((item) => item.id === binding.modelId);
+    const providerLabel = profile?.label || profile?.provider || config.provider;
+    return `${providerLabel} - ${model?.label || binding.modelId}`;
+  }
+
+  const model = (config.validatedModels || []).find((item) => item.id === selectedModel);
+  const providerLabel = config.profileLabel || config.provider;
+  return `${providerLabel} - ${model?.label || selectedModel}`;
+};
+
+const resolveRuntimeForMode = (
+  config: FablabChatRuntimeConfig | null,
+  mode: CreationPathRuntimeMode,
+): RuntimeResolution => {
+  if (!config) {
+    return { selection: null, selectedModel: '', label: '', reason: 'missing-config', usesModeSpecific: false };
+  }
+
+  const modeSpecificModel = String(
+    mode === 'search' ? config.selectedSearchModelId || '' : config.selectedPromptOptimizerModelId || ''
+  ).trim();
+
+  if (modeSpecificModel) {
+    const selection = resolveRuntimeFromConfig({
+      ...config,
+      selectedModel: modeSpecificModel,
+    });
+
+    return {
+      selection,
+      selectedModel: modeSpecificModel,
+      label: getRuntimeModelLabel(config, modeSpecificModel),
+      reason: selection ? '' : 'invalid-model-selection',
+      usesModeSpecific: true,
+    };
+  }
+
+  const fallbackModel = (config.selectedTextModelId || config.selectedModel || '').trim();
+  if (!fallbackModel) {
+    return { selection: null, selectedModel: '', label: '', reason: 'missing-model', usesModeSpecific: false };
+  }
+
+  const selection = resolveRuntimeFromConfig({
+    ...config,
+    selectedModel: fallbackModel,
+  });
+
+  return {
+    selection,
+    selectedModel: fallbackModel,
+    label: getRuntimeModelLabel(config, fallbackModel),
+    reason: selection ? '' : 'invalid-model-selection',
+    usesModeSpecific: false,
+  };
 };
 
 const CreationPathView: React.FC = () => {
@@ -142,6 +309,8 @@ const CreationPathView: React.FC = () => {
   const [notebookProductId, setNotebookProductId] = useState<number | null>(null);
   const [notebookSynthesis, setNotebookSynthesis] = useState('');
   const [isCreatingNotebook, setIsCreatingNotebook] = useState(false);
+  const [isNotebookPreviewLoading, setIsNotebookPreviewLoading] = useState(false);
+  const [notebookPreviewNonce, setNotebookPreviewNonce] = useState(0);
 
   const [promptInput, setPromptInput] = useState('');
   const [optimizedPrompt, setOptimizedPrompt] = useState('');
@@ -156,6 +325,8 @@ const CreationPathView: React.FC = () => {
   const [isSavingStep, setIsSavingStep] = useState(false);
   const [errorText, setErrorText] = useState('');
   const [statusText, setStatusText] = useState('');
+  const [runtimeConfig, setRuntimeConfig] = useState<FablabChatRuntimeConfig | null>(null);
+  const [isResettingFlow, setIsResettingFlow] = useState(false);
 
   const stateProductId = useMemo(() => {
     const maybeState = (location.state as { creationPathId?: number } | null)?.creationPathId;
@@ -163,6 +334,10 @@ const CreationPathView: React.FC = () => {
   }, [location.state]);
 
   const productUrl = `${window.location.origin}/product/creation-path`;
+  const notebookPreviewUrl = useMemo(() => {
+    if (!notebookProductId) return '';
+    return `${window.location.origin}/product/notebook/${notebookProductId}?embedded=1&cp_preview=${notebookPreviewNonce}`;
+  }, [notebookProductId, notebookPreviewNonce]);
 
   const canGoNext = useMemo(() => {
     if (activeStep !== 1) return true;
@@ -171,6 +346,48 @@ const CreationPathView: React.FC = () => {
 
   const structuredResearchHtml = useMemo(() => toStructuredHtml(researchResult), [researchResult]);
   const structuredOptimizedHtml = useMemo(() => toStructuredHtml(optimizedPrompt), [optimizedPrompt]);
+  const searchRuntimeInfo = useMemo(() => resolveRuntimeForMode(runtimeConfig, 'search'), [runtimeConfig]);
+  const optimizerRuntimeInfo = useMemo(() => resolveRuntimeForMode(runtimeConfig, 'prompt_optimizer'), [runtimeConfig]);
+
+  useEffect(() => {
+    if (notebookProductId) {
+      setIsNotebookPreviewLoading(true);
+    } else {
+      setIsNotebookPreviewLoading(false);
+    }
+  }, [notebookProductId, notebookPreviewNonce]);
+
+  useEffect(() => {
+    const onFocus = () => {
+      void refreshRuntimeConfig();
+    };
+
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        void refreshRuntimeConfig();
+      }
+    };
+
+    window.addEventListener('focus', onFocus);
+    document.addEventListener('visibilitychange', onVisibility);
+
+    return () => {
+      window.removeEventListener('focus', onFocus);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
+  }, []);
+
+  const refreshRuntimeConfig = async (): Promise<FablabChatRuntimeConfig | null> => {
+    try {
+      const state = await loadFablabChatRuntimeState();
+      const cfg = state.config || null;
+      setRuntimeConfig(cfg);
+      return cfg;
+    } catch {
+      setRuntimeConfig(null);
+      return null;
+    }
+  };
 
   useEffect(() => {
     const load = async () => {
@@ -179,16 +396,28 @@ const CreationPathView: React.FC = () => {
         setErrorText('');
 
         const idFromParam = toNumericId(id);
-        let resolvedId = idFromParam || stateProductId;
+        let resolvedId = idFromParam;
 
         const existing = await getProducts({ type: 'creation_path' });
         const firstExistingId = Array.isArray(existing) && existing.length > 0
           ? toNumericId(existing[0]?.id)
           : null;
-        const hasResolvedInExisting = Array.isArray(existing)
-          && existing.some((item) => toNumericId(item.id) === resolvedId);
+        const hasParamInExisting = Boolean(
+          idFromParam
+          && Array.isArray(existing)
+          && existing.some((item) => toNumericId(item.id) === idFromParam)
+        );
+        const hasStateInExisting = Boolean(
+          stateProductId
+          && Array.isArray(existing)
+          && existing.some((item) => toNumericId(item.id) === stateProductId)
+        );
 
-        if (resolvedId && !hasResolvedInExisting && firstExistingId) {
+        if (!resolvedId && hasStateInExisting) {
+          resolvedId = stateProductId;
+        }
+
+        if (resolvedId && idFromParam && !hasParamInExisting && firstExistingId) {
           resolvedId = firstExistingId;
         }
 
@@ -208,16 +437,15 @@ const CreationPathView: React.FC = () => {
           });
         }
 
+        const existingProduct = Array.isArray(existing)
+          ? existing.find((item) => toNumericId(item.id) === resolvedId)
+          : null;
+
         let productData: Product;
-        try {
+        if (existingProduct) {
+          productData = existingProduct as Product;
+        } else {
           productData = await getProduct(resolvedId);
-        } catch {
-          if (firstExistingId && firstExistingId !== resolvedId) {
-            productData = await getProduct(firstExistingId);
-            resolvedId = firstExistingId;
-          } else {
-            throw new Error('CREATION_PATH_PRODUCT_NOT_FOUND');
-          }
         }
 
         setIsOwner(true);
@@ -227,6 +455,7 @@ const CreationPathView: React.FC = () => {
         if (!projectDescription.trim()) setProjectDescription(String(productData.description || ''));
 
         await loadProgress(productData.id);
+        await refreshRuntimeConfig();
       } catch {
         setErrorText(tr.loadError || 'No se pudo abrir Creation-Path.');
       } finally {
@@ -322,6 +551,61 @@ const CreationPathView: React.FC = () => {
     await saveStep(1, payload);
   };
 
+  const handleResetFlow = async () => {
+    if (!product?.id) return;
+
+    setIsResettingFlow(true);
+    setErrorText('');
+    setStatusText('');
+
+    try {
+      const progress = await getProductStepProgress(product.id);
+      await Promise.all(
+        progress.map((item) =>
+          updateProductStepProgress({
+            productId: product.id,
+            stepId: Number(item.stepId),
+            status: 'not_executed',
+            resultText: null,
+            executedAt: new Date().toISOString(),
+          }),
+        ),
+      );
+
+      setActiveStep(1);
+      setCompletedSteps([]);
+
+      setProjectTitle(String(product.title || ''));
+      setObjective('');
+      setProjectDescription('');
+      setProjectKind('landing_page');
+
+      setResearchQuery('');
+      setResearchResult('');
+      setResearchObjectId(null);
+      setResearchCopied(false);
+
+      setNotebookProductId(null);
+      setNotebookSynthesis('');
+      setNotebookPreviewNonce(0);
+      setIsNotebookPreviewLoading(false);
+
+      setPromptInput('');
+      setOptimizedPrompt('');
+      setOptimizedObjectId(null);
+      setOptimizedCopied(false);
+
+      setAiStudioPrompt('');
+      setAiStudioCopied(false);
+
+      setStatusText(tr.resetDone || 'Flujo reiniciado. Ya puedes empezar de cero y crear un notebook nuevo.');
+    } catch {
+      setErrorText(tr.resetError || 'No se pudo reiniciar el flujo de Creation-Path.');
+    } finally {
+      setIsResettingFlow(false);
+    }
+  };
+
   const handleResearch = async () => {
     if (!researchQuery.trim()) {
       setErrorText(tr.searchEmpty || 'Escribe una consulta de investigacion.');
@@ -334,9 +618,35 @@ const CreationPathView: React.FC = () => {
     setIsResearching(true);
 
     try {
-      const response = await perplexityService.search(researchQuery.trim(), {
-        makerPathId: product.templateId || undefined,
-        systemInstruction: `${objective.trim()}\n\n${projectDescription.trim()}`.trim() || undefined,
+      const cfg = (await refreshRuntimeConfig()) || runtimeConfig;
+      const runtime = resolveRuntimeForMode(cfg, 'search');
+
+      if (!runtime.selection) {
+        throw new Error(getRuntimeMissingMessage('search', runtime, tr));
+      }
+
+      const systemPrompt = [
+        'Eres un investigador senior. Debes responder con profundidad, precision y utilidad operativa.',
+        'Responde en texto plano con esta estructura exacta:',
+        '1) Resumen ejecutivo (max 8 lineas)',
+        '2) Hallazgos clave (minimo 6 puntos concretos)',
+        '3) Recomendaciones accionables priorizadas (corto plazo / mediano plazo)',
+        '4) Riesgos y supuestos',
+        '5) Referencias o fuentes sugeridas para verificar',
+        'No inventes datos. Si hay incertidumbre, indicala explicitamente.',
+        objective.trim() ? `OBJETIVO DEL PROYECTO:\n${objective.trim()}` : '',
+        projectDescription.trim() ? `DESCRIPCION DEL PROYECTO:\n${projectDescription.trim()}` : '',
+      ]
+        .filter(Boolean)
+        .join('\n\n');
+
+      const response = await providerChat({
+        provider: runtime.selection.provider,
+        apiKey: runtime.selection.apiKey,
+        baseUrl: runtime.selection.provider === 'ollama' ? runtime.selection.baseUrl : undefined,
+        model: runtime.selection.modelId,
+        systemPrompt,
+        messages: [{ role: 'user', content: researchQuery.trim() }],
       });
 
       const result = toPlainStructuredText(String(response.content || '').trim());
@@ -347,17 +657,23 @@ const CreationPathView: React.FC = () => {
         query: researchQuery.trim(),
         result,
         model: response.model,
-        provider: response.provider,
+        selectedRuntimeModel: runtime.selectedModel,
+        provider: runtime.selection.provider,
+        providerLabel: runtime.label,
+        modeSpecificModel: runtime.usesModeSpecific,
         researchObjectId,
       });
 
-      setStatusText(tr.searchDone || 'Investigacion completada.');
-    } catch (error) {
-      setErrorText('');
       setStatusText(
-        normalizeProviderError(
+        `${tr.searchDone || 'Investigacion completada.'} (${runtime.selection.provider} - ${runtime.label || response.model})`
+      );
+    } catch (error) {
+      setStatusText('');
+      setErrorText(
+        formatCreationPathRuntimeError(
           error,
-          tr.searchApiInternalError || FRIENDLY_INTERNAL_API_ERROR
+          'search',
+          tr.searchApiInternalError || FRIENDLY_INTERNAL_API_ERROR,
         )
       );
     } finally {
@@ -412,13 +728,13 @@ const CreationPathView: React.FC = () => {
     setTimeout(() => setResearchCopied(false), 1800);
   };
 
-  const handleCreateNotebook = async () => {
+  const handleCreateNotebook = async (forceNew = false) => {
     if (!product?.id) return;
 
     setIsCreatingNotebook(true);
     setErrorText('');
     try {
-      let nextNotebookId = notebookProductId;
+      let nextNotebookId = forceNew ? null : notebookProductId;
 
       if (!nextNotebookId) {
         const created = await createProductFromTemplate(
@@ -455,6 +771,12 @@ const CreationPathView: React.FC = () => {
     setIsOptimizing(true);
 
     try {
+      const cfg = (await refreshRuntimeConfig()) || runtimeConfig;
+      const runtime = resolveRuntimeForMode(cfg, 'prompt_optimizer');
+      if (!runtime.selection) {
+        throw new Error(getRuntimeMissingMessage('prompt_optimizer', runtime, tr));
+      }
+
       const payload = [
         'SYSTEM INSTRUCTIONS:',
         SYSTEM_INSTRUCTIONS,
@@ -475,15 +797,16 @@ const CreationPathView: React.FC = () => {
         promptInput.trim(),
       ].join('\n');
 
-      const response = await httpClient.post<{ content?: string; text?: string }>('/api/v1/gemini/generate', {
-        prompt: payload,
-        options: {
-          maxTokens: 8000,
-          temperature: 0.3,
-        },
+      const response = await providerChat({
+        provider: runtime.selection.provider,
+        apiKey: runtime.selection.apiKey,
+        baseUrl: runtime.selection.provider === 'ollama' ? runtime.selection.baseUrl : undefined,
+        model: runtime.selection.modelId,
+        systemPrompt: 'Eres un experto en optimizacion de prompts. Responde en texto claro, sin markdown.',
+        messages: [{ role: 'user', content: payload }],
       });
 
-      const optimized = toPlainStructuredText(String(response.content || response.text || '').trim());
+      const optimized = toPlainStructuredText(String(response.content || '').trim());
       if (!optimized) {
         throw new Error('EMPTY_RESPONSE');
       }
@@ -493,15 +816,23 @@ const CreationPathView: React.FC = () => {
         promptInput: promptInput.trim(),
         optimizedPrompt: optimized,
         optimizedObjectId,
+        provider: runtime.selection.provider,
+        model: response.model,
+        selectedRuntimeModel: runtime.selectedModel,
+        providerLabel: runtime.label,
+        modeSpecificModel: runtime.usesModeSpecific,
       });
 
-      setStatusText(tr.optimizeDone || 'Prompt optimizado correctamente.');
-    } catch (error) {
-      setErrorText('');
       setStatusText(
-        normalizeProviderError(
+        `${tr.optimizeDone || 'Prompt optimizado correctamente.'} (${runtime.selection.provider} - ${runtime.label || response.model})`
+      );
+    } catch (error) {
+      setStatusText('');
+      setErrorText(
+        formatCreationPathRuntimeError(
           error,
-          tr.optimizeApiInternalError || FRIENDLY_INTERNAL_API_ERROR
+          'prompt_optimizer',
+          tr.optimizeApiInternalError || FRIENDLY_INTERNAL_API_ERROR,
         )
       );
     } finally {
@@ -754,7 +1085,12 @@ const CreationPathView: React.FC = () => {
         <div className="space-y-3" key="step-two">
           <div className="rounded-xl border border-blue-200 bg-blue-50/70 p-3 text-xs text-blue-800 dark:border-blue-900/60 dark:bg-blue-900/20 dark:text-blue-200">
             <p className="font-semibold">{tr.phase1Title || 'Fase 1: Investigacion guiada'}</p>
-            <p className="mt-1">{tr.phase1Tool || 'Herramienta: Perplexity.ai'}</p>
+            <p className="mt-1">{tr.phase1Tool || 'Herramienta: Busqueda guiada con modelo de Perfil'}</p>
+            <p className="mt-1">
+              {searchRuntimeInfo.selection
+                ? `Proveedor/modelo activo: ${searchRuntimeInfo.selection.provider} - ${searchRuntimeInfo.label || searchRuntimeInfo.selection.modelId}`
+                : getRuntimeMissingMessage('search', searchRuntimeInfo, tr)}
+            </p>
             <p className="mt-2">{tr.searchManualFallback || 'Opcionalmente puedes pegar una investigacion manual y continuar.'}</p>
             <div className="mt-2 flex flex-wrap gap-2">
               <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[11px] font-semibold text-blue-700 dark:bg-blue-900/40 dark:text-blue-200">1) Consulta</span>
@@ -779,7 +1115,7 @@ const CreationPathView: React.FC = () => {
               onClick={() => {
                 void handleResearch();
               }}
-              disabled={isResearching || !researchQuery.trim()}
+              disabled={isResearching || !researchQuery.trim() || !searchRuntimeInfo.selection}
               className="inline-flex items-center gap-1 rounded-xl bg-emerald-600 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
             >
               <Search size={13} />
@@ -851,14 +1187,28 @@ const CreationPathView: React.FC = () => {
             <button
               type="button"
               onClick={() => {
-                void handleCreateNotebook();
+                void handleCreateNotebook(false);
               }}
               disabled={isCreatingNotebook}
               className="inline-flex items-center gap-1 rounded-xl bg-emerald-600 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
             >
               <BookOpen size={13} />
-              {notebookProductId ? (tr.notebookRelink || 'Actualizar vinculo') : (tr.notebookCreate || 'Crear notebook vinculado')}
+              {notebookProductId ? (tr.notebookRelink || 'Re-guardar vinculo actual') : (tr.notebookCreate || 'Crear notebook vinculado')}
             </button>
+
+            {notebookProductId && (
+              <button
+                type="button"
+                onClick={() => {
+                  void handleCreateNotebook(true);
+                }}
+                disabled={isCreatingNotebook}
+                className="inline-flex items-center gap-1 rounded-xl border border-emerald-300 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-700 hover:border-emerald-400 disabled:opacity-50 dark:border-emerald-800 dark:bg-emerald-900/20 dark:text-emerald-300"
+              >
+                <BookOpen size={13} />
+                {tr.notebookCreateAnother || 'Crear otro notebook y reemplazar vinculo'}
+              </button>
+            )}
 
             {notebookProductId && (
               <button
@@ -870,6 +1220,17 @@ const CreationPathView: React.FC = () => {
                 {tr.notebookOpen || 'Abrir notebook'}
               </button>
             )}
+
+              {notebookProductId && (
+                <button
+                  type="button"
+                  onClick={() => setNotebookPreviewNonce((prev) => prev + 1)}
+                  className="inline-flex items-center gap-1 rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:border-slate-400 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
+                >
+                  <Loader2 size={13} className={isNotebookPreviewLoading ? 'animate-spin' : ''} />
+                  {tr.notebookPreviewReload || 'Recargar vista previa'}
+                </button>
+              )}
           </div>
 
           {isCreatingNotebook && (
@@ -887,6 +1248,38 @@ const CreationPathView: React.FC = () => {
             placeholder={tr.phase2Source5Placeholder || 'Pega aqui la sintesis de NotebookLM (opcional).'}
             className="w-full resize-y rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-emerald-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
           />
+
+          {notebookProductId && (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-semibold text-slate-600 dark:text-slate-300">
+                  {tr.notebookInlinePreviewTitle || 'Notebook embebido (misma vista, mismo contenido)'}
+                </p>
+                <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                  {tr.notebookInlinePreviewNote || 'Lo que edites aqui se guarda en el mismo notebook vinculado.'}
+                </span>
+              </div>
+
+              <div className="relative overflow-hidden rounded-2xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900">
+                {isNotebookPreviewLoading && (
+                  <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/80 dark:bg-slate-900/80">
+                    <div className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 shadow-sm dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                      <Loader2 size={14} className="animate-spin" />
+                      {tr.notebookPreviewLoading || 'Cargando vista del notebook...'}
+                    </div>
+                  </div>
+                )}
+
+                <iframe
+                  key={notebookPreviewUrl}
+                  title="creation-path-notebook-preview"
+                  src={notebookPreviewUrl}
+                  className="block h-[78vh] w-full bg-white"
+                  onLoad={() => setIsNotebookPreviewLoading(false)}
+                />
+              </div>
+            </div>
+          )}
         </div>
       );
     }
@@ -896,7 +1289,12 @@ const CreationPathView: React.FC = () => {
         <div className="space-y-3" key="step-four">
           <div className="rounded-xl border border-violet-200 bg-violet-50/70 p-3 text-xs text-violet-800 dark:border-violet-900/60 dark:bg-violet-900/20 dark:text-violet-200">
             <p className="font-semibold">{tr.phase4Title || 'Fase 4: Optimizacion de prompt'}</p>
-            <p className="mt-1">{tr.phase4Tool || 'Herramienta: Generador inteligente (Gemini/OpenAI fallback)'}</p>
+            <p className="mt-1">{tr.phase4Tool || 'Herramienta: Optimizador con modelo de Perfil'}</p>
+            <p className="mt-1">
+              {optimizerRuntimeInfo.selection
+                ? `Proveedor/modelo activo: ${optimizerRuntimeInfo.selection.provider} - ${optimizerRuntimeInfo.label || optimizerRuntimeInfo.selection.modelId}`
+                : getRuntimeMissingMessage('prompt_optimizer', optimizerRuntimeInfo, tr)}
+            </p>
             <p className="mt-2">{tr.optimizeManualFallback || 'Opcionalmente puedes escribir tu prompt optimizado manualmente y continuar.'}</p>
             <div className="mt-2 flex flex-wrap gap-2">
               <span className="rounded-full bg-violet-100 px-2 py-0.5 text-[11px] font-semibold text-violet-700 dark:bg-violet-900/40 dark:text-violet-200">1) Prompt base</span>
@@ -923,7 +1321,7 @@ const CreationPathView: React.FC = () => {
               onClick={() => {
                 void handleOptimizePrompt();
               }}
-              disabled={isOptimizing || !promptInput.trim()}
+              disabled={isOptimizing || !promptInput.trim() || !optimizerRuntimeInfo.selection}
               className="inline-flex items-center gap-1 rounded-xl bg-emerald-600 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
             >
               <Wand2 size={13} />
@@ -1106,7 +1504,22 @@ const CreationPathView: React.FC = () => {
             </div>
           </div>
 
-          <div className="flex-shrink-0">
+          <div className="flex-shrink-0 flex items-center gap-2">
+            {isOwner && (
+              <button
+                type="button"
+                onClick={() => {
+                  void handleResetFlow();
+                }}
+                disabled={isResettingFlow}
+                className="inline-flex items-center gap-2 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-amber-700 hover:border-amber-400 disabled:opacity-50 dark:border-amber-800 dark:bg-amber-900/20 dark:text-amber-300"
+                title={tr.resetFlow || 'Reiniciar todos los steps'}
+              >
+                {isResettingFlow ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+                <span className="text-xs font-semibold">{tr.resetFlow || 'Reiniciar flujo'}</span>
+              </button>
+            )}
+
             {product.isPublic ? (
               <div className="inline-flex items-center gap-2 rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-2 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-900/20 dark:text-emerald-300">
                 <Globe size={16} />
@@ -1138,7 +1551,7 @@ const CreationPathView: React.FC = () => {
       </header>
 
       <main className="flex-1 overflow-y-auto p-6">
-        <div className="mx-auto max-w-5xl">
+        <div className="mx-auto w-[90%] max-w-none">
           <div className="mb-5 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-800">
             <div className="flex flex-wrap items-start gap-3">
               {WIZARD_STEPS.map((step) => {

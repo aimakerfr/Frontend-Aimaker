@@ -160,15 +160,38 @@ const resolveModelCapabilities = (model: ProviderModelInfo): ProviderModelCapabi
   return explicit.length > 0 ? explicit : inferCapabilities(model.id);
 };
 
-const shouldHideModelFromRuntime = (provider: ApiRuntimeProvider, model: ProviderModelInfo): boolean => {
+const getModelHaystack = (model: ProviderModelInfo): string => {
   const id = String(model.id || '').toLowerCase();
   const label = String(model.label || '').toLowerCase();
-  const haystack = `${id} ${label}`;
+  return `${id} ${label}`.trim();
+};
+
+const getRuntimeErrorStatus = (error: any): number | null => {
+  const direct = Number(error?.status ?? error?.response?.status ?? error?.details?.status ?? error?.cause?.status);
+  if (Number.isFinite(direct) && direct >= 100 && direct <= 599) {
+    return Math.trunc(direct);
+  }
+
+  const message = String(error?.message || '');
+  const match = message.match(/\b(?:status|http)\s*(?:code)?\s*[:=]?\s*(\d{3})\b/i);
+  if (!match) return null;
+
+  const parsed = Number(match[1]);
+  return Number.isFinite(parsed) ? parsed : null;
+};
+
+const shouldHideModelFromRuntime = (provider: ApiRuntimeProvider, model: ProviderModelInfo): boolean => {
+  const id = String(model.id || '').toLowerCase();
+  const haystack = getModelHaystack(model);
+  const capabilities = resolveModelCapabilities(model);
+  const isMultimedia = capabilities.some((capability) => (
+    capability === 'image' || capability === 'video' || capability === 'audio'
+  ));
 
   if (!id) return true;
   if (NON_CHAT_UTILITY_MODEL_REGEX.test(haystack)) return true;
   if (GENERIC_OBSOLETE_MODEL_REGEX.test(haystack)) return true;
-  if (VOLATILE_MODEL_REGEX.test(haystack)) return true;
+  if (VOLATILE_MODEL_REGEX.test(haystack) && !isMultimedia) return true;
 
   return (PROVIDER_OBSOLETE_MODEL_PATTERNS[provider] || []).some((pattern) => pattern.test(haystack));
 };
@@ -223,7 +246,10 @@ const FIELD_CAPABILITIES: Record<ModelBindingKey, ProviderModelCapability[]> = {
 };
 
 const PROBE_PROVIDERS = new Set<ApiRuntimeProvider>(['google', 'openai', 'mistral', 'perplexity', 'anthropic', 'ollama']);
-const MODEL_PROBE_LIMIT = 18;
+const MODEL_PROBE_LIMIT = 8;
+const MODEL_PROBE_SUCCESS_TARGET = 3;
+const MODEL_PROBE_TRANSIENT_STOP = 2;
+const TRANSIENT_PROBE_STATUS_CODES = new Set([429, 500, 502, 503, 504]);
 
 const defaultConfig = (): FablabChatRuntimeConfig => ({
   provider: 'google',
@@ -523,7 +549,7 @@ const ProfileChatRuntimeConfig: React.FC = () => {
       setErrorText(t?.fablabChat?.profile?.errors?.baseUrlRequired || 'Base URL is required for OLLAMA.');
       return;
     }
-    if (!requiresBaseUrl && !apiKey.trim()) {
+    if (!requiresBaseUrl && provider !== 'google' && !apiKey.trim()) {
       setErrorText(t?.fablabChat?.profile?.errors?.apiKeyRequired || 'API key is required for this provider.');
       return;
     }
@@ -546,6 +572,11 @@ const ProfileChatRuntimeConfig: React.FC = () => {
             const caps = resolveModelCapabilities(model);
             return caps.includes('text') || caps.includes('search');
           })
+          .sort((left, right) => {
+            const leftVolatile = VOLATILE_MODEL_REGEX.test(getModelHaystack(left)) ? 1 : 0;
+            const rightVolatile = VOLATILE_MODEL_REGEX.test(getModelHaystack(right)) ? 1 : 0;
+            return leftVolatile - rightVolatile;
+          })
           .slice(0, MODEL_PROBE_LIMIT);
 
         if (probeCandidates.length === 0) {
@@ -553,9 +584,14 @@ const ProfileChatRuntimeConfig: React.FC = () => {
         }
 
         const passingIds = new Set<string>();
-        const probedIds = new Set(probeCandidates.map((item) => item.id));
+        const hardFailedIds = new Set<string>();
+        let transientFailureCount = 0;
 
         for (let index = 0; index < probeCandidates.length; index += 1) {
+          if (passingIds.size >= MODEL_PROBE_SUCCESS_TARGET) {
+            break;
+          }
+
           const model = probeCandidates[index];
           const caps = resolveModelCapabilities(model);
           const capability: ProviderModelCapability = caps.includes('search') ? 'search' : 'text';
@@ -574,25 +610,33 @@ const ProfileChatRuntimeConfig: React.FC = () => {
 
             if (probeResult.ok) {
               passingIds.add(model.id);
+              transientFailureCount = 0;
+            } else {
+              hardFailedIds.add(model.id);
             }
-          } catch {
-            // Failed probes are filtered out only if the model was part of this sampled verification batch.
+          } catch (error: any) {
+            const status = getRuntimeErrorStatus(error);
+            if (status && TRANSIENT_PROBE_STATUS_CODES.has(status)) {
+              transientFailureCount += 1;
+
+              if (transientFailureCount >= MODEL_PROBE_TRANSIENT_STOP) {
+                setStatusText(`Model verification paused by provider limits (${status}). Keeping remaining models as candidates.`);
+                break;
+              }
+
+              continue;
+            }
+
+            hardFailedIds.add(model.id);
           }
         }
 
+        if (hardFailedIds.size === 0) {
+          return models;
+        }
+
         const filtered = models.filter((model) => {
-          const caps = resolveModelCapabilities(model);
-          const isTextOrSearch = caps.includes('text') || caps.includes('search');
-
-          if (!isTextOrSearch) {
-            return true;
-          }
-
-          if (!probedIds.has(model.id)) {
-            return true;
-          }
-
-          return passingIds.has(model.id);
+          return !hardFailedIds.has(model.id);
         });
 
         const hasUsableTextModel = filtered.some((model) => {

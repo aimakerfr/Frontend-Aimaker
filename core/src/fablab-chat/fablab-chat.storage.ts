@@ -1,6 +1,6 @@
 import type { ApiRuntimeProvider, ProviderModelCapability, ProviderModelInfo } from '../api-key-runtime';
 import { getProductStepProgress, updateProductStepProgress } from '../product-step-progress';
-import { createProductFromTemplate, getProduct, getProducts } from '../products';
+import { createProductFromTemplate, getProducts } from '../products';
 import type { ProductType } from '../products';
 import {
   FABLAB_CHAT_CONFIG_STEP,
@@ -208,22 +208,26 @@ const ensureChatProductId = async (): Promise<number> => {
         ? Number(window.localStorage.getItem(CHAT_PRODUCT_ID_CACHE_KEY) || 0)
         : 0;
 
+      const productsByType = await getProducts({ type: CHAT_PRODUCT_TYPE });
       if (fromCache > 0) {
-        try {
-          const product = await getProduct(fromCache);
-          if (isChatStorageProduct(product)) {
-            rememberProductId(product.id);
-            return product.id;
-          }
-        } catch {
-          clearRememberedProductId();
+        const cachedByType = productsByType.find((product) => product.id === fromCache && isChatStorageProduct(product));
+        if (cachedByType) {
+          rememberProductId(cachedByType.id);
+          return cachedByType.id;
         }
       }
 
-      const productsByType = await getProducts({ type: CHAT_PRODUCT_TYPE });
       let existing = productsByType.find((product) => isChatStorageProduct(product));
       if (!existing) {
         const allProducts = await getProducts();
+        if (fromCache > 0) {
+          const cachedFromAll = allProducts.find((product) => product.id === fromCache && isChatStorageProduct(product));
+          if (cachedFromAll) {
+            rememberProductId(cachedFromAll.id);
+            return cachedFromAll.id;
+          }
+        }
+
         existing = allProducts.find((product) => isChatStorageProduct(product));
       }
       if (existing) {
@@ -369,7 +373,7 @@ export const resolveRuntimeFromConfig = (
     const apiKey = decodeSecret(profile.apiKeyEncoded || '');
     const baseUrl = (profile.baseUrl || '').trim();
     if (profile.provider === 'ollama' && !baseUrl) return null;
-    if (profile.provider !== 'ollama' && !apiKey.trim()) return null;
+    if (profile.provider !== 'ollama' && profile.provider !== 'google' && !apiKey.trim()) return null;
 
     return {
       provider: profile.provider,
@@ -385,7 +389,7 @@ export const resolveRuntimeFromConfig = (
   const apiKey = decodeSecret(config.apiKeyEncoded || '');
   const baseUrl = (config.baseUrl || '').trim();
   if (provider === 'ollama' && !baseUrl) return null;
-  if (provider !== 'ollama' && !apiKey.trim()) return null;
+  if (provider !== 'ollama' && provider !== 'google' && !apiKey.trim()) return null;
 
   return {
     provider,
