@@ -201,7 +201,30 @@ const INLINE_SANDBOX_URI_REGEX_GLOBAL = /\bsandbox:[^\s)]+/gi;
 const INLINE_MNT_DATA_PATH_REGEX_GLOBAL = /\b\/mnt\/data\/[^\s)]+/gi;
 const FILE_RESPONSE_META_LINE_REGEX = /^(te he generado|he generado|archivo generado|archivo listo|haz clic|click|descargar (pdf|archivo)|download (pdf|file)|si necesitas que incluya|if you need me to include)/i;
 const CLARITY_QUESTIONS_BLOCK_REGEX = /\[CLARITY_QUESTIONS\]([\s\S]*?)\[\/CLARITY_QUESTIONS\]/i;
-const CLARITY_QUESTION_PREFIX_REGEX = /^([-*]|\d+[.)]|[a-zA-Z][.)])\s+/;
+const CLARITY_QUESTION_PREFIX_REGEX = /^([-_*]|\d+[.)]|[a-zA-Z][.)])\s+/;
+
+const DEFAULT_SKILL_PRESETS: SkillPreset[] = [
+  {
+    id: 'software-engineer',
+    label: 'Ingeniero de software',
+    instruction: 'Actua como un ingeniero de software senior. Prioriza arquitectura, buenas practicas, mantenibilidad y ejemplos concretos de implementacion.',
+  },
+  {
+    id: 'mathematician',
+    label: 'Matematico',
+    instruction: 'Responde con rigor matematico. Explica supuestos, formulas y pasos de manera clara y precisa.',
+  },
+  {
+    id: 'artist',
+    label: 'Artista',
+    instruction: 'Responde con enfoque creativo y sensorial. Propone ideas originales, estilo, color y referencias artisticas cuando aplique.',
+  },
+  {
+    id: 'philosopher',
+    label: 'Filosofo',
+    instruction: 'Responde con mirada filosofica y critica. Explora dilemas, fundamentos y perspectivas historicas cuando sea relevante.',
+  },
+];
 
 type ClarityQuestionParseResult = {
   question: string;
