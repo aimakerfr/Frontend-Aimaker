@@ -248,6 +248,117 @@
   color: #475569;
 }
 
+.fablab-skill-menu-delete {
+  border: none;
+  background: rgba(239, 68, 68, 0.15);
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #dc2626;
+  transition: all 0.2s ease;
+}
+
+.fablab-skill-menu-delete:hover {
+  background: rgba(239, 68, 68, 0.3);
+  transform: scale(1.05);
+}
+
+.fablab-skill-menu-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(99, 102, 241, 0.2);
+  color: #4f46e5;
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 12px;
+  margin-right: 6px;
+}
+
+.fablab-skill-menu-code {
+  background: rgba(59, 130, 246, 0.15);
+  color: #2563eb;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.fablab-skill-menu-empty {
+  padding: 12px;
+  text-align: center;
+  color: #64748b;
+  font-size: 0.85rem;
+  font-style: italic;
+}
+
+/* Chat input skill highlight */
+.fablab-chat-input-highlight {
+  background: rgba(59, 130, 246, 0.2);
+  color: #2563eb;
+  padding: 0 2px;
+  border-radius: 3px;
+  font-weight: 500;
+}
+
+/* Skill detected badge */
+.fablab-skill-detected-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  margin: 0.5rem 0;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(139, 92, 246, 0.15));
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  border-radius: 8px;
+  font-size: 0.85rem;
+  color: #1e40af;
+  animation: fablab-skill-badge-in 0.3s ease-out;
+}
+
+@keyframes fablab-skill-badge-in {
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fablab-skill-detected-icon {
+  font-size: 1rem;
+}
+
+.fablab-skill-detected-text {
+  font-weight: 500;
+}
+
+.fablab-skill-detected-text strong {
+  color: #2563eb;
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  background: rgba(59, 130, 246, 0.15);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.fablab-skill-detected-hint {
+  margin-left: auto;
+  color: #64748b;
+  font-size: 0.75rem;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .fablab-skill-menu-add {
   width: 100%;
   border: none;
