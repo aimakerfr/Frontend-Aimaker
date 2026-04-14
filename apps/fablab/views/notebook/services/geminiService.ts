@@ -229,10 +229,6 @@ export const generateChatResponse = async (history: any[], sources: Source[], me
         selected: s.selected
       }));
 
-    if (formattedSources.length === 0) {
-      return 'No pude leer contenido real de las fuentes seleccionadas todavia. Reintenta en unos segundos para que termine el procesamiento del XLSX/PPTX.';
-    }
-
     console.log('Enviando petición al backend:', {
       endpoint: `${GEMINI_ENDPOINT}/chat`,
       sourcesCount: formattedSources.length,
