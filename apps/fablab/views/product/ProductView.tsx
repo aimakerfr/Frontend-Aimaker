@@ -295,11 +295,70 @@ const ProductView: React.FC = () => {
     }
   };
 
+  const hydrateDeferredSources = async (currentSources: Source[]): Promise<Source[]> => {
+    const selectedDeferred = currentSources.filter((source) => {
+      if (!source.selected) return false;
+      const backendType = (source.backendType || '').toUpperCase();
+      if (backendType !== 'DOC' && backendType !== 'PDF') return false;
+
+      const content = String(source.content || '').trim();
+      if (content === '') return true;
+
+      const lower = content.toLowerCase();
+      return lower.includes('procesando contenido') || lower.includes('pendiente de procesamiento');
+    });
+
+    if (selectedDeferred.length === 0) {
+      return currentSources;
+    }
+
+    const refreshed = await Promise.all(selectedDeferred.map(async (source) => {
+      const sourceId = Number(source.id);
+      if (!Number.isFinite(sourceId)) {
+        return null;
+      }
+
+      try {
+        const sourceData = await getRagMultimodalSourceContent(sourceId);
+        const content = String(sourceData.content || '').trim();
+        if (content === '') {
+          return null;
+        }
+
+        return {
+          ...source,
+          title: sourceData.name || source.title,
+          type: mapApiSourceType(sourceData.type),
+          backendType: sourceData.type,
+          content,
+        } as Source;
+      } catch (error) {
+        console.warn('[ProductView] Deferred source hydration failed for source', source.id, error);
+        return null;
+      }
+    }));
+
+    const byId = new Map<string, Source>();
+    refreshed.forEach((entry) => {
+      if (entry) byId.set(String(entry.id), entry);
+    });
+
+    if (byId.size === 0) {
+      return currentSources;
+    }
+
+    return currentSources.map((source) => byId.get(String(source.id)) || source);
+  };
+
   const handleSendMessage = async (message: string) => {
     if (!message.trim() || chatLoading || !product) return;
 
-    // Use sources with content (already loaded and selected)
-    const selectedSources = sources.filter((s) => s.selected);
+    const hydratedSources = await hydrateDeferredSources(sources);
+    if (hydratedSources !== sources) {
+      setSources(hydratedSources);
+    }
+
+    const selectedSources = hydratedSources.filter((s) => s.selected);
     
     console.log('[ProductView] Sending message with sources:', {
       sourcesCount: selectedSources.length,

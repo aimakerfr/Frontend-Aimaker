@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import { Code2, Cog, FileText, Globe, ImageIcon, Upload, Video, X } from 'lucide-react';
-import type { Translations } from '../../../language/locales/types';
+import type { Translations } from '../../../language/types';
 
 // Aligned with backend types validation
 export type ObjectType =
@@ -42,11 +42,11 @@ const AddObjectModal: React.FC<AddObjectModalProps> = ({ isOpen, onClose, onSubm
     {
       id: 'DOC',
       label: (t as any).home?.objects_library?.tabs?.document ?? 'DOC',
-      description: (t as any).home?.objects_library?.tabs?.document_desc ?? 'TXT, PDF, MD, DOC, DOCX, RTF, ODT',
+      description: (t as any).home?.objects_library?.tabs?.document_desc ?? 'TXT, PDF, MD, DOC, DOCX, RTF, ODT, XLSX, PPTX',
       color: 'text-rose-600 dark:text-rose-400',
       bg: 'bg-rose-50 dark:bg-rose-900/30',
       icon: FileText,
-      accept: '.txt,.pdf,.md,.doc,.docx,.rtf,.odt',
+      accept: '.txt,.pdf,.md,.doc,.docx,.rtf,.odt,.xlsx,.pptx',
     },
     {
       id: 'IMAGE',

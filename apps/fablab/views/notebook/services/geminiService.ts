@@ -159,16 +159,79 @@ export const generateSourceSummary = async (sources: Source[], lang: Language): 
  */
 export const generateChatResponse = async (history: any[], sources: Source[], message: string, lang: Language): Promise<string> => {
   try {
+    const isPendingPlaceholder = (value: string): boolean => {
+      const lower = String(value || '').toLowerCase();
+      return lower.includes('pendiente de procesamiento') || lower.includes('procesando contenido') || lower.includes('pending processing');
+    };
+
+    const hydrateSourceContent = async (source: Source): Promise<Source> => {
+      if (!source.selected) return source;
+
+      const needsHydration = !String(source.content || '').trim() || isPendingPlaceholder(source.content || '');
+      if (!needsHydration) return source;
+
+      const sourceId = Number(source.id);
+      if (!Number.isFinite(sourceId)) return source;
+
+      try {
+        const sourceData = await httpClient.get<{ content: string; type: string; name: string }>(`/api/v1/rag-multimodal-sources/${sourceId}/content`);
+        const hydratedContent = String(sourceData?.content || '').trim();
+        if (!hydratedContent) return source;
+
+        return {
+          ...source,
+          title: sourceData?.name || source.title,
+          backendType: sourceData?.type || source.backendType,
+          content: hydratedContent,
+        };
+      } catch {
+        return source;
+      }
+    };
+
+    const hydratedSources = await Promise.all(sources.map(hydrateSourceContent));
+
+    const inferSourceTypeForPrompt = (source: Source): string => {
+      const rawType = String(source.backendType || source.type || '').toUpperCase();
+      const title = String(source.title || '').toLowerCase();
+
+      const extension = title.includes('.')
+        ? title.substring(title.lastIndexOf('.') + 1).trim().toLowerCase()
+        : '';
+
+      if (rawType === 'DOC') {
+        if (extension === 'xlsx') return 'spreadsheet';
+        if (extension === 'pptx') return 'presentation';
+        if (extension === 'docx' || extension === 'doc' || extension === 'odt' || extension === 'rtf') return 'document';
+        if (extension === 'pdf') return 'pdf';
+        return 'document';
+      }
+
+      if (rawType !== '') {
+        return rawType.toLowerCase();
+      }
+
+      return String(source.type || 'unknown').toLowerCase();
+    };
+
     // Formatear las fuentes para el backend
-    const formattedSources = sources
+    const formattedSources = hydratedSources
       .filter(s => s.selected)
+      .filter(s => {
+        const content = String(s.content || '').trim();
+        return content !== '' && !isPendingPlaceholder(content);
+      })
       .map(s => ({
         id: s.id,
         title: s.title,
-        type: s.type,
+        type: inferSourceTypeForPrompt(s),
         content: s.content,
         selected: s.selected
       }));
+
+    if (formattedSources.length === 0) {
+      return 'No pude leer contenido real de las fuentes seleccionadas todavia. Reintenta en unos segundos para que termine el procesamiento del XLSX/PPTX.';
+    }
 
     console.log('Enviando petición al backend:', {
       endpoint: `${GEMINI_ENDPOINT}/chat`,

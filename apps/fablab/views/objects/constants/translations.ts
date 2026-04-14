@@ -31,7 +31,7 @@ export const UI_TRANSLATIONS = {
         // Tabs
         tabs: {
           document: 'DOC',
-          document_desc: 'TXT, PDF, MD, DOC, DOCX, RTF, ODT',
+          document_desc: 'TXT, PDF, MD, DOC, DOCX, RTF, ODT, XLSX, PPTX',
           text: 'TEXT',
           text_desc: 'TXT, HTML, DOC, DOCX, PDF, JSON',
           image: 'IMAGE',
@@ -76,7 +76,7 @@ export const UI_TRANSLATIONS = {
         delete_confirm: '¿Eliminar esta fuente?',
         tabs: {
           document: 'DOC',
-          document_desc: 'TXT, PDF, MD, DOC, DOCX, RTF, ODT',
+          document_desc: 'TXT, PDF, MD, DOC, DOCX, RTF, ODT, XLSX, PPTX',
           text: 'TEXTO',
           text_desc: 'TXT, HTML, DOC, DOCX, PDF, JSON',
           image: 'IMAGEN',
@@ -121,7 +121,7 @@ export const UI_TRANSLATIONS = {
         delete_confirm: 'Supprimer cette source ?',
         tabs: {
           document: 'DOC',
-          document_desc: 'TXT, PDF, MD, DOC, DOCX, RTF, ODT',
+          document_desc: 'TXT, PDF, MD, DOC, DOCX, RTF, ODT, XLSX, PPTX',
           text: 'TEXTE',
           text_desc: 'TXT, HTML, DOC, DOCX, PDF, JSON',
           image: 'IMAGE',
