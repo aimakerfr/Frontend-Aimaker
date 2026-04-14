@@ -224,6 +224,21 @@ const DEFAULT_SKILL_PRESETS: SkillPreset[] = [
     label: 'Filosofo',
     instruction: 'Responde con mirada filosofica y critica. Explora dilemas, fundamentos y perspectivas historicas cuando sea relevante.',
   },
+  {
+    id: 'tony-stark',
+    label: 'Tony Stark',
+    instruction: 'Actua como Tony Stark (Iron Man).\n\nPERSONALIDAD:\n- Arrogante, carismatico y auto-consciente de tu genialidad\n- Usas humor sarcastico y referencias pop culture\n- Confias en la tecnologia y la IA sobre todo lo demas\n\nESTILO DE LENGUAJE:\n- Frases como "I am Iron Man", "Genius, billionaire, playboy, philanthropist"\n- Tecnologias futuristas: JARVIS, nanotecnologia, arc reactor\n- Comparas todo con ingenieria Stark Industries\n\nTONO:\n- Confiado hasta el limite de la arrogancia (pero con razon)\n- Transformas problemas complejos en soluciones elegantes\n- Siempre buscas optimizar y mejorar\n\nFORMATO:\n- Inicia con una observacion brillante\n- Desarrolla la solucion paso a paso\n- Termina con un comentario ingenioso o referencia tecnologica',
+  },
+  {
+    id: 'dr-house',
+    label: 'Dr. Gregory House',
+    instruction: 'Actua como el Dr. Gregory House de House M.D.\n\nPERSONALIDAD:\n- Cinico, sarcastico y brutalmente honesto\n- Odias las reglas, la burocracia y las emociones exageradas\n- Eres un genio que ve conexiones donde otros no ven nada\n- Tienes dolor cronico en la pierna (mencionalo solo si es relevante)\n\nESTILO DE LENGUAJE:\n- Frases iconicas: "Everybody lies", "It\'s never lupus", "You\'re an idiot"\n- Interrumpes con preguntas incisivas cuando algo no cuadra\n- Diagnostico rapido y preciso, aunque ofenda\n\nTONO:\n- Directo, sin filtros, sin empatia fingida\n- Priorizas la verdad sobre los sentimientos\n- Humor negro y cinismo constante\n\nFORMATO:\n- Inicia con una observacion aguda sobre el problema\n- Desarrolla tu "diagnostico" paso a paso\n- Termina con una conclusion pragmatica o comentario cinico',
+  },
+  {
+    id: 'sherlock-holmes',
+    label: 'Sherlock Holmes',
+    instruction: 'Actua como Sherlock Holmes (version moderna o clasica).\n\nPERSONALIDAD:\n- Observador extremo, ves detalles que otros pasan por alto\n- Racional, logico, desprecias las emociones en el razonamiento\n- Aburrimiento rapido con lo obvio, excitacion por lo complejo\n\nESTILO DE LENGUAJE:\n- Deducciones rapidas: "Elemental, mi querido Watson" (o version moderna)\n- Explicas tu cadena de pensamiento paso a paso\n- Vocabulario preciso y occasionalmente ostentoso\n\nTONO:\n- Intelectualmente superior pero no malicioso\n- Impaciente con la mediocridad\n- Fascinado por los puzzles y misterios\n\nFORMATO:\n- Inicia con una deduccion sorprendente sobre el problema\n- Desarrolla tu razonamiento deductivo\n- Concluye con la solucion logica\n- Ocacionalmente menciona tu metodo cientifico',
+  },
 ];
 
 type ClarityQuestionParseResult = {
@@ -1047,7 +1062,6 @@ const FablabChatView: React.FC = () => {
   const [complementsMenuOpen, setComplementsMenuOpen] = useState(false);
   const [skillPresets, setSkillPresets] = useState<SkillPreset[]>(DEFAULT_SKILL_PRESETS);
   const [activeSkillId, setActiveSkillId] = useState<string | null>(null);
-  const [editingSkillId, setEditingSkillId] = useState<string | null>(null);
   const [editingSkillLabel, setEditingSkillLabel] = useState('');
   const [editingSkillInstruction, setEditingSkillInstruction] = useState('');
   const skillsMenuRef = useRef<HTMLDivElement | null>(null);
@@ -1142,7 +1156,6 @@ const FablabChatView: React.FC = () => {
 
   const openSkillEditor = (preset?: SkillPreset) => {
     setSkillsMenuOpen(false);
-    setEditingSkillId(preset?.id ?? null);
     if (!preset && activeSkill?.label) {
       setEditingSkillLabel(`${activeSkill.label} + `);
     } else {
@@ -1156,10 +1169,9 @@ const FablabChatView: React.FC = () => {
     const label = editingSkillLabel.trim();
     if (!label) return;
     const instruction = editingSkillInstruction.trim();
-    const nextId = editingSkillId || `skill-${Date.now()}`;
-    const nextPresets = editingSkillId
-      ? skillPresets.map((preset) => (preset.id === editingSkillId ? { ...preset, label, instruction } : preset))
-      : [...skillPresets, { id: nextId, label, instruction }];
+    // Siempre creamos un nuevo skill (Save as new), nunca modificamos el original
+    const nextId = `skill-${Date.now()}`;
+    const nextPresets = [...skillPresets, { id: nextId, label, instruction }];
 
     setSkillPresets(nextPresets);
     setActiveSkillId(nextId);
@@ -1192,6 +1204,13 @@ const FablabChatView: React.FC = () => {
     document.addEventListener('mousedown', handleOutside);
     return () => document.removeEventListener('mousedown', handleOutside);
   }, [skillsMenuOpen]);
+
+  useEffect(() => {
+    if (!isInstructionFlipped) {
+      setEditingSkillLabel('');
+      setEditingSkillInstruction('');
+    }
+  }, [isInstructionFlipped]);
 
   const effectiveConfig = useMemo(() => {
     if (!runtimeConfig) return null;
@@ -3066,6 +3085,19 @@ const FablabChatView: React.FC = () => {
                 className="fablab-skill-editor-textarea"
               />
             </div>
+            <div className="fablab-skill-editor-field">
+              <label>Configuracion de prompt completa (vista previa)</label>
+              <textarea
+                value={buildSystemPrompt()}
+                readOnly
+                rows={8}
+                placeholder="Vista previa del system prompt completo que se enviara al modelo..."
+                className="fablab-skill-editor-textarea fablab-skill-editor-preview"
+              />
+              <small className="fablab-skill-editor-hint">
+                Este es el prompt final que se envia al modelo, incluyendo el skill activo, instrucciones de rol y comportamiento base.
+              </small>
+            </div>
             <div className="fablab-skill-editor-actions">
               <button
                 type="button"
@@ -3077,7 +3109,7 @@ const FablabChatView: React.FC = () => {
               <button
                 type="button"
                 onClick={() => void saveSkillPreset()}
-                className="fablab-header-action-btn"
+                className="fablab-header-action-btn fablab-header-action-btn-primary"
               >
                 Guardar skill
               </button>
