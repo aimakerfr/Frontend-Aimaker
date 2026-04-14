@@ -87,8 +87,19 @@ import {
   type FablabChatRuntimeConfig,
   type FablabChatRuntimeState,
 } from '@core/fablab-chat';
+import {
+  getChatSkills,
+  createChatSkill,
+  updateChatSkill,
+  deleteChatSkill,
+  type ChatSkill,
+  type ParsedChatSkill,
+} from '@core/chat-skills';
 import { HttpClientError } from '@core/api/http.client';
 import { useLanguage } from '../../language/useLanguage';
+import AssemblerModal from '../assembler/components/AssemblerModal';
+import GenericObjectSelector from '@apps/fablab/modules/object-selector/View/Notebook/GenericObjectSelector';
+import type { ObjectItem as SelectorObjectItem } from '@apps/fablab/modules/object-selector/services/api_handler';
 
 type SkillState = {
   search: boolean;
@@ -1062,9 +1073,27 @@ const FablabChatView: React.FC = () => {
   const [complementsMenuOpen, setComplementsMenuOpen] = useState(false);
   const [skillPresets, setSkillPresets] = useState<SkillPreset[]>(DEFAULT_SKILL_PRESETS);
   const [activeSkillId, setActiveSkillId] = useState<string | null>(null);
+
+  const isDefaultSkill = (presetId: string): boolean => {
+    return DEFAULT_SKILL_PRESETS.some((d) => d.id === presetId);
+  };
   const [editingSkillLabel, setEditingSkillLabel] = useState('');
   const [editingSkillInstruction, setEditingSkillInstruction] = useState('');
   const skillsMenuRef = useRef<HTMLDivElement | null>(null);
+
+  // Chat Skills (dynamic skills triggered via .//skillname)
+  const [chatSkills, setChatSkills] = useState<ChatSkill[]>([]);
+  const [chatSkillsMenuOpen, setChatSkillsMenuOpen] = useState(false);
+  const [isChatSkillEditorOpen, setIsChatSkillEditorOpen] = useState(false);
+  const [flipMode, setFlipMode] = useState<'role' | 'skills' | null>(null);
+  const [editingChatSkill, setEditingChatSkill] = useState<ChatSkill | null>(null);
+  const [newChatSkillName, setNewChatSkillName] = useState('');
+  const [newChatSkillInstruction, setNewChatSkillInstruction] = useState('');
+  const [newChatSkillSourceType, setNewChatSkillSourceType] = useState<'manual' | 'object'>('manual');
+  const [newChatSkillObjectId, setNewChatSkillObjectId] = useState<number | null>(null);
+  const [skillImportModalOpen, setSkillImportModalOpen] = useState(false);
+  const [detectedInputSkill, setDetectedInputSkill] = useState<ChatSkill | null>(null);
+  const chatSkillsMenuRef = useRef<HTMLDivElement | null>(null);
   const [projectAuditWizardVisible, setProjectAuditWizardVisible] = useState(false);
   const [projectAuditIntakeCompleted, setProjectAuditIntakeCompleted] = useState(false);
   const [projectAuditFollowUp, setProjectAuditFollowUp] = useState<{ question: string; options: string[] } | null>(null);
@@ -1162,6 +1191,7 @@ const FablabChatView: React.FC = () => {
       setEditingSkillLabel(preset?.label ?? '');
     }
     setEditingSkillInstruction(preset?.instruction ?? '');
+    setFlipMode('role');
     setIsInstructionFlipped(true);
   };
 
@@ -1183,6 +1213,19 @@ const FablabChatView: React.FC = () => {
     setIsInstructionFlipped(false);
   };
 
+  const deleteSkillPreset = async (presetId: string) => {
+    const nextPresets = skillPresets.filter((p) => p.id !== presetId);
+    setSkillPresets(nextPresets);
+    if (activeSkillId === presetId) {
+      setActiveSkillId(null);
+    }
+    await updateRuntimeConfig({
+      systemPrompt: systemInstruction.trim(),
+      skillPresets: nextPresets,
+      activeSkillId: activeSkillId === presetId ? null : activeSkillId,
+    });
+  };
+
   const applySkillPreset = async (preset: SkillPreset) => {
     setActiveSkillId(preset.id);
     setSkillsMenuOpen(false);
@@ -1192,6 +1235,252 @@ const FablabChatView: React.FC = () => {
       activeSkillId: preset.id,
     });
   };
+
+  // Chat Skills functions
+  const loadChatSkills = async () => {
+    try {
+      const skills = await getChatSkills();
+      setChatSkills(skills);
+    } catch (error) {
+      console.error('Error loading chat skills:', error);
+    }
+  };
+
+  const handleCreateChatSkill = async () => {
+    const name = newChatSkillName.trim();
+    const instruction = newChatSkillInstruction.trim();
+    if (!name || !instruction) return;
+
+    try {
+      const newSkill = await createChatSkill({
+        name,
+        instruction,
+        sourceType: newChatSkillSourceType,
+        objectId: newChatSkillObjectId ?? undefined,
+      });
+      setChatSkills((prev) => [newSkill, ...prev]);
+      setNewChatSkillName('');
+      setNewChatSkillInstruction('');
+      setNewChatSkillObjectId(null);
+      setIsChatSkillEditorOpen(false);
+    } catch (error) {
+      console.error('Error creating chat skill:', error);
+    }
+  };
+
+  const handleUpdateChatSkill = async () => {
+    if (!editingChatSkill) return;
+    const name = newChatSkillName.trim();
+    const instruction = newChatSkillInstruction.trim();
+    if (!name || !instruction) return;
+
+    try {
+      const updated = await updateChatSkill(editingChatSkill.id, {
+        name,
+        instruction,
+        sourceType: newChatSkillSourceType,
+        objectId: newChatSkillObjectId ?? undefined,
+      });
+      setChatSkills((prev) =>
+        prev.map((s) => (s.id === updated.id ? updated : s))
+      );
+      setEditingChatSkill(null);
+      setNewChatSkillName('');
+      setNewChatSkillInstruction('');
+      setNewChatSkillObjectId(null);
+      setIsChatSkillEditorOpen(false);
+    } catch (error) {
+      console.error('Error updating chat skill:', error);
+    }
+  };
+
+  const handleDeleteChatSkill = async (id: number) => {
+    try {
+      await deleteChatSkill(id);
+      setChatSkills((prev) => prev.filter((s) => s.id !== id));
+    } catch (error) {
+      console.error('Error deleting chat skill:', error);
+    }
+  };
+
+  const openChatSkillEditor = (skill?: ChatSkill) => {
+    if (skill) {
+      setEditingChatSkill(skill);
+      setNewChatSkillName(skill.name);
+      setNewChatSkillInstruction(skill.instruction);
+      setNewChatSkillSourceType(skill.sourceType);
+      setNewChatSkillObjectId(skill.objectId);
+    } else {
+      setEditingChatSkill(null);
+      setNewChatSkillName('');
+      setNewChatSkillInstruction('');
+      setNewChatSkillSourceType('manual');
+      setNewChatSkillObjectId(null);
+    }
+    setIsChatSkillEditorOpen(true);
+  };
+
+  const closeChatSkillEditor = () => {
+    setIsChatSkillEditorOpen(false);
+    setEditingChatSkill(null);
+    setNewChatSkillName('');
+    setNewChatSkillInstruction('');
+    setNewChatSkillObjectId(null);
+  };
+
+  // Import skill from MD object
+  const importSkillFromObject = async (objectId: number) => {
+    try {
+      const content = await getObjectDownloadText(objectId, 10000);
+      if (!content.trim()) {
+        setErrorText('El archivo seleccionado esta vacio o no se puede leer.');
+        return;
+      }
+
+      // Extract name from filename or use default
+      const object = objects.find((o) => o.id === objectId);
+      const name = object?.name?.replace(/\.md$/i, '') || 'skill-importado';
+
+      setNewChatSkillName(name);
+      setNewChatSkillInstruction(content);
+      setNewChatSkillSourceType('object');
+      setNewChatSkillObjectId(objectId);
+    } catch (error) {
+      console.error('Error importing skill from object:', error);
+      setErrorText('No se pudo importar el skill desde el archivo.');
+    }
+  };
+
+  // Handle object selection from modal for skill import
+  const handleSkillObjectSelected = (object: SelectorObjectItem) => {
+    void importSkillFromObject(object.id);
+    setSkillImportModalOpen(false);
+    setStatusText('Objeto importado. Revisa el formulario y guarda el skill.');
+  };
+
+  // Create default skills if none exist
+  const createDefaultSkills = async () => {
+    const defaultSkills = [
+      {
+        name: 'documentar',
+        instruction: `INSTRUCCION DEL SKILL "DOCUMENTAR":
+
+Cuando el usuario use .//documentar en su mensaje, debes:
+
+1. Procesar la solicitud normalmente con toda tu capacidad
+2. Al final de tu respuesta, generar un documento PDF descargable que contenga:
+   - Un resumen ejecutivo de la conversacion
+   - Los puntos clave tratados
+   - Las conclusiones o recomendaciones
+   - La fecha de generacion
+
+El PDF debe estar listo para descargar con un enlace clickeable al final de tu respuesta.
+
+Formato del enlace al PDF:
+[Descargar Documento PDF](dataurl del pdf)
+
+Esta instruccion aplica SOLO para este mensaje especifico donde se uso .//documentar.`,
+      },
+    ];
+
+    for (const skill of defaultSkills) {
+      try {
+        const exists = chatSkills.some((s) => s.name === skill.name);
+        if (!exists) {
+          const newSkill = await createChatSkill({
+            name: skill.name,
+            instruction: skill.instruction,
+            sourceType: 'manual',
+          });
+          setChatSkills((prev) => [newSkill, ...prev]);
+        }
+      } catch (error) {
+        console.error(`Error creating default skill ${skill.name}:`, error);
+      }
+    }
+  };
+
+  const closeFlip = () => {
+    setIsInstructionFlipped(false);
+    setFlipMode(null);
+  };
+
+  // Parse .//skillname from input text
+  const parseChatSkillFromInput = (text: string): { cleanedText: string; skillInstruction: string | null; skillName: string | null } => {
+    const skillRegex = /\.\/\/([a-zA-Z0-9_-]+)/g;
+    const matches = Array.from(text.matchAll(skillRegex));
+    
+    if (matches.length === 0) {
+      return { cleanedText: text, skillInstruction: null, skillName: null };
+    }
+
+    // Use the first matched skill
+    const match = matches[0];
+    const skillName = match[1];
+    
+    // Find the skill in loaded skills
+    const skill = chatSkills.find((s) => s.name === skillName);
+    
+    if (!skill) {
+      return { cleanedText: text, skillInstruction: null, skillName: null };
+    }
+
+    // Remove the .//skillname from the text
+    const cleanedText = text.replace(match[0], '').trim();
+    
+    return { 
+      cleanedText, 
+      skillInstruction: skill.instruction, 
+      skillName: skill.name 
+    };
+  };
+
+  // Inject chat skill instruction into system prompt
+  const buildSystemPromptWithChatSkill = (baseSystemPrompt: string, chatSkillInstruction: string | null): string => {
+    if (!chatSkillInstruction) return baseSystemPrompt;
+    
+    return `${baseSystemPrompt}\n\n[CHAT SKILL INSTRUCTION - APLICA SOLO PARA ESTE MENSAJE]\n${chatSkillInstruction}`;
+  };
+
+  // Load chat skills on mount and create default if none exist
+  useEffect(() => {
+    const initChatSkills = async () => {
+      await loadChatSkills();
+      // After loading, if no skills exist, create default ones
+      const skills = await getChatSkills();
+      if (skills.length === 0) {
+        await createDefaultSkills();
+      }
+    };
+    void initChatSkills();
+  }, []);
+
+  // Detect skill in input for visual highlighting
+  useEffect(() => {
+    const skillRegex = /\.\/\/([a-zA-Z0-9_-]+)/;
+    const match = input.match(skillRegex);
+    
+    if (match) {
+      const skillName = match[1];
+      const skill = chatSkills.find((s) => s.name === skillName);
+      setDetectedInputSkill(skill || null);
+    } else {
+      setDetectedInputSkill(null);
+    }
+  }, [input, chatSkills]);
+
+  // Close chat skills menu on outside click
+  useEffect(() => {
+    if (!chatSkillsMenuOpen) return;
+    const handleOutside = (event: MouseEvent) => {
+      if (!chatSkillsMenuRef.current) return;
+      if (!chatSkillsMenuRef.current.contains(event.target as Node)) {
+        setChatSkillsMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleOutside);
+    return () => document.removeEventListener('mousedown', handleOutside);
+  }, [chatSkillsMenuOpen]);
 
   useEffect(() => {
     if (!skillsMenuOpen) return;
@@ -1954,7 +2243,28 @@ const FablabChatView: React.FC = () => {
     );
   };
 
-  const renderSkillsMenu = () => {
+  const renderChatSkillsButton = () => {
+    return (
+      <button
+        type="button"
+        onClick={() => {
+          setEditingChatSkill(null);
+          setNewChatSkillName('');
+          setNewChatSkillInstruction('');
+          setNewChatSkillSourceType('manual');
+          setNewChatSkillObjectId(null);
+          setFlipMode('skills');
+          setIsInstructionFlipped(true);
+        }}
+        className="fablab-header-action-btn fablab-header-instruction-btn"
+      >
+        <Bot size={14} />
+        <span className="fablab-header-action-text">Skills</span>
+      </button>
+    );
+  };
+
+  const renderRoleMenu = () => {
     return (
       <div className="fablab-skill-menu" ref={skillsMenuRef}>
         <button
@@ -1964,7 +2274,7 @@ const FablabChatView: React.FC = () => {
         >
           <Wand2 size={14} />
           <span className="fablab-header-action-text">
-            {activeSkill ? `Skills · ${activeSkill.label}` : 'Skills'}
+            {activeSkill ? `Rol · ${activeSkill.label}` : 'Rol'}
           </span>
         </button>
 
@@ -1972,24 +2282,43 @@ const FablabChatView: React.FC = () => {
           <div className="fablab-skill-menu-panel">
             <p className="fablab-skill-menu-title">Selecciona un perfil</p>
             <div className="fablab-skill-menu-list">
-              {skillPresets.map((preset) => (
-                <div key={preset.id} className={`fablab-skill-menu-row ${preset.id === activeSkillId ? 'is-active' : ''}`}>
-                  <button
-                    type="button"
-                    onClick={() => applySkillPreset(preset)}
-                    className="fablab-skill-menu-item"
-                  >
-                    {preset.label}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => openSkillEditor(preset)}
-                    className="fablab-skill-menu-edit"
-                  >
-                    <Pencil size={12} />
-                  </button>
-                </div>
-              ))}
+              {skillPresets.map((preset, index) => {
+                const isDefault = isDefaultSkill(preset.id);
+                const customNumber = !isDefault
+                  ? skillPresets.slice(0, index).filter((p) => !isDefaultSkill(p.id)).length + 1
+                  : null;
+                return (
+                  <div key={preset.id} className={`fablab-skill-menu-row ${preset.id === activeSkillId ? 'is-active' : ''}`}>
+                    <button
+                      type="button"
+                      onClick={() => applySkillPreset(preset)}
+                      className="fablab-skill-menu-item"
+                    >
+                      {!isDefault && customNumber !== null && (
+                        <span className="fablab-skill-menu-badge">#{customNumber}</span>
+                      )}
+                      {preset.label}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => openSkillEditor(preset)}
+                      className="fablab-skill-menu-edit"
+                    >
+                      <Pencil size={12} />
+                    </button>
+                    {!isDefault && (
+                      <button
+                        type="button"
+                        onClick={() => void deleteSkillPreset(preset.id)}
+                        className="fablab-skill-menu-delete"
+                        title="Eliminar skill"
+                      >
+                        <Trash2 size={12} />
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
             </div>
             <button
               type="button"
@@ -2128,10 +2457,14 @@ const FablabChatView: React.FC = () => {
   const sendMessage = async (overrideText?: string) => {
     const baseText = String(overrideText ?? input).trim();
 
+    // Parse chat skill from input (e.g., .//documentar)
+    const { cleanedText, skillInstruction, skillName } = parseChatSkillFromInput(baseText);
+    const textWithSkillRemoved = cleanedText || baseText;
+
     const shouldBuildIntakePrompt = skills.projectAudit && projectAuditWizardVisible && !overrideText;
     const text = shouldBuildIntakePrompt
-      ? buildProjectAuditPrompt(baseText)
-      : baseText;
+      ? buildProjectAuditPrompt(textWithSkillRemoved)
+      : textWithSkillRemoved;
 
     if (!text) return;
 
@@ -2183,9 +2516,12 @@ const FablabChatView: React.FC = () => {
         attachments
       );
 
-      const effectiveSystemPrompt = requestedFileFormat
+      const baseSystemPrompt = requestedFileFormat
         ? `${buildSystemPrompt()}\n\n${buildFileOutputDirective(requestedFileFormat)}`
         : buildSystemPrompt();
+      
+      // Inject chat skill instruction if present
+      const effectiveSystemPrompt = buildSystemPromptWithChatSkill(baseSystemPrompt, skillInstruction);
 
       let assistantContent = '';
       let usageInputTokens = 0;
@@ -2310,6 +2646,50 @@ const FablabChatView: React.FC = () => {
             const friendlyFormat = String(requestedFileFormat).toUpperCase();
             assistantContent = `Claro, aca genere tu ${friendlyFormat}. Ya tienes el boton para descargarlo.\n\n[Descargar archivo](${artifact.dataUrl})`;
           }
+        }
+      }
+
+      // Generate PDF document if 'documentar' skill is active
+      if (skillName === 'documentar' || skillName === 'document') {
+        try {
+          const doc = new jsPDF();
+          const pageWidth = doc.internal.pageSize.getWidth();
+          const margin = 15;
+          const maxWidth = pageWidth - 2 * margin;
+          
+          // Add title
+          doc.setFontSize(16);
+          doc.text('Documento de Conversacion', margin, 20);
+          
+          // Add date
+          doc.setFontSize(10);
+          doc.text(`Generado: ${new Date().toLocaleString()}`, margin, 30);
+          
+          // Add content
+          doc.setFontSize(11);
+          const cleanContent = assistantContent
+            .replace(/\[Descargar archivo\]\([^)]+\)/g, '')
+            .replace(/\[PDF\]\([^)]+\)/g, '')
+            .trim();
+          
+          const splitText = doc.splitTextToSize(cleanContent, maxWidth);
+          let yPosition = 45;
+          const lineHeight = 6;
+          
+          for (let i = 0; i < splitText.length; i++) {
+            if (yPosition > 280) {
+              doc.addPage();
+              yPosition = 20;
+            }
+            doc.text(splitText[i], margin, yPosition);
+            yPosition += lineHeight;
+          }
+          
+          const pdfDataUrl = doc.output('dataurlstring');
+          assistantContent = `${assistantContent}\n\n---\n\n**Documento PDF Generado**\n\n[Pulse aqui para descargar el PDF](${pdfDataUrl})`;
+        } catch (pdfError) {
+          console.error('Error generating PDF:', pdfError);
+          assistantContent = `${assistantContent}\n\n---\n\n**Nota:** No se pudo generar el PDF automaticamente.`;
         }
       }
 
@@ -2517,7 +2897,6 @@ const FablabChatView: React.FC = () => {
           <div className="fablab-header-top">
             <div className="fablab-header-title">
               <div className="fablab-header-title-row">
-                {renderSkillsMenu()}
                 <h1 className="fablab-header-title-text">
                   <Sparkles size={18} />
                   {t?.fablabChat?.title || 'Fablab Chat'}
@@ -2531,6 +2910,9 @@ const FablabChatView: React.FC = () => {
             </div>
 
             <div className="fablab-header-actions">
+              {renderChatSkillsButton()}
+              {renderRoleMenu()}
+
               <button
                 type="button"
                 onClick={exportConversation}
@@ -2660,6 +3042,19 @@ const FablabChatView: React.FC = () => {
                   placeholder={t?.fablabChat?.inputPlaceholder || 'Write your message...'}
                   className="fablab-empty-textarea"
                 />
+
+                {/* Skill detection badge */}
+                {detectedInputSkill && (
+                  <div className="fablab-skill-detected-badge">
+                    <span className="fablab-skill-detected-icon">⚡</span>
+                    <span className="fablab-skill-detected-text">
+                      Skill activo: <strong>.//{detectedInputSkill.name}</strong>
+                    </span>
+                    <span className="fablab-skill-detected-hint">
+                      {detectedInputSkill.instruction.substring(0, 60)}...
+                    </span>
+                  </div>
+                )}
 
                 {renderProjectAuditWizard()}
 
@@ -2896,6 +3291,19 @@ const FablabChatView: React.FC = () => {
                 className="fablab-input-textarea"
               />
 
+              {/* Skill detection badge */}
+              {detectedInputSkill && (
+                <div className="fablab-skill-detected-badge">
+                  <span className="fablab-skill-detected-icon">⚡</span>
+                  <span className="fablab-skill-detected-text">
+                    Skill activo: <strong>.//{detectedInputSkill.name}</strong>
+                  </span>
+                  <span className="fablab-skill-detected-hint">
+                    {detectedInputSkill.instruction.substring(0, 60)}...
+                  </span>
+                </div>
+              )}
+
               {renderProjectAuditWizard()}
 
               <div className="fablab-input-buttons">
@@ -3054,83 +3462,223 @@ const FablabChatView: React.FC = () => {
         </div>
 
         <div className="fablab-chat-back">
-          <div className="fablab-chat-header">
-            <div className="fablab-header-top">
-              <div className="fablab-header-title">
-                <h1 className="fablab-header-title-text">
-                  <Wand2 size={18} />
-                  Skills Editor
-                </h1>
-                <p className="fablab-header-subtitle">
-                  Edita la instruccion del perfil seleccionado
-                </p>
+          {flipMode === 'role' && (
+            <>
+              <div className="fablab-chat-header">
+                <div className="fablab-header-top">
+                  <div className="fablab-header-title">
+                    <h1 className="fablab-header-title-text">
+                      <Wand2 size={18} />
+                      Rol Editor
+                    </h1>
+                    <p className="fablab-header-subtitle">
+                      Edita la instruccion del perfil seleccionado
+                    </p>
+                  </div>
+
+                  <div className="fablab-header-actions">
+                    <button
+                      type="button"
+                      onClick={closeFlip}
+                      className="fablab-header-action-btn"
+                    >
+                      <X size={14} />
+                      <span className="fablab-header-action-text">Close</span>
+                    </button>
+                  </div>
+                </div>
               </div>
 
-              <div className="fablab-header-actions">
-                <button
-                  type="button"
-                  onClick={() => setIsInstructionFlipped(false)}
-                  className="fablab-header-action-btn"
-                >
-                  <X size={14} />
-                  <span className="fablab-header-action-text">Close</span>
-                </button>
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 'var(--space-lg)', padding: 'var(--space-xl)' }}>
+                <div className="fablab-skill-editor-field">
+                  <label>Nombre del rol</label>
+                  <input
+                    value={editingSkillLabel}
+                    onChange={(event) => setEditingSkillLabel(event.target.value)}
+                    placeholder="Ej: Ingeniero de software"
+                    className="fablab-skill-editor-input"
+                  />
+                </div>
+                <div className="fablab-skill-editor-field">
+                  <label>Instruccion</label>
+                  <textarea
+                    value={editingSkillInstruction}
+                    onChange={(event) => setEditingSkillInstruction(event.target.value)}
+                    rows={10}
+                    placeholder="Describe la instruccion del rol..."
+                    className="fablab-skill-editor-textarea"
+                  />
+                </div>
+                <div className="fablab-skill-editor-field">
+                  <label>Configuracion de prompt completa (vista previa)</label>
+                  <textarea
+                    value={buildSystemPrompt()}
+                    readOnly
+                    rows={8}
+                    placeholder="Vista previa del system prompt completo que se enviara al modelo..."
+                    className="fablab-skill-editor-textarea fablab-skill-editor-preview"
+                  />
+                  <small className="fablab-skill-editor-hint">
+                    Este es el prompt final que se envia al modelo, incluyendo el rol activo, instrucciones de rol y comportamiento base.
+                  </small>
+                </div>
+                <div className="fablab-skill-editor-actions">
+                  <button
+                    type="button"
+                    onClick={closeFlip}
+                    className="fablab-header-action-btn"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void saveSkillPreset()}
+                    className="fablab-header-action-btn fablab-header-action-btn-primary"
+                  >
+                    Guardar rol
+                  </button>
+                </div>
               </div>
-            </div>
-          </div>
+            </>
+          )}
 
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 'var(--space-lg)', padding: 'var(--space-xl)' }}>
-            <div className="fablab-skill-editor-field">
-              <label>Nombre del skill</label>
-              <input
-                value={editingSkillLabel}
-                onChange={(event) => setEditingSkillLabel(event.target.value)}
-                placeholder="Ej: Ingeniero de software"
-                className="fablab-skill-editor-input"
-              />
-            </div>
-            <div className="fablab-skill-editor-field">
-              <label>Instruccion</label>
-              <textarea
-                value={editingSkillInstruction}
-                onChange={(event) => setEditingSkillInstruction(event.target.value)}
-                rows={10}
-                placeholder="Describe la instruccion del skill..."
-                className="fablab-skill-editor-textarea"
-              />
-            </div>
-            <div className="fablab-skill-editor-field">
-              <label>Configuracion de prompt completa (vista previa)</label>
-              <textarea
-                value={buildSystemPrompt()}
-                readOnly
-                rows={8}
-                placeholder="Vista previa del system prompt completo que se enviara al modelo..."
-                className="fablab-skill-editor-textarea fablab-skill-editor-preview"
-              />
-              <small className="fablab-skill-editor-hint">
-                Este es el prompt final que se envia al modelo, incluyendo el skill activo, instrucciones de rol y comportamiento base.
-              </small>
-            </div>
-            <div className="fablab-skill-editor-actions">
-              <button
-                type="button"
-                onClick={() => setIsInstructionFlipped(false)}
-                className="fablab-header-action-btn"
-              >
-                Cancelar
-              </button>
-              <button
-                type="button"
-                onClick={() => void saveSkillPreset()}
-                className="fablab-header-action-btn fablab-header-action-btn-primary"
-              >
-                Guardar skill
-              </button>
-            </div>
-          </div>
+          {flipMode === 'skills' && (
+            <>
+              <div className="fablab-chat-header">
+                <div className="fablab-header-top">
+                  <div className="fablab-header-title">
+                    <h1 className="fablab-header-title-text">
+                      <Bot size={18} />
+                      Chat Skills Editor
+                    </h1>
+                    <p className="fablab-header-subtitle">
+                      Crea skills para usar con .//nombre en el chat
+                    </p>
+                  </div>
+
+                  <div className="fablab-header-actions">
+                    <button
+                      type="button"
+                      onClick={closeFlip}
+                      className="fablab-header-action-btn"
+                    >
+                      <X size={14} />
+                      <span className="fablab-header-action-text">Close</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 'var(--space-lg)', padding: 'var(--space-xl)' }}>
+                <div className="fablab-skill-editor-field">
+                  <label>Skill activos</label>
+                  <div className="fablab-chat-skills-list" style={{ maxHeight: '150px', overflow: 'auto', border: '1px solid rgba(148, 163, 184, 0.3)', borderRadius: '8px', padding: '8px' }}>
+                    {chatSkills.length === 0 && (
+                      <div style={{ padding: '12px', textAlign: 'center', color: '#64748b' }}>
+                        No hay skills creados. Crea uno abajo.
+                      </div>
+                    )}
+                    {chatSkills.map((skill) => (
+                      <div key={skill.id} className="fablab-skill-menu-row" style={{ marginBottom: '4px' }}>
+                        <code className="fablab-skill-menu-code" style={{ flex: 1 }}>.//{skill.name}</code>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditingChatSkill(skill);
+                            setNewChatSkillName(skill.name);
+                            setNewChatSkillInstruction(skill.instruction);
+                            setNewChatSkillSourceType(skill.sourceType);
+                            setNewChatSkillObjectId(skill.objectId);
+                          }}
+                          className="fablab-skill-menu-edit"
+                        >
+                          <Pencil size={12} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => void handleDeleteChatSkill(skill.id)}
+                          className="fablab-skill-menu-delete"
+                          title="Eliminar skill"
+                        >
+                          <Trash2 size={12} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="fablab-skill-editor-field">
+                  <label>Opciones de creacion</label>
+                  <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
+                    <button
+                      type="button"
+                      onClick={() => setSkillImportModalOpen(true)}
+                      className="fablab-header-action-btn"
+                      style={{ flex: 1 }}
+                    >
+                      <Paperclip size={14} />
+                      <span>Importar desde libreria de objetos</span>
+                    </button>
+                  </div>
+                  {newChatSkillSourceType === 'object' && newChatSkillObjectId && (
+                    <div style={{ padding: '8px', background: 'rgba(59, 130, 246, 0.1)', borderRadius: '6px', marginBottom: '12px', fontSize: '0.85rem' }}>
+                      Importando desde: {objects.find((o) => o.id === newChatSkillObjectId)?.name || 'Archivo seleccionado'}
+                    </div>
+                  )}
+                </div>
+
+                <div className="fablab-skill-editor-field">
+                  <label>{editingChatSkill ? 'Editar skill' : 'Crear nuevo skill'}</label>
+                  <input
+                    value={newChatSkillName}
+                    onChange={(event) => setNewChatSkillName(event.target.value)}
+                    placeholder="Nombre del skill (ej: documentar)"
+                    className="fablab-skill-editor-input"
+                    style={{ marginBottom: '8px' }}
+                  />
+                  <textarea
+                    value={newChatSkillInstruction}
+                    onChange={(event) => setNewChatSkillInstruction(event.target.value)}
+                    rows={8}
+                    placeholder="Instruccion del skill. Ej: Al final de cada respuesta, genera un documento PDF descargable con el resumen de la conversacion."
+                    className="fablab-skill-editor-textarea"
+                  />
+                </div>
+
+                <div className="fablab-skill-editor-actions">
+                  <button
+                    type="button"
+                    onClick={closeFlip}
+                    className="fablab-header-action-btn"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void (editingChatSkill ? handleUpdateChatSkill() : handleCreateChatSkill())}
+                    disabled={!newChatSkillName.trim() || !newChatSkillInstruction.trim()}
+                    className="fablab-header-action-btn fablab-header-action-btn-primary"
+                  >
+                    {editingChatSkill ? 'Actualizar skill' : 'Crear skill'}
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
         </div>
       </div>
+
+      {/* Skill Import Modal */}
+      <AssemblerModal
+        isOpen={skillImportModalOpen}
+        title="Importar skill desde libreria de objetos"
+        onClose={() => setSkillImportModalOpen(false)}
+      >
+        <GenericObjectSelector
+          type="TEXT"
+          onObjectSelectionCallback={handleSkillObjectSelected}
+        />
+      </AssemblerModal>
     </section>
   );
 };
