@@ -51,7 +51,6 @@ const ObjectsLibrary: React.FC<{
 
   const [items, setItems] = useState<ObjectItem[]>([]);
   const [folders, setFolders] = useState<ObjectFolder[]>([]);
-  const [selected, setSelected] = useState<ObjectItem[]>(selectedObjects ?? []);
   const [selectedFolderId, setSelectedFolderId] = useState<number | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [activeType, setActiveType] = useState<string>('ALL');
@@ -101,9 +100,7 @@ const ObjectsLibrary: React.FC<{
     return () => { isActive = false; };
   }, []);
 
-  useEffect(() => {
-    if (selection) setSelected(selectedObjects ?? []);
-  }, [selection, selectedObjects]);
+  const selected = useMemo(() => (selection ? (selectedObjects ?? []) : []), [selection, selectedObjects]);
 
   useEffect(() => {
     setActiveType('ALL');
@@ -132,12 +129,10 @@ const ObjectsLibrary: React.FC<{
 
   const handleToggleSelect = (item: ObjectItem, checked: boolean) => {
     if (!selection) return;
-    setSelected((prev) => {
-      const filtered = prev.filter((s) => s.id !== item.id);
-      const next = checked ? [...filtered, item] : filtered;
-      onSelectionChange?.(next);
-      return next;
-    });
+    const current = selectedObjects ?? [];
+    const filtered = current.filter((s) => s.id !== item.id);
+    const next = checked ? [...filtered, item] : filtered;
+    onSelectionChange?.(next);
   };
 
   const openCreateFolderModal = useCallback(() => {

@@ -316,7 +316,7 @@ const AddSourceModal: React.FC<AddSourceModalProps> = ({ isOpen, onClose, onAddS
                 <div className="flex-1 overflow-y-auto p-6 md:p-8 space-y-5 no-scrollbar min-h-[240px]">
                     {activeTab === 'pdf' && (
                         <div onClick={() => !isLoading && fileInputRef.current?.click()} className="border-2 border-dashed rounded-[1.5rem] p-8 flex flex-col items-center justify-center cursor-pointer bg-gray-50/30 border-gray-300 hover:border-red-300 hover:bg-red-50/10 transition-all group">
-                            <input type="file" ref={fileInputRef} className="hidden" accept=".pdf,.txt,.md" onChange={(e) => handleFileUpload(e, 'pdf')} disabled={isLoading} />
+                            <input type="file" ref={fileInputRef} className="hidden" accept=".pdf,.txt,.md,.doc,.docx,.rtf,.odt,.xlsx,.pptx" onChange={(e) => handleFileUpload(e, 'pdf')} disabled={isLoading} />
                             <FileText className="mb-3 text-gray-400 group-hover:text-red-500 transition-all" size={36} />
                             <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest text-center">{fileName || tp.modal.placeholders.selectFile}</span>
                             <span className="mt-2 text-[9px] font-bold text-gray-400 uppercase tracking-widest text-center">{tp.modal.placeholders.docAllowedTypes}</span>
