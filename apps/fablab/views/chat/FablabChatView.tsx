@@ -87,6 +87,7 @@ import {
   type FablabChatRuntimeConfig,
   type FablabChatRuntimeState,
 } from '@core/fablab-chat';
+import { HttpClientError } from '@core/api/http.client';
 import { useLanguage } from '../../language/useLanguage';
 
 type SkillState = {
@@ -139,28 +140,50 @@ const initialSkills: SkillState = {
   roleOptimize: false,
 };
 
-const DEFAULT_SKILL_PRESETS: SkillPreset[] = [
-  {
-    id: 'software-engineer',
-    label: 'Ingeniero de software',
-    instruction: 'Actua como un ingeniero de software senior. Prioriza arquitectura, buenas practicas, mantenibilidad y ejemplos concretos de implementacion.',
-  },
-  {
-    id: 'mathematician',
-    label: 'Matematico',
-    instruction: 'Responde con rigor matematico. Explica supuestos, formulas y pasos de manera clara y precisa.',
-  },
-  {
-    id: 'artist',
-    label: 'Artista',
-    instruction: 'Responde con enfoque creativo y sensorial. Propone ideas originales, estilo, color y referencias artisticas cuando aplique.',
-  },
-  {
-    id: 'philosopher',
-    label: 'Filosofo',
-    instruction: 'Responde con mirada filosofica y critica. Explora dilemas, fundamentos y perspectivas historicas cuando sea relevante.',
-  },
-];
+const sanitizeUiErrorMessage = (value: string): string => {
+  const normalized = value
+    .replace(/https?:\/\/\S+/gi, '[endpoint]')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  if (!normalized) return '';
+  return normalized.length > 240 ? `${normalized.slice(0, 240)}...` : normalized;
+};
+
+const formatRuntimeErrorForUser = (error: unknown): string => {
+  if (error instanceof HttpClientError) {
+    const status = Number(error.status || 0);
+
+    if (status === 400) {
+      return 'El modelo no acepto esta solicitud. Revisa el tipo de modelo o la configuracion del prompt.';
+    }
+    if (status === 401 || status === 403) {
+      return 'La API key no es valida o no tiene permisos para este modelo.';
+    }
+    if (status === 429) {
+      return 'El proveedor alcanzo limite de uso. Intenta nuevamente en unos minutos.';
+    }
+    if (status === 502) {
+      return 'El backend no pudo conectarse al proveedor de IA. Verifica red/certificados del servidor o estado del proveedor.';
+    }
+    if (status === 504) {
+      return 'El proveedor tardo demasiado en responder. Intenta de nuevo.';
+    }
+    if (status >= 500) {
+      return 'El backend tuvo un error al procesar la solicitud. Intenta nuevamente.';
+    }
+
+    const safe = sanitizeUiErrorMessage(error.message || '');
+    if (safe) return safe;
+  }
+
+  if (error instanceof Error) {
+    const safe = sanitizeUiErrorMessage(error.message || '');
+    if (safe) return safe;
+  }
+
+  return 'No se pudo completar la solicitud. Intenta nuevamente.';
+};
 
 const toIsoNow = () => new Date().toISOString();
 const RAW_DATA_IMAGE_REGEX = /^data:image\/[a-zA-Z0-9.+-]+;base64,/i;
@@ -851,12 +874,14 @@ const markdownComponents = {
       }
 
       return (
-        <div className="fablab-mermaid-wrapper">
+        <div className="fablab-mermaid-wrapper" translate="no" data-no-translate="true">
           <div className="fablab-code-header">
             <span>mermaid</span>
           </div>
           <div
             className="fablab-mermaid-diagram"
+            translate="no"
+            data-no-translate="true"
             dangerouslySetInnerHTML={{ __html: svg }}
           />
         </div>
@@ -2275,7 +2300,7 @@ const FablabChatView: React.FC = () => {
       const sentText = t?.fablabChat?.status?.sent || 'Message sent.';
       setStatusText(sentText);
     } catch (error: any) {
-      setErrorText(error?.message || (t?.fablabChat?.errors?.sendFailed || 'Could not send message.'));
+      setErrorText(formatRuntimeErrorForUser(error) || (t?.fablabChat?.errors?.sendFailed || 'Could not send message.'));
     } finally {
       setIsSending(false);
     }
@@ -2414,7 +2439,7 @@ const FablabChatView: React.FC = () => {
   }
 
   return (
-    <section className="fablab-chat-container">
+    <section className="fablab-chat-container" translate="no" data-no-translate="true">
       <div className={`fablab-chat-main-wrapper ${isInstructionFlipped ? 'flipped' : ''}`}>
         <div className="fablab-chat-front">
         {(errorText || statusText) && (
@@ -2636,11 +2661,8 @@ const FablabChatView: React.FC = () => {
           </div>
         ) : (
           <>
-            <div ref={scrollerRef} className="fablab-messages-scroller">
+            <div ref={scrollerRef} className="fablab-messages-scroller" translate="no" data-no-translate="true">
               {renderedMessages.map(({ message, isUser, imageSrc, richOutput, textBody, fileCardMessage }) => {
-                if (!isUser && textBody) {
-                  console.log('Chat response content:', textBody);
-                }
                 return (
                   <div
                     key={message.id}
@@ -2772,7 +2794,6 @@ const FablabChatView: React.FC = () => {
                                     <PDFCard
                                       fileName={fileName}
                                       onDownload={() => {
-                                        console.log('Download PDF:', fileName);
                                         // TODO: Implement actual PDF download logic
                                       }}
                                     />

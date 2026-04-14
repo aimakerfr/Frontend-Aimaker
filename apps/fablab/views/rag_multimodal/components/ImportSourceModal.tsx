@@ -3,7 +3,7 @@ import React from 'react';
 import { X } from 'lucide-react';
 import ObjectsLibrary from '@apps/fablab/views/objects/ObjectsLibrary.tsx';
 import { ObjectItem } from '@core/objects';
-import { Translations } from '../../../language/locales/types';
+import { Translations } from '../../../language/types';
 
 interface ImportSourceModalProps {
     isOpen: boolean;

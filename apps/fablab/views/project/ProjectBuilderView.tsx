@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { LayoutGrid, Map, BookOpen } from 'lucide-react';
+import { Map, BookOpen } from 'lucide-react';
 import { useLanguage } from '../../language/useLanguage';
 import { createProductFromTemplate, getProducts } from '@core/products';
 
@@ -48,27 +48,16 @@ export default function ProjectBuilderView() {
     navigate('/dashboard/products?createNotebook=1');
   };
 
-  const handleOptionClick = async (action: 'assemble' | 'creationPath' | 'notebook') => {
+  const handleOptionClick = async (action: 'creationPath' | 'notebook') => {
     if (action === 'creationPath') {
       await openCreationPathById();
       return;
     }
 
-    if (action === 'notebook') {
-      await openNotebookProduct();
-      return;
-    }
-
-    navigate('/dashboard/maker-path');
+    await openNotebookProduct();
   };
 
   const options = [
-    {
-      title: t.projectBuilder.assembleCustomProject,
-      description: t.projectBuilder.assembleCustomProjectDesc,
-      icon: LayoutGrid,
-      action: 'assemble' as const,
-    },
     {
       title: t.projectBuilder.notebookCreation,
       description: t.projectBuilder.notebookCreationDesc,

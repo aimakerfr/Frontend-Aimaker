@@ -4,6 +4,7 @@
  */
 
 import { authStore } from './auth.store';
+import { tokenStorage } from '../api/http.client';
 
 interface TokenInfo {
   token: string;
@@ -146,7 +147,7 @@ class TokenRefreshService {
    * Get current token information from localStorage
    */
   private getTokenInfo(): TokenInfo | null {
-    const token = localStorage.getItem('token');
+    const token = tokenStorage.get();
     if (!token) {
       return null;
     }
@@ -176,7 +177,7 @@ class TokenRefreshService {
 
     try {
       // Get current user email from token
-      const token = localStorage.getItem('token');
+      const token = tokenStorage.get();
       if (!token) {
         throw new Error('No token found');
       }
@@ -207,7 +208,7 @@ class TokenRefreshService {
       const data = await response.json();
       
       if (data.token) {
-        localStorage.setItem('token', data.token);
+        tokenStorage.set(data.token);
         console.log('[TokenRefresh] Token refreshed successfully');
       }
     } catch (error) {
