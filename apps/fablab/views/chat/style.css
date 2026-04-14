@@ -34,7 +34,7 @@
   height: calc(100vh - 8rem);
   min-height: 600px;
   max-height: calc(100vh - 6rem);
-  overflow: hidden;
+  overflow: visible;
   position: relative;
   perspective: 1000px;
 }
@@ -68,6 +68,8 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-lg);
+  overflow: auto;
+  padding-bottom: calc(var(--space-xl) + 1rem);
   transform: rotateY(180deg);
   backface-visibility: hidden;
   transition: transform 0.6s ease-in-out;
@@ -144,6 +146,8 @@
   flex-direction: column;
   gap: var(--space-sm);
   flex-shrink: 0;
+  position: relative;
+  z-index: 5;
 }
 
 /* Header top container */
@@ -162,6 +166,140 @@
   padding: var(--space-xs) var(--space-sm);
   border-radius: 8px;
   transition: all 0.2s ease;
+}
+
+.fablab-header-title-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.fablab-header-instruction-btn {
+  padding: 6px 10px;
+}
+
+.fablab-skill-menu {
+  position: relative;
+}
+
+.fablab-skill-menu-panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  min-width: 220px;
+  padding: 0.75rem;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.98);
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  box-shadow: 0 16px 32px rgba(15, 23, 42, 0.12);
+  z-index: 20;
+}
+
+.fablab-skill-menu-title {
+  margin: 0 0 0.6rem;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #64748b;
+}
+
+.fablab-skill-menu-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-bottom: 0.6rem;
+}
+
+.fablab-skill-menu-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.4rem 0.5rem;
+  border-radius: 10px;
+  border: 1px solid transparent;
+}
+
+.fablab-skill-menu-row.is-active {
+  border-color: rgba(14, 116, 144, 0.4);
+  background: rgba(14, 116, 144, 0.08);
+}
+
+.fablab-skill-menu-item {
+  flex: 1;
+  border: none;
+  background: none;
+  text-align: left;
+  font-size: 0.85rem;
+  color: #0f172a;
+  cursor: pointer;
+}
+
+.fablab-skill-menu-edit {
+  border: none;
+  background: rgba(148, 163, 184, 0.2);
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #475569;
+}
+
+.fablab-skill-menu-add {
+  width: 100%;
+  border: none;
+  border-radius: 10px;
+  padding: 0.45rem 0.6rem;
+  background: rgba(15, 23, 42, 0.08);
+  color: #0f172a;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.fablab-skill-editor-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  color: #1f2937;
+}
+
+.fablab-skill-editor-input,
+.fablab-skill-editor-textarea {
+  width: 100%;
+  padding: 0.75rem;
+  border-radius: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.4);
+  background: rgba(255, 255, 255, 0.7);
+  color: #0f172a;
+  font-size: 0.95rem;
+  resize: vertical;
+}
+
+.fablab-skill-editor-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+.fablab-skill-editor-actions .fablab-header-action-btn {
+  width: auto;
+  height: auto;
+  padding: 0.55rem 1rem;
+  border-radius: 12px;
+  font-size: 0.85rem;
+}
+
+.fablab-skill-editor-actions .fablab-header-action-btn:hover {
+  width: auto;
+  padding: 0.55rem 1rem;
+  transform: translateY(-1px);
 }
 
 .fablab-header-title:hover {
@@ -459,6 +597,33 @@
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-xs);
+}
+
+.fablab-skill-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.45);
+  background: rgba(255, 255, 255, 0.7);
+  color: #475569;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.fablab-skill-toggle.is-active {
+  border-color: rgba(14, 116, 144, 0.6);
+  background: rgba(14, 116, 144, 0.12);
+  color: #0f172a;
+  box-shadow: 0 6px 16px rgba(14, 116, 144, 0.18);
+}
+
+.fablab-skill-toggle:hover {
+  border-color: rgba(99, 102, 241, 0.6);
+  background: rgba(255, 255, 255, 0.85);
 }
 
 .fablab-skill-btn {
