@@ -230,10 +230,6 @@ export const generateChatResponse = async (history: any[], sources: Source[], me
         content: s.content
       }));
 
-    if (validSources.length === 0) {
-      return "No pude leer contenido real de las fuentes seleccionadas todavía. Reintenta en unos segundos para que termine el procesamiento del XLSX/PPTX.";
-    }
-
     console.log('[Chat] Enviando:', {
       sources: validSources.length,
       history: history.length,
