@@ -1252,8 +1252,22 @@ const FablabChatView: React.FC = () => {
         setSystemInstruction(String(runtime?.systemPrompt || ''));
         const persistedPresets = Array.isArray((runtime as any)?.skillPresets)
           ? (runtime as any).skillPresets as SkillPreset[]
-          : DEFAULT_SKILL_PRESETS;
-        setSkillPresets(persistedPresets);
+          : [];
+        // Merge: mantener los persistidos del usuario + agregar defaults que no tenga
+        const persistedIds = new Set(persistedPresets.map((p) => p.id));
+        const missingDefaults = DEFAULT_SKILL_PRESETS.filter((d) => !persistedIds.has(d.id));
+        const mergedPresets = missingDefaults.length > 0
+          ? [...persistedPresets, ...missingDefaults]
+          : persistedPresets;
+        setSkillPresets(mergedPresets);
+        // Si agregamos nuevos defaults, guardar el merge en BD
+        if (missingDefaults.length > 0 && runtime) {
+          void updateRuntimeConfig({
+            systemPrompt: systemInstruction.trim(),
+            skillPresets: mergedPresets,
+            activeSkillId: (runtime as any)?.activeSkillId,
+          });
+        }
         setActiveSkillId(String((runtime as any)?.activeSkillId || '') || null);
         const persistedRoleInstruction = String((state.config as any)?.roleInstruction || '');
         const persistedRoleName = String((state.config as any)?.selectedRoleObjectName || '');
