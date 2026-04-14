@@ -47,6 +47,7 @@ import {
   MessageSquare,
   Mic,
   Paperclip,
+  Pencil,
   RotateCcw,
   Search,
   Send,
@@ -102,6 +103,12 @@ type SkillState = {
 };
 
 type SourceMode = 'context' | 'role' | 'prompt' | null;
+
+type SkillPreset = {
+  id: string;
+  label: string;
+  instruction: string;
+};
 
 type ProviderAttachment = NonNullable<ProviderChatMessage['attachments']>[number];
 
@@ -831,7 +838,7 @@ const markdownComponents = {
   h4: (props: any) => <h4 className="fablab-heading fablab-heading-4" {...props} />,
   h5: (props: any) => <h5 className="fablab-heading fablab-heading-5" {...props} />,
   h6: (props: any) => <h6 className="fablab-heading fablab-heading-6" {...props} />,
-  p: (props: any) => <p  {...props} />,
+  p: (props: any) => <div className="fablab-paragraph" {...props} />,
   ul: (props: any) => <ul  {...props} />,
   ol: (props: any) => <ol  {...props} />,
   li: (props: any) => <li  {...props} />,
@@ -1014,6 +1021,13 @@ const FablabChatView: React.FC = () => {
   const [systemInstruction, setSystemInstruction] = useState('');
   const [isInstructionFlipped, setIsInstructionFlipped] = useState(false);
   const [skillsMenuOpen, setSkillsMenuOpen] = useState(false);
+  const [complementsMenuOpen, setComplementsMenuOpen] = useState(false);
+  const [skillPresets, setSkillPresets] = useState<SkillPreset[]>(DEFAULT_SKILL_PRESETS);
+  const [activeSkillId, setActiveSkillId] = useState<string | null>(null);
+  const [editingSkillId, setEditingSkillId] = useState<string | null>(null);
+  const [editingSkillLabel, setEditingSkillLabel] = useState('');
+  const [editingSkillInstruction, setEditingSkillInstruction] = useState('');
+  const skillsMenuRef = useRef<HTMLDivElement | null>(null);
   const [projectAuditWizardVisible, setProjectAuditWizardVisible] = useState(false);
   const [projectAuditIntakeCompleted, setProjectAuditIntakeCompleted] = useState(false);
   const [projectAuditFollowUp, setProjectAuditFollowUp] = useState<{ question: string; options: string[] } | null>(null);
@@ -1086,6 +1100,76 @@ const FablabChatView: React.FC = () => {
     });
   }, [messages]);
 
+  const activeSkill = useMemo(
+    () => skillPresets.find((preset) => preset.id === activeSkillId) || null,
+    [activeSkillId, skillPresets]
+  );
+
+  const updateRuntimeConfig = async (partial: Record<string, unknown>) => {
+    if (!runtimeConfig) return;
+    const nextConfig = {
+      ...runtimeConfig,
+      ...partial,
+      selectedModel: effectiveConfig?.selectedModel || runtimeConfig.selectedModel,
+      updatedAt: toIsoNow(),
+    };
+    await saveFablabChatRuntimeConfig(nextConfig);
+    setRuntimeConfig(nextConfig);
+  };
+
+  const openSkillEditor = (preset?: SkillPreset) => {
+    setSkillsMenuOpen(false);
+    setEditingSkillId(preset?.id ?? null);
+    if (!preset && activeSkill?.label) {
+      setEditingSkillLabel(`${activeSkill.label} + `);
+    } else {
+      setEditingSkillLabel(preset?.label ?? '');
+    }
+    setEditingSkillInstruction(preset?.instruction ?? '');
+    setIsInstructionFlipped(true);
+  };
+
+  const saveSkillPreset = async () => {
+    const label = editingSkillLabel.trim();
+    if (!label) return;
+    const instruction = editingSkillInstruction.trim();
+    const nextId = editingSkillId || `skill-${Date.now()}`;
+    const nextPresets = editingSkillId
+      ? skillPresets.map((preset) => (preset.id === editingSkillId ? { ...preset, label, instruction } : preset))
+      : [...skillPresets, { id: nextId, label, instruction }];
+
+    setSkillPresets(nextPresets);
+    setActiveSkillId(nextId);
+    await updateRuntimeConfig({
+      systemPrompt: systemInstruction.trim(),
+      skillPresets: nextPresets,
+      activeSkillId: nextId,
+    });
+    setIsInstructionFlipped(false);
+  };
+
+  const applySkillPreset = async (preset: SkillPreset) => {
+    setActiveSkillId(preset.id);
+    setSkillsMenuOpen(false);
+    await updateRuntimeConfig({
+      systemPrompt: systemInstruction.trim(),
+      skillPresets,
+      activeSkillId: preset.id,
+    });
+  };
+
+  useEffect(() => {
+    if (!skillsMenuOpen) return;
+    const handleOutside = (event: MouseEvent) => {
+      if (!skillsMenuRef.current) return;
+      if (!skillsMenuRef.current.contains(event.target as Node)) {
+        setSkillsMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleOutside);
+    return () => document.removeEventListener('mousedown', handleOutside);
+  }, [skillsMenuOpen]);
+
   const effectiveConfig = useMemo(() => {
     if (!runtimeConfig) return null;
     const selectedModel = selectedModelFromSkills(runtimeConfig, skills);
@@ -1121,8 +1205,14 @@ const FablabChatView: React.FC = () => {
       try {
         const state = await loadFablabChatRuntimeState();
         if (cancelled) return;
-        setRuntimeConfig(state.config || null);
-        setSystemInstruction(String(state.config?.systemPrompt || ''));
+        const runtime = state.config || null;
+        setRuntimeConfig(runtime);
+        setSystemInstruction(String(runtime?.systemPrompt || ''));
+        const persistedPresets = Array.isArray((runtime as any)?.skillPresets)
+          ? (runtime as any).skillPresets as SkillPreset[]
+          : DEFAULT_SKILL_PRESETS;
+        setSkillPresets(persistedPresets);
+        setActiveSkillId(String((runtime as any)?.activeSkillId || '') || null);
         const persistedRoleInstruction = String((state.config as any)?.roleInstruction || '');
         const persistedRoleName = String((state.config as any)?.selectedRoleObjectName || '');
         const persistedRoleId = (state.config as any)?.selectedRoleObjectId;
@@ -1288,8 +1378,27 @@ const FablabChatView: React.FC = () => {
     }
   };
 
+  const buildActiveSkillBlock = (instruction?: string | null): string => {
+    const trimmed = String(instruction || '').trim();
+    if (!trimmed) return '';
+    return `[ACTIVE SKILL]\n${trimmed}`;
+  };
+
+  const injectActiveSkill = (base: string, instruction?: string | null): string => {
+    const safeBase = String(base || '').trim();
+    const block = buildActiveSkillBlock(instruction);
+    const markerRegex = /\[ACTIVE SKILL\][\s\S]*?(?=\n{2,}|$)/i;
+    if (!safeBase) return block;
+    if (markerRegex.test(safeBase)) {
+      if (!block) return safeBase.replace(markerRegex, '').trim();
+      return safeBase.replace(markerRegex, block).trim();
+    }
+    if (!block) return safeBase;
+    return `${safeBase}\n\n${block}`;
+  };
+
   const buildSystemPrompt = (): string => {
-    const basePrompt = systemInstruction.trim();
+    const basePrompt = injectActiveSkill(systemInstruction, activeSkill?.instruction);
     const blocks: string[] = [];
 
     if (basePrompt) {
@@ -1430,28 +1539,6 @@ const FablabChatView: React.FC = () => {
       .join('\n');
 
     return { contextText, attachments };
-  };
-
-  const persistSystemInstruction = async () => {
-    if (!runtimeConfig) return;
-
-    const trimmed = systemInstruction.trim();
-    const current = String(runtimeConfig.systemPrompt || '').trim();
-    if (trimmed === current) return;
-
-    try {
-      const nextConfig = {
-        ...runtimeConfig,
-        systemPrompt: trimmed,
-        selectedModel: effectiveConfig?.selectedModel || runtimeConfig.selectedModel,
-        updatedAt: toIsoNow(),
-      };
-      await saveFablabChatRuntimeConfig(nextConfig);
-      setRuntimeConfig(nextConfig);
-      setStatusText('Instruction saved.');
-    } catch (error: any) {
-      setErrorText(error?.message || (t?.fablabChat?.errors?.saveFailed || 'Could not save instruction.'));
-    }
   };
 
   const persistRoleSelection = async (nextRoleObject: ObjectItem | null, nextRoleInstruction: string, nextRoleResetAt?: string) => {
@@ -1595,16 +1682,42 @@ const FablabChatView: React.FC = () => {
   };
 
   const skillItems: Array<{ key: keyof SkillState; label: string; icon: React.ReactNode }> = [
-    { key: 'search', label: t?.fablabChat?.skills?.search || 'Analyze', icon: <Search size={12} /> },
-    { key: 'summarize', label: t?.fablabChat?.skills?.summarize || 'Summary', icon: <MessageSquare size={12} /> },
     { key: 'projectAudit', label: (t as any)?.fablabChat?.skills?.projectAudit || 'Project auditor', icon: <ShieldCheck size={12} /> },
-    { key: 'image', label: t?.fablabChat?.skills?.image || 'Image', icon: <ImageDown size={12} /> },
     { key: 'other', label: (t as any)?.fablabChat?.skills?.video || 'Video/Other', icon: <Video size={12} /> },
     { key: 'audioSynthesis', label: (t as any)?.fablabChat?.skills?.speechSynthesis || 'Speech synth', icon: <Volume2 size={12} /> },
     { key: 'audioTranscription', label: (t as any)?.fablabChat?.skills?.speechTranscription || 'Speech transcript', icon: <Mic size={12} /> },
     { key: 'promptOptimize', label: (t as any)?.fablabChat?.skills?.promptOptimize || 'Prompt optimizer', icon: <Sparkles size={12} /> },
     { key: 'roleOptimize', label: (t as any)?.fablabChat?.skills?.roleOptimize || 'Role optimizer', icon: <Wand2 size={12} /> },
   ];
+
+  const renderQuickSkillButtons = () => (
+    <>
+      <button
+        type="button"
+        onClick={() => toggleSkill('search')}
+        className={`fablab-skill-toggle ${skills.search ? 'is-active' : ''}`}
+      >
+        <Search size={14} />
+        <span>{t?.fablabChat?.skills?.search || 'Busqueda'}</span>
+      </button>
+      <button
+        type="button"
+        onClick={() => toggleSkill('summarize')}
+        className={`fablab-skill-toggle ${skills.summarize ? 'is-active' : ''}`}
+      >
+        <MessageSquare size={14} />
+        <span>{t?.fablabChat?.skills?.summarize || 'Resumen'}</span>
+      </button>
+      <button
+        type="button"
+        onClick={() => toggleSkill('image')}
+        className={`fablab-skill-toggle ${skills.image ? 'is-active' : ''}`}
+      >
+        <ImageDown size={14} />
+        <span>{t?.fablabChat?.skills?.image || 'Imagen'}</span>
+      </button>
+    </>
+  );
 
   const renderProjectAuditWizard = () => {
     if (!skills.projectAudit) return null;
@@ -1785,19 +1898,70 @@ const FablabChatView: React.FC = () => {
     );
   };
 
-  const renderSkillsDropdown = () => {
+  const renderSkillsMenu = () => {
+    return (
+      <div className="fablab-skill-menu" ref={skillsMenuRef}>
+        <button
+          type="button"
+          onClick={() => setSkillsMenuOpen((prev) => !prev)}
+          className="fablab-header-action-btn fablab-header-instruction-btn"
+        >
+          <Wand2 size={14} />
+          <span className="fablab-header-action-text">
+            {activeSkill ? `Skills · ${activeSkill.label}` : 'Skills'}
+          </span>
+        </button>
+
+        {skillsMenuOpen && (
+          <div className="fablab-skill-menu-panel">
+            <p className="fablab-skill-menu-title">Selecciona un perfil</p>
+            <div className="fablab-skill-menu-list">
+              {skillPresets.map((preset) => (
+                <div key={preset.id} className={`fablab-skill-menu-row ${preset.id === activeSkillId ? 'is-active' : ''}`}>
+                  <button
+                    type="button"
+                    onClick={() => applySkillPreset(preset)}
+                    className="fablab-skill-menu-item"
+                  >
+                    {preset.label}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => openSkillEditor(preset)}
+                    className="fablab-skill-menu-edit"
+                  >
+                    <Pencil size={12} />
+                  </button>
+                </div>
+              ))}
+            </div>
+            <button
+              type="button"
+              onClick={() => openSkillEditor()}
+              className="fablab-skill-menu-add"
+            >
+              <Plus size={12} />
+              Agregar nueva
+            </button>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const renderComplementsDropdown = () => {
     return (
       <div className="relative">
         <button
           type="button"
-          onClick={() => setSkillsMenuOpen((prev) => !prev)}
+          onClick={() => setComplementsMenuOpen((prev) => !prev)}
           className="inline-flex items-center gap-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-700 transition-colors hover:border-slate-400 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200"
         >
-          <Plus size={14} className={`transition-transform ${skillsMenuOpen ? 'rotate-45' : 'rotate-0'}`} />
-          <span>Skills</span>
+          <Plus size={14} className={`transition-transform ${complementsMenuOpen ? 'rotate-45' : 'rotate-0'}`} />
+          <span>Complementos</span>
         </button>
 
-        {skillsMenuOpen && (
+        {complementsMenuOpen && (
           <div className="absolute bottom-full left-0 z-20 mb-2 w-72 rounded-xl border border-slate-200 bg-white p-2 shadow-xl dark:border-slate-700 dark:bg-slate-900">
             <p className="px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
               Habilita modos
@@ -1974,6 +2138,10 @@ const FablabChatView: React.FC = () => {
       let latencyMs = 0;
 
       const requestChatFallback = async () => {
+        console.log('[FablabChat] Chat payload', {
+          systemPrompt: effectiveSystemPrompt,
+          messages: providerMessages,
+        });
         const response = await providerChat({
           provider: runtimeSelection.provider,
           apiKey: runtimeSelection.apiKey,
@@ -2292,10 +2460,13 @@ const FablabChatView: React.FC = () => {
         <header className="fablab-chat-header">
           <div className="fablab-header-top">
             <div className="fablab-header-title">
-              <h1 className="fablab-header-title-text">
-                <Sparkles size={18} />
-                {t?.fablabChat?.title || 'Fablab Chat'}
-              </h1>
+              <div className="fablab-header-title-row">
+                {renderSkillsMenu()}
+                <h1 className="fablab-header-title-text">
+                  <Sparkles size={18} />
+                  {t?.fablabChat?.title || 'Fablab Chat'}
+                </h1>
+              </div>
               <p className="fablab-header-subtitle">
                 {runtimeSelection
                   ? `${runtimeSelection.provider} - ${selectedModelLabel || runtimeSelection.modelId}`
@@ -2438,16 +2609,8 @@ const FablabChatView: React.FC = () => {
 
                 <div className="fablab-input-buttons">
                   <div className="fablab-skill-buttons">
-                    {renderSkillsDropdown()}
-
-                    <button
-                      type="button"
-                      onClick={() => setIsInstructionFlipped((prev) => !prev)}
-                      className="fablab-header-action-btn"
-                    >
-                      <Wand2 size={14} />
-                      <span className="fablab-header-action-text">{isInstructionFlipped ? 'Hide' : 'Instruction'}</span>
-                    </button>
+                    {renderComplementsDropdown()}
+                    {renderQuickSkillButtons()}
 
                     <button
                       type="button"
@@ -2681,16 +2844,8 @@ const FablabChatView: React.FC = () => {
 
               <div className="fablab-input-buttons">
                 <div className="fablab-skill-buttons">
-                  {renderSkillsDropdown()}
-
-                  <button
-                    type="button"
-                    onClick={() => setIsInstructionFlipped((prev) => !prev)}
-                    className="fablab-header-action-btn"
-                  >
-                    <Wand2 size={14} />
-                    <span className="fablab-header-action-text">{isInstructionFlipped ? 'Hide' : 'Instruction'}</span>
-                  </button>
+                  {renderComplementsDropdown()}
+                  {renderQuickSkillButtons()}
 
                   <button
                     type="button"
@@ -2848,10 +3003,10 @@ const FablabChatView: React.FC = () => {
               <div className="fablab-header-title">
                 <h1 className="fablab-header-title-text">
                   <Wand2 size={18} />
-                  Instruction Editor
+                  Skills Editor
                 </h1>
                 <p className="fablab-header-subtitle">
-                  Define global behavior rules for the assistant
+                  Edita la instruccion del perfil seleccionado
                 </p>
               </div>
 
@@ -2869,33 +3024,41 @@ const FablabChatView: React.FC = () => {
           </div>
 
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 'var(--space-lg)', padding: 'var(--space-xl)' }}>
-            <p>
-              Behavior instruction (separate from role and prompt)
-            </p>
-            <textarea
-              value={systemInstruction}
-              onChange={(event) => setSystemInstruction(event.target.value)}
-              onBlur={() => {
-                void persistSystemInstruction();
-              }}
-              rows={10}
-              placeholder="Define global behavior rules for the assistant..."
-              style={{
-                width: '100%',
-                padding: 'var(--space-md)',
-                borderRadius: '12px',
-                border: '1px solid rgba(255, 255, 255, 0.5)',
-                background: 'rgba(255, 255, 255, 0.6)',
-                backdropFilter: 'blur(4px)',
-                fontSize: 'var(--font-size-base)',
-                color: '#1e293b',
-                resize: 'vertical',
-                transition: 'all 0.2s ease'
-              }}
-            />
-            <p>
-              Role = identity/behavior priority. Prompt = task template inserted into the composer.
-            </p>
+            <div className="fablab-skill-editor-field">
+              <label>Nombre del skill</label>
+              <input
+                value={editingSkillLabel}
+                onChange={(event) => setEditingSkillLabel(event.target.value)}
+                placeholder="Ej: Ingeniero de software"
+                className="fablab-skill-editor-input"
+              />
+            </div>
+            <div className="fablab-skill-editor-field">
+              <label>Instruccion</label>
+              <textarea
+                value={editingSkillInstruction}
+                onChange={(event) => setEditingSkillInstruction(event.target.value)}
+                rows={10}
+                placeholder="Describe la instruccion del skill..."
+                className="fablab-skill-editor-textarea"
+              />
+            </div>
+            <div className="fablab-skill-editor-actions">
+              <button
+                type="button"
+                onClick={() => setIsInstructionFlipped(false)}
+                className="fablab-header-action-btn"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={() => void saveSkillPreset()}
+                className="fablab-header-action-btn"
+              >
+                Guardar skill
+              </button>
+            </div>
           </div>
         </div>
       </div>
