@@ -8,6 +8,7 @@ type GenericObjectSelectorProps = {
   type: ObjectType;
   product_type_for_assembly?: string;
   module_name_for_assembly?: string;
+  fileExtension?: string; // Filter by file extension (e.g., '.md')
   onObjectSelectionCallback: (object: ObjectItem) => void;
   currentSelection?: {
     id: string | number;
@@ -19,6 +20,7 @@ export const GenericObjectSelector: React.FC<GenericObjectSelectorProps> = ({
   type,
   product_type_for_assembly,
   module_name_for_assembly,
+  fileExtension,
   onObjectSelectionCallback,
   currentSelection,
 }) => {
@@ -27,6 +29,18 @@ export const GenericObjectSelector: React.FC<GenericObjectSelectorProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [currentSelected, setCurrentSelected] = useState<typeof currentSelection | null>(null);
   const { t } = useLanguage();
+
+  // Filter objects by file extension if specified
+  const filteredObjects = useMemo(() => {
+    if (!fileExtension) return objects;
+    const normalizedExtension = fileExtension.toLowerCase();
+    return objects.filter((obj) => {
+      const candidates = [obj.name, obj.title, obj.relative_path, obj.url]
+        .filter(Boolean)
+        .map((value) => value!.toLowerCase());
+      return candidates.some((value) => value.endsWith(normalizedExtension));
+    });
+  }, [objects, fileExtension]);
 
   const queryParams: GetObjectsParams = useMemo(
     () => ({
@@ -109,13 +123,15 @@ export const GenericObjectSelector: React.FC<GenericObjectSelectorProps> = ({
         </div>
       )}
 
-      {!isLoading && !error && objects.length === 0 && (
+      {!isLoading && !error && filteredObjects.length === 0 && (
         <div className="text-sm text-gray-600 dark:text-gray-300">
-          {t?.genericObjectSelector?.emptyTypeOnly ?? 'No objects found for this type.'}
+          {fileExtension 
+            ? `No objects found with extension ${fileExtension}`
+            : (t?.genericObjectSelector?.emptyTypeOnly ?? 'No objects found for this type.')}
         </div>
       )}
       <ul className="divide-y divide-gray-200 rounded-md border border-gray-100 dark:divide-gray-800 dark:border-gray-800">
-        {objects.map((object) => (
+        {filteredObjects.map((object) => (
           <li
             key={object.id}
             className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-800"

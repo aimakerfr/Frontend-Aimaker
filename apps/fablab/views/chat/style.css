@@ -307,53 +307,95 @@
   font-weight: 500;
 }
 
-/* Skill detected badge */
-.fablab-skill-detected-badge {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
+.fablab-input-with-overlay {
+  position: relative;
+}
+
+.fablab-input-highlight-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  color: #1e293b;
+  font-size: var(--font-size-base);
+  line-height: 1.5;
+  padding: var(--space-md);
+  overflow: hidden;
+}
+
+.fablab-input-overlay {
+  position: relative;
+  background: transparent;
+  color: transparent;
+  caret-color: #0f172a;
+}
+
+.fablab-input-overlay::placeholder {
+  color: #94a3b8;
+}
+
+.fablab-input-skill-highlight {
+  color: #2563eb;
+  text-decoration: underline;
+  font-weight: 600;
+}
+
+.fablab-skill-dropdown {
+  position: absolute;
+  left: 0;
+  bottom: 100%;
+  width: 100%;
+  max-height: 180px;
+  overflow: auto;
+  border-radius: 12px;
+  background: #ffffff;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.15);
+  z-index: 10;
+}
+
+.fablab-skill-dropdown-header {
   padding: 0.5rem 0.75rem;
-  margin: 0.5rem 0;
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(139, 92, 246, 0.15));
-  border: 1px solid rgba(59, 130, 246, 0.3);
-  border-radius: 8px;
-  font-size: 0.85rem;
-  color: #1e40af;
-  animation: fablab-skill-badge-in 0.3s ease-out;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #64748b;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.2);
 }
 
-@keyframes fablab-skill-badge-in {
-  from {
-    opacity: 0;
-    transform: translateY(-5px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+.fablab-skill-dropdown-list {
+  list-style: none;
+  margin: 0;
+  padding: 0.25rem 0;
 }
 
-.fablab-skill-detected-icon {
-  font-size: 1rem;
+.fablab-skill-dropdown-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: #0f172a;
 }
 
-.fablab-skill-detected-text {
-  font-weight: 500;
+.fablab-skill-dropdown-item:hover,
+.fablab-skill-dropdown-item.active {
+  background: rgba(59, 130, 246, 0.12);
 }
 
-.fablab-skill-detected-text strong {
+.fablab-skill-dropdown-name {
+  font-weight: 600;
   color: #2563eb;
   font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
-  background: rgba(59, 130, 246, 0.15);
-  padding: 2px 6px;
-  border-radius: 4px;
 }
 
-.fablab-skill-detected-hint {
-  margin-left: auto;
+.fablab-skill-dropdown-preview {
   color: #64748b;
   font-size: 0.75rem;
-  max-width: 200px;
+  max-width: 55%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

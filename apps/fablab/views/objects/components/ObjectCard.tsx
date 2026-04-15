@@ -48,7 +48,9 @@ const ObjectCard: React.FC<ObjectCardProps> = ({
 }) => {
   const canView = !!item.url || !!(item as any).data;
   const canDownload = !!item.url || !!(item as any).relative_path || (item as any).data !== undefined;
-  const typeKey = (item.type || 'DEFAULT').toString().toUpperCase();
+  const rawTypeKey = (item.type || 'DEFAULT').toString().toUpperCase();
+  const isMarkdown = (item.name || '').toLowerCase().endsWith('.md');
+  const typeKey = isMarkdown ? 'MD' : rawTypeKey;
   const cfg = TYPE_CONFIG[typeKey] || TYPE_CONFIG.DEFAULT;
   const typeLabels = labels?.typeLabels || {};
   const typeLabelMap: Record<string, string> = {
@@ -59,6 +61,7 @@ const ObjectCard: React.FC<ObjectCardProps> = ({
     VIDEO: typeLabels.video || 'Video',
     AUDIO: typeLabels.audio || 'Audio',
     JSON: typeLabels.json || 'JSON',
+    MD: 'MD',
     DEFAULT: typeLabels.file || 'File',
   };
   const typeLabel = typeLabelMap[typeKey] || typeLabelMap.DEFAULT;
