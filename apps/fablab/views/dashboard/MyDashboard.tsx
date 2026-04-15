@@ -14,6 +14,7 @@ const FIXED_PRODUCT_TYPES = new Set([
   'api_key_maker',
   'api_key_html_injector',
   'profile_b2b_maker',
+  'suivi_demandes_maker',
 ]);
 
 const getProductTimestamp = (product: Product): number => {
@@ -101,6 +102,7 @@ const MyDashboard: React.FC<MyDashboardProps> = ({ hideHeader = false, compact =
       api_key_maker: 'api-key',
       api_key_html_injector: 'api-key-html',
       profile_b2b_maker: 'profile-b2b',
+      suivi_demandes_maker: 'suivi-demandes',
       architect_ai: 'notebook',
       module_connector: 'notebook',
       custom: 'notebook',

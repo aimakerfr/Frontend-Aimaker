@@ -181,4 +181,13 @@ export const ApiCostManagerEntry = () => (
   />
 );
 
+export const SuiviDemandesEntry = () => (
+  <FixedProductEntry
+    type="suivi_demandes_maker"
+    route="suivi-demandes"
+    title="Suivi des Demandes"
+    description="Seguimiento de demandas con gestion de personas, tareas y estados en tiempo real."
+  />
+);
+
 export default FixedProductEntry;

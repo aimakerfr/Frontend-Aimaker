@@ -66,7 +66,7 @@ const ProductsView: React.FC<ProductsViewProps> = ({
   const [notebookTitle, setNotebookTitle] = useState('');
   const [notebookDescription, setNotebookDescription] = useState('');
   const [createError, setCreateError] = useState<string | null>(null);
-  const FIXED_TYPES: ProductType[] = ['landing_page_maker', 'image_generator_rag', 'translation_maker', 'style_transfer_maker', 'api_key_maker', 'api_key_html_injector', 'profile_b2b_maker', 'api_cost_manager', 'perplexity_search', 'prompt_optimizer', 'creation_path'];
+  const FIXED_TYPES: ProductType[] = ['landing_page_maker', 'image_generator_rag', 'translation_maker', 'style_transfer_maker', 'api_key_maker', 'api_key_html_injector', 'profile_b2b_maker', 'api_cost_manager', 'perplexity_search', 'prompt_optimizer', 'creation_path', 'suivi_demandes_maker'];
   
   // Function to get the correct route based on product type
   const getProductRoute = (type: string, id: number): string => {
@@ -83,6 +83,7 @@ const ProductsView: React.FC<ProductsViewProps> = ({
       'perplexity_search': 'perplexity-search',
       'prompt_optimizer': 'prompt-optimizer',
       'creation_path': 'creation-path',
+      'suivi_demandes_maker': 'suivi-demandes',
       'app': 'app',
       'architect_ai': 'notebook', // Default to notebook until specific route is created
       'module_connector': 'notebook', // Default to notebook until specific route is created
@@ -204,6 +205,7 @@ const ProductsView: React.FC<ProductsViewProps> = ({
       'perplexity_search': (t.products.fixed as any).perplexitySearchTitle || 'Búsqueda Perplexity',
       'prompt_optimizer': (t.products.fixed as any).promptOptimizerTitle || 'Optimizador de Prompt',
       'creation_path': (t.products.fixed as any).creationPathTitle || 'Creation-Path',
+      'suivi_demandes_maker': (t.products.fixed as any).suiviDemandesTitle || 'Suivi des Demandes',
       'app': t.products.appTypeLabel || 'App',
       'custom': 'Custom'
     };
@@ -226,6 +228,7 @@ const ProductsView: React.FC<ProductsViewProps> = ({
       'perplexity_search': 'bg-gradient-to-br from-blue-500 to-sky-600',
       'prompt_optimizer': 'bg-gradient-to-br from-indigo-500 to-purple-600',
       'creation_path': 'bg-gradient-to-br from-emerald-500 to-green-600',
+      'suivi_demandes_maker': 'bg-gradient-to-br from-cyan-600 to-blue-700',
       'app': 'bg-gradient-to-br from-emerald-500 to-teal-600',
       'custom': 'bg-gradient-to-br from-gray-500 to-gray-600'
     };
@@ -530,6 +533,11 @@ const Products = () => {
           type: 'creation_path',
           title: (t.products.fixed as any).creationPathTitle || 'Creation-Path',
           description: (t.products.fixed as any).creationPathDesc || 'Ruta de creación guiada paso a paso con asistencia de IA.'
+        },
+        {
+          type: 'suivi_demandes_maker',
+          title: (t.products.fixed as any).suiviDemandesTitle || 'Suivi des Demandes',
+          description: (t.products.fixed as any).suiviDemandesDesc || 'Seguimiento de demandas con gestion de personas, tareas y estados.'
         },
       ];
 
