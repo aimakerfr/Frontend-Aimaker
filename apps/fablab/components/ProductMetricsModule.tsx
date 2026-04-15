@@ -17,6 +17,7 @@ const FIXED_PRODUCT_TYPES = new Set([
   'api_key_maker',
   'api_key_html_injector',
   'profile_b2b_maker',
+  'suivi_demandes_maker',
 ]);
 
 const toTimestamp = (value: string | null | undefined): number => {

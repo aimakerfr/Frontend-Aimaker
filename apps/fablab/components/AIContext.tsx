@@ -33,6 +33,7 @@ const FIXED_TYPES: ProductType[] = [
   'perplexity_search',
   'prompt_optimizer',
   'creation_path',
+  'suivi_demandes_maker',
 ];
 
 const SERVER_TOOLS: ServerTool[] = [
@@ -80,6 +81,7 @@ const getProductRoute = (type: ProductType, id: number): string => {
     perplexity_search: 'perplexity-search',
     prompt_optimizer: 'prompt-optimizer',
     creation_path: 'creation-path',
+    suivi_demandes_maker: 'suivi-demandes',
     app: 'app',
     architect_ai: 'notebook',
     module_connector: 'notebook',
@@ -112,6 +114,7 @@ const getTypeColor = (type: ProductType): string => {
     perplexity_search: 'bg-gradient-to-br from-blue-500 to-sky-600',
     prompt_optimizer: 'bg-gradient-to-br from-indigo-500 to-purple-600',
     creation_path: 'bg-gradient-to-br from-emerald-500 to-green-600',
+    suivi_demandes_maker: 'bg-gradient-to-br from-cyan-600 to-blue-700',
   };
 
   return colorMap[type] || 'bg-gradient-to-br from-gray-500 to-gray-600';
@@ -186,6 +189,11 @@ const AIContext: React.FC = () => {
           type: 'creation_path',
           title: (t.products.fixed as any).creationPathTitle || 'Creation-Path',
           description: (t.products.fixed as any).creationPathDesc || 'Ruta de creación guiada paso a paso con asistencia de IA.',
+        },
+        {
+          type: 'suivi_demandes_maker',
+          title: (t.products.fixed as any).suiviDemandesTitle || 'Suivi des Demandes',
+          description: (t.products.fixed as any).suiviDemandesDesc || 'Seguimiento de demandas con gestion de personas, tareas y estados.',
         },
       ];
 
@@ -276,6 +284,7 @@ const AIContext: React.FC = () => {
     if (item.type === 'api_cost_manager') return (t.products.fixed as any).apiCostManagerTitle || 'Gestor de costos API';
     if (item.type === 'prompt_optimizer') return (t.products.fixed as any).promptOptimizerTitle || 'Optimizador de Prompt';
     if (item.type === 'creation_path') return (t.products.fixed as any).creationPathTitle || 'Creation-Path';
+    if (item.type === 'suivi_demandes_maker') return (t.products.fixed as any).suiviDemandesTitle || 'Suivi des Demandes';
     return item.title || item.type;
   };
 
@@ -291,6 +300,7 @@ const AIContext: React.FC = () => {
     if (item.type === 'api_cost_manager') return (t.products.fixed as any).apiCostManagerDesc || 'Analiza costos, modelos disponibles e historial de reportes de una API key.';
     if (item.type === 'prompt_optimizer') return (t.products.fixed as any).promptOptimizerDesc || 'Optimiza tus prompts con IA.';
     if (item.type === 'creation_path') return (t.products.fixed as any).creationPathDesc || 'Ruta de creación guiada paso a paso.';
+    if (item.type === 'suivi_demandes_maker') return (t.products.fixed as any).suiviDemandesDesc || 'Seguimiento de demandas con gestion de personas, tareas y estados.';
     return item.description || '';
   };
 
