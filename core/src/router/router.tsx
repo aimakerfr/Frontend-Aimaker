@@ -23,11 +23,12 @@ import ApiKeyInspectorView from '@apps/fablab/views/product/ApiKeyInspectorView'
 import ApiKeyHtmlInjectionView from '@apps/fablab/views/product/ApiKeyHtmlInjectionView';
 import ProfileB2BView from '@apps/fablab/views/product/ProfileB2BView';
 import ApiKeyManager from '@apps/fablab/views/api-proxy/ApiKeyManager';
-import { LandingPageEntry, ImageGeneratorEntry, TranslationEntry, StyleTransferEntry, ApiKeyEntry, ApiKeyHtmlInjectionEntry, ProfileB2BEntry, PerplexitySearchEntry, PromptOptimizerEntry, ApiCostManagerEntry } from '@apps/fablab/views/product/FixedProductEntry';
+import { LandingPageEntry, ImageGeneratorEntry, TranslationEntry, StyleTransferEntry, ApiKeyEntry, ApiKeyHtmlInjectionEntry, ProfileB2BEntry, PerplexitySearchEntry, PromptOptimizerEntry, ApiCostManagerEntry, SuiviDemandesEntry } from '@apps/fablab/views/product/FixedProductEntry';
 import PromptOptimizerView from '@apps/fablab/views/product/PromptOptimizerView';
 import PerplexitySearchView from '@apps/fablab/views/product/PerplexitySearchView';
 import CreationPathView from '@apps/fablab/views/product/CreationPathView';
 import ApiCostManagerView from '@apps/fablab/views/product/ApiCostManagerView';
+import SuiviDemandesView from '@apps/fablab/views/product/SuiviDemandesView';
 import TemplateSelector from '@apps/frontend_template_visualizer/components/TemplateSelector';
 import PublicPromptDetails from '@apps/fablab/views/public/prompt/PublicPromptDetails';
 import PublicAssistantDetails from '@apps/fablab/views/public/assistant/PublicAssistantDetails';
@@ -255,6 +256,14 @@ export function AppRouter() {
             </ProtectedRoute>
           }
         />
+        <Route
+          path="/product/suivi-demandes"
+          element={
+            <ProtectedRoute>
+              <SuiviDemandesEntry />
+            </ProtectedRoute>
+          }
+        />
         
         {/* Public Landing Page Product View */}
         <Route path="/product/landing-page/:id" element={<LandingPageView />} />
@@ -283,6 +292,7 @@ export function AppRouter() {
           }
         />
         <Route path="/product/api-cost/:id" element={<ApiCostManagerView />} />
+        <Route path="/product/suivi-demandes/:id" element={<SuiviDemandesView />} />
         
         {/* Public Prompt - No auth required, read-only (config view) */}
         <Route path="/public/prompt/:id" element={<PublicPromptWrapper />} />
