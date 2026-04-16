@@ -6,7 +6,9 @@ type RoleEditorProps = {
   editingSkillInstruction: string;
   setEditingSkillInstruction: (value: string) => void;
   buildSystemPrompt: () => string;
-  saveSkillPreset: () => void;
+  saveRolePreset: () => void;
+  onOpenImportModal?: () => void;
+  importSourceLabel?: string;
   closeFlip: () => void;
 };
 
@@ -16,7 +18,9 @@ const RoleEditor = ({
   editingSkillInstruction,
   setEditingSkillInstruction,
   buildSystemPrompt,
-  saveSkillPreset,
+  saveRolePreset,
+  onOpenImportModal,
+  importSourceLabel,
   closeFlip,
 }: RoleEditorProps) => {
   return (
@@ -41,6 +45,22 @@ const RoleEditor = ({
       </div>
 
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 'var(--space-lg)', padding: 'var(--space-xl)' }}>
+        <div className="fablab-skill-editor-field">
+          <label>Opciones</label>
+          <button
+            type="button"
+            onClick={() => onOpenImportModal?.()}
+            className="fablab-header-action-btn"
+            style={{ width: '100%', justifyContent: 'center' }}
+          >
+            Importar desde libreria de objetos
+          </button>
+          {importSourceLabel && (
+            <div style={{ padding: '8px', background: 'rgba(59, 130, 246, 0.1)', borderRadius: '6px', marginTop: '10px', fontSize: '0.85rem' }}>
+              Importando desde: {importSourceLabel}
+            </div>
+          )}
+        </div>
         <div className="fablab-skill-editor-field">
           <label>Nombre del rol</label>
           <input
@@ -79,7 +99,7 @@ const RoleEditor = ({
           </button>
           <button
             type="button"
-            onClick={() => void saveSkillPreset()}
+            onClick={() => void saveRolePreset()}
             className="fablab-header-action-btn fablab-header-action-btn-primary"
           >
             Guardar rol

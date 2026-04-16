@@ -49,14 +49,19 @@ import {
   saveFablabChatConversation,
   saveFablabChatRuntimeConfig,
   saveFablabChatStats,
+  type FablabChatAttachment,
   type FablabChatMessage,
   type FablabChatRuntimeConfig,
   type FablabChatRuntimeState,
 } from '@core/fablab-chat';
 import {
+  getChatRoles,
   getChatSkills,
+  createChatRole,
   createChatSkill,
+  updateChatRole,
   updateChatSkill,
+  deleteChatRole,
   deleteChatSkill,
   type ChatSkill,
 } from '@core/chat-skills';
@@ -91,13 +96,13 @@ type SkillState = {
   roleOptimize: boolean;
 };
 
+type PendingAttachment = FablabChatAttachment & {
+  file?: File;
+};
+
 type SourceMode = 'context' | 'role' | 'prompt' | null;
 
-type SkillPreset = {
-  id: string;
-  label: string;
-  instruction: string;
-};
+type RolePreset = ChatSkill;
 
 type ProviderAttachment = NonNullable<ProviderChatMessage['attachments']>[number];
 
@@ -185,43 +190,82 @@ const FILE_RESPONSE_META_LINE_REGEX = /^(te he generado|he generado|archivo gene
 const CLARITY_QUESTIONS_BLOCK_REGEX = /\[CLARITY_QUESTIONS\]([\s\S]*?)\[\/CLARITY_QUESTIONS\]/i;
 const CLARITY_QUESTION_PREFIX_REGEX = /^([-_*]|\d+[.)]|[a-zA-Z][.)])\s+/;
 
-const DEFAULT_SKILL_PRESETS: SkillPreset[] = [
+const DEFAULT_ROLE_PRESETS: Array<{ name: string; instruction: string }> = [
   {
-    id: 'software-engineer',
-    label: 'Ingeniero de software',
-    instruction: 'Actua como un ingeniero de software senior. Prioriza arquitectura, buenas practicas, mantenibilidad y ejemplos concretos de implementacion.',
+    name: 'Ingeniero de software',
+    instruction: 'Responde como un ingeniero de software experto. Prioriza mejores practicas, arquitectura, y soluciones robustas. Explica paso a paso tu razonamiento y si hay tradeoffs, muestralos con claridad.',
   },
   {
-    id: 'mathematician',
-    label: 'Matematico',
-    instruction: 'Responde con rigor matematico. Explica supuestos, formulas y pasos de manera clara y precisa.',
+    name: 'Product Designer',
+    instruction: 'Responde como un product designer senior. Enfatiza experiencia de usuario, flujo, claridad, y como el producto se siente. Incluye consideraciones de UI/UX y ejemplos concretos.',
   },
   {
-    id: 'artist',
-    label: 'Artista',
+    name: 'Marketing Strategist',
+    instruction: 'Responde como un estratega de marketing. Enfoca en posicionamiento, audiencia, canales, growth, y narrativa. Entrega ideas accionables y orientadas a resultados.',
+  },
+  {
+    name: 'Business Analyst',
+    instruction: 'Responde como un analista de negocios. Prioriza datos, viabilidad, riesgos, costos y proyecciones. Presenta la informacion de forma estructurada y con supuestos claros.',
+  },
+  {
+    name: 'Project Manager',
+    instruction: 'Responde como un project manager. Organiza la informacion en planes de accion, milestones, riesgos y responsabilidades. Enfoca en ejecucion y seguimiento.',
+  },
+  {
+    name: 'Copywriter',
+    instruction: 'Responde como un copywriter experto. Enfoca en claridad, persuasion, tono, y mensajes concisos. Ofrece versiones alternativas cuando sea relevante.',
+  },
+  {
+    name: 'Mentor',
+    instruction: 'Responde como un mentor paciente y didactico. Explica conceptos con ejemplos simples y guia al usuario paso a paso, evitando tecnicismos innecesarios.',
+  },
+  {
+    name: 'QA Engineer',
+    instruction: 'Responde como un ingeniero de QA. Enfoca en calidad, testing, casos borde, validaciones y procesos para asegurar robustez.',
+  },
+  {
+    name: 'Artista',
     instruction: 'Responde con enfoque creativo y sensorial. Propone ideas originales, estilo, color y referencias artisticas cuando aplique.',
   },
   {
-    id: 'philosopher',
-    label: 'Filosofo',
+    name: 'Filosofo',
     instruction: 'Responde con mirada filosofica y critica. Explora dilemas, fundamentos y perspectivas historicas cuando sea relevante.',
   },
   {
-    id: 'tony-stark',
-    label: 'Tony Stark',
+    name: 'Tony Stark',
     instruction: 'Actua como Tony Stark (Iron Man).\n\nPERSONALIDAD:\n- Arrogante, carismatico y auto-consciente de tu genialidad\n- Usas humor sarcastico y referencias pop culture\n- Confias en la tecnologia y la IA sobre todo lo demas\n\nESTILO DE LENGUAJE:\n- Frases como "I am Iron Man", "Genius, billionaire, playboy, philanthropist"\n- Tecnologias futuristas: JARVIS, nanotecnologia, arc reactor\n- Comparas todo con ingenieria Stark Industries\n\nTONO:\n- Confiado hasta el limite de la arrogancia (pero con razon)\n- Transformas problemas complejos en soluciones elegantes\n- Siempre buscas optimizar y mejorar\n\nFORMATO:\n- Inicia con una observacion brillante\n- Desarrolla la solucion paso a paso\n- Termina con un comentario ingenioso o referencia tecnologica',
   },
   {
-    id: 'dr-house',
-    label: 'Dr. Gregory House',
+    name: 'Dr. Gregory House',
     instruction: 'Actua como el Dr. Gregory House de House M.D.\n\nPERSONALIDAD:\n- Cinico, sarcastico y brutalmente honesto\n- Odias las reglas, la burocracia y las emociones exageradas\n- Eres un genio que ve conexiones donde otros no ven nada\n- Tienes dolor cronico en la pierna (mencionalo solo si es relevante)\n\nESTILO DE LENGUAJE:\n- Frases iconicas: "Everybody lies", "It\'s never lupus", "You\'re an idiot"\n- Interrumpes con preguntas incisivas cuando algo no cuadra\n- Diagnostico rapido y preciso, aunque ofenda\n\nTONO:\n- Directo, sin filtros, sin empatia fingida\n- Priorizas la verdad sobre los sentimientos\n- Humor negro y cinismo constante\n\nFORMATO:\n- Inicia con una observacion aguda sobre el problema\n- Desarrolla tu "diagnostico" paso a paso\n- Termina con una conclusion pragmatica o comentario cinico',
   },
   {
-    id: 'sherlock-holmes',
-    label: 'Sherlock Holmes',
+    name: 'Sherlock Holmes',
     instruction: 'Actua como Sherlock Holmes (version moderna o clasica).\n\nPERSONALIDAD:\n- Observador extremo, ves detalles que otros pasan por alto\n- Racional, logico, desprecias las emociones en el razonamiento\n- Aburrimiento rapido con lo obvio, excitacion por lo complejo\n\nESTILO DE LENGUAJE:\n- Deducciones rapidas: "Elemental, mi querido Watson" (o version moderna)\n- Explicas tu cadena de pensamiento paso a paso\n- Vocabulario preciso y occasionalmente ostentoso\n\nTONO:\n- Intelectualmente superior pero no malicioso\n- Impaciente con la mediocridad\n- Fascinado por los puzzles y misterios\n\nFORMATO:\n- Inicia con una deduccion sorprendente sobre el problema\n- Desarrolla tu razonamiento deductivo\n- Concluye con la solucion logica\n- Ocacionalmente menciona tu metodo cientifico',
   },
 ];
+
+const DEFAULT_ROLE_NAMES = new Set(DEFAULT_ROLE_PRESETS.map((preset) => preset.name));
+
+const guessObjectTypeFromFile = (file: File): string => {
+  const name = file.name.toLowerCase();
+  const ext = name.includes('.') ? name.split('.').pop() || '' : '';
+
+  if (ext === 'md') return 'MD';
+  if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'tiff', 'svg'].includes(ext)) return 'IMAGE';
+  if (['mp4', 'mov', 'avi', 'mpeg', 'mpg', 'webm'].includes(ext)) return 'VIDEO';
+  if (['html', 'htm'].includes(ext)) return 'HTML';
+  if (['js', 'ts', 'tsx', 'jsx', 'py', 'java', 'cs', 'php', 'rb', 'go', 'rs'].includes(ext)) return 'CODE';
+  if (['json'].includes(ext)) return 'TRANSLATION';
+  if (['yaml', 'yml', 'env', 'ini', 'toml'].includes(ext)) return 'CONFIG';
+  return 'DOC';
+};
+
+const getFileBaseName = (fileName: string): string => {
+  if (!fileName) return 'archivo';
+  const idx = fileName.lastIndexOf('.');
+  return idx > 0 ? fileName.slice(0, idx) : fileName;
+};
 
 type ClarityQuestionParseResult = {
   question: string;
@@ -1023,11 +1067,12 @@ const FablabChatController: React.FC = () => {
   const [isInstructionFlipped, setIsInstructionFlipped] = useState(false);
   const [skillsMenuOpen, setSkillsMenuOpen] = useState(false);
   const [complementsMenuOpen, setComplementsMenuOpen] = useState(false);
-  const [skillPresets, setSkillPresets] = useState<SkillPreset[]>(DEFAULT_SKILL_PRESETS);
-  const [activeSkillId, setActiveSkillId] = useState<string | null>(null);
+  const [rolePresets, setRolePresets] = useState<RolePreset[]>([]);
+  const [activeRoleId, setActiveRoleId] = useState<number | null>(null);
+  const [editingRole, setEditingRole] = useState<RolePreset | null>(null);
 
-  const isDefaultSkill = (presetId: string): boolean => {
-    return DEFAULT_SKILL_PRESETS.some((d) => d.id === presetId);
+  const isDefaultRole = (preset: RolePreset): boolean => {
+    return DEFAULT_ROLE_NAMES.has(preset.name);
   };
   const [editingSkillLabel, setEditingSkillLabel] = useState('');
   const [editingSkillInstruction, setEditingSkillInstruction] = useState('');
@@ -1042,6 +1087,13 @@ const FablabChatController: React.FC = () => {
   const [newChatSkillSourceType, setNewChatSkillSourceType] = useState<'manual' | 'object'>('manual');
   const [newChatSkillObjectId, setNewChatSkillObjectId] = useState<number | null>(null);
   const [skillImportModalOpen, setSkillImportModalOpen] = useState(false);
+  const [newRoleSourceType, setNewRoleSourceType] = useState<'manual' | 'object'>('manual');
+  const [newRoleObjectId, setNewRoleObjectId] = useState<number | null>(null);
+  const [newRoleObjectName, setNewRoleObjectName] = useState('');
+  const [roleImportModalOpen, setRoleImportModalOpen] = useState(false);
+  const [pendingAttachments, setPendingAttachments] = useState<PendingAttachment[]>([]);
+  const [isUploadingAttachment, setIsUploadingAttachment] = useState(false);
+  const attachmentInputRef = useRef<HTMLInputElement | null>(null);
 
   // Skill autocomplete dropdown states
   const [skillDropdownOpen, setSkillDropdownOpen] = useState(false);
@@ -1120,9 +1172,9 @@ const FablabChatController: React.FC = () => {
     });
   }, [messages]);
 
-  const activeSkill = useMemo(
-    () => skillPresets.find((preset) => preset.id === activeSkillId) || null,
-    [activeSkillId, skillPresets]
+  const activeRole = useMemo(
+    () => rolePresets.find((preset) => preset.id === activeRoleId) || null,
+    [activeRoleId, rolePresets]
   );
 
   const updateRuntimeConfig = async (partial: Record<string, unknown>) => {
@@ -1136,63 +1188,111 @@ const FablabChatController: React.FC = () => {
     setRuntimeConfig(nextConfig);
   };
 
-  const openSkillEditor = (preset?: SkillPreset) => {
+  const openRoleEditor = (preset?: RolePreset) => {
     setSkillsMenuOpen(false);
-    if (!preset && activeSkill?.label) {
-      setEditingSkillLabel(`${activeSkill.label} + `);
+    setEditingRole(preset ?? null);
+    if (!preset && activeRole?.name) {
+      setEditingSkillLabel(`${activeRole.name} + `);
     } else {
-      setEditingSkillLabel(preset?.label ?? '');
+      setEditingSkillLabel(preset?.name ?? '');
     }
     setEditingSkillInstruction(preset?.instruction ?? '');
+    setNewRoleSourceType(preset?.sourceType ?? 'manual');
+    setNewRoleObjectId(preset?.objectId ?? null);
+    setNewRoleObjectName(preset?.name ?? '');
     setFlipMode('role');
     setIsInstructionFlipped(true);
   };
 
-  const saveSkillPreset = async () => {
+  const saveRolePreset = async () => {
     const label = editingSkillLabel.trim();
     if (!label) return;
     const instruction = editingSkillInstruction.trim();
-    // Siempre creamos un nuevo skill (Save as new), nunca modificamos el original
-    const nextId = `skill-${Date.now()}`;
-    const nextPresets = [...skillPresets, { id: nextId, label, instruction }];
 
-    setSkillPresets(nextPresets);
-    setActiveSkillId(nextId);
-    await updateRuntimeConfig({
-      systemPrompt: systemInstruction.trim(),
-      skillPresets: nextPresets,
-      activeSkillId: nextId,
-    });
-    setIsInstructionFlipped(false);
-  };
-
-  const deleteSkillPreset = async (presetId: string) => {
-    const nextPresets = skillPresets.filter((p) => p.id !== presetId);
-    setSkillPresets(nextPresets);
-    if (activeSkillId === presetId) {
-      setActiveSkillId(null);
+    try {
+      if (editingRole) {
+        const updated = await updateChatRole(editingRole.id, {
+          name: label,
+          instruction,
+          sourceType: newRoleSourceType,
+          objectId: newRoleObjectId ?? undefined,
+        });
+        setRolePresets((prev) => prev.map((item) => (item.id === updated.id ? updated : item)));
+        setActiveRoleId(updated.id);
+        await updateRuntimeConfig({
+          systemPrompt: systemInstruction.trim(),
+          activeRoleId: updated.id,
+          roleInstruction: '',
+          selectedRoleObjectId: '',
+          selectedRoleObjectName: '',
+          roleResetAt: toIsoNow(),
+        });
+      } else {
+        const created = await createChatRole({
+          name: label,
+          instruction,
+          sourceType: newRoleSourceType,
+          objectId: newRoleObjectId ?? undefined,
+        });
+        setRolePresets((prev) => [created, ...prev]);
+        setActiveRoleId(created.id);
+        await updateRuntimeConfig({
+          systemPrompt: systemInstruction.trim(),
+          activeRoleId: created.id,
+          roleInstruction: '',
+          selectedRoleObjectId: '',
+          selectedRoleObjectName: '',
+          roleResetAt: toIsoNow(),
+        });
+      }
+      setEditingRole(null);
+      setNewRoleSourceType('manual');
+      setNewRoleObjectId(null);
+      setIsInstructionFlipped(false);
+    } catch (error) {
+      console.error('Error saving role preset:', error);
+      setErrorText('No se pudo guardar el rol.');
     }
-    await updateRuntimeConfig({
-      systemPrompt: systemInstruction.trim(),
-      skillPresets: nextPresets,
-      activeSkillId: activeSkillId === presetId ? null : activeSkillId,
-    });
   };
 
-  const applySkillPreset = async (preset: SkillPreset) => {
-    setActiveSkillId(preset.id);
+  const deleteRolePreset = async (preset: RolePreset) => {
+    if (isDefaultRole(preset)) return;
+    try {
+      await deleteChatRole(preset.id);
+      setRolePresets((prev) => prev.filter((item) => item.id !== preset.id));
+      if (activeRoleId === preset.id) {
+        setActiveRoleId(null);
+      }
+      await updateRuntimeConfig({
+        systemPrompt: systemInstruction.trim(),
+        activeRoleId: activeRoleId === preset.id ? null : activeRoleId,
+      });
+    } catch (error) {
+      console.error('Error deleting role preset:', error);
+      setErrorText('No se pudo eliminar el rol.');
+    }
+  };
+
+  const applyRolePreset = async (preset: RolePreset) => {
+    setActiveRoleId(preset.id);
     setSkillsMenuOpen(false);
+    setRoleInstruction('');
+    setSelectedRoleObject(null);
+    setRoleResetAt(toIsoNow());
     await updateRuntimeConfig({
       systemPrompt: systemInstruction.trim(),
-      skillPresets,
-      activeSkillId: preset.id,
+      activeRoleId: preset.id,
+      roleInstruction: '',
+      selectedRoleObjectId: '',
+      selectedRoleObjectName: '',
+      roleResetAt: toIsoNow(),
     });
   };
 
   // Chat Skills functions
   const loadChatSkills = async () => {
     try {
-      const skills = await getChatSkills();
+      const skills = await getChatSkills('skill');
       setChatSkills(skills);
     } catch (error) {
       console.error('Error loading chat skills:', error);
@@ -1206,6 +1306,7 @@ const FablabChatController: React.FC = () => {
 
     try {
       const newSkill = await createChatSkill({
+        type: 'skill',
         name,
         instruction,
         sourceType: newChatSkillSourceType,
@@ -1228,6 +1329,7 @@ const FablabChatController: React.FC = () => {
 
     try {
       const updated = await updateChatSkill(editingChatSkill.id, {
+        type: 'skill',
         name,
         instruction,
         sourceType: newChatSkillSourceType,
@@ -1284,6 +1386,153 @@ const FablabChatController: React.FC = () => {
     setStatusText('Objeto importado. Revisa el formulario y guarda el skill.');
   };
 
+  // Import role from MD object
+  const importRoleFromObject = async (objectId: number) => {
+    try {
+      const content = await getObjectDownloadText(objectId, 10000);
+      if (!content.trim()) {
+        setErrorText('El archivo seleccionado esta vacio o no se puede leer.');
+        return;
+      }
+
+      const object = objects.find((o) => o.id === objectId);
+      const name = object?.name?.replace(/\.md$/i, '') || 'rol-importado';
+
+      setEditingRole(null);
+      setEditingSkillLabel(name);
+      setEditingSkillInstruction(content);
+      setNewRoleSourceType('object');
+      setNewRoleObjectId(objectId);
+      setNewRoleObjectName(object?.name || name);
+    } catch (error) {
+      console.error('Error importing role from object:', error);
+      setErrorText('No se pudo importar el rol desde el archivo.');
+    }
+  };
+
+  const handleRoleObjectSelected = (object: SelectorObjectItem) => {
+    void importRoleFromObject(object.id);
+    setRoleImportModalOpen(false);
+    setStatusText('Rol importado. Revisa el formulario y guarda el rol.');
+  };
+
+  const openAttachmentPicker = () => {
+    if (isUploadingAttachment) return;
+    const input = attachmentInputRef.current;
+    if (!input) return;
+    input.value = '';
+    input.click();
+  };
+
+  const handleAttachmentInputChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files || []);
+    if (files.length === 0) return;
+
+    const newItems: PendingAttachment[] = files.map((file) => ({
+      id: `att-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      name: file.name,
+      mimeType: file.type || 'application/octet-stream',
+      size: file.size,
+      status: 'uploading',
+      file,
+    }));
+
+    setPendingAttachments((prev) => [...prev, ...newItems]);
+    setIsUploadingAttachment(true);
+
+    for (const attachment of newItems) {
+      if (!attachment.file) continue;
+      const baseName = getFileBaseName(attachment.file.name);
+      const type = guessObjectTypeFromFile(attachment.file);
+
+      try {
+        const created = await createObject({
+          title: baseName,
+          type,
+          file: attachment.file,
+        });
+        setPendingAttachments((prev) => prev.map((item) => (
+          item.id === attachment.id
+            ? {
+              ...item,
+              name: created?.name || item.name,
+              objectId: created?.id,
+              type: created?.type || type,
+              status: 'ready',
+              file: undefined,
+            }
+            : item
+        )));
+      } catch (error) {
+        console.error('Error uploading attachment:', error);
+        setPendingAttachments((prev) => prev.map((item) => (
+          item.id === attachment.id ? { ...item, status: 'error', file: undefined } : item
+        )));
+        setErrorText('No se pudo cargar el archivo adjunto.');
+      }
+    }
+
+    setIsUploadingAttachment(false);
+  };
+
+  const removeAttachment = (attachmentId: string) => {
+    setPendingAttachments((prev) => prev.filter((item) => item.id !== attachmentId));
+  };
+
+  const buildAttachmentPayload = async (attachments: PendingAttachment[]): Promise<{ contextText: string; attachments: ProviderAttachment[] }> => {
+    if (attachments.length === 0) return { contextText: '', attachments: [] };
+
+    const notes: string[] = [];
+    const providerAttachments: ProviderAttachment[] = [];
+
+    for (const attachment of attachments) {
+      if (!attachment.objectId) continue;
+      const label = attachment.name;
+      const type = attachment.type || 'file';
+
+      try {
+        const text = await getObjectDownloadText(attachment.objectId, 120000);
+        if (text.trim()) {
+          notes.push(`Attachment: ${label} (${type})\n${text}`);
+          continue;
+        }
+      } catch {
+        // fallback to binary
+      }
+
+      try {
+        const encoded = await getObjectDownloadBase64(attachment.objectId);
+        if (encoded.base64.length > 4_500_000) {
+          notes.push(`Attachment: ${label} (${type}) is too large to attach fully.`);
+          continue;
+        }
+
+        providerAttachments.push({
+          name: label,
+          mimeType: encoded.mimeType || attachment.mimeType || 'application/octet-stream',
+          data: encoded.base64,
+        });
+        notes.push(`Attachment: ${label} (${type}) attached as binary context.`);
+      } catch {
+        notes.push(`Attachment: ${label} (${type}) could not be loaded.`);
+      }
+    }
+
+    const header = attachments
+      .map((item, idx) => `${idx + 1}. ${item.name}`)
+      .join('\n');
+
+    const contextText = [
+      '[USER ATTACHMENTS]',
+      header,
+      notes.length > 0 ? `\n[ATTACHMENT CONTENT]\n${notes.join('\n\n')}` : '',
+    ]
+      .filter(Boolean)
+      .join('\n');
+
+    return { contextText, attachments: providerAttachments };
+  };
+
   // Create default skills if none exist
   const createDefaultSkills = async () => {
     const defaultSkills = [
@@ -1314,6 +1563,7 @@ Esta instruccion aplica SOLO para este mensaje especifico donde se uso /document
         const exists = chatSkills.some((s) => s.name === skill.name);
         if (!exists) {
           const newSkill = await createChatSkill({
+            type: 'skill',
             name: skill.name,
             instruction: skill.instruction,
             sourceType: 'manual',
@@ -1337,7 +1587,7 @@ Esta instruccion aplica SOLO para este mensaje especifico donde se uso /document
     const initChatSkills = async () => {
       await loadChatSkills();
       // After loading, if no skills exist, create default ones
-      const skills = await getChatSkills();
+      const skills = await getChatSkills('skill');
       if (skills.length === 0) {
         await createDefaultSkills();
       }
@@ -1377,6 +1627,10 @@ Esta instruccion aplica SOLO para este mensaje especifico donde se uso /document
     if (!isInstructionFlipped) {
       setEditingSkillLabel('');
       setEditingSkillInstruction('');
+      setEditingRole(null);
+      setNewRoleSourceType('manual');
+      setNewRoleObjectId(null);
+      setNewRoleObjectName('');
     }
   }, [isInstructionFlipped]);
 
@@ -1418,25 +1672,9 @@ Esta instruccion aplica SOLO para este mensaje especifico donde se uso /document
         const runtime = state.config || null;
         setRuntimeConfig(runtime);
         setSystemInstruction(String(runtime?.systemPrompt || ''));
-        const persistedPresets = Array.isArray((runtime as any)?.skillPresets)
-          ? (runtime as any).skillPresets as SkillPreset[]
-          : [];
-        // Merge: mantener los persistidos del usuario + agregar defaults que no tenga
-        const persistedIds = new Set(persistedPresets.map((p) => p.id));
-        const missingDefaults = DEFAULT_SKILL_PRESETS.filter((d) => !persistedIds.has(d.id));
-        const mergedPresets = missingDefaults.length > 0
-          ? [...persistedPresets, ...missingDefaults]
-          : persistedPresets;
-        setSkillPresets(mergedPresets);
-        // Si agregamos nuevos defaults, guardar el merge en BD
-        if (missingDefaults.length > 0 && runtime) {
-          void updateRuntimeConfig({
-            systemPrompt: systemInstruction.trim(),
-            skillPresets: mergedPresets,
-            activeSkillId: (runtime as any)?.activeSkillId,
-          });
-        }
-        setActiveSkillId(String((runtime as any)?.activeSkillId || '') || null);
+        const persistedActiveRoleId = (runtime as any)?.activeRoleId ?? (runtime as any)?.activeSkillId;
+        const parsedActiveRoleId = persistedActiveRoleId ? Number(persistedActiveRoleId) : null;
+        setActiveRoleId(Number.isFinite(parsedActiveRoleId) ? parsedActiveRoleId : null);
         const persistedRoleInstruction = String((state.config as any)?.roleInstruction || '');
         const persistedRoleName = String((state.config as any)?.selectedRoleObjectName || '');
         const persistedRoleId = (state.config as any)?.selectedRoleObjectId;
@@ -1450,6 +1688,30 @@ Esta instruccion aplica SOLO para este mensaje especifico donde se uso /document
         );
         setMessages(Array.isArray(state.conversation.messages) ? state.conversation.messages : []);
         setStats(state.stats);
+
+        try {
+          const roles = await getChatRoles();
+          if (cancelled) return;
+          const existingNames = new Set(roles.map((role) => role.name.toLowerCase()));
+          const missingDefaults = DEFAULT_ROLE_PRESETS.filter(
+            (preset) => !existingNames.has(preset.name.toLowerCase())
+          );
+          if (missingDefaults.length > 0) {
+            const createdDefaults = await Promise.all(
+              missingDefaults.map((preset) => createChatRole({
+                name: preset.name,
+                instruction: preset.instruction,
+                sourceType: 'manual',
+              }))
+            );
+            if (cancelled) return;
+            setRolePresets([...createdDefaults, ...roles]);
+          } else {
+            setRolePresets(roles);
+          }
+        } catch (error) {
+          console.error('Error loading role presets:', error);
+        }
       } catch (error: any) {
         if (!cancelled) {
           setErrorText(error?.message || (t?.fablabChat?.errors?.loadRuntime || 'Could not load chat runtime state.'));
@@ -1587,6 +1849,7 @@ Esta instruccion aplica SOLO para este mensaje especifico donde se uso /document
         const roleText = content.slice(0, 20000);
         setSelectedRoleObject(source);
         setRoleInstruction(roleText);
+        setActiveRoleId(null);
         await persistRoleSelection(source, roleText);
 
         setStatusText(t?.fablabChat?.status?.roleApplied || 'Role source applied.');
@@ -1622,7 +1885,7 @@ Esta instruccion aplica SOLO para este mensaje especifico donde se uso /document
   };
 
   const buildSystemPrompt = (): string => {
-    const basePrompt = injectActiveSkill(systemInstruction, activeSkill?.instruction);
+    const basePrompt = injectActiveSkill(systemInstruction, activeRole?.instruction);
     const blocks: string[] = [];
 
     if (basePrompt) {
@@ -2217,7 +2480,7 @@ Esta instruccion aplica SOLO para este mensaje especifico donde se uso /document
           setFlipMode('skills');
           setIsInstructionFlipped(true);
         }}
-        className="fablab-header-action-btn fablab-header-instruction-btn"
+        className={`fablab-header-action-btn fablab-header-instruction-btn ${flipMode === 'skills' ? 'is-expanded' : ''}`}
       >
         <Bot size={14} />
         <span className="fablab-header-action-text">Skills</span>
@@ -2227,15 +2490,15 @@ Esta instruccion aplica SOLO para este mensaje especifico donde se uso /document
 
   const renderRoleMenu = () => {
     return (
-      <div className="fablab-skill-menu" ref={skillsMenuRef}>
+      <div className={`fablab-skill-menu ${skillsMenuOpen ? 'is-open' : ''}`} ref={skillsMenuRef}>
         <button
           type="button"
           onClick={() => setSkillsMenuOpen((prev) => !prev)}
-          className="fablab-header-action-btn fablab-header-instruction-btn"
+          className={`fablab-header-action-btn fablab-header-instruction-btn ${skillsMenuOpen ? 'is-expanded' : ''}`}
         >
           <Wand2 size={14} />
           <span className="fablab-header-action-text">
-            {activeSkill ? `Rol · ${activeSkill.label}` : 'Rol'}
+            {activeRole ? `Rol · ${activeRole.name}` : 'Rol'}
           </span>
         </button>
 
@@ -2243,26 +2506,26 @@ Esta instruccion aplica SOLO para este mensaje especifico donde se uso /document
           <div className="fablab-skill-menu-panel">
             <p className="fablab-skill-menu-title">Selecciona un perfil</p>
             <div className="fablab-skill-menu-list">
-              {skillPresets.map((preset, index) => {
-                const isDefault = isDefaultSkill(preset.id);
+              {rolePresets.map((preset, index) => {
+                const isDefault = isDefaultRole(preset);
                 const customNumber = !isDefault
-                  ? skillPresets.slice(0, index).filter((p) => !isDefaultSkill(p.id)).length + 1
+                  ? rolePresets.slice(0, index).filter((item) => !isDefaultRole(item)).length + 1
                   : null;
                 return (
-                  <div key={preset.id} className={`fablab-skill-menu-row ${preset.id === activeSkillId ? 'is-active' : ''}`}>
+                  <div key={preset.id} className={`fablab-skill-menu-row ${preset.id === activeRoleId ? 'is-active' : ''}`}>
                     <button
                       type="button"
-                      onClick={() => applySkillPreset(preset)}
+                      onClick={() => applyRolePreset(preset)}
                       className="fablab-skill-menu-item"
                     >
                       {!isDefault && customNumber !== null && (
                         <span className="fablab-skill-menu-badge">#{customNumber}</span>
                       )}
-                      {preset.label}
+                      {preset.name}
                     </button>
                     <button
                       type="button"
-                      onClick={() => openSkillEditor(preset)}
+                      onClick={() => openRoleEditor(preset)}
                       className="fablab-skill-menu-edit"
                     >
                       <Pencil size={12} />
@@ -2270,7 +2533,7 @@ Esta instruccion aplica SOLO para este mensaje especifico donde se uso /document
                     {!isDefault && (
                       <button
                         type="button"
-                        onClick={() => void deleteSkillPreset(preset.id)}
+                        onClick={() => void deleteRolePreset(preset)}
                         className="fablab-skill-menu-delete"
                         title="Eliminar skill"
                       >
@@ -2283,7 +2546,7 @@ Esta instruccion aplica SOLO para este mensaje especifico donde se uso /document
             </div>
             <button
               type="button"
-              onClick={() => openSkillEditor()}
+              onClick={() => openRoleEditor()}
               className="fablab-skill-menu-add"
             >
               <Plus size={12} />
@@ -2440,9 +2703,9 @@ Esta instruccion aplica SOLO para este mensaje especifico donde se uso /document
     setErrorText('');
     setStatusText('');
 
-    // Use formatted display with skill names when skills are active
+    const readyAttachments = pendingAttachments.filter((item) => item.status === 'ready' && item.objectId);
     const displayContent = skillNames.length > 0 ? formattedDisplay : text;
-    
+
     const userMessage: FablabChatMessage = {
       id: `msg-${Date.now()}-user`,
       role: 'user',
@@ -2450,18 +2713,25 @@ Esta instruccion aplica SOLO para este mensaje especifico donde se uso /document
       createdAt: toIsoNow(),
       sourceIds: selectedContextIds,
       skills: { ...skills },
+      attachments: readyAttachments,
     };
 
     const nextMessages = [...messages, userMessage];
     setMessages(nextMessages);
     setInput('');
+    setPendingAttachments([]);
 
     try {
       const { contextText, attachments } = await buildContextPayload();
+      const attachmentPayload = await buildAttachmentPayload(readyAttachments);
       let finalUserText = text;
 
       if (contextText) {
         finalUserText = `${finalUserText}\n\n${contextText}`;
+      }
+
+      if (attachmentPayload.contextText) {
+        finalUserText = `${finalUserText}\n\n${attachmentPayload.contextText}`;
       }
 
       if (requestedFileFormat) {
@@ -2477,7 +2747,7 @@ Esta instruccion aplica SOLO para este mensaje especifico donde se uso /document
 
       const providerMessages = toProviderMessages(
         historyMessages.map((msg) => (msg.id === userMessage.id ? { ...msg, content: finalUserText } : msg)),
-        attachments
+        [...attachments, ...attachmentPayload.attachments]
       );
 
       const baseSystemPrompt = requestedFileFormat
@@ -2526,7 +2796,7 @@ Esta instruccion aplica SOLO para este mensaje especifico donde se uso /document
           model: runtimeSelection.modelId,
           capability: mediaCapability,
           prompt: mediaPrompt,
-          attachments,
+          attachments: [...attachments, ...attachmentPayload.attachments],
         });
 
         latencyMs = Date.now() - mediaStart;
@@ -2670,6 +2940,7 @@ Esta instruccion aplica SOLO para este mensaje especifico donde se uso /document
 
       const sentText = t?.fablabChat?.status?.sent || 'Message sent.';
       setStatusText(sentText);
+      setPendingAttachments([]);
     } catch (error: any) {
       setErrorText(formatRuntimeErrorForUser(error) || (t?.fablabChat?.errors?.sendFailed || 'Could not send message.'));
     } finally {
@@ -2737,6 +3008,7 @@ Esta instruccion aplica SOLO para este mensaje especifico donde se uso /document
 
       await saveFablabChatConversation(emptyConversation);
       await saveFablabChatStats(emptyStats);
+      setPendingAttachments([]);
       setStatusText(t?.fablabChat?.status?.deletedConversation || 'Conversation and stats deleted.');
     } catch (error: any) {
       setErrorText(error?.message || (t?.fablabChat?.errors?.saveFailed || 'Could not clear conversation and stats.'));
@@ -2878,9 +3150,12 @@ Esta instruccion aplica SOLO para este mensaje especifico donde se uso /document
                 renderComplementsDropdown={renderComplementsDropdown}
                 renderQuickSkillButtons={renderQuickSkillButtons}
                 setSourceMode={setSourceMode}
+                attachments={pendingAttachments}
+                onAttachClick={openAttachmentPicker}
+                onRemoveAttachment={removeAttachment}
                 isSending={isSending}
                 runtimeSelection={runtimeSelection}
-                skills={{ projectAudit: skills.projectAudit }}
+                skills={skills}
                 projectAuditWizardVisible={projectAuditWizardVisible}
                 projectAuditWizardComplete={projectAuditWizardComplete}
                 sendMessage={() => void sendMessage()}
@@ -2906,6 +3181,7 @@ Esta instruccion aplica SOLO para este mensaje especifico donde se uso /document
                 exportMessage={exportMessage}
                 markdownComponents={markdownComponents}
                 markdownUrlTransform={markdownUrlTransform}
+                isSending={isSending}
               />
             </div>
 
@@ -2918,9 +3194,12 @@ Esta instruccion aplica SOLO para este mensaje especifico donde se uso /document
               renderComplementsDropdown={renderComplementsDropdown}
               renderQuickSkillButtons={renderQuickSkillButtons}
               setSourceMode={setSourceMode}
+              attachments={pendingAttachments}
+              onAttachClick={openAttachmentPicker}
+              onRemoveAttachment={removeAttachment}
               isSending={isSending}
               runtimeSelection={runtimeSelection}
-              skills={{ projectAudit: skills.projectAudit }}
+              skills={skills}
               projectAuditWizardVisible={projectAuditWizardVisible}
               projectAuditWizardComplete={projectAuditWizardComplete}
               sendMessage={() => void sendMessage()}
@@ -2959,7 +3238,9 @@ Esta instruccion aplica SOLO para este mensaje especifico donde se uso /document
               editingSkillInstruction={editingSkillInstruction}
               setEditingSkillInstruction={setEditingSkillInstruction}
               buildSystemPrompt={buildSystemPrompt}
-              saveSkillPreset={saveSkillPreset}
+              saveRolePreset={saveRolePreset}
+              onOpenImportModal={() => setRoleImportModalOpen(true)}
+              importSourceLabel={newRoleSourceType === 'object' ? (newRoleObjectName || 'Archivo seleccionado') : undefined}
               closeFlip={closeFlip}
             />
           )}
@@ -3004,6 +3285,27 @@ Esta instruccion aplica SOLO para este mensaje especifico donde se uso /document
           onObjectSelectionCallback={handleSkillObjectSelected}
         />
       </AssemblerModal>
+
+      {/* Role Import Modal */}
+      <AssemblerModal
+        isOpen={roleImportModalOpen}
+        title="Importar rol desde libreria de objetos"
+        onClose={() => setRoleImportModalOpen(false)}
+      >
+        <GenericObjectSelector
+          type="MD"
+          fileExtension=".md"
+          onObjectSelectionCallback={handleRoleObjectSelected}
+        />
+      </AssemblerModal>
+
+      <input
+        ref={attachmentInputRef}
+        type="file"
+        multiple
+        className="hidden"
+        onChange={handleAttachmentInputChange}
+      />
     </section>
   );
 };
