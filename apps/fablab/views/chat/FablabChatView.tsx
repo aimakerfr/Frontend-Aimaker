@@ -12,7 +12,7 @@ import './style.css';
 import 'katex/dist/katex.min.css';
 
 // PDF Card Component
-const PDFCard = ({ fileName, onDownload }: { fileName: string; onDownload: () => void }) => {
+const PDFCard = ({ fileName, onDownload, tr }: { fileName: string; onDownload: () => void; tr?: Record<string, string> }) => {
   return (
     <div className="fablab-pdf-card">
       <div className="fablab-pdf-icon">
@@ -20,16 +20,14 @@ const PDFCard = ({ fileName, onDownload }: { fileName: string; onDownload: () =>
       </div>
       <div className="fablab-pdf-info">
         <div className="fablab-pdf-filename">{fileName}</div>
-        <div className="fablab-pdf-type">PDF Document</div>
+        <div className="fablab-pdf-type">{tr?.['text_1'] ?? 'PDF Document'}</div>
       </div>
       <button
         type="button"
         className="fablab-pdf-download-btn"
         onClick={onDownload}
       >
-        <Download size={16} />
-        Download
-      </button>
+        <Download size={16} />{tr?.['text_2'] ?? 'Download'}</button>
     </div>
   );
 };
@@ -93,7 +91,6 @@ import {
   updateChatSkill,
   deleteChatSkill,
   type ChatSkill,
-  type ParsedChatSkill,
 } from '@core/chat-skills';
 import { HttpClientError } from '@core/api/http.client';
 import { useLanguage } from '../../language/useLanguage';
@@ -880,7 +877,7 @@ const optimizeAssistantImagePayload = async (content: string): Promise<string> =
   return String(content || '').replace(imageSrc, optimized);
 };
 
-const markdownComponents = {
+const buildMarkdownComponents = (tr?: Record<string, string>) => ({
   h1: (props: any) => <h1 className="fablab-heading fablab-heading-1" {...props} />,
   h2: (props: any) => <h2 className="fablab-heading fablab-heading-2" {...props} />,
   h3: (props: any) => <h3 className="fablab-heading fablab-heading-3" {...props} />,
@@ -919,7 +916,7 @@ const markdownComponents = {
       }, [codeContent]);
 
       if (!svg) {
-        return <div className="fablab-mermaid-loading">Loading diagram...</div>;
+        return <div className="fablab-mermaid-loading">{tr?.['text_44'] ?? 'Loading diagram...'}</div>;
       }
 
       return (
@@ -1015,7 +1012,7 @@ const markdownComponents = {
       </a>
     );
   },
-};
+});
 
 const markdownUrlTransform = (url: string): string => {
   const normalized = String(url || '').trim();
@@ -1034,7 +1031,10 @@ const markdownUrlTransform = (url: string): string => {
 
 const FablabChatView: React.FC = () => {
   const { t } = useLanguage();
+  const tr = t?.fablabChatViewTranslations;
   const navigate = useNavigate();
+
+  const markdownComponents = useMemo(() => buildMarkdownComponents(tr), [tr]);
 
   const [loading, setLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
@@ -2099,12 +2099,12 @@ Esta instruccion aplica SOLO para este mensaje especifico donde se uso .//docume
           <div className="mb-2 flex items-center justify-between">
             <p className="text-sm font-semibold">{projectAuditFollowUp.question}</p>
             <div className="inline-flex items-center gap-2 text-xs text-slate-300">
-              <span>Follow-up</span>
+              <span>{tr?.['text_75'] ?? 'Follow-up'}</span>
               <button
                 type="button"
                 onClick={() => setProjectAuditFollowUpVisible(false)}
                 className="rounded-md border border-slate-700 p-1"
-                aria-label="Cerrar pestaña de preguntas"
+                aria-label={(tr?.['text_76'] ?? 'Cerrar pestaña de preguntas')}
               >
                 <X size={14} />
               </button>
@@ -2144,7 +2144,7 @@ Esta instruccion aplica SOLO para este mensaje especifico donde se uso .//docume
           <input
             value={projectAuditFollowUpDraft}
             onChange={(event) => setProjectAuditFollowUpDraft(event.target.value)}
-            placeholder="Escribe la respuesta para esta pregunta..."
+            placeholder={(tr?.['text_77'] ?? 'Escribe la respuesta para esta pregunta...')}
             className="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100 outline-none focus:border-cyan-500"
           />
 
@@ -2155,9 +2155,7 @@ Esta instruccion aplica SOLO para este mensaje especifico donde se uso .//docume
               disabled={isSending || !projectAuditFollowUpDraft.trim()}
               className="inline-flex items-center gap-1 rounded-lg bg-cyan-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-cyan-700 disabled:opacity-50"
             >
-              <Send size={12} />
-              Enviar respuesta
-            </button>
+              <Send size={12} />{tr?.['text_78'] ?? 'Enviar respuesta'}</button>
           </div>
         </div>
       );
@@ -2172,7 +2170,7 @@ Esta instruccion aplica SOLO para este mensaje especifico donde se uso .//docume
               type="button"
               onClick={() => setProjectAuditWizardVisible(false)}
               className="rounded-md border border-slate-700 p-1"
-              aria-label="Cerrar pestaña de intake"
+              aria-label={(tr?.['text_79'] ?? 'Cerrar pestaña de intake')}
             >
               <X size={14} />
             </button>
@@ -2233,7 +2231,7 @@ Esta instruccion aplica SOLO para este mensaje especifico donde se uso .//docume
               <input
                 value={projectAuditCurrentAnswer}
                 onChange={(event) => updateProjectAuditAnswerAt(projectAuditWizardStepIndex, event.target.value)}
-                placeholder="Escribe tu respuesta personalizada..."
+                placeholder={(tr?.['text_81'] ?? 'Escribe tu respuesta personalizada...')}
                 className="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100 outline-none focus:border-cyan-500"
               />
             )}
@@ -2259,7 +2257,7 @@ Esta instruccion aplica SOLO para este mensaje especifico donde se uso .//docume
         className="fablab-header-action-btn fablab-header-instruction-btn"
       >
         <Bot size={14} />
-        <span className="fablab-header-action-text">Skills</span>
+        <span className="fablab-header-action-text">{tr?.['text_82'] ?? 'Skills'}</span>
       </button>
     );
   };
@@ -2280,7 +2278,7 @@ Esta instruccion aplica SOLO para este mensaje especifico donde se uso .//docume
 
         {skillsMenuOpen && (
           <div className="fablab-skill-menu-panel">
-            <p className="fablab-skill-menu-title">Selecciona un perfil</p>
+            <p className="fablab-skill-menu-title">{tr?.['text_84'] ?? 'Selecciona un perfil'}</p>
             <div className="fablab-skill-menu-list">
               {skillPresets.map((preset, index) => {
                 const isDefault = isDefaultSkill(preset.id);
@@ -2311,7 +2309,7 @@ Esta instruccion aplica SOLO para este mensaje especifico donde se uso .//docume
                         type="button"
                         onClick={() => void deleteSkillPreset(preset.id)}
                         className="fablab-skill-menu-delete"
-                        title="Eliminar skill"
+                        title={(tr?.['text_85'] ?? 'Eliminar skill')}
                       >
                         <Trash2 size={12} />
                       </button>
@@ -2325,9 +2323,7 @@ Esta instruccion aplica SOLO para este mensaje especifico donde se uso .//docume
               onClick={() => openSkillEditor()}
               className="fablab-skill-menu-add"
             >
-              <Plus size={12} />
-              Agregar nueva
-            </button>
+              <Plus size={12} />{tr?.['text_86'] ?? 'Agregar nueva'}</button>
           </div>
         )}
       </div>
@@ -2343,14 +2339,12 @@ Esta instruccion aplica SOLO para este mensaje especifico donde se uso .//docume
           className="inline-flex items-center gap-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-700 transition-colors hover:border-slate-400 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200"
         >
           <Plus size={14} className={`transition-transform ${complementsMenuOpen ? 'rotate-45' : 'rotate-0'}`} />
-          <span>Complementos</span>
+          <span>{tr?.['text_87'] ?? 'Complementos'}</span>
         </button>
 
         {complementsMenuOpen && (
           <div className="absolute bottom-full left-0 z-20 mb-2 w-72 rounded-xl border border-slate-200 bg-white p-2 shadow-xl dark:border-slate-700 dark:bg-slate-900">
-            <p className="px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-              Habilita modos
-            </p>
+            <p className="px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">{tr?.['text_88'] ?? 'Habilita modos'}</p>
             <div className="space-y-1">
               {skillItems.map((item, index) => {
                 const active = skills[item.key];
@@ -2951,16 +2945,12 @@ Esta instruccion aplica SOLO para este mensaje especifico donde se uso .//docume
                 <AlertTriangle size={16} />
               </div>
               <div className="fablab-warning-tooltip">
-                <p className="fablab-warning-tooltip-text">
-                  Configure your API key and model in Profile before starting the chat.
-                </p>
+                <p className="fablab-warning-tooltip-text">{tr?.['text_121'] ?? 'Configure your API key and model in Profile before starting the chat.'}</p>
                 <button
                   type="button"
                   onClick={() => navigate('/dashboard/profile')}
                   className="fablab-warning-tooltip-btn"
-                >
-                  Go to profile
-                </button>
+                >{tr?.['text_122'] ?? 'Go to profile'}</button>
               </div>
             </div>
           )}
@@ -2996,9 +2986,7 @@ Esta instruccion aplica SOLO para este mensaje especifico donde se uso .//docume
 
           {selectedContextSources.length > 0 && (
             <div>
-              <p>
-                Active context sources (fully analyzed before generation)
-              </p>
+              <p>{tr?.['text_125'] ?? 'Active context sources (fully analyzed before generation)'}</p>
               <div>
                 {selectedContextSources.map((source) => (
                   <span
@@ -3047,8 +3035,7 @@ Esta instruccion aplica SOLO para este mensaje especifico donde se uso .//docume
                 {detectedInputSkill && (
                   <div className="fablab-skill-detected-badge">
                     <span className="fablab-skill-detected-icon">⚡</span>
-                    <span className="fablab-skill-detected-text">
-                      Skill activo: <strong>.//{detectedInputSkill.name}</strong>
+                    <span className="fablab-skill-detected-text">{tr?.['text_129'] ?? 'Skill activo:'}<strong>.//{detectedInputSkill.name}</strong>
                     </span>
                     <span className="fablab-skill-detected-hint">
                       {detectedInputSkill.instruction.substring(0, 60)}...
@@ -3132,7 +3119,7 @@ Esta instruccion aplica SOLO para este mensaje especifico donde se uso .//docume
                         <div>
                           <img
                             src={imageSrc}
-                            alt="Generated output"
+                            alt={(tr?.['text_137'] ?? 'Generated output')}
                             loading="lazy"
                             decoding="async"
                           />
@@ -3143,18 +3130,14 @@ Esta instruccion aplica SOLO para este mensaje especifico donde se uso .//docume
                                 void downloadGeneratedImage(imageSrc);
                               }}
                             >
-                              <ImageDown size={12} />
-                              Download
-                            </button>
+                              <ImageDown size={12} />{tr?.['text_2'] ?? 'Download'}</button>
                             <button
                               type="button"
                               onClick={() => {
                                 void saveGeneratedImageToObjects(imageSrc);
                               }}
                             >
-                              <FolderPlus size={12} />
-                              Save
-                            </button>
+                              <FolderPlus size={12} />{tr?.['text_138'] ?? 'Save'}</button>
                           </div>
                         </div>
                       )}
@@ -3166,9 +3149,7 @@ Esta instruccion aplica SOLO para este mensaje especifico donde se uso .//docume
                               type="button"
                               onClick={() => downloadDataUriAsset(richOutput.src, richOutput.fileName)}
                             >
-                              <Download size={12} />
-                              Download audio
-                            </button>
+                              <Download size={12} />{tr?.['text_139'] ?? 'Download audio'}</button>
                           </div>
                         </div>
                       )}
@@ -3180,9 +3161,7 @@ Esta instruccion aplica SOLO para este mensaje especifico donde se uso .//docume
                               type="button"
                               onClick={() => downloadDataUriAsset(richOutput.src, richOutput.fileName)}
                             >
-                              <Download size={12} />
-                              Download video
-                            </button>
+                              <Download size={12} />{tr?.['text_140'] ?? 'Download video'}</button>
                           </div>
                         </div>
                       )}
@@ -3198,6 +3177,7 @@ Esta instruccion aplica SOLO para este mensaje especifico donde se uso .//docume
                                 <PDFCard
                                   fileName={richOutput.fileName || 'documento.pdf'}
                                   onDownload={() => downloadDataUriAsset(richOutput.src, richOutput.fileName)}
+                                  tr={tr}
                                 />
                               </div>
                             );
@@ -3212,9 +3192,7 @@ Esta instruccion aplica SOLO para este mensaje especifico donde se uso .//docume
                                   type="button"
                                   onClick={() => downloadDataUriAsset(richOutput.src, richOutput.fileName)}
                                 >
-                                  <Download size={12} />
-                                  Descargar archivo
-                                </button>
+                                  <Download size={12} />{tr?.['text_144'] ?? 'Descargar archivo'}</button>
                               </div>
                             </div>
                           );
@@ -3247,6 +3225,7 @@ Esta instruccion aplica SOLO para este mensaje especifico donde se uso .//docume
                                       onDownload={() => {
                                         // TODO: Implement actual PDF download logic
                                       }}
+                                      tr={tr}
                                     />
                                   </>
                                 );
@@ -3270,7 +3249,7 @@ Esta instruccion aplica SOLO para este mensaje especifico donde se uso .//docume
                           type="button"
                           onClick={() => exportMessage(message.id)}
                           className="fablab-message-save-btn"
-                          title="Save this message to objects"
+                          title={(tr?.['text_145'] ?? 'Save this message to objects')}
                         >
                           <FolderPlus size={14} />
                         </button>
@@ -3295,8 +3274,7 @@ Esta instruccion aplica SOLO para este mensaje especifico donde se uso .//docume
               {detectedInputSkill && (
                 <div className="fablab-skill-detected-badge">
                   <span className="fablab-skill-detected-icon">⚡</span>
-                  <span className="fablab-skill-detected-text">
-                    Skill activo: <strong>.//{detectedInputSkill.name}</strong>
+                  <span className="fablab-skill-detected-text">{tr?.['text_129'] ?? 'Skill activo:'}<strong>.//{detectedInputSkill.name}</strong>
                   </span>
                   <span className="fablab-skill-detected-hint">
                     {detectedInputSkill.instruction.substring(0, 60)}...
@@ -3468,12 +3446,8 @@ Esta instruccion aplica SOLO para este mensaje especifico donde se uso .//docume
                 <div className="fablab-header-top">
                   <div className="fablab-header-title">
                     <h1 className="fablab-header-title-text">
-                      <Wand2 size={18} />
-                      Rol Editor
-                    </h1>
-                    <p className="fablab-header-subtitle">
-                      Edita la instruccion del perfil seleccionado
-                    </p>
+                      <Wand2 size={18} />{tr?.['text_156'] ?? 'Rol Editor'}</h1>
+                    <p className="fablab-header-subtitle">{tr?.['text_157'] ?? 'Edita la instruccion del perfil seleccionado'}</p>
                   </div>
 
                   <div className="fablab-header-actions">
@@ -3483,7 +3457,7 @@ Esta instruccion aplica SOLO para este mensaje especifico donde se uso .//docume
                       className="fablab-header-action-btn"
                     >
                       <X size={14} />
-                      <span className="fablab-header-action-text">Close</span>
+                      <span className="fablab-header-action-text">{tr?.['text_158'] ?? 'Close'}</span>
                     </button>
                   </div>
                 </div>
@@ -3491,52 +3465,46 @@ Esta instruccion aplica SOLO para este mensaje especifico donde se uso .//docume
 
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 'var(--space-lg)', padding: 'var(--space-xl)' }}>
                 <div className="fablab-skill-editor-field">
-                  <label>Nombre del rol</label>
+                  <label>{tr?.['text_159'] ?? 'Nombre del rol'}</label>
                   <input
                     value={editingSkillLabel}
                     onChange={(event) => setEditingSkillLabel(event.target.value)}
-                    placeholder="Ej: Ingeniero de software"
+                    placeholder={(tr?.['text_160'] ?? 'Ej: Ingeniero de software')}
                     className="fablab-skill-editor-input"
                   />
                 </div>
                 <div className="fablab-skill-editor-field">
-                  <label>Instruccion</label>
+                  <label>{tr?.['text_161'] ?? 'Instruccion'}</label>
                   <textarea
                     value={editingSkillInstruction}
                     onChange={(event) => setEditingSkillInstruction(event.target.value)}
                     rows={10}
-                    placeholder="Describe la instruccion del rol..."
+                    placeholder={(tr?.['text_162'] ?? 'Describe la instruccion del rol...')}
                     className="fablab-skill-editor-textarea"
                   />
                 </div>
                 <div className="fablab-skill-editor-field">
-                  <label>Configuracion de prompt completa (vista previa)</label>
+                  <label>{tr?.['text_163'] ?? 'Configuracion de prompt completa (vista previa)'}</label>
                   <textarea
                     value={buildSystemPrompt()}
                     readOnly
                     rows={8}
-                    placeholder="Vista previa del system prompt completo que se enviara al modelo..."
+                    placeholder={(tr?.['text_164'] ?? 'Vista previa del system prompt completo que se enviara al modelo...')}
                     className="fablab-skill-editor-textarea fablab-skill-editor-preview"
                   />
-                  <small className="fablab-skill-editor-hint">
-                    Este es el prompt final que se envia al modelo, incluyendo el rol activo, instrucciones de rol y comportamiento base.
-                  </small>
+                  <small className="fablab-skill-editor-hint">{tr?.['text_165'] ?? 'Este es el prompt final que se envia al modelo, incluyendo el rol activo, instrucciones de rol y comportamiento base.'}</small>
                 </div>
                 <div className="fablab-skill-editor-actions">
                   <button
                     type="button"
                     onClick={closeFlip}
                     className="fablab-header-action-btn"
-                  >
-                    Cancelar
-                  </button>
+                  >{tr?.['text_166'] ?? 'Cancelar'}</button>
                   <button
                     type="button"
                     onClick={() => void saveSkillPreset()}
                     className="fablab-header-action-btn fablab-header-action-btn-primary"
-                  >
-                    Guardar rol
-                  </button>
+                  >{tr?.['text_167'] ?? 'Guardar rol'}</button>
                 </div>
               </div>
             </>
@@ -3548,12 +3516,8 @@ Esta instruccion aplica SOLO para este mensaje especifico donde se uso .//docume
                 <div className="fablab-header-top">
                   <div className="fablab-header-title">
                     <h1 className="fablab-header-title-text">
-                      <Bot size={18} />
-                      Chat Skills Editor
-                    </h1>
-                    <p className="fablab-header-subtitle">
-                      Crea skills para usar con .//nombre en el chat
-                    </p>
+                      <Bot size={18} />{tr?.['text_168'] ?? 'Chat Skills Editor'}</h1>
+                    <p className="fablab-header-subtitle">{tr?.['text_169'] ?? 'Crea skills para usar con .//nombre en el chat'}</p>
                   </div>
 
                   <div className="fablab-header-actions">
@@ -3563,7 +3527,7 @@ Esta instruccion aplica SOLO para este mensaje especifico donde se uso .//docume
                       className="fablab-header-action-btn"
                     >
                       <X size={14} />
-                      <span className="fablab-header-action-text">Close</span>
+                      <span className="fablab-header-action-text">{tr?.['text_158'] ?? 'Close'}</span>
                     </button>
                   </div>
                 </div>
@@ -3571,12 +3535,10 @@ Esta instruccion aplica SOLO para este mensaje especifico donde se uso .//docume
 
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 'var(--space-lg)', padding: 'var(--space-xl)' }}>
                 <div className="fablab-skill-editor-field">
-                  <label>Skill activos</label>
+                  <label>{tr?.['text_170'] ?? 'Skill activos'}</label>
                   <div className="fablab-chat-skills-list" style={{ maxHeight: '150px', overflow: 'auto', border: '1px solid rgba(148, 163, 184, 0.3)', borderRadius: '8px', padding: '8px' }}>
                     {chatSkills.length === 0 && (
-                      <div style={{ padding: '12px', textAlign: 'center', color: '#64748b' }}>
-                        No hay skills creados. Crea uno abajo.
-                      </div>
+                      <div style={{ padding: '12px', textAlign: 'center', color: '#64748b' }}>{tr?.['text_171'] ?? 'No hay skills creados. Crea uno abajo.'}</div>
                     )}
                     {chatSkills.map((skill) => (
                       <div key={skill.id} className="fablab-skill-menu-row" style={{ marginBottom: '4px' }}>
@@ -3598,7 +3560,7 @@ Esta instruccion aplica SOLO para este mensaje especifico donde se uso .//docume
                           type="button"
                           onClick={() => void handleDeleteChatSkill(skill.id)}
                           className="fablab-skill-menu-delete"
-                          title="Eliminar skill"
+                          title={(tr?.['text_85'] ?? 'Eliminar skill')}
                         >
                           <Trash2 size={12} />
                         </button>
@@ -3608,7 +3570,7 @@ Esta instruccion aplica SOLO para este mensaje especifico donde se uso .//docume
                 </div>
 
                 <div className="fablab-skill-editor-field">
-                  <label>Opciones de creacion</label>
+                  <label>{tr?.['text_172'] ?? 'Opciones de creacion'}</label>
                   <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
                     <button
                       type="button"
@@ -3617,7 +3579,7 @@ Esta instruccion aplica SOLO para este mensaje especifico donde se uso .//docume
                       style={{ flex: 1 }}
                     >
                       <Paperclip size={14} />
-                      <span>Importar desde libreria de objetos</span>
+                      <span>{tr?.['text_173'] ?? 'Importar desde libreria de objetos'}</span>
                     </button>
                   </div>
                   {newChatSkillSourceType === 'object' && newChatSkillObjectId && (
@@ -3632,7 +3594,7 @@ Esta instruccion aplica SOLO para este mensaje especifico donde se uso .//docume
                   <input
                     value={newChatSkillName}
                     onChange={(event) => setNewChatSkillName(event.target.value)}
-                    placeholder="Nombre del skill (ej: documentar)"
+                    placeholder={(tr?.['text_178'] ?? 'Nombre del skill (ej: documentar)')}
                     className="fablab-skill-editor-input"
                     style={{ marginBottom: '8px' }}
                   />
@@ -3640,7 +3602,7 @@ Esta instruccion aplica SOLO para este mensaje especifico donde se uso .//docume
                     value={newChatSkillInstruction}
                     onChange={(event) => setNewChatSkillInstruction(event.target.value)}
                     rows={8}
-                    placeholder="Instruccion del skill. Ej: Al final de cada respuesta, genera un documento PDF descargable con el resumen de la conversacion."
+                    placeholder={(tr?.['text_179'] ?? 'Instruccion del skill. Ej: Al final de cada respuesta, genera un documento PDF descargable con el resumen de la conversacion.')}
                     className="fablab-skill-editor-textarea"
                   />
                 </div>
@@ -3650,9 +3612,7 @@ Esta instruccion aplica SOLO para este mensaje especifico donde se uso .//docume
                     type="button"
                     onClick={closeFlip}
                     className="fablab-header-action-btn"
-                  >
-                    Cancelar
-                  </button>
+                  >{tr?.['text_166'] ?? 'Cancelar'}</button>
                   <button
                     type="button"
                     onClick={() => void (editingChatSkill ? handleUpdateChatSkill() : handleCreateChatSkill())}
@@ -3671,7 +3631,7 @@ Esta instruccion aplica SOLO para este mensaje especifico donde se uso .//docume
       {/* Skill Import Modal */}
       <AssemblerModal
         isOpen={skillImportModalOpen}
-        title="Importar skill desde libreria de objetos"
+        title={(tr?.['text_182'] ?? 'Importar skill desde libreria de objetos')}
         onClose={() => setSkillImportModalOpen(false)}
       >
         <GenericObjectSelector
