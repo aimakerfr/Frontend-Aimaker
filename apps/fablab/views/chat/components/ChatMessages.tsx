@@ -2,7 +2,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
-import { Download, FolderPlus, ImageDown } from 'lucide-react';
+import { Download, FolderPlus, ImageDown, Paperclip } from 'lucide-react';
 import type { FablabChatMessage } from '@core/fablab-chat';
 import type { RichOutput } from '../types/chat.types';
 import PDFCard from './PDFCard';
@@ -26,6 +26,7 @@ type ChatMessagesProps = {
   exportMessage: (messageId: string) => void;
   markdownComponents: Record<string, unknown>;
   markdownUrlTransform: (url: string) => string;
+  isSending: boolean;
 };
 
 const ChatMessages = ({
@@ -38,6 +39,7 @@ const ChatMessages = ({
   exportMessage,
   markdownComponents,
   markdownUrlTransform,
+  isSending,
 }: ChatMessagesProps) => {
   return (
     <div className="fablab-chat-messages">
@@ -53,6 +55,17 @@ const ChatMessages = ({
               </span>
               <span className="fablab-message-time">{formatTime(message.createdAt)}</span>
             </p>
+
+            {isUser && Array.isArray(message.attachments) && message.attachments.length > 0 && (
+              <div className="fablab-message-attachments">
+                {message.attachments.map((attachment) => (
+                  <div key={attachment.id} className={`fablab-message-attachment ${attachment.status || 'ready'}`}>
+                    <Paperclip size={12} />
+                    <span>{attachment.name}</span>
+                  </div>
+                ))}
+              </div>
+            )}
 
             {imageSrc && (
               <div>
@@ -176,6 +189,18 @@ const ChatMessages = ({
           </div>
         </div>
       ))}
+
+      {isSending && (
+        <div className="fablab-message-wrapper fablab-message-assistant">
+          <div className="fablab-message-bubble fablab-bubble-assistant">
+            <div className="fablab-typing-indicator">
+              <span />
+              <span />
+              <span />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -1,4 +1,5 @@
-import { Loader2, MessageSquare, Paperclip, Send, Wand2 } from 'lucide-react';
+import { Loader2, MessageSquare, Paperclip, Plus, Send, Wand2, X } from 'lucide-react';
+import type { FablabChatAttachment } from '@core/fablab-chat';
 
 export type ChatInputProps = {
   input: string;
@@ -9,6 +10,9 @@ export type ChatInputProps = {
   renderComplementsDropdown: () => React.ReactNode;
   renderQuickSkillButtons: () => React.ReactNode;
   setSourceMode: (mode: 'context' | 'role' | 'prompt' | null) => void;
+  attachments: FablabChatAttachment[];
+  onAttachClick: () => void;
+  onRemoveAttachment: (attachmentId: string) => void;
   isSending: boolean;
   runtimeSelection: unknown;
   skills: { projectAudit: boolean };
@@ -32,6 +36,9 @@ const ChatInput = ({
   renderComplementsDropdown,
   renderQuickSkillButtons,
   setSourceMode,
+  attachments,
+  onAttachClick,
+  onRemoveAttachment,
   isSending,
   runtimeSelection,
   skills,
@@ -45,8 +52,22 @@ const ChatInput = ({
   containerClassName,
   rows,
 }: ChatInputProps) => {
+  void renderComplementsDropdown;
   return (
     <div className={containerClassName ?? 'fablab-conversation-input'}>
+      {attachments.length > 0 && (
+        <div className="fablab-input-attachments">
+          {attachments.map((attachment) => (
+            <div key={attachment.id} className={`fablab-input-attachment ${attachment.status || 'ready'}`}>
+              <Paperclip size={12} />
+              <span>{attachment.name}</span>
+              <button type="button" onClick={() => onRemoveAttachment(attachment.id)}>
+                <X size={12} />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
       <div className="fablab-input-with-overlay">
         <div
           className="fablab-input-highlight-layer"
@@ -68,7 +89,15 @@ const ChatInput = ({
 
       <div className="fablab-input-buttons">
         <div className="fablab-skill-buttons">
-          {renderComplementsDropdown()}
+          <button
+            type="button"
+            onClick={onAttachClick}
+            className="fablab-source-button fablab-attach-button"
+          >
+            <Plus size={14} />
+            <span className="fablab-source-text">Adjuntar</span>
+          </button>
+          {/* {renderComplementsDropdown()} */}
           {renderQuickSkillButtons()}
 
           <button
