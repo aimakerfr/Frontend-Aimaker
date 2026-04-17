@@ -307,6 +307,8 @@ const CreationPathView: React.FC = () => {
   const [researchObjectId, setResearchObjectId] = useState<number | null>(null);
 
   const [notebookProductId, setNotebookProductId] = useState<number | null>(null);
+  const [notebookPreviewOptions, setNotebookPreviewOptions] = useState<Array<{ id: number; title: string }>>([]);
+  const [previewNotebookId, setPreviewNotebookId] = useState<number | null>(null);
   const [notebookSynthesis, setNotebookSynthesis] = useState('');
   const [isCreatingNotebook, setIsCreatingNotebook] = useState(false);
   const [isNotebookPreviewLoading, setIsNotebookPreviewLoading] = useState(false);
@@ -334,10 +336,11 @@ const CreationPathView: React.FC = () => {
   }, [location.state]);
 
   const productUrl = `${window.location.origin}/product/creation-path`;
+  const effectiveNotebookPreviewId = useMemo(() => previewNotebookId ?? notebookProductId, [previewNotebookId, notebookProductId]);
   const notebookPreviewUrl = useMemo(() => {
-    if (!notebookProductId) return '';
-    return `${window.location.origin}/product/notebook/${notebookProductId}?embedded=1&cp_preview=${notebookPreviewNonce}`;
-  }, [notebookProductId, notebookPreviewNonce]);
+    if (!effectiveNotebookPreviewId) return '';
+    return `${window.location.origin}/product/notebook/${effectiveNotebookPreviewId}?embedded=1&cp_preview=${notebookPreviewNonce}`;
+  }, [effectiveNotebookPreviewId, notebookPreviewNonce]);
 
   const canGoNext = useMemo(() => {
     if (activeStep !== 1) return true;
@@ -350,12 +353,55 @@ const CreationPathView: React.FC = () => {
   const optimizerRuntimeInfo = useMemo(() => resolveRuntimeForMode(runtimeConfig, 'prompt_optimizer'), [runtimeConfig]);
 
   useEffect(() => {
-    if (notebookProductId) {
+    if (effectiveNotebookPreviewId) {
       setIsNotebookPreviewLoading(true);
     } else {
       setIsNotebookPreviewLoading(false);
     }
-  }, [notebookProductId, notebookPreviewNonce]);
+  }, [effectiveNotebookPreviewId, notebookPreviewNonce]);
+
+  useEffect(() => {
+    if (notebookProductId && !previewNotebookId) {
+      setPreviewNotebookId(notebookProductId);
+    }
+  }, [notebookProductId, previewNotebookId]);
+
+  const refreshNotebookPreviewOptions = async (preferredId?: number | null) => {
+    const hasExplicitPreferred = preferredId !== undefined;
+    try {
+      const products = await getProducts({ type: 'rag_chat_maker' });
+      const normalized = (Array.isArray(products) ? products : [])
+        .map((item) => {
+          const itemId = toNumericId(item.id);
+          if (!itemId) return null;
+          const rawTitle = String(item.title || '').trim();
+          return {
+            id: itemId,
+            title: rawTitle || `${tr.notebookTitlePrefix || 'Notebook'} #${itemId}`,
+          };
+        })
+        .filter((item): item is { id: number; title: string } => item !== null)
+        .sort((a, b) => b.id - a.id);
+
+      setNotebookPreviewOptions(normalized);
+
+      const preferred = hasExplicitPreferred ? preferredId : notebookProductId;
+      const preferredExists = Boolean(preferred && normalized.some((item) => item.id === preferred));
+      if (preferredExists) {
+        setPreviewNotebookId(preferred as number);
+        return;
+      }
+
+      if (normalized.length > 0) {
+        setPreviewNotebookId(normalized[0].id);
+      } else {
+        setPreviewNotebookId(null);
+      }
+    } catch {
+      setNotebookPreviewOptions([]);
+      setPreviewNotebookId(hasExplicitPreferred ? (preferredId ?? null) : (notebookProductId ?? null));
+    }
+  };
 
   useEffect(() => {
     const onFocus = () => {
@@ -454,7 +500,8 @@ const CreationPathView: React.FC = () => {
         if (!projectTitle.trim()) setProjectTitle(String(productData.title || ''));
         if (!projectDescription.trim()) setProjectDescription(String(productData.description || ''));
 
-        await loadProgress(productData.id);
+        const loadedNotebookId = await loadProgress(productData.id);
+        await refreshNotebookPreviewOptions(loadedNotebookId);
         await refreshRuntimeConfig();
       } catch {
         setErrorText(tr.loadError || 'No se pudo abrir Creation-Path.');
@@ -466,12 +513,13 @@ const CreationPathView: React.FC = () => {
     void load();
   }, [id, stateProductId, navigate]);
 
-  const loadProgress = async (productId: number) => {
+  const loadProgress = async (productId: number): Promise<number | null> => {
     try {
       const progress = await getProductStepProgress(productId);
       const done = progress
         .filter((item) => item.status === 'success')
         .map((item) => Number(item.stepId));
+      let linkedNotebookId: number | null = null;
 
       setCompletedSteps(done);
 
@@ -497,7 +545,9 @@ const CreationPathView: React.FC = () => {
       }
 
       if (step3?.resultText?.notebookProductId) {
-        setNotebookProductId(Number(step3.resultText.notebookProductId));
+        linkedNotebookId = Number(step3.resultText.notebookProductId);
+        setNotebookProductId(linkedNotebookId);
+        setPreviewNotebookId(linkedNotebookId);
       }
       if (step3?.resultText?.notebookSynthesis) {
         setNotebookSynthesis(String(step3.resultText.notebookSynthesis || ''));
@@ -515,8 +565,10 @@ const CreationPathView: React.FC = () => {
 
       const firstPending = WIZARD_STEPS.find((step) => !done.includes(step.id));
       setActiveStep(firstPending?.id || 6);
+      return linkedNotebookId;
     } catch (error) {
       console.error('[CreationPath] Error loading progress:', error);
+      return null;
     }
   };
 
@@ -586,6 +638,7 @@ const CreationPathView: React.FC = () => {
       setResearchCopied(false);
 
       setNotebookProductId(null);
+      setPreviewNotebookId(null);
       setNotebookSynthesis('');
       setNotebookPreviewNonce(0);
       setIsNotebookPreviewLoading(false);
@@ -597,6 +650,8 @@ const CreationPathView: React.FC = () => {
 
       setAiStudioPrompt('');
       setAiStudioCopied(false);
+
+      await refreshNotebookPreviewOptions(null);
 
       setStatusText(tr.resetDone || 'Flujo reiniciado. Ya puedes empezar de cero y crear un notebook nuevo.');
     } catch {
@@ -746,11 +801,16 @@ const CreationPathView: React.FC = () => {
         setNotebookProductId(nextNotebookId);
       }
 
+      setPreviewNotebookId(nextNotebookId);
+
       await saveStep(3, {
         notebookProductId: nextNotebookId,
         notebookRoute: `/product/notebook/${nextNotebookId}`,
         notebookSynthesis: notebookSynthesis.trim(),
       });
+
+      await refreshNotebookPreviewOptions(nextNotebookId);
+      setNotebookPreviewNonce((prev) => prev + 1);
 
       setStatusText(tr.notebookLinked || 'Notebook vinculado correctamente.');
     } catch {
@@ -1210,10 +1270,10 @@ const CreationPathView: React.FC = () => {
               </button>
             )}
 
-            {notebookProductId && (
+            {effectiveNotebookPreviewId && (
               <button
                 type="button"
-                onClick={() => navigate(`/product/notebook/${notebookProductId}`)}
+                onClick={() => navigate(`/product/notebook/${effectiveNotebookPreviewId}`)}
                 className="inline-flex items-center gap-1 rounded-xl border border-emerald-300 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-700 hover:border-emerald-400 dark:border-emerald-800 dark:bg-emerald-900/20 dark:text-emerald-300"
               >
                 <ExternalLink size={13} />
@@ -1221,17 +1281,46 @@ const CreationPathView: React.FC = () => {
               </button>
             )}
 
-              {notebookProductId && (
-                <button
-                  type="button"
-                  onClick={() => setNotebookPreviewNonce((prev) => prev + 1)}
-                  className="inline-flex items-center gap-1 rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:border-slate-400 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
-                >
-                  <Loader2 size={13} className={isNotebookPreviewLoading ? 'animate-spin' : ''} />
-                  {tr.notebookPreviewReload || 'Recargar vista previa'}
-                </button>
-              )}
+            {effectiveNotebookPreviewId && (
+              <button
+                type="button"
+                onClick={() => setNotebookPreviewNonce((prev) => prev + 1)}
+                className="inline-flex items-center gap-1 rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:border-slate-400 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
+              >
+                <Loader2 size={13} className={isNotebookPreviewLoading ? 'animate-spin' : ''} />
+                {tr.notebookPreviewReload || 'Recargar vista previa'}
+              </button>
+            )}
           </div>
+
+          {notebookPreviewOptions.length > 0 && (
+            <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
+              <select
+                value={previewNotebookId ?? ''}
+                onChange={(event) => {
+                  const selected = Number(event.target.value || 0);
+                  if (!selected) return;
+                  setPreviewNotebookId(selected);
+                  setNotebookPreviewNonce((prev) => prev + 1);
+                }}
+                className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs text-slate-800 outline-none focus:border-emerald-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+              >
+                {notebookPreviewOptions.map((item) => (
+                  <option key={item.id} value={item.id}>
+                    #{item.id} - {item.title}
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                onClick={() => setNotebookPreviewNonce((prev) => prev + 1)}
+                disabled={!previewNotebookId}
+                className="inline-flex items-center justify-center rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:border-slate-400 disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
+              >
+                {tr.notebookPreviewSwitch || 'Cargar seleccion'}
+              </button>
+            </div>
+          )}
 
           {isCreatingNotebook && (
             <p className="text-xs text-slate-500 dark:text-slate-400">{tr.notebookCreating || 'Creando notebook...'}</p>
@@ -1249,14 +1338,14 @@ const CreationPathView: React.FC = () => {
             className="w-full resize-y rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-emerald-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
           />
 
-          {notebookProductId && (
+          {effectiveNotebookPreviewId && (
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <p className="text-xs font-semibold text-slate-600 dark:text-slate-300">
                   {tr.notebookInlinePreviewTitle || 'Notebook embebido (misma vista, mismo contenido)'}
                 </p>
                 <span className="text-[11px] text-slate-500 dark:text-slate-400">
-                  {tr.notebookInlinePreviewNote || 'Lo que edites aqui se guarda en el mismo notebook vinculado.'}
+                  {tr.notebookInlinePreviewNote || 'Puedes alternar entre notebooks de tu lista sin salir de Creation-Path.'}
                 </span>
               </div>
 

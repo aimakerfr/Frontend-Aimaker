@@ -161,9 +161,15 @@ const sanitizeUiErrorMessage = (value: string): string => {
 const formatRuntimeErrorForUser = (error: unknown): string => {
   if (error instanceof HttpClientError) {
     const status = Number(error.status || 0);
+    const safe = sanitizeUiErrorMessage(error.message || '');
 
     if (status === 400) {
-      return 'El modelo no acepto esta solicitud. Revisa el tipo de modelo o la configuracion del prompt.';
+      if (/credit balance is too low|insufficient.*credit|billing|purchase credits|payment required/i.test(safe)) {
+        return 'El proveedor rechazo la solicitud por saldo insuficiente en la cuenta API. Recarga creditos/facturacion y vuelve a intentar.';
+      }
+      return safe
+        ? `El proveedor rechazo la solicitud: ${safe}`
+        : 'El modelo no acepto esta solicitud. Revisa el tipo de modelo o la configuracion del prompt.';
     }
     if (status === 401 || status === 403) {
       return 'La API key no es valida o no tiene permisos para este modelo.';
@@ -181,7 +187,6 @@ const formatRuntimeErrorForUser = (error: unknown): string => {
       return 'El backend tuvo un error al procesar la solicitud. Intenta nuevamente.';
     }
 
-    const safe = sanitizeUiErrorMessage(error.message || '');
     if (safe) return safe;
   }
 
