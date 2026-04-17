@@ -39,6 +39,11 @@ const EMPTY_STATS: FablabChatStats = {
 
 let cachedChatProductId: number | null = null;
 let ensureChatProductPromise: Promise<number> | null = null;
+let cachedRuntimeState: FablabChatRuntimeState | null = null;
+let cachedRuntimeStateAt = 0;
+let runtimeStatePromise: Promise<FablabChatRuntimeState> | null = null;
+
+const RUNTIME_STATE_CACHE_TTL_MS = 4000;
 
 const isRecord = (value: unknown): value is Record<string, unknown> => {
   return !!value && typeof value === 'object' && !Array.isArray(value);
@@ -181,8 +186,24 @@ const rememberProductId = (id: number): void => {
 
 const clearRememberedProductId = (): void => {
   cachedChatProductId = null;
+  cachedRuntimeState = null;
+  cachedRuntimeStateAt = 0;
   if (typeof window !== 'undefined') {
     window.localStorage.removeItem(CHAT_PRODUCT_ID_CACHE_KEY);
+  }
+};
+
+const rememberRuntimeState = (state: FablabChatRuntimeState): void => {
+  cachedRuntimeState = state;
+  cachedRuntimeStateAt = Date.now();
+};
+
+const updateCachedRuntimeState = (
+  updater: (state: FablabChatRuntimeState | null) => FablabChatRuntimeState | null
+): void => {
+  cachedRuntimeState = updater(cachedRuntimeState);
+  if (cachedRuntimeState) {
+    cachedRuntimeStateAt = Date.now();
   }
 };
 
@@ -292,38 +313,68 @@ export const decodeModelBindingId = (bindingId: string): { profileId: string; mo
 };
 
 export const loadFablabChatRuntimeState = async (): Promise<FablabChatRuntimeState> => {
-  const productId = await ensureChatProductId();
-  const progressRows = await getProductStepProgress(productId);
+  const now = Date.now();
+  if (cachedRuntimeState && now - cachedRuntimeStateAt < RUNTIME_STATE_CACHE_TTL_MS) {
+    return cachedRuntimeState;
+  }
 
-  const byStep = new Map(progressRows.map((item) => [item.stepId, item]));
+  if (runtimeStatePromise) {
+    return runtimeStatePromise;
+  }
 
-  const rawConfigPayload = parseStepPayload(byStep.get(FABLAB_CHAT_CONFIG_STEP)?.resultText ?? {});
-  const rawConfig = isRecord(rawConfigPayload) ? rawConfigPayload : {};
+  runtimeStatePromise = (async () => {
+    const productId = await ensureChatProductId();
+    const progressRows = await getProductStepProgress(productId);
 
-  const conversationPayload = parseStepPayload(byStep.get(FABLAB_CHAT_CONVERSATION_STEP)?.resultText ?? {});
-  const statsPayload = parseStepPayload(byStep.get(FABLAB_CHAT_STATS_STEP)?.resultText ?? {});
+    const byStep = new Map(progressRows.map((item) => [item.stepId, item]));
 
-  return {
-    config: normalizeConfig(rawConfig),
-    rawConfig,
-    conversation: normalizeConversation(conversationPayload),
-    stats: normalizeStats(statsPayload),
-  };
+    const rawConfigPayload = parseStepPayload(byStep.get(FABLAB_CHAT_CONFIG_STEP)?.resultText ?? {});
+    const rawConfig = isRecord(rawConfigPayload) ? rawConfigPayload : {};
+
+    const conversationPayload = parseStepPayload(byStep.get(FABLAB_CHAT_CONVERSATION_STEP)?.resultText ?? {});
+    const statsPayload = parseStepPayload(byStep.get(FABLAB_CHAT_STATS_STEP)?.resultText ?? {});
+
+    const state = {
+      config: normalizeConfig(rawConfig),
+      rawConfig,
+      conversation: normalizeConversation(conversationPayload),
+      stats: normalizeStats(statsPayload),
+    };
+
+    rememberRuntimeState(state);
+    return state;
+  })();
+
+  try {
+    return await runtimeStatePromise;
+  } finally {
+    runtimeStatePromise = null;
+  }
 };
 
 export const saveFablabChatRuntimeConfig = async (
   nextConfig: Record<string, unknown>
 ): Promise<void> => {
   const productId = await ensureChatProductId();
+  const payload = {
+    ...nextConfig,
+    updatedAt: new Date().toISOString(),
+  };
   await updateProductStepProgress({
     productId,
     stepId: FABLAB_CHAT_CONFIG_STEP,
     status: 'success',
     executedAt: new Date().toISOString(),
-    resultText: {
-      ...nextConfig,
-      updatedAt: new Date().toISOString(),
-    },
+    resultText: payload,
+  });
+
+  updateCachedRuntimeState((state) => {
+    if (!state) return state;
+    return {
+      ...state,
+      config: normalizeConfig(payload),
+      rawConfig: payload,
+    };
   });
 };
 
@@ -341,6 +392,14 @@ export const saveFablabChatConversation = async (
       updatedAt: conversation.updatedAt || new Date().toISOString(),
     },
   });
+
+  updateCachedRuntimeState((state) => {
+    if (!state) return state;
+    return {
+      ...state,
+      conversation,
+    };
+  });
 };
 
 export const saveFablabChatStats = async (
@@ -356,6 +415,14 @@ export const saveFablabChatStats = async (
       ...stats,
       updatedAt: stats.updatedAt || new Date().toISOString(),
     },
+  });
+
+  updateCachedRuntimeState((state) => {
+    if (!state) return state;
+    return {
+      ...state,
+      stats,
+    };
   });
 };
 

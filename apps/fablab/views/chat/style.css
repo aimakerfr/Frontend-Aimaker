@@ -8,6 +8,40 @@
   flex-direction: column;
 }
 
+.fablab-chat-messages {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.fablab-message-attachments {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.fablab-message-attachment {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 0.75rem;
+  border: 1px solid rgba(148, 163, 184, 0.4);
+  background: rgba(148, 163, 184, 0.1);
+  color: #0f172a;
+}
+
+.fablab-message-attachment.uploading {
+  opacity: 0.6;
+}
+
+.fablab-message-attachment.error {
+  border-color: rgba(239, 68, 68, 0.6);
+  color: #b91c1c;
+}
+
 .fablab-chat-main-wrapper {
   border-radius: 20px;
 
@@ -307,53 +341,132 @@
   font-weight: 500;
 }
 
-/* Skill detected badge */
-.fablab-skill-detected-badge {
+.fablab-input-with-overlay {
+  position: relative;
+}
+
+.fablab-input-attachments {
   display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.fablab-input-attachment {
+  display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 6px;
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 0.75rem;
+  border: 1px solid rgba(148, 163, 184, 0.4);
+  background: rgba(255, 255, 255, 0.9);
+  color: #0f172a;
+}
+
+.fablab-input-attachment.uploading {
+  opacity: 0.6;
+}
+
+.fablab-input-attachment.error {
+  border-color: rgba(239, 68, 68, 0.6);
+  color: #b91c1c;
+}
+
+.fablab-input-attachment button {
+  border: none;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+}
+
+.fablab-input-highlight-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  color: #1e293b;
+  font-size: var(--font-size-base);
+  line-height: 1.5;
+  padding: var(--space-md);
+  overflow: hidden;
+}
+
+.fablab-input-overlay {
+  position: relative;
+  background: transparent;
+  color: transparent;
+  caret-color: #0f172a;
+}
+
+.fablab-input-overlay::placeholder {
+  color: #94a3b8;
+}
+
+.fablab-input-skill-highlight {
+  color: #2563eb;
+  text-decoration: underline;
+  font-weight: 600;
+}
+
+.fablab-skill-dropdown {
+  position: absolute;
+  left: 0;
+  bottom: 100%;
+  width: 100%;
+  max-height: 180px;
+  overflow: auto;
+  border-radius: 12px;
+  background: #ffffff;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.15);
+  z-index: 10;
+}
+
+.fablab-skill-dropdown-header {
   padding: 0.5rem 0.75rem;
-  margin: 0.5rem 0;
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(139, 92, 246, 0.15));
-  border: 1px solid rgba(59, 130, 246, 0.3);
-  border-radius: 8px;
-  font-size: 0.85rem;
-  color: #1e40af;
-  animation: fablab-skill-badge-in 0.3s ease-out;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #64748b;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.2);
 }
 
-@keyframes fablab-skill-badge-in {
-  from {
-    opacity: 0;
-    transform: translateY(-5px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+.fablab-skill-dropdown-list {
+  list-style: none;
+  margin: 0;
+  padding: 0.25rem 0;
 }
 
-.fablab-skill-detected-icon {
-  font-size: 1rem;
+.fablab-skill-dropdown-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: #0f172a;
 }
 
-.fablab-skill-detected-text {
-  font-weight: 500;
+.fablab-skill-dropdown-item:hover,
+.fablab-skill-dropdown-item.active {
+  background: rgba(59, 130, 246, 0.12);
 }
 
-.fablab-skill-detected-text strong {
+.fablab-skill-dropdown-name {
+  font-weight: 600;
   color: #2563eb;
   font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
-  background: rgba(59, 130, 246, 0.15);
-  padding: 2px 6px;
-  border-radius: 4px;
 }
 
-.fablab-skill-detected-hint {
-  margin-left: auto;
+.fablab-skill-dropdown-preview {
   color: #64748b;
   font-size: 0.75rem;
-  max-width: 200px;
+  max-width: 55%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -491,6 +604,16 @@
   transform: translateX(2px);
 }
 
+.fablab-header-action-btn.is-expanded,
+.fablab-skill-menu.is-open .fablab-header-action-btn {
+  width: auto;
+  padding: 6px 12px;
+  border-color: rgba(99, 102, 241, 0.6);
+  background: rgba(255, 255, 255, 0.8);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateX(2px);
+}
+
 .fablab-header-action-btn:disabled {
   opacity: 0.4;
   cursor: not-allowed;
@@ -514,6 +637,13 @@
 }
 
 .fablab-header-action-btn:hover .fablab-header-action-text {
+  opacity: 1;
+  width: auto;
+  margin-left: var(--space-xs);
+}
+
+.fablab-header-action-btn.is-expanded .fablab-header-action-text,
+.fablab-skill-menu.is-open .fablab-header-action-text {
   opacity: 1;
   width: auto;
   margin-left: var(--space-xs);
@@ -1413,7 +1543,47 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: var(--space-md);
+  gap: var(--space-sm);
+}
+
+.fablab-typing-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 2px;
+}
+
+.fablab-typing-indicator span {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: #94a3b8;
+  animation: fablabTypingPulse 1.1s infinite ease-in-out;
+}
+
+.fablab-typing-indicator span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.fablab-typing-indicator span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes fablabTypingPulse {
+  0%,
+  80%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.4;
+  }
+  40% {
+    transform: translateY(-4px);
+    opacity: 1;
+  }
+}
+
+.fablab-attach-button {
+  margin-right: 6px;
 }
 
 /* Toasts */

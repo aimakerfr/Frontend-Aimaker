@@ -1,47 +1,21 @@
-import React from 'react';
-import FablabChatController from './FablabChatController';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import mermaid from 'mermaid';
 
 // Initialize mermaid
 mermaid.initialize({ startOnLoad: false, theme: 'default' });
 import './style.css';
 import 'katex/dist/katex.min.css';
 
-// PDF Card Component
-const PDFCard = ({ fileName, onDownload, tr }: { fileName: string; onDownload: () => void; tr?: Record<string, string> }) => {
-  return (
-    <div className="fablab-pdf-card">
-      <div className="fablab-pdf-icon">
-        <FileText size={32} />
-      </div>
-      <div className="fablab-pdf-info">
-        <div className="fablab-pdf-filename">{fileName}</div>
-        <div className="fablab-pdf-type">{tr?.['text_1'] ?? 'PDF Document'}</div>
-      </div>
-      <button
-        type="button"
-        className="fablab-pdf-download-btn"
-        onClick={onDownload}
-      >
-        <Download size={16} />{tr?.['text_2'] ?? 'Download'}</button>
-    </div>
-  );
-};
-
 import {
-  AlertTriangle,
   Bot,
   ChevronLeft,
   ChevronRight,
-  Download,
   ExternalLink,
-  FolderPlus,
   ImageDown,
   Loader2,
   MessageSquare,
   Mic,
-  Paperclip,
   Pencil,
-  RotateCcw,
   Search,
   Send,
   ShieldCheck,
@@ -52,7 +26,6 @@ import {
   Volume2,
   Wand2,
   X,
-  FileText,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -76,14 +49,19 @@ import {
   saveFablabChatConversation,
   saveFablabChatRuntimeConfig,
   saveFablabChatStats,
+  type FablabChatAttachment,
   type FablabChatMessage,
   type FablabChatRuntimeConfig,
   type FablabChatRuntimeState,
 } from '@core/fablab-chat';
 import {
+  getChatRoles,
   getChatSkills,
+  createChatRole,
   createChatSkill,
+  updateChatRole,
   updateChatSkill,
+  deleteChatRole,
   deleteChatSkill,
   type ChatSkill,
 } from '@core/chat-skills';
@@ -92,6 +70,19 @@ import { useLanguage } from '../../language/useLanguage';
 import AssemblerModal from '../assembler/components/AssemblerModal';
 import GenericObjectSelector from '@apps/fablab/modules/object-selector/View/Notebook/GenericObjectSelector';
 import type { ObjectItem as SelectorObjectItem } from '@apps/fablab/modules/object-selector/services/api_handler';
+import ChatHeader from './components/ChatHeader';
+import ChatMessages from './components/ChatMessages';
+import ChatInput from './components/ChatInput';
+import ChatSidebar from './components/ChatSidebar';
+import RoleEditor from './components/RoleEditor';
+import ChatSkillsEditor from './components/ChatSkillsEditor';
+import type { RichOutput } from './types/chat.types';
+import {
+  buildHighlightedInputHtml,
+  buildSystemPromptWithChatSkill,
+  parseChatSkillFromInput,
+} from './helpers/chatSkill.helpers';
+import { generateDocumentPDF } from './helpers/chatPdf.helpers';
 
 type SkillState = {
   search: boolean;
@@ -105,22 +96,15 @@ type SkillState = {
   roleOptimize: boolean;
 };
 
-type SourceMode = 'context' | 'role' | 'prompt' | null;
-
-type SkillPreset = {
-  id: string;
-  label: string;
-  instruction: string;
+type PendingAttachment = FablabChatAttachment & {
+  file?: File;
 };
 
-type ProviderAttachment = NonNullable<ProviderChatMessage['attachments']>[number];
+type SourceMode = 'context' | 'role' | 'prompt' | null;
 
-type RichOutput = {
-  kind: 'audio' | 'video' | 'file';
-  src: string;
-  mimeType: string;
-  fileName: string;
-} | null;
+type RolePreset = ChatSkill;
+
+type ProviderAttachment = NonNullable<ProviderChatMessage['attachments']>[number];
 
 type GeneratedFileFormat = 'pdf' | 'txt' | 'md' | 'doc';
 
@@ -156,15 +140,9 @@ const sanitizeUiErrorMessage = (value: string): string => {
 const formatRuntimeErrorForUser = (error: unknown): string => {
   if (error instanceof HttpClientError) {
     const status = Number(error.status || 0);
-    const safe = sanitizeUiErrorMessage(error.message || '');
 
     if (status === 400) {
-      if (/credit balance is too low|insufficient.*credit|billing|purchase credits|payment required/i.test(safe)) {
-        return 'El proveedor rechazo la solicitud por saldo insuficiente en la cuenta API. Recarga creditos/facturacion y vuelve a intentar.';
-      }
-      return safe
-        ? `El proveedor rechazo la solicitud: ${safe}`
-        : 'El modelo no acepto esta solicitud. Revisa el tipo de modelo o la configuracion del prompt.';
+      return 'El modelo no acepto esta solicitud. Revisa el tipo de modelo o la configuracion del prompt.';
     }
     if (status === 401 || status === 403) {
       return 'La API key no es valida o no tiene permisos para este modelo.';
@@ -182,6 +160,7 @@ const formatRuntimeErrorForUser = (error: unknown): string => {
       return 'El backend tuvo un error al procesar la solicitud. Intenta nuevamente.';
     }
 
+    const safe = sanitizeUiErrorMessage(error.message || '');
     if (safe) return safe;
   }
 
@@ -211,43 +190,82 @@ const FILE_RESPONSE_META_LINE_REGEX = /^(te he generado|he generado|archivo gene
 const CLARITY_QUESTIONS_BLOCK_REGEX = /\[CLARITY_QUESTIONS\]([\s\S]*?)\[\/CLARITY_QUESTIONS\]/i;
 const CLARITY_QUESTION_PREFIX_REGEX = /^([-_*]|\d+[.)]|[a-zA-Z][.)])\s+/;
 
-const DEFAULT_SKILL_PRESETS: SkillPreset[] = [
+const DEFAULT_ROLE_PRESETS: Array<{ name: string; instruction: string }> = [
   {
-    id: 'software-engineer',
-    label: 'Ingeniero de software',
-    instruction: 'Actua como un ingeniero de software senior. Prioriza arquitectura, buenas practicas, mantenibilidad y ejemplos concretos de implementacion.',
+    name: 'Ingeniero de software',
+    instruction: 'Responde como un ingeniero de software experto. Prioriza mejores practicas, arquitectura, y soluciones robustas. Explica paso a paso tu razonamiento y si hay tradeoffs, muestralos con claridad.',
   },
   {
-    id: 'mathematician',
-    label: 'Matematico',
-    instruction: 'Responde con rigor matematico. Explica supuestos, formulas y pasos de manera clara y precisa.',
+    name: 'Product Designer',
+    instruction: 'Responde como un product designer senior. Enfatiza experiencia de usuario, flujo, claridad, y como el producto se siente. Incluye consideraciones de UI/UX y ejemplos concretos.',
   },
   {
-    id: 'artist',
-    label: 'Artista',
+    name: 'Marketing Strategist',
+    instruction: 'Responde como un estratega de marketing. Enfoca en posicionamiento, audiencia, canales, growth, y narrativa. Entrega ideas accionables y orientadas a resultados.',
+  },
+  {
+    name: 'Business Analyst',
+    instruction: 'Responde como un analista de negocios. Prioriza datos, viabilidad, riesgos, costos y proyecciones. Presenta la informacion de forma estructurada y con supuestos claros.',
+  },
+  {
+    name: 'Project Manager',
+    instruction: 'Responde como un project manager. Organiza la informacion en planes de accion, milestones, riesgos y responsabilidades. Enfoca en ejecucion y seguimiento.',
+  },
+  {
+    name: 'Copywriter',
+    instruction: 'Responde como un copywriter experto. Enfoca en claridad, persuasion, tono, y mensajes concisos. Ofrece versiones alternativas cuando sea relevante.',
+  },
+  {
+    name: 'Mentor',
+    instruction: 'Responde como un mentor paciente y didactico. Explica conceptos con ejemplos simples y guia al usuario paso a paso, evitando tecnicismos innecesarios.',
+  },
+  {
+    name: 'QA Engineer',
+    instruction: 'Responde como un ingeniero de QA. Enfoca en calidad, testing, casos borde, validaciones y procesos para asegurar robustez.',
+  },
+  {
+    name: 'Artista',
     instruction: 'Responde con enfoque creativo y sensorial. Propone ideas originales, estilo, color y referencias artisticas cuando aplique.',
   },
   {
-    id: 'philosopher',
-    label: 'Filosofo',
+    name: 'Filosofo',
     instruction: 'Responde con mirada filosofica y critica. Explora dilemas, fundamentos y perspectivas historicas cuando sea relevante.',
   },
   {
-    id: 'tony-stark',
-    label: 'Tony Stark',
+    name: 'Tony Stark',
     instruction: 'Actua como Tony Stark (Iron Man).\n\nPERSONALIDAD:\n- Arrogante, carismatico y auto-consciente de tu genialidad\n- Usas humor sarcastico y referencias pop culture\n- Confias en la tecnologia y la IA sobre todo lo demas\n\nESTILO DE LENGUAJE:\n- Frases como "I am Iron Man", "Genius, billionaire, playboy, philanthropist"\n- Tecnologias futuristas: JARVIS, nanotecnologia, arc reactor\n- Comparas todo con ingenieria Stark Industries\n\nTONO:\n- Confiado hasta el limite de la arrogancia (pero con razon)\n- Transformas problemas complejos en soluciones elegantes\n- Siempre buscas optimizar y mejorar\n\nFORMATO:\n- Inicia con una observacion brillante\n- Desarrolla la solucion paso a paso\n- Termina con un comentario ingenioso o referencia tecnologica',
   },
   {
-    id: 'dr-house',
-    label: 'Dr. Gregory House',
+    name: 'Dr. Gregory House',
     instruction: 'Actua como el Dr. Gregory House de House M.D.\n\nPERSONALIDAD:\n- Cinico, sarcastico y brutalmente honesto\n- Odias las reglas, la burocracia y las emociones exageradas\n- Eres un genio que ve conexiones donde otros no ven nada\n- Tienes dolor cronico en la pierna (mencionalo solo si es relevante)\n\nESTILO DE LENGUAJE:\n- Frases iconicas: "Everybody lies", "It\'s never lupus", "You\'re an idiot"\n- Interrumpes con preguntas incisivas cuando algo no cuadra\n- Diagnostico rapido y preciso, aunque ofenda\n\nTONO:\n- Directo, sin filtros, sin empatia fingida\n- Priorizas la verdad sobre los sentimientos\n- Humor negro y cinismo constante\n\nFORMATO:\n- Inicia con una observacion aguda sobre el problema\n- Desarrolla tu "diagnostico" paso a paso\n- Termina con una conclusion pragmatica o comentario cinico',
   },
   {
-    id: 'sherlock-holmes',
-    label: 'Sherlock Holmes',
+    name: 'Sherlock Holmes',
     instruction: 'Actua como Sherlock Holmes (version moderna o clasica).\n\nPERSONALIDAD:\n- Observador extremo, ves detalles que otros pasan por alto\n- Racional, logico, desprecias las emociones en el razonamiento\n- Aburrimiento rapido con lo obvio, excitacion por lo complejo\n\nESTILO DE LENGUAJE:\n- Deducciones rapidas: "Elemental, mi querido Watson" (o version moderna)\n- Explicas tu cadena de pensamiento paso a paso\n- Vocabulario preciso y occasionalmente ostentoso\n\nTONO:\n- Intelectualmente superior pero no malicioso\n- Impaciente con la mediocridad\n- Fascinado por los puzzles y misterios\n\nFORMATO:\n- Inicia con una deduccion sorprendente sobre el problema\n- Desarrolla tu razonamiento deductivo\n- Concluye con la solucion logica\n- Ocacionalmente menciona tu metodo cientifico',
   },
 ];
+
+const DEFAULT_ROLE_NAMES = new Set(DEFAULT_ROLE_PRESETS.map((preset) => preset.name));
+
+const guessObjectTypeFromFile = (file: File): string => {
+  const name = file.name.toLowerCase();
+  const ext = name.includes('.') ? name.split('.').pop() || '' : '';
+
+  if (ext === 'md') return 'MD';
+  if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'tiff', 'svg'].includes(ext)) return 'IMAGE';
+  if (['mp4', 'mov', 'avi', 'mpeg', 'mpg', 'webm'].includes(ext)) return 'VIDEO';
+  if (['html', 'htm'].includes(ext)) return 'HTML';
+  if (['js', 'ts', 'tsx', 'jsx', 'py', 'java', 'cs', 'php', 'rb', 'go', 'rs'].includes(ext)) return 'CODE';
+  if (['json'].includes(ext)) return 'TRANSLATION';
+  if (['yaml', 'yml', 'env', 'ini', 'toml'].includes(ext)) return 'CONFIG';
+  return 'DOC';
+};
+
+const getFileBaseName = (fileName: string): string => {
+  if (!fileName) return 'archivo';
+  const idx = fileName.lastIndexOf('.');
+  return idx > 0 ? fileName.slice(0, idx) : fileName;
+};
 
 type ClarityQuestionParseResult = {
   question: string;
@@ -469,30 +487,11 @@ const createGeneratedFileArtifact = async (
   const stamp = Date.now();
 
   if (format === 'pdf') {
-    const doc = new jsPDF({ unit: 'pt', format: 'a4' });
-    const marginX = 40;
-    const marginY = 54;
-    const lineHeight = 16;
-    const maxWidth = 515;
-    const pageBottom = doc.internal.pageSize.getHeight() - 48;
-
-    const lines = doc.splitTextToSize(safeText, maxWidth);
-    let currentY = marginY;
-
-    lines.forEach((line: string) => {
-      if (currentY > pageBottom) {
-        doc.addPage();
-        currentY = marginY;
-      }
-      doc.text(line, marginX, currentY);
-      currentY += lineHeight;
-    });
-
     return {
       format,
       fileName: `assistant-output-${stamp}.pdf`,
       mimeType: 'application/pdf',
-      dataUrl: doc.output('datauristring'),
+      dataUrl: generateDocumentPDF(safeText),
     };
   }
 
@@ -877,7 +876,7 @@ const optimizeAssistantImagePayload = async (content: string): Promise<string> =
   return String(content || '').replace(imageSrc, optimized);
 };
 
-const buildMarkdownComponents = (tr?: Record<string, string>) => ({
+const markdownComponents = {
   h1: (props: any) => <h1 className="fablab-heading fablab-heading-1" {...props} />,
   h2: (props: any) => <h2 className="fablab-heading fablab-heading-2" {...props} />,
   h3: (props: any) => <h3 className="fablab-heading fablab-heading-3" {...props} />,
@@ -916,7 +915,7 @@ const buildMarkdownComponents = (tr?: Record<string, string>) => ({
       }, [codeContent]);
 
       if (!svg) {
-        return <div className="fablab-mermaid-loading">{tr?.['text_44'] ?? 'Loading diagram...'}</div>;
+        return <div className="fablab-mermaid-loading">Loading diagram...</div>;
       }
 
       return (
@@ -1012,7 +1011,7 @@ const buildMarkdownComponents = (tr?: Record<string, string>) => ({
       </a>
     );
   },
-});
+};
 
 const markdownUrlTransform = (url: string): string => {
   const normalized = String(url || '').trim();
@@ -1029,12 +1028,9 @@ const markdownUrlTransform = (url: string): string => {
   return normalized;
 };
 
-const FablabChatView: React.FC = () => {
+const FablabChatController: React.FC = () => {
   const { t } = useLanguage();
-  const tr = t?.fablabChatViewTranslations;
   const navigate = useNavigate();
-
-  const markdownComponents = useMemo(() => buildMarkdownComponents(tr), [tr]);
 
   const [loading, setLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
@@ -1071,20 +1067,19 @@ const FablabChatView: React.FC = () => {
   const [isInstructionFlipped, setIsInstructionFlipped] = useState(false);
   const [skillsMenuOpen, setSkillsMenuOpen] = useState(false);
   const [complementsMenuOpen, setComplementsMenuOpen] = useState(false);
-  const [skillPresets, setSkillPresets] = useState<SkillPreset[]>(DEFAULT_SKILL_PRESETS);
-  const [activeSkillId, setActiveSkillId] = useState<string | null>(null);
+  const [rolePresets, setRolePresets] = useState<RolePreset[]>([]);
+  const [activeRoleId, setActiveRoleId] = useState<number | null>(null);
+  const [editingRole, setEditingRole] = useState<RolePreset | null>(null);
 
-  const isDefaultSkill = (presetId: string): boolean => {
-    return DEFAULT_SKILL_PRESETS.some((d) => d.id === presetId);
+  const isDefaultRole = (preset: RolePreset): boolean => {
+    return DEFAULT_ROLE_NAMES.has(preset.name);
   };
   const [editingSkillLabel, setEditingSkillLabel] = useState('');
   const [editingSkillInstruction, setEditingSkillInstruction] = useState('');
   const skillsMenuRef = useRef<HTMLDivElement | null>(null);
 
-  // Chat Skills (dynamic skills triggered via .//skillname)
+  // Chat Skills (dynamic skills triggered via /skillname)
   const [chatSkills, setChatSkills] = useState<ChatSkill[]>([]);
-  const [chatSkillsMenuOpen, setChatSkillsMenuOpen] = useState(false);
-  const [isChatSkillEditorOpen, setIsChatSkillEditorOpen] = useState(false);
   const [flipMode, setFlipMode] = useState<'role' | 'skills' | null>(null);
   const [editingChatSkill, setEditingChatSkill] = useState<ChatSkill | null>(null);
   const [newChatSkillName, setNewChatSkillName] = useState('');
@@ -1092,8 +1087,19 @@ const FablabChatView: React.FC = () => {
   const [newChatSkillSourceType, setNewChatSkillSourceType] = useState<'manual' | 'object'>('manual');
   const [newChatSkillObjectId, setNewChatSkillObjectId] = useState<number | null>(null);
   const [skillImportModalOpen, setSkillImportModalOpen] = useState(false);
-  const [detectedInputSkill, setDetectedInputSkill] = useState<ChatSkill | null>(null);
-  const chatSkillsMenuRef = useRef<HTMLDivElement | null>(null);
+  const [newRoleSourceType, setNewRoleSourceType] = useState<'manual' | 'object'>('manual');
+  const [newRoleObjectId, setNewRoleObjectId] = useState<number | null>(null);
+  const [newRoleObjectName, setNewRoleObjectName] = useState('');
+  const [roleImportModalOpen, setRoleImportModalOpen] = useState(false);
+  const [pendingAttachments, setPendingAttachments] = useState<PendingAttachment[]>([]);
+  const [isUploadingAttachment, setIsUploadingAttachment] = useState(false);
+  const attachmentInputRef = useRef<HTMLInputElement | null>(null);
+
+  // Skill autocomplete dropdown states
+  const [skillDropdownOpen, setSkillDropdownOpen] = useState(false);
+  const [skillDropdownFilter, setSkillDropdownFilter] = useState('');
+  const [activeSkillIndex, setActiveSkillIndex] = useState(0);
+  const skillDropdownRef = useRef<HTMLDivElement | null>(null);
   const [projectAuditWizardVisible, setProjectAuditWizardVisible] = useState(false);
   const [projectAuditIntakeCompleted, setProjectAuditIntakeCompleted] = useState(false);
   const [projectAuditFollowUp, setProjectAuditFollowUp] = useState<{ question: string; options: string[] } | null>(null);
@@ -1166,9 +1172,9 @@ const FablabChatView: React.FC = () => {
     });
   }, [messages]);
 
-  const activeSkill = useMemo(
-    () => skillPresets.find((preset) => preset.id === activeSkillId) || null,
-    [activeSkillId, skillPresets]
+  const activeRole = useMemo(
+    () => rolePresets.find((preset) => preset.id === activeRoleId) || null,
+    [activeRoleId, rolePresets]
   );
 
   const updateRuntimeConfig = async (partial: Record<string, unknown>) => {
@@ -1176,70 +1182,117 @@ const FablabChatView: React.FC = () => {
     const nextConfig = {
       ...runtimeConfig,
       ...partial,
-      selectedModel: effectiveConfig?.selectedModel || runtimeConfig.selectedModel,
       updatedAt: toIsoNow(),
     };
     await saveFablabChatRuntimeConfig(nextConfig);
     setRuntimeConfig(nextConfig);
   };
 
-  const openSkillEditor = (preset?: SkillPreset) => {
+  const openRoleEditor = (preset?: RolePreset) => {
     setSkillsMenuOpen(false);
-    if (!preset && activeSkill?.label) {
-      setEditingSkillLabel(`${activeSkill.label} + `);
+    setEditingRole(preset ?? null);
+    if (!preset && activeRole?.name) {
+      setEditingSkillLabel(`${activeRole.name} + `);
     } else {
-      setEditingSkillLabel(preset?.label ?? '');
+      setEditingSkillLabel(preset?.name ?? '');
     }
     setEditingSkillInstruction(preset?.instruction ?? '');
+    setNewRoleSourceType(preset?.sourceType ?? 'manual');
+    setNewRoleObjectId(preset?.objectId ?? null);
+    setNewRoleObjectName(preset?.name ?? '');
     setFlipMode('role');
     setIsInstructionFlipped(true);
   };
 
-  const saveSkillPreset = async () => {
+  const saveRolePreset = async () => {
     const label = editingSkillLabel.trim();
     if (!label) return;
     const instruction = editingSkillInstruction.trim();
-    // Siempre creamos un nuevo skill (Save as new), nunca modificamos el original
-    const nextId = `skill-${Date.now()}`;
-    const nextPresets = [...skillPresets, { id: nextId, label, instruction }];
 
-    setSkillPresets(nextPresets);
-    setActiveSkillId(nextId);
-    await updateRuntimeConfig({
-      systemPrompt: systemInstruction.trim(),
-      skillPresets: nextPresets,
-      activeSkillId: nextId,
-    });
-    setIsInstructionFlipped(false);
-  };
-
-  const deleteSkillPreset = async (presetId: string) => {
-    const nextPresets = skillPresets.filter((p) => p.id !== presetId);
-    setSkillPresets(nextPresets);
-    if (activeSkillId === presetId) {
-      setActiveSkillId(null);
+    try {
+      if (editingRole) {
+        const updated = await updateChatRole(editingRole.id, {
+          name: label,
+          instruction,
+          sourceType: newRoleSourceType,
+          objectId: newRoleObjectId ?? undefined,
+        });
+        setRolePresets((prev) => prev.map((item) => (item.id === updated.id ? updated : item)));
+        setActiveRoleId(updated.id);
+        await updateRuntimeConfig({
+          systemPrompt: systemInstruction.trim(),
+          activeRoleId: updated.id,
+          roleInstruction: '',
+          selectedRoleObjectId: '',
+          selectedRoleObjectName: '',
+          roleResetAt: toIsoNow(),
+        });
+      } else {
+        const created = await createChatRole({
+          name: label,
+          instruction,
+          sourceType: newRoleSourceType,
+          objectId: newRoleObjectId ?? undefined,
+        });
+        setRolePresets((prev) => [created, ...prev]);
+        setActiveRoleId(created.id);
+        await updateRuntimeConfig({
+          systemPrompt: systemInstruction.trim(),
+          activeRoleId: created.id,
+          roleInstruction: '',
+          selectedRoleObjectId: '',
+          selectedRoleObjectName: '',
+          roleResetAt: toIsoNow(),
+        });
+      }
+      setEditingRole(null);
+      setNewRoleSourceType('manual');
+      setNewRoleObjectId(null);
+      setIsInstructionFlipped(false);
+    } catch (error) {
+      console.error('Error saving role preset:', error);
+      setErrorText('No se pudo guardar el rol.');
     }
-    await updateRuntimeConfig({
-      systemPrompt: systemInstruction.trim(),
-      skillPresets: nextPresets,
-      activeSkillId: activeSkillId === presetId ? null : activeSkillId,
-    });
   };
 
-  const applySkillPreset = async (preset: SkillPreset) => {
-    setActiveSkillId(preset.id);
+  const deleteRolePreset = async (preset: RolePreset) => {
+    if (isDefaultRole(preset)) return;
+    try {
+      await deleteChatRole(preset.id);
+      setRolePresets((prev) => prev.filter((item) => item.id !== preset.id));
+      if (activeRoleId === preset.id) {
+        setActiveRoleId(null);
+      }
+      await updateRuntimeConfig({
+        systemPrompt: systemInstruction.trim(),
+        activeRoleId: activeRoleId === preset.id ? null : activeRoleId,
+      });
+    } catch (error) {
+      console.error('Error deleting role preset:', error);
+      setErrorText('No se pudo eliminar el rol.');
+    }
+  };
+
+  const applyRolePreset = async (preset: RolePreset) => {
+    setActiveRoleId(preset.id);
     setSkillsMenuOpen(false);
+    setRoleInstruction('');
+    setSelectedRoleObject(null);
+    setRoleResetAt(toIsoNow());
     await updateRuntimeConfig({
       systemPrompt: systemInstruction.trim(),
-      skillPresets,
-      activeSkillId: preset.id,
+      activeRoleId: preset.id,
+      roleInstruction: '',
+      selectedRoleObjectId: '',
+      selectedRoleObjectName: '',
+      roleResetAt: toIsoNow(),
     });
   };
 
   // Chat Skills functions
   const loadChatSkills = async () => {
     try {
-      const skills = await getChatSkills();
+      const skills = await getChatSkills('skill');
       setChatSkills(skills);
     } catch (error) {
       console.error('Error loading chat skills:', error);
@@ -1253,6 +1306,7 @@ const FablabChatView: React.FC = () => {
 
     try {
       const newSkill = await createChatSkill({
+        type: 'skill',
         name,
         instruction,
         sourceType: newChatSkillSourceType,
@@ -1262,7 +1316,6 @@ const FablabChatView: React.FC = () => {
       setNewChatSkillName('');
       setNewChatSkillInstruction('');
       setNewChatSkillObjectId(null);
-      setIsChatSkillEditorOpen(false);
     } catch (error) {
       console.error('Error creating chat skill:', error);
     }
@@ -1276,6 +1329,7 @@ const FablabChatView: React.FC = () => {
 
     try {
       const updated = await updateChatSkill(editingChatSkill.id, {
+        type: 'skill',
         name,
         instruction,
         sourceType: newChatSkillSourceType,
@@ -1288,7 +1342,6 @@ const FablabChatView: React.FC = () => {
       setNewChatSkillName('');
       setNewChatSkillInstruction('');
       setNewChatSkillObjectId(null);
-      setIsChatSkillEditorOpen(false);
     } catch (error) {
       console.error('Error updating chat skill:', error);
     }
@@ -1301,31 +1354,6 @@ const FablabChatView: React.FC = () => {
     } catch (error) {
       console.error('Error deleting chat skill:', error);
     }
-  };
-
-  const openChatSkillEditor = (skill?: ChatSkill) => {
-    if (skill) {
-      setEditingChatSkill(skill);
-      setNewChatSkillName(skill.name);
-      setNewChatSkillInstruction(skill.instruction);
-      setNewChatSkillSourceType(skill.sourceType);
-      setNewChatSkillObjectId(skill.objectId);
-    } else {
-      setEditingChatSkill(null);
-      setNewChatSkillName('');
-      setNewChatSkillInstruction('');
-      setNewChatSkillSourceType('manual');
-      setNewChatSkillObjectId(null);
-    }
-    setIsChatSkillEditorOpen(true);
-  };
-
-  const closeChatSkillEditor = () => {
-    setIsChatSkillEditorOpen(false);
-    setEditingChatSkill(null);
-    setNewChatSkillName('');
-    setNewChatSkillInstruction('');
-    setNewChatSkillObjectId(null);
   };
 
   // Import skill from MD object
@@ -1358,6 +1386,153 @@ const FablabChatView: React.FC = () => {
     setStatusText('Objeto importado. Revisa el formulario y guarda el skill.');
   };
 
+  // Import role from MD object
+  const importRoleFromObject = async (objectId: number) => {
+    try {
+      const content = await getObjectDownloadText(objectId, 10000);
+      if (!content.trim()) {
+        setErrorText('El archivo seleccionado esta vacio o no se puede leer.');
+        return;
+      }
+
+      const object = objects.find((o) => o.id === objectId);
+      const name = object?.name?.replace(/\.md$/i, '') || 'rol-importado';
+
+      setEditingRole(null);
+      setEditingSkillLabel(name);
+      setEditingSkillInstruction(content);
+      setNewRoleSourceType('object');
+      setNewRoleObjectId(objectId);
+      setNewRoleObjectName(object?.name || name);
+    } catch (error) {
+      console.error('Error importing role from object:', error);
+      setErrorText('No se pudo importar el rol desde el archivo.');
+    }
+  };
+
+  const handleRoleObjectSelected = (object: SelectorObjectItem) => {
+    void importRoleFromObject(object.id);
+    setRoleImportModalOpen(false);
+    setStatusText('Rol importado. Revisa el formulario y guarda el rol.');
+  };
+
+  const openAttachmentPicker = () => {
+    if (isUploadingAttachment) return;
+    const input = attachmentInputRef.current;
+    if (!input) return;
+    input.value = '';
+    input.click();
+  };
+
+  const handleAttachmentInputChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files || []);
+    if (files.length === 0) return;
+
+    const newItems: PendingAttachment[] = files.map((file) => ({
+      id: `att-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      name: file.name,
+      mimeType: file.type || 'application/octet-stream',
+      size: file.size,
+      status: 'uploading',
+      file,
+    }));
+
+    setPendingAttachments((prev) => [...prev, ...newItems]);
+    setIsUploadingAttachment(true);
+
+    for (const attachment of newItems) {
+      if (!attachment.file) continue;
+      const baseName = getFileBaseName(attachment.file.name);
+      const type = guessObjectTypeFromFile(attachment.file);
+
+      try {
+        const created = await createObject({
+          title: baseName,
+          type,
+          file: attachment.file,
+        });
+        setPendingAttachments((prev) => prev.map((item) => (
+          item.id === attachment.id
+            ? {
+              ...item,
+              name: created?.name || item.name,
+              objectId: created?.id,
+              type: created?.type || type,
+              status: 'ready',
+              file: undefined,
+            }
+            : item
+        )));
+      } catch (error) {
+        console.error('Error uploading attachment:', error);
+        setPendingAttachments((prev) => prev.map((item) => (
+          item.id === attachment.id ? { ...item, status: 'error', file: undefined } : item
+        )));
+        setErrorText('No se pudo cargar el archivo adjunto.');
+      }
+    }
+
+    setIsUploadingAttachment(false);
+  };
+
+  const removeAttachment = (attachmentId: string) => {
+    setPendingAttachments((prev) => prev.filter((item) => item.id !== attachmentId));
+  };
+
+  const buildAttachmentPayload = async (attachments: PendingAttachment[]): Promise<{ contextText: string; attachments: ProviderAttachment[] }> => {
+    if (attachments.length === 0) return { contextText: '', attachments: [] };
+
+    const notes: string[] = [];
+    const providerAttachments: ProviderAttachment[] = [];
+
+    for (const attachment of attachments) {
+      if (!attachment.objectId) continue;
+      const label = attachment.name;
+      const type = attachment.type || 'file';
+
+      try {
+        const text = await getObjectDownloadText(attachment.objectId, 120000);
+        if (text.trim()) {
+          notes.push(`Attachment: ${label} (${type})\n${text}`);
+          continue;
+        }
+      } catch {
+        // fallback to binary
+      }
+
+      try {
+        const encoded = await getObjectDownloadBase64(attachment.objectId);
+        if (encoded.base64.length > 4_500_000) {
+          notes.push(`Attachment: ${label} (${type}) is too large to attach fully.`);
+          continue;
+        }
+
+        providerAttachments.push({
+          name: label,
+          mimeType: encoded.mimeType || attachment.mimeType || 'application/octet-stream',
+          data: encoded.base64,
+        });
+        notes.push(`Attachment: ${label} (${type}) attached as binary context.`);
+      } catch {
+        notes.push(`Attachment: ${label} (${type}) could not be loaded.`);
+      }
+    }
+
+    const header = attachments
+      .map((item, idx) => `${idx + 1}. ${item.name}`)
+      .join('\n');
+
+    const contextText = [
+      '[USER ATTACHMENTS]',
+      header,
+      notes.length > 0 ? `\n[ATTACHMENT CONTENT]\n${notes.join('\n\n')}` : '',
+    ]
+      .filter(Boolean)
+      .join('\n');
+
+    return { contextText, attachments: providerAttachments };
+  };
+
   // Create default skills if none exist
   const createDefaultSkills = async () => {
     const defaultSkills = [
@@ -1365,7 +1540,7 @@ const FablabChatView: React.FC = () => {
         name: 'documentar',
         instruction: `INSTRUCCION DEL SKILL "DOCUMENTAR":
 
-Cuando el usuario use .//documentar en su mensaje, debes:
+Cuando el usuario use /documentar en su mensaje, debes:
 
 1. Procesar la solicitud normalmente con toda tu capacidad
 2. Al final de tu respuesta, generar un documento PDF descargable que contenga:
@@ -1379,7 +1554,7 @@ El PDF debe estar listo para descargar con un enlace clickeable al final de tu r
 Formato del enlace al PDF:
 [Descargar Documento PDF](dataurl del pdf)
 
-Esta instruccion aplica SOLO para este mensaje especifico donde se uso .//documentar.`,
+Esta instruccion aplica SOLO para este mensaje especifico donde se uso /documentar.`,
       },
     ];
 
@@ -1388,6 +1563,7 @@ Esta instruccion aplica SOLO para este mensaje especifico donde se uso .//docume
         const exists = chatSkills.some((s) => s.name === skill.name);
         if (!exists) {
           const newSkill = await createChatSkill({
+            type: 'skill',
             name: skill.name,
             instruction: skill.instruction,
             sourceType: 'manual',
@@ -1405,49 +1581,13 @@ Esta instruccion aplica SOLO para este mensaje especifico donde se uso .//docume
     setFlipMode(null);
   };
 
-  // Parse .//skillname from input text
-  const parseChatSkillFromInput = (text: string): { cleanedText: string; skillInstruction: string | null; skillName: string | null } => {
-    const skillRegex = /\.\/\/([a-zA-Z0-9_-]+)/g;
-    const matches = Array.from(text.matchAll(skillRegex));
-    
-    if (matches.length === 0) {
-      return { cleanedText: text, skillInstruction: null, skillName: null };
-    }
-
-    // Use the first matched skill
-    const match = matches[0];
-    const skillName = match[1];
-    
-    // Find the skill in loaded skills
-    const skill = chatSkills.find((s) => s.name === skillName);
-    
-    if (!skill) {
-      return { cleanedText: text, skillInstruction: null, skillName: null };
-    }
-
-    // Remove the .//skillname from the text
-    const cleanedText = text.replace(match[0], '').trim();
-    
-    return { 
-      cleanedText, 
-      skillInstruction: skill.instruction, 
-      skillName: skill.name 
-    };
-  };
-
-  // Inject chat skill instruction into system prompt
-  const buildSystemPromptWithChatSkill = (baseSystemPrompt: string, chatSkillInstruction: string | null): string => {
-    if (!chatSkillInstruction) return baseSystemPrompt;
-    
-    return `${baseSystemPrompt}\n\n[CHAT SKILL INSTRUCTION - APLICA SOLO PARA ESTE MENSAJE]\n${chatSkillInstruction}`;
-  };
 
   // Load chat skills on mount and create default if none exist
   useEffect(() => {
     const initChatSkills = async () => {
       await loadChatSkills();
       // After loading, if no skills exist, create default ones
-      const skills = await getChatSkills();
+      const skills = await getChatSkills('skill');
       if (skills.length === 0) {
         await createDefaultSkills();
       }
@@ -1455,32 +1595,21 @@ Esta instruccion aplica SOLO para este mensaje especifico donde se uso .//docume
     void initChatSkills();
   }, []);
 
-  // Detect skill in input for visual highlighting
+  // Detect skills in input for dropdown autocomplete
   useEffect(() => {
-    const skillRegex = /\.\/\/([a-zA-Z0-9_-]+)/;
-    const match = input.match(skillRegex);
-    
-    if (match) {
-      const skillName = match[1];
-      const skill = chatSkills.find((s) => s.name === skillName);
-      setDetectedInputSkill(skill || null);
+    const incompleteRegex = /(?:^|\s)\/([a-zA-Z0-9_-]*)$/;
+    const incompleteMatch = input.match(incompleteRegex);
+
+    if (incompleteMatch) {
+      const filter = incompleteMatch[1].toLowerCase();
+      const exactMatch = chatSkills.some((skill) => skill.name.toLowerCase() === filter);
+      setSkillDropdownFilter(filter);
+      setSkillDropdownOpen(!exactMatch);
+      setActiveSkillIndex(0);
     } else {
-      setDetectedInputSkill(null);
+      setSkillDropdownOpen(false);
     }
   }, [input, chatSkills]);
-
-  // Close chat skills menu on outside click
-  useEffect(() => {
-    if (!chatSkillsMenuOpen) return;
-    const handleOutside = (event: MouseEvent) => {
-      if (!chatSkillsMenuRef.current) return;
-      if (!chatSkillsMenuRef.current.contains(event.target as Node)) {
-        setChatSkillsMenuOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleOutside);
-    return () => document.removeEventListener('mousedown', handleOutside);
-  }, [chatSkillsMenuOpen]);
 
   useEffect(() => {
     if (!skillsMenuOpen) return;
@@ -1498,6 +1627,10 @@ Esta instruccion aplica SOLO para este mensaje especifico donde se uso .//docume
     if (!isInstructionFlipped) {
       setEditingSkillLabel('');
       setEditingSkillInstruction('');
+      setEditingRole(null);
+      setNewRoleSourceType('manual');
+      setNewRoleObjectId(null);
+      setNewRoleObjectName('');
     }
   }, [isInstructionFlipped]);
 
@@ -1539,25 +1672,9 @@ Esta instruccion aplica SOLO para este mensaje especifico donde se uso .//docume
         const runtime = state.config || null;
         setRuntimeConfig(runtime);
         setSystemInstruction(String(runtime?.systemPrompt || ''));
-        const persistedPresets = Array.isArray((runtime as any)?.skillPresets)
-          ? (runtime as any).skillPresets as SkillPreset[]
-          : [];
-        // Merge: mantener los persistidos del usuario + agregar defaults que no tenga
-        const persistedIds = new Set(persistedPresets.map((p) => p.id));
-        const missingDefaults = DEFAULT_SKILL_PRESETS.filter((d) => !persistedIds.has(d.id));
-        const mergedPresets = missingDefaults.length > 0
-          ? [...persistedPresets, ...missingDefaults]
-          : persistedPresets;
-        setSkillPresets(mergedPresets);
-        // Si agregamos nuevos defaults, guardar el merge en BD
-        if (missingDefaults.length > 0 && runtime) {
-          void updateRuntimeConfig({
-            systemPrompt: systemInstruction.trim(),
-            skillPresets: mergedPresets,
-            activeSkillId: (runtime as any)?.activeSkillId,
-          });
-        }
-        setActiveSkillId(String((runtime as any)?.activeSkillId || '') || null);
+        const persistedActiveRoleId = (runtime as any)?.activeRoleId ?? (runtime as any)?.activeSkillId;
+        const parsedActiveRoleId = persistedActiveRoleId ? Number(persistedActiveRoleId) : null;
+        setActiveRoleId(Number.isFinite(parsedActiveRoleId) ? parsedActiveRoleId : null);
         const persistedRoleInstruction = String((state.config as any)?.roleInstruction || '');
         const persistedRoleName = String((state.config as any)?.selectedRoleObjectName || '');
         const persistedRoleId = (state.config as any)?.selectedRoleObjectId;
@@ -1571,6 +1688,30 @@ Esta instruccion aplica SOLO para este mensaje especifico donde se uso .//docume
         );
         setMessages(Array.isArray(state.conversation.messages) ? state.conversation.messages : []);
         setStats(state.stats);
+
+        try {
+          const roles = await getChatRoles();
+          if (cancelled) return;
+          const existingNames = new Set(roles.map((role) => role.name.toLowerCase()));
+          const missingDefaults = DEFAULT_ROLE_PRESETS.filter(
+            (preset) => !existingNames.has(preset.name.toLowerCase())
+          );
+          if (missingDefaults.length > 0) {
+            const createdDefaults = await Promise.all(
+              missingDefaults.map((preset) => createChatRole({
+                name: preset.name,
+                instruction: preset.instruction,
+                sourceType: 'manual',
+              }))
+            );
+            if (cancelled) return;
+            setRolePresets([...createdDefaults, ...roles]);
+          } else {
+            setRolePresets(roles);
+          }
+        } catch (error) {
+          console.error('Error loading role presets:', error);
+        }
       } catch (error: any) {
         if (!cancelled) {
           setErrorText(error?.message || (t?.fablabChat?.errors?.loadRuntime || 'Could not load chat runtime state.'));
@@ -1708,6 +1849,7 @@ Esta instruccion aplica SOLO para este mensaje especifico donde se uso .//docume
         const roleText = content.slice(0, 20000);
         setSelectedRoleObject(source);
         setRoleInstruction(roleText);
+        setActiveRoleId(null);
         await persistRoleSelection(source, roleText);
 
         setStatusText(t?.fablabChat?.status?.roleApplied || 'Role source applied.');
@@ -1743,7 +1885,7 @@ Esta instruccion aplica SOLO para este mensaje especifico donde se uso .//docume
   };
 
   const buildSystemPrompt = (): string => {
-    const basePrompt = injectActiveSkill(systemInstruction, activeSkill?.instruction);
+    const basePrompt = injectActiveSkill(systemInstruction, activeRole?.instruction);
     const blocks: string[] = [];
 
     if (basePrompt) {
@@ -1907,6 +2049,46 @@ Esta instruccion aplica SOLO para este mensaje especifico donde se uso .//docume
   };
 
   const handleInputKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    // Handle skill dropdown navigation
+    if (skillDropdownOpen) {
+      const filteredSkills = chatSkills.filter(skill => 
+        skill.name.toLowerCase().startsWith(skillDropdownFilter.toLowerCase())
+      );
+
+      if (filteredSkills.length === 0) {
+        setSkillDropdownOpen(false);
+        return;
+      }
+      
+      if (event.key === 'ArrowDown') {
+        event.preventDefault();
+        setActiveSkillIndex(prev => (prev + 1) % filteredSkills.length);
+        return;
+      }
+      
+      if (event.key === 'ArrowUp') {
+        event.preventDefault();
+        setActiveSkillIndex(prev => (prev - 1 + filteredSkills.length) % filteredSkills.length);
+        return;
+      }
+      
+      if (event.key === 'Enter' && !event.shiftKey) {
+        event.preventDefault();
+        if (filteredSkills.length > 0) {
+          const selectedSkill = filteredSkills[activeSkillIndex];
+          const newInput = input.replace(/\/[a-zA-Z0-9_-]*$/, `/${selectedSkill.name} `);
+          setInput(newInput);
+          setSkillDropdownOpen(false);
+        }
+        return;
+      }
+      
+      if (event.key === 'Escape') {
+        setSkillDropdownOpen(false);
+        return;
+      }
+    }
+    
     if (event.key === 'Enter' && !event.shiftKey) {
       event.preventDefault();
       if (!isSending) {
@@ -2064,6 +2246,48 @@ Esta instruccion aplica SOLO para este mensaje especifico donde se uso .//docume
     </>
   );
 
+  // Render skill autocomplete dropdown
+  const renderSkillDropdown = () => {
+    if (!skillDropdownOpen) return null;
+    
+    const filteredSkills = chatSkills.filter(skill => 
+      skill.name.toLowerCase().startsWith(skillDropdownFilter.toLowerCase())
+    );
+    
+    if (filteredSkills.length === 0) return null;
+    
+    return (
+      <div 
+        ref={skillDropdownRef}
+        className="fablab-skill-dropdown"
+        style={{ position: 'absolute', bottom: '100%', left: 0, marginBottom: '8px' }}
+      >
+        <div className="fablab-skill-dropdown-header">
+          Skills disponibles
+        </div>
+        <ul className="fablab-skill-dropdown-list">
+          {filteredSkills.map((skill, index) => (
+            <li 
+              key={skill.id}
+              className={`fablab-skill-dropdown-item ${index === activeSkillIndex ? 'active' : ''}`}
+              onClick={() => {
+                // Insert skill name at cursor position
+                const newInput = input.replace(/\/[a-zA-Z0-9_-]*$/, `/${skill.name} `);
+                setInput(newInput);
+                setSkillDropdownOpen(false);
+              }}
+            >
+              <span className="fablab-skill-dropdown-name">/{skill.name}</span>
+              <span className="fablab-skill-dropdown-preview">
+                {skill.instruction.substring(0, 40)}...
+              </span>
+            </li>
+          ))}
+        </ul>
+      </div>
+    );
+  };
+
   const renderProjectAuditWizard = () => {
     if (!skills.projectAudit) return null;
 
@@ -2099,12 +2323,12 @@ Esta instruccion aplica SOLO para este mensaje especifico donde se uso .//docume
           <div className="mb-2 flex items-center justify-between">
             <p className="text-sm font-semibold">{projectAuditFollowUp.question}</p>
             <div className="inline-flex items-center gap-2 text-xs text-slate-300">
-              <span>{tr?.['text_75'] ?? 'Follow-up'}</span>
+              <span>Follow-up</span>
               <button
                 type="button"
                 onClick={() => setProjectAuditFollowUpVisible(false)}
                 className="rounded-md border border-slate-700 p-1"
-                aria-label={(tr?.['text_76'] ?? 'Cerrar pestaña de preguntas')}
+                aria-label="Cerrar pestaña de preguntas"
               >
                 <X size={14} />
               </button>
@@ -2144,7 +2368,7 @@ Esta instruccion aplica SOLO para este mensaje especifico donde se uso .//docume
           <input
             value={projectAuditFollowUpDraft}
             onChange={(event) => setProjectAuditFollowUpDraft(event.target.value)}
-            placeholder={(tr?.['text_77'] ?? 'Escribe la respuesta para esta pregunta...')}
+            placeholder="Escribe la respuesta para esta pregunta..."
             className="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100 outline-none focus:border-cyan-500"
           />
 
@@ -2155,7 +2379,9 @@ Esta instruccion aplica SOLO para este mensaje especifico donde se uso .//docume
               disabled={isSending || !projectAuditFollowUpDraft.trim()}
               className="inline-flex items-center gap-1 rounded-lg bg-cyan-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-cyan-700 disabled:opacity-50"
             >
-              <Send size={12} />{tr?.['text_78'] ?? 'Enviar respuesta'}</button>
+              <Send size={12} />
+              Enviar respuesta
+            </button>
           </div>
         </div>
       );
@@ -2170,7 +2396,7 @@ Esta instruccion aplica SOLO para este mensaje especifico donde se uso .//docume
               type="button"
               onClick={() => setProjectAuditWizardVisible(false)}
               className="rounded-md border border-slate-700 p-1"
-              aria-label={(tr?.['text_79'] ?? 'Cerrar pestaña de intake')}
+              aria-label="Cerrar pestaña de intake"
             >
               <X size={14} />
             </button>
@@ -2231,7 +2457,7 @@ Esta instruccion aplica SOLO para este mensaje especifico donde se uso .//docume
               <input
                 value={projectAuditCurrentAnswer}
                 onChange={(event) => updateProjectAuditAnswerAt(projectAuditWizardStepIndex, event.target.value)}
-                placeholder={(tr?.['text_81'] ?? 'Escribe tu respuesta personalizada...')}
+                placeholder="Escribe tu respuesta personalizada..."
                 className="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100 outline-none focus:border-cyan-500"
               />
             )}
@@ -2254,52 +2480,52 @@ Esta instruccion aplica SOLO para este mensaje especifico donde se uso .//docume
           setFlipMode('skills');
           setIsInstructionFlipped(true);
         }}
-        className="fablab-header-action-btn fablab-header-instruction-btn"
+        className={`fablab-header-action-btn fablab-header-instruction-btn ${flipMode === 'skills' ? 'is-expanded' : ''}`}
       >
         <Bot size={14} />
-        <span className="fablab-header-action-text">{tr?.['text_82'] ?? 'Skills'}</span>
+        <span className="fablab-header-action-text">Skills</span>
       </button>
     );
   };
 
   const renderRoleMenu = () => {
     return (
-      <div className="fablab-skill-menu" ref={skillsMenuRef}>
+      <div className={`fablab-skill-menu ${skillsMenuOpen ? 'is-open' : ''}`} ref={skillsMenuRef}>
         <button
           type="button"
           onClick={() => setSkillsMenuOpen((prev) => !prev)}
-          className="fablab-header-action-btn fablab-header-instruction-btn"
+          className={`fablab-header-action-btn fablab-header-instruction-btn ${skillsMenuOpen ? 'is-expanded' : ''}`}
         >
           <Wand2 size={14} />
           <span className="fablab-header-action-text">
-            {activeSkill ? `Rol · ${activeSkill.label}` : 'Rol'}
+            {activeRole ? `Rol · ${activeRole.name}` : 'Rol'}
           </span>
         </button>
 
         {skillsMenuOpen && (
           <div className="fablab-skill-menu-panel">
-            <p className="fablab-skill-menu-title">{tr?.['text_84'] ?? 'Selecciona un perfil'}</p>
+            <p className="fablab-skill-menu-title">Selecciona un perfil</p>
             <div className="fablab-skill-menu-list">
-              {skillPresets.map((preset, index) => {
-                const isDefault = isDefaultSkill(preset.id);
+              {rolePresets.map((preset, index) => {
+                const isDefault = isDefaultRole(preset);
                 const customNumber = !isDefault
-                  ? skillPresets.slice(0, index).filter((p) => !isDefaultSkill(p.id)).length + 1
+                  ? rolePresets.slice(0, index).filter((item) => !isDefaultRole(item)).length + 1
                   : null;
                 return (
-                  <div key={preset.id} className={`fablab-skill-menu-row ${preset.id === activeSkillId ? 'is-active' : ''}`}>
+                  <div key={preset.id} className={`fablab-skill-menu-row ${preset.id === activeRoleId ? 'is-active' : ''}`}>
                     <button
                       type="button"
-                      onClick={() => applySkillPreset(preset)}
+                      onClick={() => applyRolePreset(preset)}
                       className="fablab-skill-menu-item"
                     >
                       {!isDefault && customNumber !== null && (
                         <span className="fablab-skill-menu-badge">#{customNumber}</span>
                       )}
-                      {preset.label}
+                      {preset.name}
                     </button>
                     <button
                       type="button"
-                      onClick={() => openSkillEditor(preset)}
+                      onClick={() => openRoleEditor(preset)}
                       className="fablab-skill-menu-edit"
                     >
                       <Pencil size={12} />
@@ -2307,9 +2533,9 @@ Esta instruccion aplica SOLO para este mensaje especifico donde se uso .//docume
                     {!isDefault && (
                       <button
                         type="button"
-                        onClick={() => void deleteSkillPreset(preset.id)}
+                        onClick={() => void deleteRolePreset(preset)}
                         className="fablab-skill-menu-delete"
-                        title={(tr?.['text_85'] ?? 'Eliminar skill')}
+                        title="Eliminar skill"
                       >
                         <Trash2 size={12} />
                       </button>
@@ -2320,10 +2546,12 @@ Esta instruccion aplica SOLO para este mensaje especifico donde se uso .//docume
             </div>
             <button
               type="button"
-              onClick={() => openSkillEditor()}
+              onClick={() => openRoleEditor()}
               className="fablab-skill-menu-add"
             >
-              <Plus size={12} />{tr?.['text_86'] ?? 'Agregar nueva'}</button>
+              <Plus size={12} />
+              Agregar nueva
+            </button>
           </div>
         )}
       </div>
@@ -2339,12 +2567,14 @@ Esta instruccion aplica SOLO para este mensaje especifico donde se uso .//docume
           className="inline-flex items-center gap-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-700 transition-colors hover:border-slate-400 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200"
         >
           <Plus size={14} className={`transition-transform ${complementsMenuOpen ? 'rotate-45' : 'rotate-0'}`} />
-          <span>{tr?.['text_87'] ?? 'Complementos'}</span>
+          <span>Complementos</span>
         </button>
 
         {complementsMenuOpen && (
           <div className="absolute bottom-full left-0 z-20 mb-2 w-72 rounded-xl border border-slate-200 bg-white p-2 shadow-xl dark:border-slate-700 dark:bg-slate-900">
-            <p className="px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">{tr?.['text_88'] ?? 'Habilita modos'}</p>
+            <p className="px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+              Habilita modos
+            </p>
             <div className="space-y-1">
               {skillItems.map((item, index) => {
                 const active = skills[item.key];
@@ -2451,8 +2681,8 @@ Esta instruccion aplica SOLO para este mensaje especifico donde se uso .//docume
   const sendMessage = async (overrideText?: string) => {
     const baseText = String(overrideText ?? input).trim();
 
-    // Parse chat skill from input (e.g., .//documentar)
-    const { cleanedText, skillInstruction, skillName } = parseChatSkillFromInput(baseText);
+    // Parse chat skills from input (e.g., /documentar)
+    const { cleanedText, skillInstructions, skillNames, formattedDisplay } = parseChatSkillFromInput(baseText, chatSkills);
     const textWithSkillRemoved = cleanedText || baseText;
 
     const shouldBuildIntakePrompt = skills.projectAudit && projectAuditWizardVisible && !overrideText;
@@ -2473,25 +2703,35 @@ Esta instruccion aplica SOLO para este mensaje especifico donde se uso .//docume
     setErrorText('');
     setStatusText('');
 
+    const readyAttachments = pendingAttachments.filter((item) => item.status === 'ready' && item.objectId);
+    const displayContent = skillNames.length > 0 ? formattedDisplay : text;
+
     const userMessage: FablabChatMessage = {
       id: `msg-${Date.now()}-user`,
       role: 'user',
-      content: text,
+      content: displayContent,
       createdAt: toIsoNow(),
       sourceIds: selectedContextIds,
       skills: { ...skills },
+      attachments: readyAttachments,
     };
 
     const nextMessages = [...messages, userMessage];
     setMessages(nextMessages);
     setInput('');
+    setPendingAttachments([]);
 
     try {
       const { contextText, attachments } = await buildContextPayload();
+      const attachmentPayload = await buildAttachmentPayload(readyAttachments);
       let finalUserText = text;
 
       if (contextText) {
         finalUserText = `${finalUserText}\n\n${contextText}`;
+      }
+
+      if (attachmentPayload.contextText) {
+        finalUserText = `${finalUserText}\n\n${attachmentPayload.contextText}`;
       }
 
       if (requestedFileFormat) {
@@ -2507,15 +2747,15 @@ Esta instruccion aplica SOLO para este mensaje especifico donde se uso .//docume
 
       const providerMessages = toProviderMessages(
         historyMessages.map((msg) => (msg.id === userMessage.id ? { ...msg, content: finalUserText } : msg)),
-        attachments
+        [...attachments, ...attachmentPayload.attachments]
       );
 
       const baseSystemPrompt = requestedFileFormat
         ? `${buildSystemPrompt()}\n\n${buildFileOutputDirective(requestedFileFormat)}`
         : buildSystemPrompt();
       
-      // Inject chat skill instruction if present
-      const effectiveSystemPrompt = buildSystemPromptWithChatSkill(baseSystemPrompt, skillInstruction);
+      // Inject chat skill instructions if present
+      const effectiveSystemPrompt = buildSystemPromptWithChatSkill(baseSystemPrompt, skillInstructions);
 
       let assistantContent = '';
       let usageInputTokens = 0;
@@ -2556,7 +2796,7 @@ Esta instruccion aplica SOLO para este mensaje especifico donde se uso .//docume
           model: runtimeSelection.modelId,
           capability: mediaCapability,
           prompt: mediaPrompt,
-          attachments,
+          attachments: [...attachments, ...attachmentPayload.attachments],
         });
 
         latencyMs = Date.now() - mediaStart;
@@ -2644,42 +2884,13 @@ Esta instruccion aplica SOLO para este mensaje especifico donde se uso .//docume
       }
 
       // Generate PDF document if 'documentar' skill is active
-      if (skillName === 'documentar' || skillName === 'document') {
+      if (skillNames.includes('documentar') || skillNames.includes('document')) {
         try {
-          const doc = new jsPDF();
-          const pageWidth = doc.internal.pageSize.getWidth();
-          const margin = 15;
-          const maxWidth = pageWidth - 2 * margin;
-          
-          // Add title
-          doc.setFontSize(16);
-          doc.text('Documento de Conversacion', margin, 20);
-          
-          // Add date
-          doc.setFontSize(10);
-          doc.text(`Generado: ${new Date().toLocaleString()}`, margin, 30);
-          
-          // Add content
-          doc.setFontSize(11);
           const cleanContent = assistantContent
             .replace(/\[Descargar archivo\]\([^)]+\)/g, '')
             .replace(/\[PDF\]\([^)]+\)/g, '')
             .trim();
-          
-          const splitText = doc.splitTextToSize(cleanContent, maxWidth);
-          let yPosition = 45;
-          const lineHeight = 6;
-          
-          for (let i = 0; i < splitText.length; i++) {
-            if (yPosition > 280) {
-              doc.addPage();
-              yPosition = 20;
-            }
-            doc.text(splitText[i], margin, yPosition);
-            yPosition += lineHeight;
-          }
-          
-          const pdfDataUrl = doc.output('dataurlstring');
+          const pdfDataUrl = generateDocumentPDF(cleanContent);
           assistantContent = `${assistantContent}\n\n---\n\n**Documento PDF Generado**\n\n[Pulse aqui para descargar el PDF](${pdfDataUrl})`;
         } catch (pdfError) {
           console.error('Error generating PDF:', pdfError);
@@ -2729,6 +2940,7 @@ Esta instruccion aplica SOLO para este mensaje especifico donde se uso .//docume
 
       const sentText = t?.fablabChat?.status?.sent || 'Message sent.';
       setStatusText(sentText);
+      setPendingAttachments([]);
     } catch (error: any) {
       setErrorText(formatRuntimeErrorForUser(error) || (t?.fablabChat?.errors?.sendFailed || 'Could not send message.'));
     } finally {
@@ -2796,6 +3008,7 @@ Esta instruccion aplica SOLO para este mensaje especifico donde se uso .//docume
 
       await saveFablabChatConversation(emptyConversation);
       await saveFablabChatStats(emptyStats);
+      setPendingAttachments([]);
       setStatusText(t?.fablabChat?.status?.deletedConversation || 'Conversation and stats deleted.');
     } catch (error: any) {
       setErrorText(error?.message || (t?.fablabChat?.errors?.saveFailed || 'Could not clear conversation and stats.'));
@@ -2887,124 +3100,31 @@ Esta instruccion aplica SOLO para este mensaje especifico donde se uso .//docume
           </div>
         )}
 
-        <header className="fablab-chat-header">
-          <div className="fablab-header-top">
-            <div className="fablab-header-title">
-              <div className="fablab-header-title-row">
-                <h1 className="fablab-header-title-text">
-                  <Sparkles size={18} />
-                  {t?.fablabChat?.title || 'Fablab Chat'}
-                </h1>
-              </div>
-              <p className="fablab-header-subtitle">
-                {runtimeSelection
-                  ? `${runtimeSelection.provider} - ${selectedModelLabel || runtimeSelection.modelId}`
-                  : (t?.fablabChat?.runtimeMissing || 'Configure provider and model in Profile to start chatting.')}
-              </p>
-            </div>
-
-            <div className="fablab-header-actions">
-              {renderChatSkillsButton()}
-              {renderRoleMenu()}
-
-              <button
-                type="button"
-                onClick={exportConversation}
-                disabled={isExporting || messages.length === 0}
-                className="fablab-header-action-btn"
-              >
-                {isExporting ? <Loader2 size={14}  /> : <Download size={14} />}
-                <span className="fablab-header-action-text">{t?.fablabChat?.actions?.export || 'Export'}</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={resetConversation}
-                disabled={messages.length === 0}
-                className="fablab-header-action-btn"
-              >
-                <RotateCcw size={14} />
-                <span className="fablab-header-action-text">{t?.fablabChat?.actions?.reset || 'Reset'}</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={clearAll}
-                disabled={messages.length === 0 && stats.totalRequests === 0}
-                className="fablab-header-action-btn"
-              >
-                <Trash2 size={14} />
-                <span className="fablab-header-action-text">{t?.fablabChat?.actions?.delete || 'Delete'}</span>
-              </button>
-            </div>
-          </div>
-
-          {!runtimeSelection && (
-            <div className="fablab-header-warning-bubble">
-              <div className="fablab-warning-bubble-icon">
-                <AlertTriangle size={16} />
-              </div>
-              <div className="fablab-warning-tooltip">
-                <p className="fablab-warning-tooltip-text">{tr?.['text_121'] ?? 'Configure your API key and model in Profile before starting the chat.'}</p>
-                <button
-                  type="button"
-                  onClick={() => navigate('/dashboard/profile')}
-                  className="fablab-warning-tooltip-btn"
-                >{tr?.['text_122'] ?? 'Go to profile'}</button>
-              </div>
-            </div>
-          )}
-
-          {(selectedRoleObject || selectedContextSources.length > 0) && (
-            <div>
-              {selectedRoleObject && (
-                <span>
-                  {t?.fablabChat?.sources?.role || 'Role'}: {selectedRoleObject.name}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const resetMark = toIsoNow();
-                      setSelectedRoleObject(null);
-                      setRoleInstruction('');
-                      setRoleResetAt(resetMark);
-                      void persistRoleSelection(null, '', resetMark);
-                    }}
-                  >
-                    <X size={12} />
-                  </button>
-                </span>
-              )}
-
-              {selectedContextSources.length > 0 && (
-                <span>
-                  <ShieldCheck size={12} />
-                  {selectedContextSources.length} {t?.fablabChat?.sources?.selected || 'sources selected'}
-                </span>
-              )}
-            </div>
-          )}
-
-          {selectedContextSources.length > 0 && (
-            <div>
-              <p>{tr?.['text_125'] ?? 'Active context sources (fully analyzed before generation)'}</p>
-              <div>
-                {selectedContextSources.map((source) => (
-                  <span
-                    key={String(source.id)}
-                  >
-                    {source.name} ({getObjectType(source) || 'file'})
-                    <button
-                      type="button"
-                      onClick={() => removeContextSource(source.id)}
-                    >
-                      <X size={11} />
-                    </button>
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
-        </header>
+        <ChatHeader
+          t={t}
+          runtimeSelection={runtimeSelection ? { provider: runtimeSelection.provider, modelId: runtimeSelection.modelId } : null}
+          selectedModelLabel={selectedModelLabel}
+          renderChatSkillsButton={renderChatSkillsButton}
+          renderRoleMenu={renderRoleMenu}
+          exportConversation={exportConversation}
+          resetConversation={resetConversation}
+          clearAll={clearAll}
+          isExporting={isExporting}
+          messagesLength={messages.length}
+          statsTotalRequests={stats.totalRequests}
+          navigateToProfile={() => navigate('/dashboard/profile')}
+          selectedRoleObject={selectedRoleObject}
+          selectedContextSources={selectedContextSources}
+          onClearRole={() => {
+            const resetMark = toIsoNow();
+            setSelectedRoleObject(null);
+            setRoleInstruction('');
+            setRoleResetAt(resetMark);
+            void persistRoleSelection(null, '', resetMark);
+          }}
+          onRemoveContextSource={removeContextSource}
+          getObjectType={getObjectType}
+        />
 
         {!hasConversation ? (
           <div className="fablab-empty-state">
@@ -3021,609 +3141,134 @@ Esta instruccion aplica SOLO para este mensaje especifico donde se uso .//docume
                 </p>
               </div>
 
-              <div className="fablab-empty-input-wrapper">
-                <textarea
-                  value={input}
-                  onChange={(event) => setInput(event.target.value)}
-                  onKeyDown={handleInputKeyDown}
-                  rows={5}
-                  placeholder={t?.fablabChat?.inputPlaceholder || 'Write your message...'}
-                  className="fablab-empty-textarea"
-                />
-
-                {/* Skill detection badge */}
-                {detectedInputSkill && (
-                  <div className="fablab-skill-detected-badge">
-                    <span className="fablab-skill-detected-icon">⚡</span>
-                    <span className="fablab-skill-detected-text">{tr?.['text_129'] ?? 'Skill activo:'}<strong>.//{detectedInputSkill.name}</strong>
-                    </span>
-                    <span className="fablab-skill-detected-hint">
-                      {detectedInputSkill.instruction.substring(0, 60)}...
-                    </span>
-                  </div>
-                )}
-
-                {renderProjectAuditWizard()}
-
-                <div className="fablab-input-buttons">
-                  <div className="fablab-skill-buttons">
-                    {renderComplementsDropdown()}
-                    {renderQuickSkillButtons()}
-
-                    <button
-                      type="button"
-                      onClick={() => setSourceMode('context')}
-                      className="fablab-source-button"
-                    >
-                      <Paperclip size={14} />
-                      <span className="fablab-source-text">{t?.fablabChat?.actions?.contextSources || 'Context sources'}</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => setSourceMode('role')}
-                      className="fablab-source-button"
-                    >
-                      <Wand2 size={14} />
-                      <span className="fablab-source-text">{t?.fablabChat?.actions?.roleSource || 'Role from library'}</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => setSourceMode('prompt')}
-                      className="fablab-source-button"
-                    >
-                      <MessageSquare size={14} />
-                      <span className="fablab-source-text">{t?.fablabChat?.actions?.promptSource || 'Prompt from library'}</span>
-                    </button>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (skills.projectAudit && projectAuditWizardVisible) {
-                        sendProjectAuditWizardPrompt();
-                        return;
-                      }
-                      void sendMessage();
-                    }}
-                    disabled={isSending || !runtimeSelection || (skills.projectAudit && projectAuditWizardVisible ? !projectAuditWizardComplete : !input.trim())}
-                    className="fablab-send-button"
-                  >
-                    {isSending ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
-                    <span>{skills.projectAudit && projectAuditWizardVisible ? 'Enviar auditoria' : (t?.fablabChat?.actions?.send || 'Send')}</span>
-                  </button>
-                </div>
-              </div>
+              <ChatInput
+                input={input}
+                setInput={setInput}
+                handleInputKeyDown={handleInputKeyDown}
+                renderSkillDropdown={renderSkillDropdown}
+                renderProjectAuditWizard={renderProjectAuditWizard}
+                renderComplementsDropdown={renderComplementsDropdown}
+                renderQuickSkillButtons={renderQuickSkillButtons}
+                setSourceMode={setSourceMode}
+                attachments={pendingAttachments}
+                onAttachClick={openAttachmentPicker}
+                onRemoveAttachment={removeAttachment}
+                isSending={isSending}
+                runtimeSelection={runtimeSelection}
+                skills={skills}
+                projectAuditWizardVisible={projectAuditWizardVisible}
+                projectAuditWizardComplete={projectAuditWizardComplete}
+                sendMessage={() => void sendMessage()}
+                sendProjectAuditWizardPrompt={sendProjectAuditWizardPrompt}
+                t={t}
+                buildHighlightedInputHtml={(value) => buildHighlightedInputHtml(value, chatSkills)}
+                inputClassName="fablab-empty-textarea"
+                rows={5}
+                containerClassName="fablab-empty-input-wrapper"
+              />
             </div>
           </div>
         ) : (
           <>
             <div ref={scrollerRef} className="fablab-messages-scroller" translate="no" data-no-translate="true">
-              {renderedMessages.map(({ message, isUser, imageSrc, richOutput, textBody, fileCardMessage }) => {
-                return (
-                  <div
-                    key={message.id}
-                    className={`fablab-message-wrapper ${isUser ? 'fablab-message-user' : 'fablab-message-assistant'}`}
-                  >
-                    <div
-                      className={`fablab-message-bubble ${isUser ? 'fablab-bubble-user' : 'fablab-bubble-assistant'}`}
-                    >
-                      <p className="fablab-message-role-time">
-                        <span className="fablab-message-role">
-                          {isUser ? (t?.fablabChat?.messages?.you || 'You') : (t?.fablabChat?.messages?.assistant || 'Assistant')}
-                        </span>
-                        <span className="fablab-message-time">{formatTime(message.createdAt)}</span>
-                      </p>
-                      {imageSrc && (
-                        <div>
-                          <img
-                            src={imageSrc}
-                            alt={(tr?.['text_137'] ?? 'Generated output')}
-                            loading="lazy"
-                            decoding="async"
-                          />
-                          <div>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                void downloadGeneratedImage(imageSrc);
-                              }}
-                            >
-                              <ImageDown size={12} />{tr?.['text_2'] ?? 'Download'}</button>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                void saveGeneratedImageToObjects(imageSrc);
-                              }}
-                            >
-                              <FolderPlus size={12} />{tr?.['text_138'] ?? 'Save'}</button>
-                          </div>
-                        </div>
-                      )}
-                      {richOutput && richOutput.kind === 'audio' && (
-                        <div>
-                          <audio controls src={richOutput.src} />
-                          <div>
-                            <button
-                              type="button"
-                              onClick={() => downloadDataUriAsset(richOutput.src, richOutput.fileName)}
-                            >
-                              <Download size={12} />{tr?.['text_139'] ?? 'Download audio'}</button>
-                          </div>
-                        </div>
-                      )}
-                      {richOutput && richOutput.kind === 'video' && (
-                        <div>
-                          <video controls src={richOutput.src} />
-                          <div>
-                            <button
-                              type="button"
-                              onClick={() => downloadDataUriAsset(richOutput.src, richOutput.fileName)}
-                            >
-                              <Download size={12} />{tr?.['text_140'] ?? 'Download video'}</button>
-                          </div>
-                        </div>
-                      )}
-                      {richOutput && richOutput.kind === 'file' && (
-                        (() => {
-                          const isPdf = richOutput.fileName?.toLowerCase().endsWith('.pdf');
-                          if (isPdf) {
-                            return (
-                              <div>
-                                <p>
-                                  {fileCardMessage || 'Claro, aca genere tu PDF. Ya tienes el boton para descargarlo.'}
-                                </p>
-                                <PDFCard
-                                  fileName={richOutput.fileName || 'documento.pdf'}
-                                  onDownload={() => downloadDataUriAsset(richOutput.src, richOutput.fileName)}
-                                  tr={tr}
-                                />
-                              </div>
-                            );
-                          }
-                          return (
-                            <div>
-                              <p>
-                                {fileCardMessage || 'Claro, aca genere tu archivo. Usa el boton para descargarlo.'}
-                              </p>
-                              <div>
-                                <button
-                                  type="button"
-                                  onClick={() => downloadDataUriAsset(richOutput.src, richOutput.fileName)}
-                                >
-                                  <Download size={12} />{tr?.['text_144'] ?? 'Descargar archivo'}</button>
-                              </div>
-                            </div>
-                          );
-                        })()
-                      )}
-                      {textBody && !(richOutput && richOutput.kind === 'file') && (
-                        isUser ? (
-                          <p>{textBody}</p>
-                        ) : (
-                          <div>
-                            {(() => {
-                              const pdfMatch = textBody.match(/\[PDF:\s*([^\]]+)\]/i);
-                              if (pdfMatch) {
-                                const fileName = pdfMatch[1].trim();
-                                const textWithoutPdf = textBody.replace(/\[PDF:\s*[^\]]+\]/i, '').trim();
-                                return (
-                                  <>
-                                    {textWithoutPdf && (
-                                      <ReactMarkdown
-                                        remarkPlugins={[remarkGfm, remarkMath]}
-                                        rehypePlugins={[rehypeKatex]}
-                                        components={markdownComponents}
-                                        urlTransform={markdownUrlTransform}
-                                      >
-                                        {textWithoutPdf}
-                                      </ReactMarkdown>
-                                    )}
-                                    <PDFCard
-                                      fileName={fileName}
-                                      onDownload={() => {
-                                        // TODO: Implement actual PDF download logic
-                                      }}
-                                      tr={tr}
-                                    />
-                                  </>
-                                );
-                              }
-                              return (
-                                <ReactMarkdown
-                                  remarkPlugins={[remarkGfm, remarkMath]}
-                                  rehypePlugins={[rehypeKatex]}
-                                  components={markdownComponents}
-                                  urlTransform={markdownUrlTransform}
-                                >
-                                  {textBody}
-                                </ReactMarkdown>
-                              );
-                            })()}
-                          </div>
-                        )
-                      )}
-                      {!isUser && (
-                        <button
-                          type="button"
-                          onClick={() => exportMessage(message.id)}
-                          className="fablab-message-save-btn"
-                          title={(tr?.['text_145'] ?? 'Save this message to objects')}
-                        >
-                          <FolderPlus size={14} />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            <div className="fablab-conversation-input">
-              <textarea
-                value={input}
-                onChange={(event) => setInput(event.target.value)}
-                onKeyDown={handleInputKeyDown}
-                rows={3}
-                placeholder={t?.fablabChat?.inputPlaceholder || 'Write your message...'}
-                className="fablab-input-textarea"
+              <ChatMessages
+                renderedMessages={renderedMessages}
+                t={t}
+                formatTime={(value) => formatTime(value || '')}
+                downloadGeneratedImage={downloadGeneratedImage}
+                saveGeneratedImageToObjects={saveGeneratedImageToObjects}
+                downloadDataUriAsset={downloadDataUriAsset}
+                exportMessage={exportMessage}
+                markdownComponents={markdownComponents}
+                markdownUrlTransform={markdownUrlTransform}
+                isSending={isSending}
               />
-
-              {/* Skill detection badge */}
-              {detectedInputSkill && (
-                <div className="fablab-skill-detected-badge">
-                  <span className="fablab-skill-detected-icon">⚡</span>
-                  <span className="fablab-skill-detected-text">{tr?.['text_129'] ?? 'Skill activo:'}<strong>.//{detectedInputSkill.name}</strong>
-                  </span>
-                  <span className="fablab-skill-detected-hint">
-                    {detectedInputSkill.instruction.substring(0, 60)}...
-                  </span>
-                </div>
-              )}
-
-              {renderProjectAuditWizard()}
-
-              <div className="fablab-input-buttons">
-                <div className="fablab-skill-buttons">
-                  {renderComplementsDropdown()}
-                  {renderQuickSkillButtons()}
-
-                  <button
-                    type="button"
-                    onClick={() => setSourceMode('context')}
-                    className="fablab-source-button"
-                  >
-                    <Paperclip size={14} />
-                    <span className="fablab-source-text">{t?.fablabChat?.actions?.contextSources || 'Context sources'}</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setSourceMode('role')}
-                    className="fablab-source-button"
-                  >
-                    <Wand2 size={14} />
-                    <span className="fablab-source-text">{t?.fablabChat?.actions?.roleSource || 'Role from library'}</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setSourceMode('prompt')}
-                    className="fablab-source-button"
-                  >
-                    <MessageSquare size={14} />
-                    <span className="fablab-source-text">{t?.fablabChat?.actions?.promptSource || 'Prompt from library'}</span>
-                  </button>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (skills.projectAudit && projectAuditWizardVisible) {
-                      sendProjectAuditWizardPrompt();
-                      return;
-                    }
-                    void sendMessage();
-                  }}
-                  disabled={isSending || !runtimeSelection || (skills.projectAudit && projectAuditWizardVisible ? !projectAuditWizardComplete : !input.trim())}
-                  className="fablab-send-button"
-                >
-                  {isSending ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
-                  <span>{skills.projectAudit && projectAuditWizardVisible ? 'Enviar auditoria' : (t?.fablabChat?.actions?.send || 'Send')}</span>
-                </button>
-              </div>
             </div>
+
+            <ChatInput
+              input={input}
+              setInput={setInput}
+              handleInputKeyDown={handleInputKeyDown}
+              renderSkillDropdown={renderSkillDropdown}
+              renderProjectAuditWizard={renderProjectAuditWizard}
+              renderComplementsDropdown={renderComplementsDropdown}
+              renderQuickSkillButtons={renderQuickSkillButtons}
+              setSourceMode={setSourceMode}
+              attachments={pendingAttachments}
+              onAttachClick={openAttachmentPicker}
+              onRemoveAttachment={removeAttachment}
+              isSending={isSending}
+              runtimeSelection={runtimeSelection}
+              skills={skills}
+              projectAuditWizardVisible={projectAuditWizardVisible}
+              projectAuditWizardComplete={projectAuditWizardComplete}
+              sendMessage={() => void sendMessage()}
+              sendProjectAuditWizardPrompt={sendProjectAuditWizardPrompt}
+              t={t}
+              buildHighlightedInputHtml={(value) => buildHighlightedInputHtml(value, chatSkills)}
+              inputClassName="fablab-input-textarea"
+              rows={3}
+            />
           </>
         )}
 
-        {sourceMode && (
-          <aside className="chat-sidebar">
-            <div className="chat-sidebar-header">
-              <h3 className="chat-sidebar-title">
-                {sourceMode === 'context'
-                  ? (t?.fablabChat?.sources?.title || 'Select context sources')
-                  : sourceMode === 'role'
-                    ? (t?.fablabChat?.sources?.roleTitle || 'Select role source')
-                    : (t?.fablabChat?.sources?.promptTitle || 'Select prompt source')}
-              </h3>
-
-              <button
-                type="button"
-                onClick={() => setSourceMode(null)}
-                className="chat-sidebar-close"
-              >
-                <X size={13} />
-              </button>
-            </div>
-
-            <div className="chat-sidebar-filters">
-              <label className="chat-sidebar-label">
-                <span className="chat-sidebar-label-text">{t?.fablabChat?.sources?.folder || 'Folder'}</span>
-                <select
-                  value={selectedFolderId ?? ''}
-                  onChange={(event) => setSelectedFolderId(event.target.value ? Number(event.target.value) : undefined)}
-                  className="chat-sidebar-select"
-                >
-                  <option value="">{t?.fablabChat?.sources?.allFolders || 'All folders'}</option>
-                  {folders.map((folder) => (
-                    <option key={folder.id} value={folder.id}>{folder.name}</option>
-                  ))}
-                </select>
-              </label>
-
-              <label className="chat-sidebar-label">
-                <span className="chat-sidebar-label-text">{t?.fablabChat?.sources?.search || 'Search'}</span>
-                <div className="chat-sidebar-search-wrapper">
-                  <Search size={14}  />
-                  <input
-                    value={searchTerm}
-                    onChange={(event) => setSearchTerm(event.target.value)}
-                    placeholder={t?.fablabChat?.sources?.searchPlaceholder || 'Search files...'}
-                    className="chat-sidebar-search-input"
-                  />
-                </div>
-              </label>
-            </div>
-
-            <div className="chat-sidebar-list">
-              {loading && (
-                <div className="chat-sidebar-loading">
-                  <Loader2 size={14} className="animate-spin" />
-                  <span>{t?.fablabChat?.sources?.loading || 'Loading...'}</span>
-                </div>
-              )}
-
-              {!loading && objects.length === 0 && (
-                <div className="chat-sidebar-empty">
-                  <span>{t?.fablabChat?.sources?.empty || 'No objects found'}</span>
-                </div>
-              )}
-
-              {!loading && objects.length > 0 && (
-                <ul className="chat-sidebar-items">
-                  {objects.map((source: ObjectItem) => {
-                    const isSelected = selectedContextIds.includes(source.id);
-                    return (
-                      <li key={String(source.id)}>
-                        <div className="chat-sidebar-item">
-                          <div className="chat-sidebar-item-info">
-                            <p className="chat-sidebar-item-name">{source.name}</p>
-                            <p className="chat-sidebar-item-type">{getObjectType(source) || 'file'}</p>
-                          </div>
-                          <label className="chat-sidebar-item-checkbox-label">
-                            <input
-                              type="checkbox"
-                              checked={isSelected}
-                              onChange={() => toggleContextSource(source)}
-                              className="chat-sidebar-item-checkbox"
-                            />
-                          </label>
-                        </div>
-                        {!isSelected && sourceMode !== 'context' && (
-                          <button
-                            type="button"
-                            onClick={() => applySingleSource(sourceMode as 'role' | 'prompt', source)}
-                            className="chat-sidebar-item-button"
-                          >
-                            {t?.fablabChat?.sources?.use || 'Use'}
-                          </button>
-                        )}
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
-            </div>
-          </aside>
-        )}
+        <ChatSidebar
+          t={t}
+          sourceMode={sourceMode}
+          folders={folders}
+          objects={objects}
+          selectedFolderId={selectedFolderId}
+          setSelectedFolderId={setSelectedFolderId}
+          searchTerm={searchTerm}
+          setSearchTerm={setSearchTerm}
+          selectedContextIds={selectedContextIds}
+          loading={loading}
+          onClose={() => setSourceMode(null)}
+          toggleContextSource={toggleContextSource}
+          applySingleSource={applySingleSource}
+          getObjectType={getObjectType}
+        />
         </div>
 
         <div className="fablab-chat-back">
           {flipMode === 'role' && (
-            <>
-              <div className="fablab-chat-header">
-                <div className="fablab-header-top">
-                  <div className="fablab-header-title">
-                    <h1 className="fablab-header-title-text">
-                      <Wand2 size={18} />{tr?.['text_156'] ?? 'Rol Editor'}</h1>
-                    <p className="fablab-header-subtitle">{tr?.['text_157'] ?? 'Edita la instruccion del perfil seleccionado'}</p>
-                  </div>
-
-                  <div className="fablab-header-actions">
-                    <button
-                      type="button"
-                      onClick={closeFlip}
-                      className="fablab-header-action-btn"
-                    >
-                      <X size={14} />
-                      <span className="fablab-header-action-text">{tr?.['text_158'] ?? 'Close'}</span>
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 'var(--space-lg)', padding: 'var(--space-xl)' }}>
-                <div className="fablab-skill-editor-field">
-                  <label>{tr?.['text_159'] ?? 'Nombre del rol'}</label>
-                  <input
-                    value={editingSkillLabel}
-                    onChange={(event) => setEditingSkillLabel(event.target.value)}
-                    placeholder={(tr?.['text_160'] ?? 'Ej: Ingeniero de software')}
-                    className="fablab-skill-editor-input"
-                  />
-                </div>
-                <div className="fablab-skill-editor-field">
-                  <label>{tr?.['text_161'] ?? 'Instruccion'}</label>
-                  <textarea
-                    value={editingSkillInstruction}
-                    onChange={(event) => setEditingSkillInstruction(event.target.value)}
-                    rows={10}
-                    placeholder={(tr?.['text_162'] ?? 'Describe la instruccion del rol...')}
-                    className="fablab-skill-editor-textarea"
-                  />
-                </div>
-                <div className="fablab-skill-editor-field">
-                  <label>{tr?.['text_163'] ?? 'Configuracion de prompt completa (vista previa)'}</label>
-                  <textarea
-                    value={buildSystemPrompt()}
-                    readOnly
-                    rows={8}
-                    placeholder={(tr?.['text_164'] ?? 'Vista previa del system prompt completo que se enviara al modelo...')}
-                    className="fablab-skill-editor-textarea fablab-skill-editor-preview"
-                  />
-                  <small className="fablab-skill-editor-hint">{tr?.['text_165'] ?? 'Este es el prompt final que se envia al modelo, incluyendo el rol activo, instrucciones de rol y comportamiento base.'}</small>
-                </div>
-                <div className="fablab-skill-editor-actions">
-                  <button
-                    type="button"
-                    onClick={closeFlip}
-                    className="fablab-header-action-btn"
-                  >{tr?.['text_166'] ?? 'Cancelar'}</button>
-                  <button
-                    type="button"
-                    onClick={() => void saveSkillPreset()}
-                    className="fablab-header-action-btn fablab-header-action-btn-primary"
-                  >{tr?.['text_167'] ?? 'Guardar rol'}</button>
-                </div>
-              </div>
-            </>
+            <RoleEditor
+              editingSkillLabel={editingSkillLabel}
+              setEditingSkillLabel={setEditingSkillLabel}
+              editingSkillInstruction={editingSkillInstruction}
+              setEditingSkillInstruction={setEditingSkillInstruction}
+              buildSystemPrompt={buildSystemPrompt}
+              saveRolePreset={saveRolePreset}
+              onOpenImportModal={() => setRoleImportModalOpen(true)}
+              importSourceLabel={newRoleSourceType === 'object' ? (newRoleObjectName || 'Archivo seleccionado') : undefined}
+              closeFlip={closeFlip}
+            />
           )}
 
           {flipMode === 'skills' && (
-            <>
-              <div className="fablab-chat-header">
-                <div className="fablab-header-top">
-                  <div className="fablab-header-title">
-                    <h1 className="fablab-header-title-text">
-                      <Bot size={18} />{tr?.['text_168'] ?? 'Chat Skills Editor'}</h1>
-                    <p className="fablab-header-subtitle">{tr?.['text_169'] ?? 'Crea skills para usar con .//nombre en el chat'}</p>
-                  </div>
-
-                  <div className="fablab-header-actions">
-                    <button
-                      type="button"
-                      onClick={closeFlip}
-                      className="fablab-header-action-btn"
-                    >
-                      <X size={14} />
-                      <span className="fablab-header-action-text">{tr?.['text_158'] ?? 'Close'}</span>
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 'var(--space-lg)', padding: 'var(--space-xl)' }}>
-                <div className="fablab-skill-editor-field">
-                  <label>{tr?.['text_170'] ?? 'Skill activos'}</label>
-                  <div className="fablab-chat-skills-list" style={{ maxHeight: '150px', overflow: 'auto', border: '1px solid rgba(148, 163, 184, 0.3)', borderRadius: '8px', padding: '8px' }}>
-                    {chatSkills.length === 0 && (
-                      <div style={{ padding: '12px', textAlign: 'center', color: '#64748b' }}>{tr?.['text_171'] ?? 'No hay skills creados. Crea uno abajo.'}</div>
-                    )}
-                    {chatSkills.map((skill) => (
-                      <div key={skill.id} className="fablab-skill-menu-row" style={{ marginBottom: '4px' }}>
-                        <code className="fablab-skill-menu-code" style={{ flex: 1 }}>.//{skill.name}</code>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setEditingChatSkill(skill);
-                            setNewChatSkillName(skill.name);
-                            setNewChatSkillInstruction(skill.instruction);
-                            setNewChatSkillSourceType(skill.sourceType);
-                            setNewChatSkillObjectId(skill.objectId);
-                          }}
-                          className="fablab-skill-menu-edit"
-                        >
-                          <Pencil size={12} />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => void handleDeleteChatSkill(skill.id)}
-                          className="fablab-skill-menu-delete"
-                          title={(tr?.['text_85'] ?? 'Eliminar skill')}
-                        >
-                          <Trash2 size={12} />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="fablab-skill-editor-field">
-                  <label>{tr?.['text_172'] ?? 'Opciones de creacion'}</label>
-                  <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
-                    <button
-                      type="button"
-                      onClick={() => setSkillImportModalOpen(true)}
-                      className="fablab-header-action-btn"
-                      style={{ flex: 1 }}
-                    >
-                      <Paperclip size={14} />
-                      <span>{tr?.['text_173'] ?? 'Importar desde libreria de objetos'}</span>
-                    </button>
-                  </div>
-                  {newChatSkillSourceType === 'object' && newChatSkillObjectId && (
-                    <div style={{ padding: '8px', background: 'rgba(59, 130, 246, 0.1)', borderRadius: '6px', marginBottom: '12px', fontSize: '0.85rem' }}>
-                      Importando desde: {objects.find((o) => o.id === newChatSkillObjectId)?.name || 'Archivo seleccionado'}
-                    </div>
-                  )}
-                </div>
-
-                <div className="fablab-skill-editor-field">
-                  <label>{editingChatSkill ? 'Editar skill' : 'Crear nuevo skill'}</label>
-                  <input
-                    value={newChatSkillName}
-                    onChange={(event) => setNewChatSkillName(event.target.value)}
-                    placeholder={(tr?.['text_178'] ?? 'Nombre del skill (ej: documentar)')}
-                    className="fablab-skill-editor-input"
-                    style={{ marginBottom: '8px' }}
-                  />
-                  <textarea
-                    value={newChatSkillInstruction}
-                    onChange={(event) => setNewChatSkillInstruction(event.target.value)}
-                    rows={8}
-                    placeholder={(tr?.['text_179'] ?? 'Instruccion del skill. Ej: Al final de cada respuesta, genera un documento PDF descargable con el resumen de la conversacion.')}
-                    className="fablab-skill-editor-textarea"
-                  />
-                </div>
-
-                <div className="fablab-skill-editor-actions">
-                  <button
-                    type="button"
-                    onClick={closeFlip}
-                    className="fablab-header-action-btn"
-                  >{tr?.['text_166'] ?? 'Cancelar'}</button>
-                  <button
-                    type="button"
-                    onClick={() => void (editingChatSkill ? handleUpdateChatSkill() : handleCreateChatSkill())}
-                    disabled={!newChatSkillName.trim() || !newChatSkillInstruction.trim()}
-                    className="fablab-header-action-btn fablab-header-action-btn-primary"
-                  >
-                    {editingChatSkill ? 'Actualizar skill' : 'Crear skill'}
-                  </button>
-                </div>
-              </div>
-            </>
+            <ChatSkillsEditor
+              chatSkills={chatSkills}
+              editingChatSkill={editingChatSkill}
+              newChatSkillName={newChatSkillName}
+              newChatSkillInstruction={newChatSkillInstruction}
+              newChatSkillSourceType={newChatSkillSourceType}
+              newChatSkillObjectId={newChatSkillObjectId}
+              objects={objects}
+              onClose={closeFlip}
+              onEditSkill={(skill) => {
+                setEditingChatSkill(skill);
+                setNewChatSkillName(skill.name);
+                setNewChatSkillInstruction(skill.instruction);
+                setNewChatSkillSourceType(skill.sourceType);
+                setNewChatSkillObjectId(skill.objectId);
+              }}
+              onDeleteSkill={(id) => void handleDeleteChatSkill(id)}
+              onOpenImportModal={() => setSkillImportModalOpen(true)}
+              onChangeName={setNewChatSkillName}
+              onChangeInstruction={setNewChatSkillInstruction}
+              onSave={() => void handleUpdateChatSkill()}
+              onCreate={() => void handleCreateChatSkill()}
+            />
           )}
         </div>
       </div>
@@ -3631,16 +3276,38 @@ Esta instruccion aplica SOLO para este mensaje especifico donde se uso .//docume
       {/* Skill Import Modal */}
       <AssemblerModal
         isOpen={skillImportModalOpen}
-        title={(tr?.['text_182'] ?? 'Importar skill desde libreria de objetos')}
+        title="Importar skill desde libreria de objetos"
         onClose={() => setSkillImportModalOpen(false)}
       >
         <GenericObjectSelector
-          type="TEXT"
+          type="MD"
+          fileExtension=".md"
           onObjectSelectionCallback={handleSkillObjectSelected}
         />
       </AssemblerModal>
+
+      {/* Role Import Modal */}
+      <AssemblerModal
+        isOpen={roleImportModalOpen}
+        title="Importar rol desde libreria de objetos"
+        onClose={() => setRoleImportModalOpen(false)}
+      >
+        <GenericObjectSelector
+          type="MD"
+          fileExtension=".md"
+          onObjectSelectionCallback={handleRoleObjectSelected}
+        />
+      </AssemblerModal>
+
+      <input
+        ref={attachmentInputRef}
+        type="file"
+        multiple
+        className="hidden"
+        onChange={handleAttachmentInputChange}
+      />
     </section>
   );
 };
 
-export default FablabChatView;
+export default FablabChatController;

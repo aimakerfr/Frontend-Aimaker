@@ -59,6 +59,17 @@ export type FablabChatMessage = {
   createdAt: string;
   sourceIds?: Array<string | number>;
   skills?: Record<string, boolean>;
+  attachments?: FablabChatAttachment[];
+};
+
+export type FablabChatAttachment = {
+  id: string;
+  name: string;
+  mimeType: string;
+  size?: number;
+  objectId?: string | number;
+  status?: 'uploading' | 'ready' | 'error';
+  type?: string;
 };
 
 export type FablabChatConversationState = {

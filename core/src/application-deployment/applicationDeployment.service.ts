@@ -10,6 +10,7 @@ const ENDPOINT = '/api/v1/application-deployment';
 export interface ApplicationDeployment {
   id: number;
   maker_path_id: number | null;
+  type: string | null;
   files_url: string | null;
   deployment_url: string | null;
   database_url: string | null;
