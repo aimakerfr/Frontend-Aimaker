@@ -4,9 +4,11 @@
  */
 
 export type ChatSkillSourceType = 'manual' | 'object';
+export type ChatSetupType = 'role' | 'skill';
 
 export interface ChatSkill {
   id: number;
+  type: ChatSetupType;
   name: string;
   instruction: string;
   sourceType: ChatSkillSourceType;
@@ -16,6 +18,7 @@ export interface ChatSkill {
 }
 
 export interface CreateChatSkillRequest {
+  type?: ChatSetupType;
   name: string;
   instruction: string;
   sourceType?: ChatSkillSourceType;
@@ -23,6 +26,7 @@ export interface CreateChatSkillRequest {
 }
 
 export interface UpdateChatSkillRequest {
+  type?: ChatSetupType;
   name?: string;
   instruction?: string;
   sourceType?: ChatSkillSourceType;

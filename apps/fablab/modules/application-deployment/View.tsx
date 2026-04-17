@@ -290,7 +290,7 @@ const ApplicationDeploymentFullPage: React.FC<Props> = ({ makerPathId, DatabaseC
                       </td>
                       <td className="py-3 px-4">
                         <span className="px-2 py-1 text-xs font-medium rounded-full bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
-                          {(d as any).projectType || (d as any).project_type || '-'}
+                          {d.type || '-'}
                         </span>
                       </td>
                       <td className="py-3 px-4">

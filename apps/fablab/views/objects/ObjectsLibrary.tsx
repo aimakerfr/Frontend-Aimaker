@@ -239,7 +239,10 @@ const ObjectsLibrary: React.FC<{
 
   const typeOptions = useMemo(() => {
     const set = new Set<string>();
-    folderItems.forEach((item) => set.add((item.type || 'unknown').toString()));
+    folderItems.forEach((item) => {
+      const isMarkdown = (item.name || '').toLowerCase().endsWith('.md');
+      set.add(isMarkdown ? 'MD' : (item.type || 'unknown').toString());
+    });
     return Array.from(set.values());
   }, [folderItems]);
 
@@ -251,7 +254,11 @@ const ObjectsLibrary: React.FC<{
 
   const visibleItems = useMemo(() => {
     if (activeType === 'ALL') return searchedItems;
-    return searchedItems.filter((item) => (item.type || 'unknown') === activeType);
+    return searchedItems.filter((item) => {
+      const isMarkdown = (item.name || '').toLowerCase().endsWith('.md');
+      const typeKey = isMarkdown ? 'MD' : (item.type || 'unknown');
+      return typeKey === activeType;
+    });
   }, [searchedItems, activeType]);
 
   const folderCounts = useMemo(() => {
@@ -424,7 +431,11 @@ const ObjectsLibrary: React.FC<{
             </button>
 
             {typeOptions.map((tp) => {
-              const count = folderItems.filter((it) => (it.type || 'unknown') === tp).length;
+              const count = folderItems.filter((it) => {
+                const isMarkdown = (it.name || '').toLowerCase().endsWith('.md');
+                const typeKey = isMarkdown ? 'MD' : (it.type || 'unknown');
+                return typeKey === tp;
+              }).length;
               const label = tp === 'unknown'
                 ? ((mergedT as any)?.common?.unknown ?? 'Unknown')
                 : tp;

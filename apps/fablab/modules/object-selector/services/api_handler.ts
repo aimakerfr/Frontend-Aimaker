@@ -13,6 +13,7 @@ export type ObjectType =
   | 'TRANSLATION'
   | 'CODE'
   | 'DOC'
+  | 'MD'
   | 'CONFIG'
   | 'JSON'
   | 'PRODUCT';

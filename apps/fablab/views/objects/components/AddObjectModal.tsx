@@ -6,6 +6,7 @@ import type { Translations } from '../../../language/types';
 // Aligned with backend types validation
 export type ObjectType =
   | 'DOC'
+  | 'MD'
   | 'IMAGE'
   | 'VIDEO'
   | 'HTML'
@@ -47,6 +48,15 @@ const AddObjectModal: React.FC<AddObjectModalProps> = ({ isOpen, onClose, onSubm
       bg: 'bg-rose-50 dark:bg-rose-900/30',
       icon: FileText,
       accept: '.txt,.pdf,.md,.doc,.docx,.rtf,.odt,.xlsx,.pptx',
+    },
+    {
+      id: 'MD',
+      label: (t as any).home?.objects_library?.tabs?.markdown ?? 'MD',
+      description: (t as any).home?.objects_library?.tabs?.markdown_desc ?? 'Markdown (.md)',
+      color: 'text-indigo-600 dark:text-indigo-400',
+      bg: 'bg-indigo-50 dark:bg-indigo-900/30',
+      icon: FileText,
+      accept: '.md',
     },
     {
       id: 'IMAGE',
@@ -126,6 +136,10 @@ const AddObjectModal: React.FC<AddObjectModalProps> = ({ isOpen, onClose, onSubm
     if (!file) return;
     setSelectedFile(file);
     setFileName(file.name);
+    const extension = file.name.split('.').pop()?.toLowerCase();
+    if (extension === 'md') {
+      setActiveType('MD');
+    }
     if (!title.trim()) {
       const baseName = file.name.includes('.') ? file.name.substring(0, file.name.lastIndexOf('.')) : file.name;
       setTitle(baseName);

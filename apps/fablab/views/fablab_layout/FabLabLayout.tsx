@@ -28,6 +28,7 @@ import ProjectExplorer from '../objects/ProjectExplorer';
 import NotebookAssembler from '../assembler/NotebookAssemblerLite';
 import LandingPageAssembler from '../assembler/LandingPageAssembler';
 import AssemblerNew from '../assembler/AssemblerNew';
+import AssemblerMakerPathsView from '../../modules/assemblies/AssemblerMakerPathsView';
 import DeployerNew from '../deployer/DeployerNew';
 import Deployer from '../deployer/Deployer';
 import Products from '../products/Products';
@@ -139,7 +140,7 @@ const FabLabLayout: React.FC<Props> = ({
               <Route path="/project-builder" element={<ProjectBuilderView />} />
               <Route path="/creation-path" element={<CreationPathView />} />
               <Route path="/maker-path/modules/:id" element={<PathCreationModules />} />
-              <Route path="/assembler" element={<AssemblerNew />} />
+              <Route path="/assembler" element={<AssemblerMakerPathsView />} />
               <Route path="/assembler/notebook" element={<NotebookAssembler />} />
               <Route path="/assembler/landing_page" element={<LandingPageAssembler />} />
               <Route path="/assembler/new" element={<AssemblerNew />} />
