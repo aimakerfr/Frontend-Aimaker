@@ -4,12 +4,38 @@ import _traverse from '@babel/traverse';
 // Helper to handle the default export of @babel/traverse
 const traverse = (_traverse as any).default || _traverse;
 
+const CSS_ATTRIBUTE_NAMES = new Set(['className', 'class', 'style', 'css', 'tw']);
+const CSS_PROPERTY_NAMES = new Set([
+  'color', 'background', 'backgroundColor', 'fontFamily', 'fontSize', 'fontWeight', 'fontStyle', 'lineHeight',
+  'letterSpacing', 'textAlign', 'textTransform', 'textDecoration', 'maxWidth', 'minWidth', 'width', 'height',
+  'maxHeight', 'minHeight', 'margin', 'marginTop', 'marginRight', 'marginBottom', 'marginLeft', 'padding',
+  'paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft', 'border', 'borderTop', 'borderRight',
+  'borderBottom', 'borderLeft', 'borderRadius', 'display', 'position', 'top', 'right', 'bottom', 'left',
+  'gap', 'flex', 'flexGrow', 'flexShrink', 'flexBasis', 'flexWrap', 'alignItems', 'justifyContent',
+  'boxShadow', 'opacity', 'zIndex', 'overflow', 'overflowX', 'overflowY', 'cursor', 'whiteSpace'
+]);
+
+const getObjectPropertyName = (node: any): string | null => {
+  if (!node) return null;
+  if (node.type === 'Identifier') return node.name;
+  if (node.type === 'StringLiteral') return node.value;
+  return null;
+};
+
 /**
  * Checks if a string node is in a context where it should NOT be translated
  * Uses AST context analysis instead of regex patterns
  */
 const isInNonTranslatableContext = (path: any): boolean => {
   let parent = path.parent;
+
+  // Skip anything inside style/class-like JSX attributes
+  const styleAttributeAncestor = path.findParent?.((p: any) => {
+    if (p?.node?.type !== 'JSXAttribute') return false;
+    const attrName = p.node?.name?.name;
+    return CSS_ATTRIBUTE_NAMES.has(attrName);
+  });
+  if (styleAttributeAncestor) return true;
   
   // Skip in import declarations
   if (parent.type === 'ImportDeclaration') return true;
@@ -39,8 +65,15 @@ const isInNonTranslatableContext = (path: any): boolean => {
   
   // Skip property values in object that look like configs
   if (parent.type === 'ObjectProperty' && parent.value === path.node) {
+    const propName = getObjectPropertyName(parent.key);
+
+    // Skip CSS-like object values (inline style objects)
+    if (propName && CSS_PROPERTY_NAMES.has(propName)) {
+      return true;
+    }
+
     // Check if the property name suggests it's a configuration
-    if (parent.key?.name && ['url', 'endpoint', 'path', 'route', 'uri', 'href', 'src', 'data', 'config', 'options', 'env'].includes(parent.key.name)) {
+    if (propName && ['url', 'endpoint', 'path', 'route', 'uri', 'href', 'src', 'data', 'config', 'options', 'env'].includes(propName)) {
       return true;
     }
   }
@@ -52,7 +85,7 @@ const isInNonTranslatableContext = (path: any): boolean => {
   if (parent.type === 'VariableDeclarator' && parent.init === path.node) {
     // If variable name suggests data/config: skip it
     const varName = parent.id?.name || '';
-    if (['url', 'endpoint', 'path', 'api', 'route', 'uri', 'href', 'data', 'json', 'payload', 'body'].includes(varName.toLowerCase())) {
+    if (['url', 'endpoint', 'path', 'api', 'route', 'uri', 'href', 'data', 'json', 'payload', 'body', 'styles', 'style'].includes(varName.toLowerCase())) {
       return true;
     }
   }
@@ -91,6 +124,10 @@ const looksLikeUIText = (text: string): boolean => {
   
   // Looks like CSS units or numeric values
   if (/^\d+(px|em|rem|%|vh|vw)$/.test(text) || /^[0-9\-]+$/.test(text)) return false;
+
+  // Looks like CSS shorthand values (e.g. "2rem auto", "0 0 1rem 0", "0.5px solid var(--x)")
+  if (/^\d*\.?\d+(px|em|rem|%|vh|vw)(\s+\w+|\s+\d*\.?\d+(px|em|rem|%|vh|vw))*$/i.test(text)) return false;
+  if (text.includes('var(--') || text.includes(' solid ') || text.includes(' dashed ') || text.includes(' rgba(') || text.includes(' rgb(')) return false;
   
   // Tailwind CSS class patterns
   if (text.includes('-') && !text.includes(' ')) {
@@ -218,17 +255,22 @@ export const extractTextFromHTML = (html: string): Record<string, string> => {
     let node;
     while (node = walker.nextNode()) {
       const text = node.textContent?.trim();
-      if (text && text.length > 1) {
+      const parentTag = (node.parentElement?.tagName || '').toLowerCase();
+      if (parentTag === 'script' || parentTag === 'style' || parentTag === 'noscript') {
+        continue;
+      }
+
+      if (text && text.length > 1 && isTranslatable(text)) {
         extractedStrings.add(text);
       }
     }
 
     // Also look for attributes
-    const elementsWithTitle = doc.querySelectorAll('[title], [placeholder], [alt], [label]');
+    const elementsWithTitle = doc.querySelectorAll('[title], [placeholder], [alt], [label], [aria-label]');
     elementsWithTitle.forEach((el: any) => {
-      ['title', 'placeholder', 'alt', 'label'].forEach(attr => {
+      ['title', 'placeholder', 'alt', 'label', 'aria-label'].forEach(attr => {
         const val = el.getAttribute(attr);
-        if (val && val.trim()) extractedStrings.add(val.trim());
+        if (val && val.trim() && isTranslatable(val.trim())) extractedStrings.add(val.trim());
       });
     });
 

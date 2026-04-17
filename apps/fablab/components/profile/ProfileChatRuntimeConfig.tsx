@@ -245,7 +245,10 @@ const FIELD_CAPABILITIES: Record<ModelBindingKey, ProviderModelCapability[]> = {
   selectedSpeechTranscriptionModelId: ['audio'],
 };
 
-const PROBE_PROVIDERS = new Set<ApiRuntimeProvider>(['google', 'openai', 'mistral', 'perplexity', 'anthropic', 'ollama']);
+// Anthropic model lists can include aliases that are valid for selection but may fail
+// direct probe calls depending on account entitlements/gateway behavior. Keep full
+// validated list instead of pruning it via auto-test probes.
+const PROBE_PROVIDERS = new Set<ApiRuntimeProvider>(['google', 'openai', 'mistral', 'perplexity', 'ollama']);
 const MODEL_PROBE_LIMIT = 8;
 const MODEL_PROBE_SUCCESS_TARGET = 3;
 const MODEL_PROBE_TRANSIENT_STOP = 2;

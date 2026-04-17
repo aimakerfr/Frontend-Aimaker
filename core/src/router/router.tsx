@@ -30,6 +30,7 @@ import CreationPathView from '@apps/fablab/views/product/CreationPathView';
 import ApiCostManagerView from '@apps/fablab/views/product/ApiCostManagerView';
 import SuiviDemandesView from '@apps/fablab/views/product/SuiviDemandesView';
 import TemplateSelector from '@apps/frontend_template_visualizer/components/TemplateSelector';
+import ComponenteEspanol from '@apps/ComponenteEspanol';
 import PublicPromptDetails from '@apps/fablab/views/public/prompt/PublicPromptDetails';
 import PublicAssistantDetails from '@apps/fablab/views/public/assistant/PublicAssistantDetails';
 import PublicProjectDetails from '@apps/fablab/views/public/project/PublicProjectDetails';
@@ -305,6 +306,9 @@ export function AppRouter() {
 
         {/* Templates Visualizer */}
         <Route path="/templates_visualizer" element={<TemplateSelector />} />
+
+        {/* Standalone test view */}
+        <Route path="/componente-espanol" element={<ComponenteEspanol />} />
 
         <Route
           path="/api-key-manager"

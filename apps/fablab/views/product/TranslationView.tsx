@@ -5,6 +5,7 @@ import { getProduct, getOrCreateProductByType } from '@core/products';
 import { updateProductStepProgress, getProductStepProgress } from '@core/product-step-progress';
 import { httpClient } from '@core/api/http.client';
 import { extractTextFromCode, extractTextFromHTML } from '../projectflow/utils/astExtractor';
+import { parse } from '@babel/parser';
 import { useLanguage } from '@apps/fablab/language/useLanguage';
 
 // Step IDs for translation workflow
@@ -333,30 +334,67 @@ export const TranslationView: React.FC = () => {
       let modifiedCode = sourceData.content;
       const isJSX = sourceData.name.endsWith('.tsx') || sourceData.name.endsWith('.jsx');
       const fileBaseName = sourceData.name.replace(/\.[^.]+$/, '');
-      const translationObject = fileBaseName.charAt(0).toLowerCase() + fileBaseName.slice(1) + (tr?.['text_6'] ?? 'Translations');
+      const normalizedBase = fileBaseName
+        .replace(/[^a-zA-Z0-9]+(.)/g, (_, chr) => chr.toUpperCase())
+        .replace(/[^a-zA-Z0-9]/g, '');
+      const objectBase = normalizedBase ? normalizedBase.charAt(0).toLowerCase() + normalizedBase.slice(1) : 'source';
+      const translationObject = `${objectBase}Translations`;
 
       // Sort keys by value length (desc) to avoid partial replacements
       const sortedKeys = Object.entries(extractedKeys).sort((a, b) => b[1].length - a[1].length);
 
+      const isInsideExistingI18nExpression = (source: string, index: number): boolean => {
+        const lookBehind = source.slice(Math.max(0, index - 120), index);
+        const lookAround = source.slice(Math.max(0, index - 140), Math.min(source.length, index + 140));
+        if (/tr\?\.\['[^']+'\]\s*\?\?\s*$/.test(lookBehind)) return true;
+        if (/tr\?\.\['[^']+'\]\s*\?\?/.test(lookAround)) return true;
+        return false;
+      };
+
+      const validateGeneratedCodeSyntax = (code: string, fileName: string): void => {
+        const lower = fileName.toLowerCase();
+        const plugins: any[] = [];
+
+        if (lower.endsWith('.tsx')) {
+          plugins.push('typescript', 'jsx');
+        } else if (lower.endsWith('.ts')) {
+          plugins.push('typescript');
+        } else if (lower.endsWith('.jsx')) {
+          plugins.push('jsx');
+        }
+
+        // Fail-safe: do not emit auto-generated code if parser detects syntax issues.
+        parse(code, {
+          sourceType: 'module',
+          plugins,
+          errorRecovery: false,
+        });
+      };
+
+      let safeModeUsedOverall = false;
+
       if (isJSX) {
         // Add import if not present
-        if (!modifiedCode.includes("import { useLanguage } from")) {
-          const importStatement = `import { useLanguage } from '../../language/useLanguage';\n\n`;
+        if (!modifiedCode.includes('useLanguage')) {
+          const importStatement = `import { useLanguage } from '@apps/fablab/language/useLanguage';\n`;
           modifiedCode = importStatement + modifiedCode;
         }
 
         // Add useLanguage hook in component
         if (!modifiedCode.includes('const { t } = useLanguage()')) {
-          // Try multiple patterns to find where to insert the hook
-          let componentMatch = modifiedCode.match(/const\s+\w+.*?=.*?=>\s*{/);
-          if (!componentMatch) {
-            componentMatch = modifiedCode.match(/function\s+\w+\s*\([^)]*\)\s*{/);
-          }
-          if (!componentMatch) {
-            componentMatch = modifiedCode.match(/export\s+const\s+\w+.*?=.*?=>\s*{/);
-          }
-          if (!componentMatch) {
-            componentMatch = modifiedCode.match(/export\s+function\s+\w+\s*\([^)]*\)\s*{/);
+          // Match the component declaration first to avoid injecting the hook inside nested callbacks
+          const componentPatterns = [
+            /export\s+default\s+function\s+\w+\s*\([^)]*\)\s*{/,
+            /export\s+function\s+\w+\s*\([^)]*\)\s*{/,
+            /export\s+const\s+\w+[^=]*=\s*\([^)]*\)\s*=>\s*{/,
+            /const\s+\w+[^=]*=\s*\([^)]*\)\s*=>\s*{/,
+            /function\s+\w+\s*\([^)]*\)\s*{/
+          ];
+
+          let componentMatch: RegExpMatchArray | null = null;
+          for (const pattern of componentPatterns) {
+            componentMatch = modifiedCode.match(pattern);
+            if (componentMatch) break;
           }
           
           if (componentMatch && componentMatch.index !== undefined) {
@@ -365,22 +403,88 @@ export const TranslationView: React.FC = () => {
           }
         }
 
-        // Replace hardcoded strings with translation variables
-        for (const [key, value] of sortedKeys) {
-          const escaped = value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-          const patterns = [
-            new RegExp(`>\\s*${escaped}\\s*<`, 'g'),
-            new RegExp(`"${escaped}"`, 'g'),
-            new RegExp(`'${escaped}'`, 'g'),
-          ];
-          for (const pattern of patterns) {
-            modifiedCode = modifiedCode.replace(pattern, (match) => {
-              if (match.startsWith('>')) {
-                return `>{tr?.['${key}'] ?? '${value}'}<`;
-              }
-              return `{tr?.['${key}'] ?? '${value}'}`;
+        const codeWithHooks = modifiedCode;
+
+        const applyI18nReplacements = (source: string, allowGenericQuoted: boolean): string => {
+          let code = source;
+          const translatableAttrGroup = '(?:placeholder|title|alt|label|aria-label|aria-description|tooltip|hint|helperText)';
+
+          for (const [key, value] of sortedKeys) {
+            const escaped = value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const escapedFallback = value
+              .replace(/\\/g, '\\\\')
+              .replace(/'/g, "\\'")
+              .replace(/\r?\n/g, '\\n');
+
+            if (allowGenericQuoted) {
+              // Aggressive mode: quoted literals in JS/TS and JSX contexts.
+              const quotedPattern = new RegExp(`(["'])${escaped}\\1`, 'g');
+              code = code.replace(quotedPattern, (match, _quote, offset, innerSource) => {
+                const start = typeof offset === 'number' ? offset : 0;
+                if (isInsideExistingI18nExpression(innerSource, start)) return match;
+                const expr = `tr?.['${key}'] ?? '${escapedFallback}'`;
+
+                // Parenthesize in JS/TS contexts to avoid ||/&& with ?? precedence issues.
+                // JSX attrs are normalized later (attr=(...) -> attr={(...)}) only for known translatable props.
+                return `(${expr})`;
+              });
+            } else {
+              // Safe mode: only JSX attribute literals (avoid TS type literals like 'text' | 'options').
+              const jsxAttributePattern = new RegExp(`\\b(${translatableAttrGroup})\\s*=\\s*(["'])${escaped}\\2`, 'g');
+              code = code.replace(jsxAttributePattern, `$1={(tr?.['${key}'] ?? '${escapedFallback}')}`);
+            }
+
+            // Replace JSX text nodes in both modes.
+            const jsxTextPattern = new RegExp(`>\\s*${escaped}\\s*<`, 'g');
+            code = code.replace(jsxTextPattern, (match, offset, innerSource) => {
+              const start = typeof offset === 'number' ? offset : 0;
+              if (isInsideExistingI18nExpression(innerSource, start)) return match;
+              return `>{tr?.['${key}'] ?? '${escapedFallback}'}<`;
             });
           }
+
+          // Safety normalization for known broken patterns from previous auto-runs.
+          // Only wrap known translatable JSX props; never rewrite plain JS assignments.
+          code = code
+            .replace(
+              new RegExp(`\\b(${translatableAttrGroup})=\\((tr\\?\\.\\['[^']+'\\]\\s*\\?\\?\\s*'((?:\\\\'|[^'])*)')\\)`, 'g'),
+              '$1={($2)}'
+            )
+            .replace(
+              /(\|\||&&)\s*tr\?\.\['([^']+)'\]\s*\?\?\s*'((?:\\'|[^'])*)'/g,
+              "$1 (tr?.['$2'] ?? '$3')"
+            );
+
+          return code;
+        };
+
+        let syntaxFailureReason = '';
+        let safeModeUsed = false;
+
+        // 1) Try aggressive mode first.
+        modifiedCode = applyI18nReplacements(codeWithHooks, true);
+        try {
+          validateGeneratedCodeSyntax(modifiedCode, sourceData.name);
+        } catch (syntaxErr: any) {
+          syntaxFailureReason = String(syntaxErr?.message || '').split('\n')[0];
+
+          // 2) Fallback safe mode: JSX-only replacements.
+          modifiedCode = applyI18nReplacements(codeWithHooks, false);
+          try {
+            validateGeneratedCodeSyntax(modifiedCode, sourceData.name);
+            safeModeUsed = true;
+          } catch (safeSyntaxErr: any) {
+            const safeReason = String(safeSyntaxErr?.message || '').split('\n')[0];
+            throw new Error(
+              `Auto-i18n detectó sintaxis inválida y canceló la generación. Modo completo: ${syntaxFailureReason}. Modo seguro: ${safeReason}`
+            );
+          }
+        }
+
+        if (safeModeUsed) {
+          safeModeUsedOverall = true;
+          setProcessSuccess('Código i18n generado en modo seguro (solo JSX) para evitar errores de sintaxis.');
+          setTimeout(() => setProcessSuccess(null), 4000);
         }
       }
 
@@ -399,8 +503,10 @@ export const TranslationView: React.FC = () => {
         i18n_code: i18nData
       });
 
-      setProcessSuccess(tr?.['text_7'] ?? 'Código i18n generado. Puedes descargarlo o aplicarlo al proyecto.');
-      setTimeout(() => setProcessSuccess(null), 3000);
+      if (!safeModeUsedOverall) {
+        setProcessSuccess(tr?.['text_7'] ?? 'Código i18n generado. Puedes descargarlo o aplicarlo al proyecto.');
+        setTimeout(() => setProcessSuccess(null), 3000);
+      }
     } catch (err: any) {
       setProcessError(`Error generando código i18n: ` + ((err.message ?? tr?.['text_5']) ?? 'Error desconocido'));
     } finally {
@@ -446,16 +552,19 @@ export const TranslationView: React.FC = () => {
 
   // Apply to project (Step 3)
   const handleApplyToProject = async () => {
-    if (!results.es && !results.en && !results.fr && !results.i18n_code) {
-      setSaveError(tr?.['text_8'] ?? 'No hay traducciones ni código para aplicar');
+    if (!results.i18n_code) {
+      setSaveError('Debes ejecutar "Generar código i18n" en el Paso 2 antes de aplicar al proyecto.');
+      return;
+    }
+
+    if (!results.es && !results.en && !results.fr) {
+      setSaveError(tr?.['text_8'] ?? 'No hay traducciones para aplicar');
       return;
     }
     setSavingToProject(true);
     setSaveError(null);
     try {
-      const sourceFileName = results.i18n_code?.fileName
-        ? results.i18n_code.fileName.replace(/^i18n_/, '')
-        : (tr?.['text_9'] ?? 'source.tsx');
+      const sourceFileName = results.i18n_code.fileName.replace(/^i18n_/, '');
 
       const response = await httpClient.post<any>('/api/v1/translation/save-to-project', {
         translations: {
@@ -464,10 +573,10 @@ export const TranslationView: React.FC = () => {
           fr: results.fr
         },
         source_file_name: sourceFileName,
-        i18n_code: results.i18n_code ? {
+        i18n_code: {
           content: results.i18n_code.content,
           fileName: sourceFileName
-        } : null
+        }
       });
 
       setSaveSuccess(tr?.['text_10'] ?? '¡Todo aplicado correctamente!');
