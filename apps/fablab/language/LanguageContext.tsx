@@ -178,11 +178,6 @@ export const LanguageProvider: React.FC<LanguageProviderProps> = ({ children }) 
     // Force load on first mount
     loadUserLanguage(true);
 
-    // Poll for language changes every 30 seconds (without force)
-    const intervalId = setInterval(() => {
-      loadUserLanguage(false);
-    }, 30000);
-
     // Listen for language change events for immediate updates (force reload)
     const handleLanguageChange = () => {
       loadUserLanguage(true);
@@ -190,9 +185,41 @@ export const LanguageProvider: React.FC<LanguageProviderProps> = ({ children }) 
 
     window.addEventListener('languageChanged', handleLanguageChange);
 
+    // BroadcastChannel: sync language changes across tabs immediately
+    let bc: BroadcastChannel | null = null;
+    if (typeof BroadcastChannel !== 'undefined') {
+      try {
+        bc = new BroadcastChannel('aimaker_language_sync');
+        bc.onmessage = (event) => {
+          if (event.data?.type === 'language-changed') {
+            loadUserLanguage(true);
+          }
+        };
+      } catch {
+        // BroadcastChannel not available (e.g., Safari private mode)
+      }
+    }
+
+    // Visibility API: reload language when user returns to the tab
+    // Covers: changes from other devices, admin changes, new custom languages
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        // Only reload if we haven't checked recently (avoid rapid switches)
+        const lastCheck = localStorage.getItem('aimaker_language_last_check');
+        const now = Date.now();
+        if (!lastCheck || now - parseInt(lastCheck, 10) > 5000) {
+          loadUserLanguage(false);
+          localStorage.setItem('aimaker_language_last_check', now.toString());
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
     return () => {
-      clearInterval(intervalId);
       window.removeEventListener('languageChanged', handleLanguageChange);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      bc?.close();
     };
   }, [loadUserLanguage]);
 

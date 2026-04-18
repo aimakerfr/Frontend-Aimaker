@@ -90,6 +90,17 @@ const ProfileSection: React.FC<{ user: UserProfile | null }> = () => {
         window.dispatchEvent(new CustomEvent('languageChanged', { 
           detail: { language: editForm.uiLanguage } 
         }));
+        
+        // Broadcast to other tabs via BroadcastChannel
+        if (typeof BroadcastChannel !== 'undefined') {
+          try {
+            const bc = new BroadcastChannel('aimaker_language_sync');
+            bc.postMessage({ type: 'language-changed', language: editForm.uiLanguage });
+            bc.close();
+          } catch {
+            // BroadcastChannel not available
+          }
+        }
       }
     } catch (error) {
       console.error('Error al actualizar perfil:', error);
